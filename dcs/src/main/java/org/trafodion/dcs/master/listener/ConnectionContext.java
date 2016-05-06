@@ -83,7 +83,8 @@ public class ConnectionContext {
 	String ccExtention;
 	
     private final LinkedHashMap<String, LinkedHashMap<String,Object>> idleServers = new LinkedHashMap<String, LinkedHashMap<String,Object>>();
-    private final LinkedHashMap<String, LinkedHashMap<String,Object>> reusedServers = new LinkedHashMap<String, LinkedHashMap<String,Object>>();
+    private final LinkedHashMap<String, LinkedHashMap<String,Object>> reusedSlaServers = new LinkedHashMap<String, LinkedHashMap<String,Object>>();
+    private final LinkedHashMap<String, LinkedHashMap<String,Object>> reusedOtherServers = new LinkedHashMap<String, LinkedHashMap<String,Object>>();
     
     HashMap<String, HashMap<String,String>> closedServers;
 	
@@ -169,6 +170,7 @@ public class ConnectionContext {
     		    String key = it.next().toString();
     		    String value = jsonObj.get(key).toString();
     		    attributes.put(key,  value);
+                System.out.println("cc[attributes] key=value :" + key + "=" + value);
     	        if(LOG.isDebugEnabled())
     	            LOG.debug("key=value :" + key + "=" + value);
     		}
@@ -195,9 +197,11 @@ public class ConnectionContext {
 	 */
 
     public  void setAvailableServers(HashMap<String, String> availableServers){
-        reusedServers.clear();
+        reusedSlaServers.clear();
+        reusedOtherServers.clear();
         idleServers .clear();
         Set<String> keys = availableServers.keySet();
+        System.out.println("Available Servers :" + keys);
 
         for( String key : keys){
             String[] stNode = key.split(":");
@@ -207,34 +211,39 @@ public class ConnectionContext {
             if (hostList.isEmpty() || hostList.contains(hostName)){
                 String value = availableServers.get(key);
                 String[] sValue = value.split(":");
-                if(sValue.length == 8 || sValue[11].equals(sla)){
-                    LinkedHashMap<String,Object> attr = new LinkedHashMap<String,Object>();
-                    attr.put(Constants.HOST_NAME, hostName);
-                    attr.put(Constants.INSTANCE, instance);
-                    attr.put(Constants.TIMESTAMP, Long.parseLong(sValue[1]));
-                    attr.put(Constants.NODE_ID, Integer.parseInt(sValue[3]));
-                    attr.put(Constants.PROCESS_ID, Integer.parseInt(sValue[4]));
-                    attr.put(Constants.PROCESS_NAME, sValue[5]);
-                    attr.put(Constants.IP_ADDRESS, sValue[6]);
-                    attr.put(Constants.PORT, Integer.parseInt(sValue[7]));
-//
-                    if(sValue.length > 8){
-                        attr.put(Constants.COMPUTER_NAME, sValue[8]);
-                        attr.put(Constants.CLIENT_SOCKET, sValue[9]);
-                        attr.put(Constants.WINDOW_TEXT, sValue[10]);
-                        attr.put(Constants.MAPPED_SLA, sValue[11]);
-                        attr.put(Constants.MAPPED_PROFILE, sValue[12]);
-                        attr.put(Constants.MAPPED_PROFILE_TIMESTAMP, Long.parseLong(sValue[13]));
-                        reusedServers.put(key, attr);
+                System.out.println("sValue.length :" + sValue.length);
+                LinkedHashMap<String,Object> attr = new LinkedHashMap<String,Object>();
+                attr.put(Constants.HOST_NAME, hostName);
+                attr.put(Constants.INSTANCE, instance);
+                attr.put(Constants.TIMESTAMP, Long.parseLong(sValue[1]));
+                attr.put(Constants.NODE_ID, Integer.parseInt(sValue[3]));
+                attr.put(Constants.PROCESS_ID, Integer.parseInt(sValue[4]));
+                attr.put(Constants.PROCESS_NAME, sValue[5]);
+                attr.put(Constants.IP_ADDRESS, sValue[6]);
+                attr.put(Constants.PORT, Integer.parseInt(sValue[7]));
+                if(sValue.length == 8){
+                    idleServers.put(key, attr);
+                }
+                else {
+                    attr.put(Constants.COMPUTER_NAME, sValue[8]);
+                    attr.put(Constants.CLIENT_SOCKET, sValue[9]);
+                    attr.put(Constants.WINDOW_TEXT, sValue[10]);
+                    attr.put(Constants.MAPPED_SLA, sValue[11]);
+                    attr.put(Constants.MAPPED_PROFILE, sValue[12]);
+                    attr.put(Constants.MAPPED_PROFILE_TIMESTAMP, Long.parseLong(sValue[13]));
+                    if(sValue[11].equals(sla)){
+                        reusedSlaServers.put(key, attr);
                     }
                     else {
-                        idleServers.put(key, attr);
+                        reusedOtherServers.put(key, attr);
                     }
                 }
             }
         }
-        if( ! reusedServers.isEmpty())
-            sortByTimestamp(reusedServers);
+        if( ! reusedSlaServers.isEmpty())
+            sortByTimestamp(reusedSlaServers);
+        if( ! reusedOtherServers.isEmpty())
+            sortByTimestamp(reusedOtherServers);
     }
     private static void sortByTimestamp(Map<String, LinkedHashMap<String,Object>> map) { 
         List<Set<Map.Entry<String,Object>>> list = new LinkedList(map.entrySet());
@@ -322,10 +331,13 @@ public class ConnectionContext {
         if(limit == 0)return false;
         return curLimit > limit;
     }
-    public LinkedHashMap<String, LinkedHashMap<String,Object>> getReusedAvailableServers(){
-        return reusedServers;
+    public LinkedHashMap<String, LinkedHashMap<String,Object>> getReusedSlaServers(){
+        return reusedSlaServers;
     }
-    public LinkedHashMap<String, LinkedHashMap<String,Object>> getIdleAvailableServers(){
+    public LinkedHashMap<String, LinkedHashMap<String,Object>> getReusedOtherServers(){
+        return reusedOtherServers;
+    }
+    public LinkedHashMap<String, LinkedHashMap<String,Object>> getIdleServers(){
         return idleServers;
     }
     public HashMap<String, String> getAttributes(){
@@ -339,7 +351,7 @@ public class ConnectionContext {
         return curThroughput > throughput;
     }
     public boolean isAvailable(){
-        if(idleServers.size() == 0 && reusedServers.size() == 0)return false; 
+        if(idleServers.size() == 0 && reusedSlaServers.size() == 0 && reusedOtherServers.size() == 0)return false; 
         return true;
     }
 }

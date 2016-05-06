@@ -2001,6 +2001,16 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 	char zkErrStr[128];
 	char *data = NULL;
 
+	string user;
+	string sla;
+	string profile;
+	string lastUpdate;
+	string definedSla ;
+	string definedProfile;
+
+	string connectProfile;
+	string disconnectProfile;
+
 	int rc = zoo_exists(zh, dcsRegisteredNode.c_str(), 0, &stat);
 	if( rc == ZOK )
 	{
@@ -2096,6 +2106,153 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 				odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
 				return;
 			}
+/*========================= get SLA ========================================
+            timestamp,--------------------------2
+            dialogueId,-------------------------3
+            serverNodeId,-----------------------4
+            serverProcessId,--------------------5
+            serverProcessName,------------------6
+            serverIpAddress,--------------------7
+            serverPort,-------------------------8
+            computerName,-----------------------9
+            clientSocketAddress,----------------10
+            windowText,-------------------------11
+            sla,--------------------------------12
+            profile,----------------------------13
+            lastUpdate--------------------------14
+*/
+
+			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #4
+			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #5
+			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #6
+			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #7
+			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #8
+			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #9
+			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #10
+			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #11
+			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #12
+			else
+				sla = string(tkn);
+			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #13
+			else
+				profile = string(tkn);
+			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #14
+			else
+				lastUpdate = string(tkn);
+TNULL:
+			if( tkn == NULL )
+			{
+				SendEventMsg(MSG_PROGRAMMING_ERROR, EVENTLOG_ERROR_TYPE,
+					srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+					1, "No expected tokens in registered node. Server exiting.");
+				exitServerProcess();
+			}
+// build sla path from zk node /<user name>/wms/slas/sla
+			char * cstr = new char [dcsRegisteredNode.length()+1];
+			strcpy (cstr, dcsRegisteredNode.c_str() + 1); //skip first "/"
+			char * p = strtok (cstr,"/");
+			if(p!=0)
+				user = string(p);
+			else
+			{
+				SendEventMsg(MSG_PROGRAMMING_ERROR, EVENTLOG_ERROR_TYPE,
+					srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+					1, "Can not get <user> token from registered node. Server exiting.");
+				exitServerProcess();
+			}
+			delete[] cstr;
+//SLA
+			definedSla = "/" + user + "/wms/slas/" + sla;
+			rc == zoo_exists(zh, definedSla.c_str(), false, &stat);
+            if (rc == ZOK )
+            {
+				char* slaData=NULL;
+				int slaDataLen = 0;
+            	slaDataLen = stat.dataLength;
+				slaData = new char[slaDataLen + 1];
+
+				rc = zoo_get(zh, definedSla.c_str(), false, slaData, &slaDataLen, &stat);
+				if( rc == ZOK )
+				{
+					// isDefault=no:priority=1:limit=:throughput=:onConnectProfile=testProfile:onDisconnectProfile=defaultProfile:lastUpdate=1462326660114
+					tkn = strtok(slaData, "=");
+
+					while(true)
+					{
+						if(tkn == NULL) break;
+						if(strcmp(tkn, "onConnectProfile") == 0)
+						{
+							tkn = strtok(NULL,":");
+							connectProfile = string(tkn);
+						}
+						else if(strcmp(tkn, "onConnectProfile") == 0)
+						{
+							tkn = strtok(NULL,":");
+							disconnectProfile = string(tkn);
+						}
+						else
+							tkn = strtok(NULL, ":");
+						tkn = strtok(NULL, "=");
+					}
+					if(connectProfile.length()==0)
+						connectProfile = string("defaultProfile");
+					if(disconnectProfile.length()==0)
+						disconnectProfile = string("defaultProfile");
+				}
+				if(slaData!=NULL)
+					delete[]slaData;
+            }
+		}
+//Profiles
+		if( rc == ZOK )
+		{
+			char* profData=NULL;
+			int profDataLen = 0;
+			unsigned int version = 0;
+			unsigned int aversion = 0;
+			unsigned int cversion = 0;
+
+			definedProfile = "/" + user + "/wms/profiles/" + connectProfile;
+			rc == zoo_exists(zh, definedProfile.c_str(), false, &stat);
+            if (rc == ZOK )
+            {
+            	version = stat.version;
+            	cversion = stat.cversion;
+            	aversion = stat.aversion;
+            	profDataLen = stat.dataLength;
+				profData = new char[profDataLen + 1];
+
+				rc = zoo_get(zh, definedProfile.c_str(), false, profData, &profDataLen, &stat);
+				if( rc == ZOK )
+				{
+				}
+				if(profData != NULL)
+					delete[] profData;
+            }
+            if (rc == ZOK){
+				profData=NULL;
+				profDataLen = 0;
+				version = 0;
+				aversion = 0;
+				cversion = 0;
+				definedProfile = "/" + user + "/wms/profiles/" + disconnectProfile;
+				rc == zoo_exists(zh, definedProfile.c_str(), false, &stat);
+				if (rc == ZOK )
+				{
+					version = stat.version;
+					cversion = stat.cversion;
+					aversion = stat.aversion;
+					profDataLen = stat.dataLength;
+					profData = new char[profDataLen];
+
+					rc = zoo_get(zh, definedProfile.c_str(), false, profData, &profDataLen, &stat);
+					if( rc == ZOK )
+					{
+					}
+					if(profData != NULL)
+						delete[] profData;
+				}
+            }
 		}
 	}
 

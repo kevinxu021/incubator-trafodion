@@ -114,6 +114,7 @@ class ConnectReply {
         LinkedHashMap<String,Object> attributes;
          
         listener.getMapping().findProfile( cc);
+        listener.getRegisteredServers().getServers(cc);
         
         try {
 
@@ -129,15 +130,18 @@ class ConnectReply {
                 throw new IOException("Reached Max Throughput of Connected Servers - SLA :" + cc.getSla() + " Throughput :" + cc.getThroughput() + " Current Throughput :" + cc.getCurrentThroughput());
             }
             
-            LinkedHashMap<String, LinkedHashMap<String,Object>> reusedServers = cc.getReusedAvailableServers();
-            LinkedHashMap<String, LinkedHashMap<String,Object>> idleServers = cc.getIdleAvailableServers();
-            if(reusedServers.size() > 0){
-                server = reusedServers.keySet().iterator().next();
-                attributes = reusedServers.get(server);
-                
+            LinkedHashMap<String, LinkedHashMap<String,Object>> reusedSlaServers = cc.getReusedSlaServers();
+            LinkedHashMap<String, LinkedHashMap<String,Object>> reusedOtherServers = cc.getReusedOtherServers();
+            LinkedHashMap<String, LinkedHashMap<String,Object>> idleServers = cc.getIdleServers();
+            if(reusedOtherServers.size() > 0){
+                server = reusedOtherServers.keySet().iterator().next();
+                attributes = reusedOtherServers.get(server);
             } else if(idleServers.size() > 0){
                 server = idleServers.keySet().iterator().next();
                 attributes = idleServers.get(server);
+            } else if(reusedSlaServers.size() > 0){
+                server = reusedSlaServers.keySet().iterator().next();
+                attributes = reusedSlaServers.get(server);
             } else {
                 throw new IOException("No Available Servers - idle and reused size is 0");
             }
@@ -184,6 +188,8 @@ class ConnectReply {
                     ));
             nodeRegisteredPath = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED + "/" + server;
             zkc.setData(nodeRegisteredPath, data, -1);
+            System.out.println("nodeRegisteredPath :" + nodeRegisteredPath);
+            System.out.println("data :" + new String(data));
          } catch (KeeperException.NodeExistsException e) {
             LOG.error(clientSocketAddress + ": " + "do nothing...some other server has created znodes: " + e.getMessage());
             exceptionThrown = true;

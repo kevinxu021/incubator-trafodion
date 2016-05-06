@@ -204,13 +204,16 @@ public class DefinedMapping  {
         
         HashMap<String, String> attributes = cc.getAttributes();
         Set<String> mappingsKeys = mappingsMap.keySet();
+        
         boolean bFound = false;
         for(String mappingsKey : mappingsKeys){
+            System.out.println("mappingsKey :" + mappingsKey);
             boolean bNotEqual = false;
             LinkedHashMap<String,String> mapp = mappingsMap.get(mappingsKey);
             Set<String> mappKeys = mapp.keySet();
             for(String mappKey : mappKeys){
                 String value = mapp.get(mappKey);
+
                 if (value == null || value.length()==0)continue;
                 if (mappKey.equals(Constants.IS_ACTIVE) && value.equals("no")) break;
                 attribute = "";
@@ -223,23 +226,24 @@ public class DefinedMapping  {
                     case Constants.CLIENT_IP_ADDRESS:
                     case Constants.CLIENT_HOST_NAME:
                         attribute = attributes.get(mappKey);
+                        System.out.println("mappKey :" + mappKey + " attribute :" + attribute + " value :" + value);
                         if (attribute == null || attribute.length()==0)break;
                         if (!attribute.equals(value))
                             bNotEqual = true;
-                        break;
-                    case Constants.SLA:
-                        sla = value;
                         break;
                 }
                 if (bNotEqual == true)break;
             }
             if (bNotEqual == false){
                 bFound = true;
+                sla = mapp.get(Constants.SLA);
                 break;
             }
         }
         if (bFound == false)
             sla = Constants.DEFAULT_WMS_SLA_NAME;
+        System.out.println("sla :" + sla);
+        
         String znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + sla;
         byte data[];
         try {
@@ -274,6 +278,7 @@ public class DefinedMapping  {
             throughput = "";
         }
         znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + profile;
+        System.out.println("Profile znode :" + znode);
         try {
             Stat stat = zkc.exists(znode,false);
             if(stat != null) {
@@ -303,5 +308,12 @@ public class DefinedMapping  {
         cc.setThroughput(throughput);
         cc.setProfile(profile);
         cc.setLastUpdate(lastUpdate);
+        System.out.println("sla :" + sla);
+        System.out.println("priority :" + priority);
+        System.out.println("limit :" + limit);
+        System.out.println("throughput :" + throughput);
+        System.out.println("profile :" + profile);
+        System.out.println("lastUpdate :" + lastUpdate);
+        
     }
 }
