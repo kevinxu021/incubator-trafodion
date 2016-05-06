@@ -992,17 +992,6 @@ void OptimizerSimulator::loadHiveDDLs()
     std::ifstream hiveCreateExternalTableSql(logFilePaths_[HIVE_CREATE_EXTERNAL_TABLE]);
     if(!hiveTableListFile.good() || !hiveCreateTableSql.good())
        return;
-    //create hive external schema
-    const char * create_ext_schema = "CREATE SCHEMA IF NOT EXISTS "
-                                                              "TRAFODION.\"_HV_HIVE_\" AUTHORIZATION DB__ROOT";
-    retcode = executeFromMetaContext(create_ext_schema);
-    if(retcode < 0)
-    {
-         CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
-         raiseOsimException("create hive external schema: %d %s", retcode, statement.data());
-    }
-    //set default schema to hive external schema
-    executeFromMetaContext("SET SCHEMA TRAFODION.\"_HV_HIVE_\"");
 
     //read hive sql file and create hive table
     std::string str;
@@ -1027,13 +1016,27 @@ void OptimizerSimulator::loadHiveDDLs()
     }
 
     NAHashDictionaryIterator<const QualifiedName, Int64> iterator(*hashDict_HiveTables_);
-    //drop external tables and hive tables with same names 
+    //create hive schema and trafodion external schema and 
+    //drop external tables and hive tables with same names
     for(iterator.getNext(qualName, tableUID); qualName && tableUID; iterator.getNext(qualName, tableUID))
     {
         trafName = ComConvertNativeNameToTrafName(
                                                                         qualName->getCatalogName(),
                                                                         qualName->getSchemaName(),
                                                                         qualName->getObjectName());
+
+        QualifiedName qualTrafName(trafName,3);
+         //create external table schema
+         NAString create_ext_schema = "CREATE SCHEMA IF NOT EXISTS ";
+         create_ext_schema += qualTrafName.getCatalogName();
+         create_ext_schema += ".\"";
+         create_ext_schema += qualTrafName.getSchemaName();
+         create_ext_schema += "\" AUTHORIZATION DB__ROOT";
+         retcode = executeFromMetaContext(create_ext_schema);
+         if(retcode < 0) {
+             CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
+             raiseOsimException("create hive external schema: %d %s", retcode, statement.data());
+         }
          //drop external table
          NAString dropStmt = "DROP TABLE IF EXISTS ";
          dropStmt += trafName;
@@ -1043,8 +1046,17 @@ void OptimizerSimulator::loadHiveDDLs()
              CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
              raiseOsimException("drop external table: %d", retcode);
          }
+
+         //create hive schema
+         NAString hiveSchemaName;
+         qualName->getHiveSchemaName(hiveSchemaName);
+         NAString create_hive_schema = "CREATE SCHEMA IF NOT EXISTS ";
+         create_hive_schema += hiveSchemaName;
+         execHiveSQL(create_hive_schema.data());
          //drop hive table
-         dropStmt = "DROP TABLE ";
+         dropStmt = "DROP TABLE IF EXISTS ";
+         dropStmt += hiveSchemaName;
+         dropStmt +=  '.';
          dropStmt += qualName->getObjectName();
          execHiveSQL(dropStmt.data());//drop hive table
     }
@@ -1320,9 +1332,7 @@ NABoolean OptimizerSimulator::massageTableUID(OsimHistogramEntry* entry, NAHashD
   const char* fullPath = tmp.data();
   
   const char* catalog = entry->getCatalog();
-  const char* hiveCatalog = "TRAFODION";
   const char* schema = entry->getSchema();
-  const char*  hiveSchema = "_HV_HIVE_";
   const char* table = entry->getTable();
   const char* histogramTableName = entry->getHistogram();
   
@@ -1335,7 +1345,15 @@ NABoolean OptimizerSimulator::massageTableUID(OsimHistogramEntry* entry, NAHashD
   Int64 tableUID;
   //in _MD_.OBJECTS, schema of hive table is _HV_HIVE_, catalog is TRAFODION
   if(isHive)
-      tableUID = getTableUID(hiveCatalog, hiveSchema, table);
+  {
+      NAString trafName;
+      trafName = ComConvertNativeNameToTrafName(
+                                                                        entry->getCatalog(),
+                                                                        entry->getSchema(),
+                                                                        entry->getTable());
+      QualifiedName qname (trafName, 3);
+      tableUID = getTableUID(qname.getCatalogName(), qname.getSchemaName(), qname.getObjectName());
+  }
   else
       tableUID = getTableUID(catalog, schema, table);
 
