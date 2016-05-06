@@ -15,6 +15,12 @@ define([], function() { //"use strict";
 				if (!events.hasOwnProperty(eventName)) {
 					events[eventName] = [];
 				}
+				if (events.hasOwnProperty(eventName)) {
+					events[eventName] = $.grep(events[eventName], function (func) {
+						if(callback === func) //this callback already registered
+							return;
+					});
+				}
 				events[eventName].push(callback);
 			};
 

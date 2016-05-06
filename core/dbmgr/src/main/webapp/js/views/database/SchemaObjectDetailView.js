@@ -258,12 +258,20 @@ define([
 			}
 			pageStatus = {};
 			$(ATTRIBUTES_CONTAINER).empty();
+			$(ATTRIBUTES_ERROR_CONTAINER).text("");
 			$(COLUMNS_CONTAINER).empty();
+			$(COLUMNS_ERROR_CONTAINER).text("");
 			$(REGIONS_CONTAINER).empty();
+			$(REGIONS_ERROR_CONTAINER).text("");
 			$(STATISTICS_CONTAINER).empty();
+			$(STATISTICS_ERROR_CONTAINER).text("");
 			$(PRIVILEGES_CONTAINER).empty();
-			$(STATISTICS_CONTAINER).empty();
+			$(PRIVILEGES_ERROR_CONTAINER).text("");
+			$(USAGES_CONTAINER).empty();
+			$(USAGES_ERROR_CONTAINER).text("");
 			$(INDEXES_CONTAINER).empty();
+			$(INDEXES_ERROR_CONTAINER).text("");
+			
 			pageStatus.ddlFetched == false
 			if(ddlTextEditor){
 				ddlTextEditor.setValue("");
