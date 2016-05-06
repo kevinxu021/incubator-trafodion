@@ -58,11 +58,13 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			
 			validator = $(LIB_FORM).validate({
 				rules: {
-					"library_name": { required: true },
+					"schema_name": { required: true, validateSchemaName:true },
+					"library_name": { required: true, validateLibraryName: true },
 					"file_name": { required: true}
 				},
 				messages: {
-					"library_name": "Please enter a library name",
+					"schema_name": {"required":"Please enter a schema name"},
+					"library_name": {"required":"Please enter a library name"},
 					"file_name": "Please enter a code file name"
 		        },
 				highlight: function(element) {
@@ -81,6 +83,29 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 					}
 				}
 			});
+			$.validator.addMethod("validateSchemaName", function(value, element) {
+				var schemaName = $(SCHEMA_NAME).val();
+				var isNormalName = (!schemaName.startsWith("_") && (schemaName.match("^[\"a-zA-Z0-9_]+$")!=null));
+				if(!isNormalName){
+					if(schemaName.startsWith('"') && schemaName.endsWith('"')){
+						isNormalName = true;
+					}
+				}
+				return isNormalName;
+
+			}, "* Schema name contains special characters. It needs be enclosed within double quotes.");
+			
+			$.validator.addMethod("validateLibraryName", function(value, element) {
+				var libName = $(LIBRARY_NAME).val();
+				var isNormalName = (!libName.startsWith("_") && (libName.match("^[a-zA-Z0-9_]+$")!=null));
+				if(!isNormalName){
+					if(libName.startsWith('"') && libName.endsWith('"')){
+						isNormalName = true;
+					}
+				}
+				return isNormalName;
+
+			}, "* Library name contains special characters. It needs be enclosed within double quotes.");
 		},
 		doResume : function(args) {
 			$(FILE_SELECT).on('click', this.fileDialogOpened);
