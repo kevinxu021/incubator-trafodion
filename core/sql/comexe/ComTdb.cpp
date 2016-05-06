@@ -764,6 +764,13 @@ NA_EIDPROC char *ComTdb::findVTblPtrCom(short classID)
 #pragma warn(1506)  // warning elimination 
       break;
     }
+    case ex_BACKUP_RESTORE:
+    {
+#pragma nowarn(1506)   // warning elimination 
+      GetVTblPtr(vtblptr,ComTdbExeUtilBackupRestore);
+#pragma warn(1506)  // warning elimination 
+      break;
+    }
  case ex_LOB_INFO:
     {
 #pragma nowarn(1506)   // warning elimination 

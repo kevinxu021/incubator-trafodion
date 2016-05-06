@@ -123,6 +123,7 @@ ParKeyWord ParKeyWords::keyWords_[] = {
   ParKeyWord("AVERAGE_STREAM_WAIT", TOK_AVERAGE_STREAM_WAIT, NONRESTOKEN_),
   ParKeyWord("AVG",                TOK_AVG,         ANS_|RESWORD_|MPWORD_),
   ParKeyWord("BACKUP",             TOK_BACKUP,      NONRESTOKEN_),
+  ParKeyWord("BACKUPS",            TOK_BACKUPS,     NONRESTOKEN_),
   ParKeyWord("BALANCE",            TOK_BALANCE,     NONRESTOKEN_),
   ParKeyWord("BEFORE",             TOK_BEFORE,      ANS_|RESWORD_|NONRESTOKEN_),
   ParKeyWord("BEGIN",              TOK_BEGIN,       ANS_|RESWORD_|MPWORD_),

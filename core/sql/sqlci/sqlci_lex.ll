@@ -204,6 +204,7 @@ B			[ \t\n]+
 [Aa][Dd][Dd]                           return_IDENT_or_TOKEN( ADDtoken, 0);
 [Aa][Ll][Ll]                           return_IDENT_or_TOKEN(ALLtoken, 0);
 [Bb][Aa][Cc][Kk][Uu][Pp]               return_IDENT_or_TOKEN(BACKUP, 0);
+[Bb][Aa][Cc][Kk][Uu][Pp][Ss]           return_IDENT_or_TOKEN(BACKUPS, 0);
 [Bb][Ee][Gg][Ii][Nn]                   return_IDENT_or_TOKEN(TOK_BEGIN, 0);
 [Bb][Rr][Ii][Ee][Ff]                   return_IDENT_or_TOKEN(BRIEF, 0);
 [Bb][Tt]                               return_IDENT_or_TOKEN(TOK_BEGIN, 0);

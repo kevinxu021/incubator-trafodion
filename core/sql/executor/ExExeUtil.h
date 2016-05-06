@@ -2561,6 +2561,71 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------
+//ExExeUtilGetProcessStatisticsTdb
+//-----------------------------------------------------------------------
+class ExExeUtilBackupRestoreTdb : public ComTdbExeUtilBackupRestore
+{
+  public:
+
+    // ---------------------------------------------------------------------
+    // Constructor is only called to instantiate an object used for
+    // retrieval of the virtual table function pointer of the class while
+    // unpacking. An empty constructor is enough.
+    // ---------------------------------------------------------------------
+    NA_EIDPROC ExExeUtilBackupRestoreTdb()
+    {}
+
+    NA_EIDPROC virtual ~ExExeUtilBackupRestoreTdb()
+    {}
+
+    // ---------------------------------------------------------------------
+    // Build a TCB for this TDB. Redefined in the Executor project.
+    // ---------------------------------------------------------------------
+    NA_EIDPROC virtual ex_tcb *build(ex_globals *globals);
+    
+  private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------
+//ExExeUtilGetHbaseObjectsTcb
+//-----------------------------------------------------------------------
+class ExExeUtilBackupRestoreTcb : public ExExeUtilTcb
+{
+  friend class ExExeUtilBackupRestoreTdb;
+  friend class ExExeUtilPrivateState;
+
+  public:
+    // Constructor
+    ExExeUtilBackupRestoreTcb(
+        const ComTdbExeUtilBackupRestore & exe_util_tdb,
+        ex_globals * glob = 0);
+
+  ~ExExeUtilBackupRestoreTcb();
+
+  virtual short work();
+
+  private:
+    ExpHbaseInterface * ehi_;
+    char * backupName_;
+    Int32 currIndex_;
+    enum Step
+    {
+      INITIAL_,
+      SETUP_HBASE_QUERY_,
+      PROCESS_NEXT_ROW_,
+      EVAL_EXPR_,
+      HANDLE_ERROR_,
+      RETURN_ROW_,
+      ERROR_,
+      DONE_,
+    };
+
+    Step step_;
+};
+
+//////////////////////////////////////////////////////////////////////////
 // -----------------------------------------------------------------------
 // ExExeUtilGetHiveMetadataInfoTdb
 // -----------------------------------------------------------------------

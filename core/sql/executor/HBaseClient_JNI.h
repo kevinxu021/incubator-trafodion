@@ -838,7 +838,8 @@ public:
 	// Must be called.
 	BRC_RetCode init();
 	BRC_RetCode createSnapshot(const TextVec& tables, const char* backuptag);
-	BRC_RetCode restoreSnapshots(const char* backuptag);
+	BRC_RetCode restoreSnapshots(const char* backuptag, NABoolean timestamp = FALSE);
+	NAArray<HbaseStr>* listAllBackups(NAHeap *heap);
 	virtual char* getErrorText(BRC_RetCode errEnum);
 
 
@@ -850,6 +851,7 @@ private:
 		 JM_CTOR = 0
 		,JM_CREATE_SNAPSHOT
 		,JM_RESTORE_SNAPSHOTS
+		,JM_LIST_ALL_BACKUPS
 		,JM_GET_ERROR
 		,JM_LAST
 	};
@@ -871,6 +873,8 @@ jobjectArray convertToStringObjectArray(const HBASE_NAMELIST& nameList);
 jobjectArray convertToStringObjectArray(const NAText *text, int arrayLen);
 int convertStringObjectArrayToList(NAHeap *heap, jarray j_objArray, LIST(Text *)&list);
 int convertLongObjectArrayToList(NAHeap *heap, jlongArray j_longArray, LIST(Int64)&list);
+int convertByteArrayObjectArrayToNAArray(NAHeap *heap, jarray j_objArray, NAArray<HbaseStr> **retArray);
+void deleteNAArray(CollHeap *heap, NAArray<HbaseStr> *array);
 
 #endif
 
