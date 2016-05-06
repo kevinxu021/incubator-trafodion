@@ -44,40 +44,50 @@ HHDFSMasterHostList::~HHDFSMasterHostList()
 // translate a host name to a number (add host if needed)
 HostId HHDFSMasterHostList::getHostNum(const char *hostName)
 {
-  if (getHosts()->entries() == 0)
-     CMPASSERT(initializeWithSeaQuestNodes());
+  if (getHosts()->entries() == 0) {
+     NABoolean result = initializeWithSeaQuestNodes();
+     CMPASSERT(result);
+  }
 
   return getHostNumInternal(hostName);
 }
 
 CollIndex HHDFSMasterHostList::getNumSQNodes()
 { 
-  if (getHosts()->entries() == 0)
-    CMPASSERT(initializeWithSeaQuestNodes());
+  if (getHosts()->entries() == 0) {
+     NABoolean result = initializeWithSeaQuestNodes();
+     CMPASSERT(result);
+  }
 
    return numSQNodes_; 
 }
 
 CollIndex HHDFSMasterHostList::getNumNonSQNodes()
 {
-  if (getHosts()->entries() == 0)
-    CMPASSERT(initializeWithSeaQuestNodes());
+  if (getHosts()->entries() == 0) {
+     NABoolean result = initializeWithSeaQuestNodes();
+     CMPASSERT(result);
+  }
 
   return getHosts()->entries()-numSQNodes_;
 }
 
 NABoolean HHDFSMasterHostList::hasVirtualSQNodes()          
 { 
-  if (getHosts()->entries() == 0)
-    CMPASSERT(initializeWithSeaQuestNodes());
+  if (getHosts()->entries() == 0) {
+     NABoolean result = initializeWithSeaQuestNodes();
+     CMPASSERT(result);
+  }
 
    return hasVirtualSQNodes_; 
 }
 
 CollIndex HHDFSMasterHostList::entries()                 
 { 
-  if (getHosts()->entries() == 0)
-    CMPASSERT(initializeWithSeaQuestNodes());
+  if (getHosts()->entries() == 0) {
+     NABoolean result = initializeWithSeaQuestNodes();
+     CMPASSERT(result);
+  }
 
   return getHosts()->entries(); 
 }
