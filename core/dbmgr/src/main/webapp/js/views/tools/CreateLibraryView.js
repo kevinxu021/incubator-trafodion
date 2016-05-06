@@ -47,7 +47,9 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			this.currentURL = window.location.hash;
 			$(CREATE_BTN).on('click', this.uploadFile);
 			$(CLEAR_BTN).on('click', this.cleanField);
+			$(FILE_SELECT).on('click', this.fileDialogOpened);
 			$(FILE_SELECT).on('change', this.onFileSelected);
+
 			tHandler.on(tHandler.CREATE_LIBRARY_ERROR, this.createLibraryError);
 			tHandler.on(tHandler.CREATE_LIBRARY_SUCCESS, this.createLibrarySuccess);
 			tHandler.on(tHandler.EXECUTE_UPLOAD_CHUNK, this.executeUploadChunk);
@@ -81,6 +83,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			});
 		},
 		doResume : function(args) {
+			$(FILE_SELECT).on('click', this.fileDialogOpened);
 			this.currentURL = window.location.hash;
 			_args = args;
 			_this.processArgs();
@@ -90,15 +93,19 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 				$(CREATE_BTN).prop('disabled', false);
 				$(CLEAR_BTN).prop('disabled', false);
 			}
-			validator.resetForm();
 		},
 		doPause : function() {
+			$(FILE_SELECT).off('click', this.fileDialogOpened);
 			this.redirectFlag=true;
-			validator.resetForm();
+		},
+		fileDialogOpened: function(){
+			this.value = null; //reset the value so the file can be selected even if the same file that was selected before
 		},
 		processArgs: function(){
 			if( _args.schema != undefined){
 				$(SCHEMA_NAME).val( _args.schema);
+				$(LIBRARY_NAME).val("");
+				$(FILE_NAME).val("");
 			}
 			if(_args.library != undefined){
 				$(LIBRARY_NAME).val(_args.library);
@@ -129,6 +136,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 		},
 		
 		cleanField:function(){
+			_this.processArgs();
 			if(PAGE_MODE != "UPDATE"){
 				$(SCHEMA_NAME).val("");
 				$(LIBRARY_NAME).val("");
@@ -142,7 +150,6 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			CHUNKS=[];
 			UPLOAD_INDEX = 0;
 			UPLOAD_LENGTH = 0;
-			_this.processArgs();
 		},
 		uploadFile : function() {
 			if($(LIB_FORM).valid()){

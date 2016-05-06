@@ -481,6 +481,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_AVERAGE_STREAM_WAIT         /* Tandem extension non-reserved word */
 %token <tokval> TOK_AVG
 %token <tokval> TOK_BACKUP
+%token <tokval> TOK_BACKUPS
 %token <tokval> TOK_BEFORE
 
 %token <tokval> TOK_BEGIN
@@ -2820,6 +2821,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <relx>                    exe_util_get_statistics
 %type <relx>                    exe_util_get_uid
 %type <relx>                    exe_util_get_qid
+%type <relx>                    exe_util_backup_restore
 %type <relx>                    exe_util_get_lob_info
 %type <relx>                    exe_util_populate_in_memory_statistics
 %type <relx>                    exe_util_lob_extract
@@ -2828,7 +2830,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <boolean>                 load_sample_option
 %type <relx>                    exe_util_init_hbase
 %type <relx>                    backup_statement
-%type <relx>                    restore_statement     
+%type <relx>                    restore_statement
+%type <relx>                    unlock_trafodion     
 %type <hBaseBulkLoadOptionsList> optional_hbbload_options
 %type <hBaseBulkLoadOptionsList> hbbload_option_list
 %type <hBaseBulkLoadOption>      hbbload_option
@@ -13613,6 +13616,12 @@ query_specification : exe_util_get_qid
 				  RelRoot *root = new (PARSERHEAP())
 				    RelRoot($1, REL_ROOT);
                                 }
+                                
+query_specification : exe_util_backup_restore
+                                {
+          RelRoot *root = new (PARSERHEAP())
+            RelRoot($1, REL_ROOT);
+                                }
 
 query_specification : exe_util_get_lob_info
                                 {
@@ -14804,7 +14813,11 @@ interactive_query_expression:
                         {
           $$ = finalize($1);
         }
-              | exe_util_get_region_access_stats
+        | unlock_trafodion
+        {
+          $$ = finalize($1);
+        }
+           | exe_util_get_region_access_stats
                                 {
 				  $$ = finalize($1);
 				}
@@ -15883,6 +15896,12 @@ exe_util_get_qid : TOK_GET TOK_QID TOK_FOR TOK_STATEMENT IDENTIFIER
 	       }
 
 /* type relx */
+exe_util_backup_restore : TOK_GET TOK_TRAFODION TOK_BACKUPS
+               {
+                 $$ = new(PARSERHEAP()) ExeUtilBackupRestore(PARSERHEAP());
+         }
+         
+/* type relx */
 exe_util_populate_in_memory_statistics : TOK_GENERATE TOK_STATISTICS TOK_FOR TOK_TABLE table_name TOK_LIKE table_name optional_from_schema
                {
 		 YYERROR;
@@ -16581,6 +16600,42 @@ restore_statement : TOK_RESTORE TOK_TRAFODION QUOTED_STRING
     $$ = de;
        }
        
+       | TOK_RESTORE TOK_TRAFODION TOK_TO QUOTED_STRING
+     {
+       CharInfo::CharSet stmtCharSet = CharInfo::UnknownCharSet;
+       NAString * stmt = getSqlStmtStr ( stmtCharSet, PARSERHEAP());
+  
+       DDLExpr * de = new(PARSERHEAP()) DDLExpr(FALSE, FALSE, FALSE, FALSE,
+                                                            FALSE, FALSE,
+                  FALSE, FALSE, FALSE,
+                  (char*)stmt->data(),
+                  stmtCharSet,
+                  PARSERHEAP());
+      de->setRestore(TRUE);
+      de->setBackupTag((char*)$4->data());
+      de->setBackupTagTimeStamp(TRUE);
+      
+      $$ = de;
+       }
+
+/* type relx */
+unlock_trafodion : TOK_UNLOCK TOK_TRAFODION
+     {
+      CharInfo::CharSet stmtCharSet = CharInfo::UnknownCharSet;
+      NAString * stmt = getSqlStmtStr ( stmtCharSet, PARSERHEAP());
+
+      DDLExpr * de = new(PARSERHEAP()) DDLExpr(FALSE, FALSE, FALSE, FALSE,
+                                                          FALSE, FALSE,
+                FALSE, FALSE, FALSE,
+                (char*)stmt->data(),
+                stmtCharSet,
+                PARSERHEAP());
+      de->setUnlockTraf(TRUE);
+      
+     $$ = de;
+    }
+         
+                
 /* type relx */
 exe_util_get_region_access_stats : TOK_GET TOK_REGION stats_or_statistics TOK_FOR TOK_TABLE table_name
                {

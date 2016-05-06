@@ -276,7 +276,8 @@ short CmpSeabaseDDL::restore(DDLExpr * ddlExpr,
         return -1;
     }
 
-    retcode = ehi->restoreSnapshots(ddlExpr->getBackupTag());
+    retcode = ehi->restoreSnapshots(ddlExpr->getBackupTag(),
+                                    ddlExpr->getBackupTagTimeStamp());
     if (retcode < 0)
     {
         *CmpCommon::diags() << DgSqlCode(-8448)

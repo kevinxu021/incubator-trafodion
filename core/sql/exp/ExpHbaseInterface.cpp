@@ -261,9 +261,14 @@ Lng32 ExpHbaseInterface::createSnaphot(const std::vector<Text>& tables, const ch
 	return HBASE_CREATE_SNAPSHOT_ERROR;
 }
 
-Lng32 ExpHbaseInterface::restoreSnapshots(const char* backuptag)
+Lng32 ExpHbaseInterface::restoreSnapshots(const char* backuptag, NABoolean timestamp)
 {
     return HBASE_RESTORE_SNAPSHOT_ERROR;
+}
+
+NAArray<HbaseStr>* ExpHbaseInterface::listAllBackups()
+{
+  return NULL;
 }
 
 Lng32 ExpHbaseInterface::coProcAggr(
@@ -624,14 +629,14 @@ Lng32 ExpHbaseInterface_JNI::createSnaphot(const std::vector<Text>& tables, cons
 }
 
 //-------------------------------------------------------------------------------
-Lng32 ExpHbaseInterface_JNI::restoreSnapshots(const char* backuptag)
+Lng32 ExpHbaseInterface_JNI::restoreSnapshots(const char* backuptag, NABoolean timestamp)
 {
   if (brc_ == NULL || client_ == NULL)
   {
     return -HBASE_ACCESS_ERROR;
   }
     
-  retCode_ = brc_->restoreSnapshots(backuptag);
+  retCode_ = brc_->restoreSnapshots(backuptag, timestamp);
 
   if (retCode_ == BRC_OK)
     return HBASE_ACCESS_SUCCESS;
@@ -639,6 +644,16 @@ Lng32 ExpHbaseInterface_JNI::restoreSnapshots(const char* backuptag)
     return -HBASE_RESTORE_SNAPSHOT_ERROR;
 }
 
+NAArray<HbaseStr>* ExpHbaseInterface_JNI::listAllBackups()
+{
+  if (brc_ == NULL || client_ == NULL)
+  {
+    return NULL;
+  }
+  
+  NAArray<HbaseStr> *listArray = brc_->listAllBackups((NAHeap *)heap_);
+  return listArray;
+}
 //----------------------------------------------------------------------------
 Lng32 ExpHbaseInterface_JNI::exists(HbaseStr &tblName)
 {
