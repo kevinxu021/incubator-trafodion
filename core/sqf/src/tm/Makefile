@@ -31,7 +31,7 @@ HBASE_TRX_LOC    = $(MY_SQROOT)/src/seatrans/hbase-trx
 DEBUG		=
 DEFINES		= -DDEBUG -DxUSE_FILE_AUDIT 
 
-   LIBJVM        = -I. -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -L$(JAVA_HOME)/jre/lib/amd64/server -ljvm
+   LIBJVM        = -I. -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -L$(JAVA_HOME)/jre/lib/$(JRE_LIB_DIR)/server -ljvm
    LIBSBMS       = -L$(LIBEXPDIR) -lsbms
 
 ifeq ($(USE_THREADED_IO),1)

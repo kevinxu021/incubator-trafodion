@@ -28,7 +28,7 @@ include ../../../../macros.gmk
 include ../../../macros.gmk
 include ../macros.gmk
 
-LIBJVM        = -I. -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -L$(JAVA_HOME)/jre/lib/amd64/server -ljvm
+LIBJVM        = -I. -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -L$(JAVA_HOME)/jre/lib/$(JRE_LIB_DIR)/server -ljvm
 LIBSTESTRUN   = -L$(LIBEXPDIR) -lsbms -lshbasetmlib $(DEBUG)
 
 DEBUG		=
@@ -76,6 +76,7 @@ mavenbuild:
 	cp -pf target/trafodion-dtm-*.jar $(MY_SQROOT)/export/lib
 
 $(LIBEXPDIR)/libshbasetmlib.so: $(LIBSTMOBJS)
+	@echo "LIBJVM=$(LIBJVM)"
 	$(CXX) $(DTMOBJS) $(LNK_FLGS) $(LIBTMB) -shared -o $@ $(LIBSTMOBJS)
 
 $(LIBEXPDIR)/libidtm.so: $(LIBIDTMOBJS)

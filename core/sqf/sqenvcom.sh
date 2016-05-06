@@ -54,6 +54,13 @@ export TRAFODION_ENABLE_AUTHENTICATION=NO
 export SQ_IC=${SQ_IC:-TCP}
 export MPI_IC_ORDER=$SQ_IC
 
+ARCH=`arch`
+if [ "${ARCH:1:3}" == "ppc" ]; then
+    export JRE_LIB_DIR=${ARCH}
+else
+    export JRE_LIB_DIR="amd64"
+fi
+
 # use sock
 #export SQ_TRANS_SOCK=1
 
@@ -111,8 +118,8 @@ fi
 REQ_JDK_VER="1.7.0_67"
 if [[ -z "$JAVA_HOME" && -d "${TOOLSDIR}/jdk${REQ_JDK_VER}" ]]; then
   export JAVA_HOME="${TOOLSDIR}/jdk${REQ_JDK_VER}"
-elif [[ -z "$JAVA_HOME" && -d /usr/lib/jvm/java-1.7.0-openjdk.x86_64/ ]]; then
-  export JAVA_HOME="/usr/lib/jvm/java-1.7.0-openjdk.x86_64"
+elif [[ -z "$JAVA_HOME" && -d /usr/lib/jvm/java-1.7.0-openjdk.${ARCH}/ ]]; then
+  export JAVA_HOME="/usr/lib/jvm/java-1.7.0-openjdk.${ARCH}"
 elif [[ -z "$JAVA_HOME" ]]; then
   echo "Please set JAVA_HOME to version jdk${REQ_JDK_VER}"
 fi
@@ -254,7 +261,7 @@ unset USE_HADOOP_1
 
 # ---+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 if [[ "$SQ_MTYPE" == 64 ]]; then
-  export LOC_JVMLIBS=$JAVA_HOME/jre/lib/amd64/server
+  export LOC_JVMLIBS=$JAVA_HOME/jre/lib/${JRE_LIB_DIR}/server
 else
   export LOC_JVMLIBS=$JAVA_HOME/jre/lib/i386/server
 fi

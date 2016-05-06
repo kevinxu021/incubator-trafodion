@@ -162,6 +162,7 @@ version:
 # Check that Environment variables are set correctly and
 # create links and files needed as prerequisite for the build
 sqroot:
+	@echo "ARCH=$(ARCH)"
 	./bldenvchk.sh;
 	cd sqf && $(MAKE) setupdir 2>&1 | sed -e "s/$$/	##(setupdir)/";exit $${PIPESTATUS[0]}
 
@@ -186,7 +187,7 @@ else
 endif
 
 ifeq ($(SQ_MTYPE),64)
-  ARCH=x86_64
+  ARCH=$(shell arch)
 else
   ARCH=i686
 endif
