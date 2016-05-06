@@ -5,6 +5,7 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 
 import javax.servlet.http.HttpServletRequest;
@@ -73,7 +74,7 @@ public class ToolsResource {
 			stmt = adminConnection.createStatement();
 			rs = stmt.executeQuery(query_text);
 			if (!rs.next()) {//Schema does not exist
-				throw new EsgynDBMgrException("Error : Schema " + schemaName + "does not exist");
+				throw new EsgynDBMgrException("Schema " + schemaName + " does not exist");
 			}
 			query_text = String.format(SystemQueryCache.getQueryText(SystemQueryCache.CHECK_LIBRARY), checkSchemaName,
 					checkLibraryName);
@@ -88,12 +89,12 @@ public class ToolsResource {
 			// If library already exits, but we are not in update mode or
 			// overwrite mode, then error
 			if (libFound && !updateFlag) {
-				throw new EsgynDBMgrException("Error : Library " + libraryName + " already exists");
+				throw new EsgynDBMgrException("Library " + libraryName + " already exists");
 			}
 
 			// If library not found but we are trying to update it, then error
 			if (!libFound && updateFlag) {
-				throw new EsgynDBMgrException("Error : Library " + libraryName + " does not exist");
+				throw new EsgynDBMgrException("Library " + libraryName + " does not exist");
 			}
 
 			// save file
@@ -142,6 +143,18 @@ public class ToolsResource {
 				}
 			}
 
+		} catch (SQLException e) {
+			_LOG.error(e.getMessage());
+			String message = e.getMessage();
+			int eIndex = message.lastIndexOf("*** ERROR[");
+			if (eIndex > -1) {
+				message = message.substring(eIndex);
+			}
+			eIndex = message.lastIndexOf("java.sql.SQLException:");
+			if (eIndex > -1) {
+				message = message.substring(eIndex + "java.sql.SQLException:".length());
+			}
+			throw new EsgynDBMgrException(message);
 		} catch (Exception e) {
 			_LOG.error(e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());
