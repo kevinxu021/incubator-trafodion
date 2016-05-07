@@ -352,8 +352,10 @@ define(['moment',
 				if($(REFRESH_INTERVAL).val()!=null){
 					isAutoRefresh=$(REFRESH_INTERVAL).val();
 				}else{
-					if(_this.commonTimeRange.isAutoRefresh!=null){
+					if(_this.commonTimeRange && _this.commonTimeRange.isAutoRefresh!=null){
 						isAutoRefresh=_this.commonTimeRange.isAutoRefresh;
+					}else {
+						isAutoRefresh="";
 					}
 				}
 				switch (selection) {

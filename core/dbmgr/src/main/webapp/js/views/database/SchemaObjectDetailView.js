@@ -25,7 +25,8 @@ define([
 	DDL_SPINNER = '#ddl-spinner',
 	PRIVILEGES_SPINNER = '#privileges-spinner',
 	USAGES_SPINNER = '#usages-spinner',
-	INDEXES_SPINNER = '#indexes-spinner';			
+	INDEXES_SPINNER = '#indexes-spinner',	
+	DROP_LIBRARY_SPINNER = '#drop-library-spinner';
 	var objColumnsDataTable = null,
 	regionsDataTable = null,
 	statisticsTable = null,
@@ -35,7 +36,8 @@ define([
 
 	var _this = null;
 	var ddlTextEditor = null;
-
+	var isAjaxCompleted=true;
+	
 	var BREAD_CRUMB = '#database-crumb';
 	var OBJECT_DETAILS_CONTAINER = '#object-details-container',
 	OBJECT_NAME_CONTAINER = '#db-object-name',
@@ -75,6 +77,7 @@ define([
 	USAGES_BTN = '#usages-btn',
 	UPDATE_LIBRARY_CONTAINER = '#update-library-div',
 	UPDATE_LIBRARY_BUTTON = '#update-library-btn',
+	DROP_LIBRARY_BUTTON = '#drop-library-btn',
 	STATISTICS_BTN = '#statistics-btn',
 	REFRESH_ACTION = '#refreshAction';
 
@@ -93,7 +96,7 @@ define([
 			routeArgs = args;
 			prevRouteArgs = args;
 			pageStatus = {};
-
+			this.redirectFlag=false;
 			schemaName = routeArgs.schema;
 			objectAttributes = sessionStorage.getItem(routeArgs.name);
 			if(objectAttributes != null){
@@ -101,6 +104,7 @@ define([
 				objectAttributes = JSON.parse(objectAttributes);
 			}
 			$(OBJECT_DETAILS_CONTAINER).hide();
+			$(DROP_LIBRARY_SPINNER).css('visibility', 'hidden');
 
 			if(CodeMirror.mimeModes["text/x-esgyndb"] == null){
 				common.defineEsgynSQLMime(CodeMirror);
@@ -130,7 +134,8 @@ define([
 
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			$(UPDATE_LIBRARY_BUTTON).on('click', this.updateLibrary);
-
+			$(DROP_LIBRARY_BUTTON).on('click',this.dropLibrary);
+			
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
 			dbHandler.on(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
@@ -147,17 +152,22 @@ define([
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.fetchIndexesError);
 			dbHandler.on(dbHandler.FETCH_USAGE_SUCCESS, this.displayUsages);
 			dbHandler.on(dbHandler.FETCH_USAGE_ERROR, this.fetchUsagesError);
+			dbHandler.on(dbHandler.DROP_OBJECT_SUCCESS, this.dropObjectSuccess);
+			dbHandler.on(dbHandler.DROP_OBJECT_ERROR, this.dropObjectError);
 			_this.processRequest();
 
 		},
 		doResume: function(args){
 			routeArgs = args;
-
+			this.redirectFlag=false;
 			$(DDL_CONTAINER).hide();
 			$(COLUMNS_CONTAINER).hide();
-
+			if(this.isAjaxCompleted=true){
+				$(DROP_LIBRARY_SPINNER).css('visibility', 'hidden');
+			}
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			$(UPDATE_LIBRARY_BUTTON).on('click', this.updateLibrary);
+			$(DROP_LIBRARY_BUTTON).on('click',this.dropLibrary);
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
@@ -193,9 +203,10 @@ define([
 			_this.processRequest();
 		},
 		doPause: function(){
+			this.redirectFlag=true;
 			$(REFRESH_ACTION).off('click', this.doRefresh);
 			$(UPDATE_LIBRARY_BUTTON).off('click', this.updateLibrary);
-
+			$(DROP_LIBRARY_BUTTON).off('click',this.dropLibrary);
 			dbHandler.off(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.off(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
 			dbHandler.off(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
@@ -212,7 +223,6 @@ define([
 			dbHandler.off(dbHandler.FETCH_OBJECT_LIST_ERROR, this.fetchIndexesError);
 			dbHandler.off(dbHandler.FETCH_USAGE_SUCCESS, this.displayUsages);
 			dbHandler.off(dbHandler.FETCH_USAGE_ERROR, this.fetchUsagesError);
-
 			$('a[data-toggle="pill"]').off('shown.bs.tab', this.selectFeature);
 		},
 		doReset: function(){
@@ -320,6 +330,11 @@ define([
 			var codeFileName = _this.getObjectAttribute('Code File Name');
 			sessionStorage.setItem(routeArgs.name, JSON.stringify({file: codeFileName}));	
 			window.location.hash = '/tools/createlibrary?schema='+common.ExternalDisplayName(routeArgs.schema)+'&library='+common.ExternalDisplayName(routeArgs.name);
+		},
+		dropLibrary: function(){
+			$(DROP_LIBRARY_SPINNER).css('visibility', 'visible');
+			_this.isAjaxCompleted=false;
+			dbHandler.dropObject(common.ExternalDisplayName(routeArgs.schema), routeArgs.type, common.ExternalDisplayName(routeArgs.name));
 		},
 		selectFeature: function(e){
 			$(OBJECT_DETAILS_CONTAINER).show();
@@ -1338,7 +1353,42 @@ define([
 					$(STATISTICS_ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
 				}
 			}
-		},  
+		},
+		dropObjectSuccess: function(result){
+			_this.isAjaxCompleted=true;
+			$(DROP_LIBRARY_SPINNER).css('visibility', 'hidden');
+			if(routeArgs.parentView != null && routeArgs.parentView.doReset){
+				routeArgs.parentView.doReset();
+			}
+			var msgPrefix = "dropped";
+			var msg= 'Library '+ common.ExternalForm(result.schemaName) + "." + common.ExternalForm(result.objectName) + ' was ' + msgPrefix + ' successfully';
+			var msgObj={msg: msg,tag:"success",url:null,shortMsg:'Library was ' + msgPrefix + ' successfully.'};
+			if(_this.redirectFlag==false){
+				_this.popupNotificationMessage(null,msgObj);
+				if(bCrumbsArray && bCrumbsArray.length > 1){
+					var crumb = bCrumbsArray[bCrumbsArray.length-2];
+					if(crumb.link){
+						window.location.hash = crumb.link;
+					}
+				}
+			}else{
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+			}
+		},
+		dropObjectError: function(jqXHR){
+			_this.isAjaxCompleted=true;
+			$(DROP_LIBRARY_SPINNER).css('visibility', 'hidden');
+			var errorIndex = jqXHR.responseText.lastIndexOf("*** ERROR");
+			var errorString = jqXHR.responseText.substring(errorIndex);
+			var msgPrefix = "Failed to drop library ";
+			var msg= msgPrefix + common.ExternalForm(jqXHR.schemaName) + "." + common.ExternalForm(jqXHR.objectName)+ " : " + errorString;
+			var msgObj={msg:msg,tag:"danger",url:null,shortMsg:msgPrefix};
+			if(_this.redirectFlag==false){
+				_this.popupNotificationMessage(null,msgObj);
+			}else{
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+			}
+		}
 	});
 
 

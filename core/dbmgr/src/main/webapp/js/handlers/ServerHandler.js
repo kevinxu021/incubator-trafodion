@@ -39,8 +39,6 @@ define(['handlers/EventDispatcher', 'common'],
 				this.WRKBNCH_EXECUTE_ERROR = 'WRKBNCH_EXECUTE_ERROR';
 				this.WRKBNCH_EXPLAIN_SUCCESS = 'WRKBNCH_EXPLAIN_SUCCESS';
 				this.WRKBNCH_EXPLAIN_ERROR = 'WRKBNCH_EXPLAIN_ERROR';
-				this.WORKLOAD_EXPLAIN_SUCCESS = 'WORKLOAD_EXPLAIN_SUCCESS';
-				this.WORKLOAD_EXPLAIN_ERROR = 'WORKLOAD_EXPLAIN_ERROR';
 								
 				this.sessionTimeout = function() {
 					window.location.hash = '/stimeout';
