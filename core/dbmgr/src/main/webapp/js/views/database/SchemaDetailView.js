@@ -253,7 +253,7 @@ define([
 				window.location.hash = '/database/objects?type=procedures&schema='+schemaName;
 				break;
 			case UDFS_SELECTOR:
-				window.location.hash = '/database/objects?type=udfs&schema='+schemaName;
+				window.location.hash = '/database/objects?type=functions&schema='+schemaName;
 				break;
 			}
 		},

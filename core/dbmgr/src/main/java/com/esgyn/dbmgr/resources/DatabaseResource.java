@@ -164,10 +164,10 @@ public class DatabaseResource {
 				// pstmt.setString(4,
 				// SqlRoutineType.PROCEDURE.getRoutineType());
 				break;
-			case "udfs":
+			case "functions":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_UDFS_IN_SCHEMA),
 						catalogName, schemaName, SqlObjectType.ROUTINE.getObjectType());
-				link = "/database/objdetail?type=udf";
+				link = "/database/objdetail?type=function";
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_UDFS_IN_SCHEMA));
 				pstmt.setString(1, catalogName);
@@ -271,7 +271,7 @@ public class DatabaseResource {
 				pstmt.setString(4, SqlObjectType.LIBRARY.getObjectType());
 				break;
 			case "procedure":
-			case "udf":
+			case "function":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_ROUTINE_ATTRIBUTES),
 						catalogName, schemaName, SqlObjectType.ROUTINE.getObjectType());
 				pstmt = connection
@@ -392,10 +392,8 @@ public class DatabaseResource {
 			case "schema":
 			case "library":
 			case "procedure":
+			case "function":
 				ddlObjectType = objectType.toUpperCase();
-				break;
-			case "udf":
-				ddlObjectType = "FUNCTION";
 				break;
 			case "index":
 				String parentDDLText = getDDLText("table", parentObjectName, schemaName, null, null, null);
@@ -668,6 +666,7 @@ public class DatabaseResource {
 		case "view":
 			return getViewUsage(objectType, objectName, objectID, schemaName);
 		case "procedure":
+		case "function":
 			return getFunctionUsage(objectType, objectName, objectID, schemaName);
 		default:
 			throw new EsgynDBMgrException("Usage information is not supported for this object type : " + objectType);

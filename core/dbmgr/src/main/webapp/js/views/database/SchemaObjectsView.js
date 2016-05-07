@@ -132,9 +132,9 @@ define([
 						bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 						bCrumbsArray.push({name: 'Procedures', link:  ''});
 						break;
-					case 'udfs': 
+					case 'functions': 
 						bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
-						bCrumbsArray.push({name: 'UDFs', link:  ''});
+						bCrumbsArray.push({name: 'Functions', link:  ''});
 						break;
 				}
 			}
@@ -162,8 +162,8 @@ define([
 						$(OBJECT_NAME_CONTAINER).text(displayName);
 						_this.fetchObjects(routeArgs.type, routeArgs.schema);
 						break;
-					case 'udfs' :
-						var displayName = 'UDFs in schema ' + common.ExternalDisplayName(routeArgs.schema);
+					case 'functions' :
+						var displayName = 'Functions in schema ' + common.ExternalDisplayName(routeArgs.schema);
 						$(OBJECT_NAME_CONTAINER).text(displayName);
 						_this.fetchObjects(routeArgs.type, routeArgs.schema);
 						break;
@@ -319,7 +319,7 @@ define([
 			            	 }
 						});
 					}
-					if(routeArgs.type == 'udfs'){
+					if(routeArgs.type == 'functions'){
 						aoColumnDefs.push({
 							"aTargets": [ 7 ],
 							"mData": 7,
