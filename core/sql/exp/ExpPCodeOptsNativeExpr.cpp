@@ -5887,7 +5887,7 @@ void PCodeCfg::layoutNativeCode()
   MAttrs.push_back("64bit-mode");
 
   llvm::ExecutionEngine* TheExecutionEngine =
-    EngineBuilder(TheModule).setErrorStr(&ErrStr).setMArch("x86-64").setMAttrs(MAttrs).setTargetOptions(target_opts).setRelocationModel(llvm::Reloc::PIC_).setOptLevel(CodeGenOpt::Default).create();
+    EngineBuilder(TheModule).setErrorStr(&ErrStr).setMAttrs(MAttrs).setTargetOptions(target_opts).setRelocationModel(llvm::Reloc::PIC_).setOptLevel(CodeGenOpt::Default).create();
   if ( !TheExecutionEngine )
   {
     std::cout << ErrStr << std::flush;

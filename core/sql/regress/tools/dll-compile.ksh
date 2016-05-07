@@ -71,7 +71,7 @@ TARGET=
   TARGET=$BASE.dll
   LD=$CC
   LD_OPTS=" -w -O0 -Wno-unknown-pragmas -fshort-wchar"
-  LD_OPTS="$LD_OPTS -shared -rdynamic -o $TARGET -lc -lhdfs -ljvm -L$MY_SQROOT/export/lib${SQ_MBTYPE} -ltdm_sqlcli -L${JAVA_HOME}/jre/lib/amd64/server $2 $BASE.o"
+  LD_OPTS="$LD_OPTS -shared -rdynamic -o $TARGET -lc -lhdfs -ljvm -L$MY_SQROOT/export/lib${SQ_MBTYPE} -ltdm_sqlcli -L${JAVA_HOME}/jre/lib/${JRE_LIB_DIR}/server $2 $BASE.o"
 
 LONGLINE=\
 ------------------------------------------------------------------------------

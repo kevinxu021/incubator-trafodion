@@ -108,7 +108,7 @@ UDIS86_INC_ROOT :=$(UDIS86)/include
 JVMROOT=$(JAVA_HOME)
 JVMJNIINC=$(JVMROOT)/include
 ifdef M64
-LOC_JVMLIBS=$(JVMROOT)/jre/lib/amd64/server
+LOC_JVMLIBS=$(JVMROOT)/jre/lib/$(JRE_LIB_DIR)/server
 else
 LOC_JVMLIBS=$(JVMROOT)/jre/lib/i386/server
 endif
@@ -260,8 +260,12 @@ CFLAGS += -fshort-wchar
   #                          same time.
   #   -g3                  : Highest level of debugging
   #   -ggdb                : Use native debugging format with gdb extensions.
-  SYS_CXXFLAGS += -fno-strict-aliasing -msse2 -mfpmath=sse -g3 -ggdb
-  CFLAGS += -fno-strict-aliasing -msse2 -mfpmath=sse -g3 -ggdb
+  SYS_CXXFLAGS += -fno-strict-aliasing -g3 -ggdb
+  CFLAGS += -fno-strict-aliasing -g3 -ggdb
+ifeq ($(ARCH),x86_64)
+  SYS_CXXFLAGS += -msse2 -mfpmath=sse
+  CFLAGS += -msse2 -mfpmath=sse
+endif
 
 # Some more definitions are added when building for a 64-bit target.
 # We get a lot of warnings about unknown pragmas that we don't really care about.
