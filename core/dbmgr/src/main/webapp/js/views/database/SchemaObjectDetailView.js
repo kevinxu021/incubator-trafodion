@@ -502,9 +502,9 @@ define([
 					bCrumbsArray.push({name: 'Procedures', link: '#/database/objects?type=procedures&schema='+routeArgs.schema});
 					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.name), link: ''});
 					break;
-				case 'udf': 
+				case 'function': 
 					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
-					bCrumbsArray.push({name: 'User Defined Functions', link: '#/database/objects?type=udfs&schema='+routeArgs.schema});
+					bCrumbsArray.push({name: 'Functions', link: '#/database/objects?type=functions&schema='+routeArgs.schema});
 					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.name), link: ''});
 					break;
 
@@ -575,7 +575,7 @@ define([
 					$(INDEXES_BTN).hide();				
 					break;
 				case 'procedure': 
-				case 'udf': 
+				case 'function': 
 					schemaName = routeArgs.schema;
 					$(ATTRIBUTES_BTN).show();
 					$(ATTRIBUTES_SELECTOR).tab('show');
@@ -614,6 +614,8 @@ define([
 			if(objectAttributes == null){
 				$(ATTRIBUTES_CONTAINER).empty();
 				$(ATTRIBUTES_SPINNER).show();
+				$(UPDATE_LIBRARY_BUTTON).hide();
+				$(DROP_LIBRARY_BUTTON).hide();
 				dbHandler.fetchAttributes(routeArgs.type, routeArgs.name, routeArgs.schema);
 			}else{
 				_this.displayAttributes();
@@ -674,6 +676,8 @@ define([
 		},
 		displayAttributes: function(data) {
 			$(ATTRIBUTES_SPINNER).hide();
+			$(UPDATE_LIBRARY_BUTTON).show();
+			$(DROP_LIBRARY_BUTTON).show();
 			if(data != null){
 				objectAttributes = data;
 			}
@@ -698,9 +702,9 @@ define([
 						}else {
 							$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + value +  '</td>');
 						}
-					}else if((routeArgs.type == 'procedure' || routeArgs.type == 'udf') && property == 'UsageSchemaName'){
+					}else if((routeArgs.type == 'procedure' || routeArgs.type == 'function') && property == 'UsageSchemaName'){
 						continue;
-					}else if((routeArgs.type == 'procedure' || routeArgs.type == 'udf') && property == 'Library Name'){
+					}else if((routeArgs.type == 'procedure' || routeArgs.type == 'function') && property == 'Library Name'){
 						var libSch = _this.getUsageSchemaName();
 						libSch = (libSch != null && libSch.length > 0) ? libSch : routeArgs.schema;
 						var link =	'<a href="#/database/objdetail?type=library&name=' + value + '&schema=' +  libSch           				 
@@ -958,7 +962,7 @@ define([
 					}
 				}
 				var aoColumnDefs = [];
-				if(routeArgs.type == 'library' || routeArgs.type == 'procedure' || routeArgs.type == 'udf'){
+				if(routeArgs.type == 'library' || routeArgs.type == 'procedure' || routeArgs.type == 'function'){
 					aoColumnDefs.push({
 						"aTargets": [ 2 ],
 						"mData": 2,
@@ -977,7 +981,7 @@ define([
 									if(udrType == 'Procedure' || udrType == 'Library'){
 										linkType = udrType.toLowerCase();
 									}else{
-										linkType = 'udf';
+										linkType = 'function';
 									}
 									var rowcontent = '<a href="#/database/objdetail?type='+linkType+'&name=' + data ;
 									if(udrSchema != null && udrSchema.length > 0){

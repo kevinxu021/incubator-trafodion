@@ -28,7 +28,7 @@ Use these common tips to troubleshoot any display issues with EsgynDB Manager.
 ** If DB Manager is up, verify that DCS, REST and EsgynDB is up and running.
 *** trafcheck
 *** dcscheck
-*** jps  (to check if TrafodionRest server is running)
+*** restcheck
 
 * Page is blank or partially loaded
 ** It could be a transient error like browser load timeouts. Log out and log back in.
