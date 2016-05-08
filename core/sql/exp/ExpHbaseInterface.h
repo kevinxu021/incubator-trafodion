@@ -61,6 +61,7 @@ class CliGlobals;
 class ExHbaseAccessStats;
 
 Int64 getTransactionIDFromContext();
+Int32 checkAndWaitSnapshotInProgress();
 
 using namespace apache::thrift;
 using namespace apache::thrift::protocol;

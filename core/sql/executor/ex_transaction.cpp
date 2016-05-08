@@ -53,6 +53,7 @@
 #include  "exp_expr.h"
 #include  "ex_error.h"
 #include  "ExSqlComp.h"
+#include  "ExpHbaseInterface.h"
 
 #ifdef NA_CMPDLL
 #include  "CmpContext.h"
@@ -687,6 +688,18 @@ short ExTransaction::commitTransaction(NABoolean waited)
 		      EXE_CANT_COMMIT_OR_ROLLBACK, &errorCond_);
       return -1;
     }
+  
+  if(checkAndWaitSnapshotInProgress())
+  {
+    if (transDiagsArea_)
+    {
+  transDiagsArea_->decrRefCount();
+  transDiagsArea_ = NULL;
+    }
+    ExRaiseSqlError(heap_, &transDiagsArea_,
+        EXE_CANT_COMMIT_OR_ROLLBACK, &errorCond_);
+    return -1;
+  }  
  
   Int32 rc = 0;
 

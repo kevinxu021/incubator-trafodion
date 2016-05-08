@@ -439,6 +439,12 @@ short ExControlTcb::work()
                       currContext->getSessionDefaults()->
                         setEspIdleTimeout(lvl);
                    }
+                   else if (strcmp(value[1], "ONLINE_BACKUP_TIMEOUT") == 0)
+                   {
+                      int lvl = (int) strtoul(value[2], NULL, 10);
+                      currContext->getSessionDefaults()->
+                        setOnlineBackupTimeout(lvl);
+                   }
 		  }
 	      }
   }
@@ -675,6 +681,11 @@ short ExSetSessionDefaultTcb::work()
       currContext->getSessionDefaults()
                  ->setEspIdleTimeout(defaultValueAsLong);
     }
+  else if (strcmp(defaultName, "ONLINE_BACKUP_TIMEOUT") == 0)
+  {
+    currContext->getSessionDefaults()
+               ->setOnlineBackupTimeout(defaultValueAsLong);
+  }
   else if (strcmp(defaultName, "ESP_INACTIVE_TIMEOUT") == 0)
     {
       currContext->getSessionDefaults()
