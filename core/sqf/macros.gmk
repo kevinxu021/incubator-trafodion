@@ -148,3 +148,9 @@ ifeq ($(ARCH),x86_64)
 else
   JRE_LIB_DIR=ppc64le
 endif
+
+GCC_FULL_VERSION := $(shell gcc -dumpversion)
+GCC_MAJOR_VERSION := $(shell echo $(GCC_FULL_VERSION) | cut -d. -f 1)
+GCC_MINOR_VERSION := $(shell echo $(GCC_FULL_VERSION) | cut -d. -f 2)
+GCC_MAJOR_VERSION_GT_3 := $(shell expr $(GCC_MAJOR_VERSION) \> 3)
+GCC_MINOR_VERSION_GT_4 := $(shell expr $(GCC_MINOR_VERSION) \> 4)
