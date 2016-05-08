@@ -53,7 +53,8 @@ class ComTdbHdfsScan : public ComTdb
 
     // ignore conversion errors and continue reading the next row.
     CONTINUE_ON_ERROR           = 0x0020,
-    LOG_ERROR_ROWS              = 0x0040
+    LOG_ERROR_ROWS              = 0x0040,
+    TREAT_EMPTY_AS_NULL         = 0x0080
   };
 
   // Expression to filter rows.
@@ -278,6 +279,10 @@ public:
    void setContinueOnError(NABoolean v)
     {(v ? flags_ |= CONTINUE_ON_ERROR : flags_ &= ~CONTINUE_ON_ERROR); };
    NABoolean continueOnError() { return (flags_ & CONTINUE_ON_ERROR) != 0; };
+
+   void setEmptyAsNULL(NABoolean v)
+    {(v ? flags_ |= TREAT_EMPTY_AS_NULL : flags_ &= ~TREAT_EMPTY_AS_NULL); };
+   NABoolean emptyAsNULL() { return (flags_ & TREAT_EMPTY_AS_NULL) != 0; };
 
     void setLogErrorRows(NABoolean v)
      {(v ? flags_ |= LOG_ERROR_ROWS : flags_ &= ~LOG_ERROR_ROWS); };
