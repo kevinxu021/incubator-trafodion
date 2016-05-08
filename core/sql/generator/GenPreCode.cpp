@@ -2853,6 +2853,9 @@ short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
        (dropRepos()) ||
        (upgradeRepos()) ||
        (addSchemaObjects()) ||
+       (backup()) ||
+       (restore()) ||
+       (unlockTraf()) ||
        (updateVersion())))
     {
       // transaction will be started and commited in called methods.

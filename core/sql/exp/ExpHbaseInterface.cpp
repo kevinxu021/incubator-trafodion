@@ -41,6 +41,8 @@
 #include "SqlStats.h"
 #include "CmpCommon.h"
 #include "CmpContext.h"
+#include "SessionDefaults.h"
+#include "Context.h"
 
 // ===========================================================================
 // ===== Class ExpHbaseInterface
@@ -106,6 +108,56 @@ NABoolean isParentQueryCanceled()
        cliGlobals->myPin(), savedPriority, savedStopMode);
   }
   return isCanceled;
+}
+
+Int32 checkAndWaitSnapshotInProgress()
+{
+  Int32 retcode = 0;
+  CliGlobals *cliGlobals = GetCliGlobals();
+  StatsGlobals *statsGlobals = cliGlobals->getStatsGlobals();
+  
+  if(! statsGlobals) 
+    return -1;
+  
+  NABoolean done = FALSE;
+  Lng32 sleptManySecs = 0;
+  do
+  {
+    //check snapshot flag in shared memory.
+    short savedPriority, savedStopMode;
+    short error = statsGlobals->getStatsSemaphore(cliGlobals->getSemId(),
+        cliGlobals->myPin(), savedPriority, savedStopMode, FALSE);
+    
+    if(! statsGlobals->isSnapshotInProgress())
+    {
+      done = TRUE;
+    }
+    statsGlobals->releaseStatsSemaphore(cliGlobals->getSemId(),cliGlobals->myPin(),
+        savedPriority, savedStopMode);
+    
+    //Sleep and check again
+    if(!done)
+    {
+      Lng32 maxTimeout = cliGlobals->currContext()->getSessionDefaults()->getOnlineBackupTimeout();
+      
+      if(sleptManySecs < maxTimeout)
+      {
+        // Sleep for 1.00 second
+        //useconds_t usec = 1000000;
+        //usleep(usec);
+        sleep(1);
+        sleptManySecs++;
+      }
+      else
+      {
+        done = TRUE;
+        retcode = -1;
+      }
+    }
+    
+  }while(!done);
+  
+  return retcode;
 }
 
 Int32 ExpHbaseInterface_JNI::deleteColumns(
@@ -828,6 +880,12 @@ Lng32 ExpHbaseInterface_JNI::deleteRow(
     transID = 0;
   else
     transID = getTransactionIDFromContext();
+  
+  if(!transID)
+  {
+    if(checkAndWaitSnapshotInProgress())
+      return -HBASE_BACKUP_LOCK_TIMEOUT_ERROR;
+  }
   retCode_ = 
     client_->deleteRow((NAHeap *)heap_, tblName.val, hbs_, useTRex_, replSync, 
                        transID, row, columns, timestamp, asyncOperation, 
@@ -862,6 +920,12 @@ Lng32 ExpHbaseInterface_JNI::deleteRows(
   else
     transID = getTransactionIDFromContext();
 
+  if(!transID)
+  {
+    if(checkAndWaitSnapshotInProgress())
+      return -HBASE_BACKUP_LOCK_TIMEOUT_ERROR;
+  }
+  
   retCode_ = client_->deleteRows((NAHeap *)heap_, tblName.val, hbs_, 
 				 useTRex_, replSync, 
 				 transID, rowIDLen, rowIDs,
@@ -932,6 +996,13 @@ Lng32 ExpHbaseInterface_JNI::insertRow(
     transID = 0;
   else
     transID = getTransactionIDFromContext();
+  
+  if(!transID)
+  {
+    if(checkAndWaitSnapshotInProgress())
+      return -HBASE_BACKUP_LOCK_TIMEOUT_ERROR;
+  }
+  
   retCode_ = client_->insertRow((NAHeap *)heap_, tblName.val, hbs_,
 				useTRex_, replSync, 
 				transID, rowID, row, timestamp, checkAndPut, asyncOperation, &htc);
@@ -963,6 +1034,13 @@ Lng32 ExpHbaseInterface_JNI::insertRows(
     transID = 0;
   else
     transID = getTransactionIDFromContext();
+  
+  if(!transID)
+  {
+    if(checkAndWaitSnapshotInProgress())
+      return -HBASE_BACKUP_LOCK_TIMEOUT_ERROR;
+  }
+  
   retCode_ = client_->insertRows((NAHeap *)heap_, tblName.val, hbs_,
 				 useTRex_, replSync, 
 				 transID, rowIDLen, rowIDs, rows, timestamp, asyncOperation, &htc);
@@ -1349,6 +1427,13 @@ Lng32 ExpHbaseInterface_JNI::checkAndInsertRow(
     transID = 0; 
   else 
     transID = getTransactionIDFromContext();
+  
+  if(!transID)
+  {
+    if(checkAndWaitSnapshotInProgress())
+      return -HBASE_BACKUP_LOCK_TIMEOUT_ERROR;
+  }
+  
   retCode_ = client_->insertRow((NAHeap *)heap_, tblName.val, hbs_,
 				useTRex_, replSync, transID, rowID, row, timestamp, checkAndPut, asyncOperation, &htc);
 
