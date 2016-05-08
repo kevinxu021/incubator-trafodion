@@ -145,8 +145,6 @@ int tn_log_stdout(int event_id,
   int       error;
   char      lv_msg[TN_LOG_MSG_SIZE];
 
-  logLevel ll_severity = LL_INFO;
-
   current_time = time(NULL);
   ctime_r(&current_time,timestamp);
   timestamp[strlen(timestamp)-1] = '\0';
@@ -160,35 +158,27 @@ int tn_log_stdout(int event_id,
     {
     case SQ_LOG_EMERG: 
       strcpy(lv_severity_string, "EMERGENCY"); 
-      ll_severity = LL_FATAL;
       break;
     case SQ_LOG_ALERT: 
       strcpy(lv_severity_string, "ALERT"); 
-      ll_severity = LL_WARN;
       break;
     case SQ_LOG_CRIT: 
       strcpy(lv_severity_string, "CRITICAL"); 
-      ll_severity = LL_FATAL;
       break;
     case SQ_LOG_ERR: 
       strcpy(lv_severity_string, "ERROR"); 
-      ll_severity = LL_ERROR;
       break;
     case SQ_LOG_WARNING: 
       strcpy(lv_severity_string, "WARNING"); 
-      ll_severity = LL_WARN;
       break;
     case SQ_LOG_NOTICE: 
       strcpy(lv_severity_string, "NOTICE"); 
-      ll_severity = LL_INFO;
       break;
     case SQ_LOG_INFO: 
       strcpy(lv_severity_string, "INFO"); 
-      ll_severity = LL_INFO;
       break;
     case SQ_LOG_DEBUG: 
       strcpy(lv_severity_string, "DEBUG"); 
-      ll_severity = LL_DEBUG;
       break;
     default:
       strcpy(lv_severity_string, "UNKNOWN");
@@ -411,7 +401,7 @@ int main(int argc, char *argv[])
     msg_mon_get_my_info2(&sv_my_nid, // mon node-id
                          &sv_my_pid, // mon process-id
                          NULL,       // mon name
-                         NULL,       // mon name-len
+                         0,          // mon name-len
                          NULL,       // mon process-type
                          NULL,       // mon zone-id
                          NULL,       // os process-id

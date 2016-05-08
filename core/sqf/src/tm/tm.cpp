@@ -85,12 +85,11 @@ void setEphemeralZKNodeIfLead()
     return;
   }
 
-  int lv_ret_code = 0;
   char lv_msg[100];
   memset(lv_msg, 0, 100);
   sprintf(lv_msg, "Lead DTM: %d", gv_tm_info.nid());
 
-  lv_ret_code = gv_HbaseTM.createEphemeralZKNode(lv_msg);
+  gv_HbaseTM.createEphemeralZKNode(lv_msg);
 
 }
 
