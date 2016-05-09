@@ -1,0 +1,48 @@
+////
+<!--
+/**
+  *(C) Copyright 2015-2016 Esgyn Corporation
+  *
+  * Confidential computer software. Valid license from Esgyn required for
+  * possession, use or copying. Consistent with FAR 12.211 and 12.212,
+  * Commercial Computer Software, Computer Software Documentation, and
+  * Technical Data for Commercial Items are licensed to the U.S. Government
+  * under vendor's standard commercial license.
+  *
+  */
+-->
+////
+[[workbench]]
+== Query Workbench
+:doctype: book
+:numbered:
+:toc: left
+:icons: font
+:experimental:
+
+The query workbench page allows you to execute ad-hoc queries and view the results in a tabular form or to generate a visual and textual explain plan.
+
+Type the SQL query text in the Query text area. The query text should be valid EsgynDB query syntax.
+
+You can a ONLY use single EsgynDB SQL statement. It can be a DDL or DML statement. Compound SQL statements are not supported.
+
+The SQL statement should conform to EsgynDB SQL syntax and any errors reported by the engine are displayed with full error text.
+
+=== Execute Query
+Use the *Execute* button to execute the query. For a query that returns a result set, the results are displayed in a tabular format. For non-select queries or queries that returns a scalar result, the results are displayed as normal text.
+
+If you move away from the Query Workbench page and navigated to a different page, before the execute operation is complete then the result of the execute is shown via the notifications panel. See <<Notifications Panel, Notifications Panel>> for details. Once you click on the result for the query workbench notification, you'll be automatically navigated back to the Query Workbench page and the results will be displayed.
+
+=== Explain Plan
+You can use the *Explain* button to generate an explain plan for the query. You get a visual explain in a tree graph and also a textual plan.
+
+If you move away from the Query Workbench page and navigated to a different page, before the explain operation is complete then the result of the explain is shown via the notifications panel. See <<Notifications Panel, Notifications Panel>> for details. Once you click on the result for the query workbench notification, you'll be automatically navigated back to the Query Workbench page and the results will be displayed.
+
+You can right mouse click on the graph and move the graph around or use your mouse scroll key to zoom-in and zoom-out the graph.
+
+If you click on a specific node in the tree, you can see the details and cost for that specific operator in a pop-up window.
+
+=== Control Options
+The Control options allow you enter SET statements or Control Query statements that can influence the query plan and execution.
+
+You can use these options to tune your query performance. Refer to the SQL Reference manual for more details on the SET and Control query commands.

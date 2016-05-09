@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2016 Esgyn Corporation
+//(C) Copyright 2015-2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -65,7 +65,7 @@ define([
 					queryTextEditor.setSize($(this).width(), $(this).height());
 				}
 			});
-			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
+			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "width":"800px", "height":"150px"});
 			
 			this.loadQueryText();
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
