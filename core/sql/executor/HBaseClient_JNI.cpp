@@ -2404,7 +2404,9 @@ BRC_RetCode BackupRestoreClient_JNI::init()
     JavaMethods_[JM_CREATE_SNAPSHOT].jm_name = "createSnapshot";
     JavaMethods_[JM_CREATE_SNAPSHOT].jm_signature = "([Ljava/lang/Object;Ljava/lang/String;)Z";
     JavaMethods_[JM_RESTORE_SNAPSHOTS].jm_name = "restoreSnapshots";
-    JavaMethods_[JM_RESTORE_SNAPSHOTS].jm_signature = "(Ljava/lang/String;)Z";
+    JavaMethods_[JM_RESTORE_SNAPSHOTS].jm_signature = "(Ljava/lang/String;Z)Z";
+    JavaMethods_[JM_LIST_ALL_BACKUPS].jm_name = "listAllBackups";
+    JavaMethods_[JM_LIST_ALL_BACKUPS].jm_signature = "()[[B";
     
     rc = (BRC_RetCode)JavaObjectInterface::init(className, javaClass_, JavaMethods_, (Int32)JM_LAST, javaMethodsInitialized_);
     javaMethodsInitialized_ = TRUE;
@@ -2482,7 +2484,8 @@ BRC_RetCode BackupRestoreClient_JNI::createSnapshot(const TextVec& tables, const
 //////////////////////////////////////////////////////////////////////////////
 //
 //////////////////////////////////////////////////////////////////////////////
-BRC_RetCode BackupRestoreClient_JNI::restoreSnapshots(const char* backuptag) 
+BRC_RetCode BackupRestoreClient_JNI::restoreSnapshots(const char* backuptag,
+                                                      NABoolean timestamp) 
 {
     QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "BackupRestoreClient_JNI::restoreSnapshots(%s) called.");
     if (jenv_ == NULL)
@@ -2502,9 +2505,11 @@ BRC_RetCode BackupRestoreClient_JNI::restoreSnapshots(const char* backuptag)
         return BRC_ERROR_RESTORE_SNAPSHOT_EXCEPTION;
     }
 
+    jboolean j_timestamp = timestamp;
+    
     tsRecentJMFromJNI = JavaMethods_[JM_RESTORE_SNAPSHOTS].jm_full_name;
     jboolean jresult = jenv_->CallBooleanMethod(
-            javaObj_, JavaMethods_[JM_RESTORE_SNAPSHOTS].methodID, js_backuptag);
+            javaObj_, JavaMethods_[JM_RESTORE_SNAPSHOTS].methodID, js_backuptag, j_timestamp);
 
     jenv_->DeleteLocalRef(js_backuptag);
 
@@ -2526,6 +2531,47 @@ BRC_RetCode BackupRestoreClient_JNI::restoreSnapshots(const char* backuptag)
     jenv_->PopLocalFrame(NULL);
     return BRC_OK;
 }
+
+NAArray<HbaseStr>* BackupRestoreClient_JNI::listAllBackups(NAHeap *heap)
+{
+  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "BackupRestoreClient_JNI::listAllBackups called.");
+
+  if (jenv_ == NULL)
+     if (initJVM() != JOI_OK)
+       return NULL;
+
+  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+     getExceptionDetails();
+     return NULL;
+  }
+  
+  tsRecentJMFromJNI = JavaMethods_[JM_LIST_ALL_BACKUPS].jm_full_name;
+  jarray j_backupList = 
+    (jarray)jenv_->CallObjectMethod(javaObj_, JavaMethods_[JM_LIST_ALL_BACKUPS].methodID);
+
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails(jenv_);
+    logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+    logError(CAT_SQL_HBASE, "BackupRestoreClient_JNI::listAllBackups()", getLastError());
+    jenv_->PopLocalFrame(NULL);
+    return NULL;
+  }
+
+  if (j_backupList == NULL) {
+    jenv_->PopLocalFrame(NULL);
+    return NULL;
+  }
+
+  NAArray<HbaseStr> *backupList;
+  jint retcode = convertByteArrayObjectArrayToNAArray(heap, j_backupList, &backupList);
+  jenv_->PopLocalFrame(NULL);
+  if(retcode == 0)
+    return NULL;
+  else
+    return backupList;
+}
+
 
 NAString BackupRestoreClient_JNI::getLastJavaError()
 {
@@ -6554,3 +6600,39 @@ int convertLongObjectArrayToList(NAHeap *heap, jlongArray j_longArray, LIST(Int6
     return arrayLen;
 }
 
+int convertByteArrayObjectArrayToNAArray(NAHeap *heap, jarray j_objArray, NAArray<HbaseStr> **retArray)
+{
+    if (j_objArray == NULL)
+       return 0;
+    int arrayLen = jenv_->GetArrayLength(j_objArray);
+    jbyteArray j_ba;
+    jint j_baLen;
+    BYTE *ba;
+    jboolean isCopy;
+    HbaseStr element; 
+    NAArray<HbaseStr> *tmpArray = new (heap) NAArray<HbaseStr> (heap, arrayLen); 
+    for (int i = 0; i < arrayLen; i++)
+    {
+        j_ba = (jbyteArray)jenv_->GetObjectArrayElement((jobjectArray)j_objArray, i);
+        j_baLen = jenv_->GetArrayLength(j_ba);
+        ba = new (heap) BYTE[j_baLen];
+        jenv_->GetByteArrayRegion(j_ba, 0, j_baLen, (jbyte *)ba); 
+        element.len = j_baLen;
+        element.val = (char *)ba;
+        tmpArray->insert(i,element);
+    }
+    *retArray = tmpArray;
+    return arrayLen;
+}
+
+void deleteNAArray(CollHeap *heap, NAArray<HbaseStr> *array)
+{
+  
+  if (array == NULL)
+     return;
+  CollIndex entryCount = array->entries();
+  for (CollIndex i = 0 ; i < entryCount; i++) {
+      NADELETEBASIC(array->at(i).val, heap);
+  }
+  NADELETE(array, NAArray, heap);
+}

@@ -3729,6 +3729,27 @@ RelExpr * ExeUtilGetQID::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
   return ExeUtilExpr::copyTopNode(result, outHeap);
 }
 
+//-----------------------------------------------------------------------
+//Member functions for class ExeUtilBackupRestore
+//-----------------------------------------------------------------------
+ExeUtilBackupRestore::ExeUtilBackupRestore(CollHeap *oHeap)
+: ExeUtilExpr(GET_QID_, CorrName("dummy"), 
+             NULL, NULL, NULL, CharInfo::UnknownCharSet, oHeap)
+{
+}
+
+RelExpr * ExeUtilBackupRestore::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
+{
+  ExeUtilBackupRestore *result;
+
+  if (derivedNode == NULL)
+    result = new (outHeap) ExeUtilBackupRestore();
+  else
+    result = (ExeUtilBackupRestore *) derivedNode;
+
+  return ExeUtilExpr::copyTopNode(result, outHeap);
+}
+
 // -----------------------------------------------------------------------
 // Member functions for class ExeUtilPopulateInMemStats
 // -----------------------------------------------------------------------
@@ -3953,6 +3974,10 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
 	  isHbase_ = TRUE;
   }
   else if(restore())
+  {
+      isHbase_ = TRUE;
+  }
+  else if(unlockTraf())
   {
       isHbase_ = TRUE;
   }

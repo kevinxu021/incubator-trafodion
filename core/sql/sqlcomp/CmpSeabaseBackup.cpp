@@ -157,7 +157,7 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
 	
 	char query[1000];
 	Lng32 cliRC;
-	str_sprintf(query, "select catalog_name,schema_name,object_name from %s.\"%s\".%s where object_type in ('BT', 'IX' , 'MV') ",
+	str_sprintf(query, "select catalog_name,schema_name,object_name from %s.\"%s\".%s where object_type in ('BT', 'IX') ",
 				getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_OBJECTS);
 	  
 	Queue * tableQueue = NULL;
@@ -209,12 +209,8 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
 	    
 	    tableList.push_back(qtableName);
 	    //cout<<qtableName<<endl;
-	    
-	    //hbaseTable.val = qtableName;
-	    //hbaseTable.len = str_len(qtableName);
     }
-	    //retcode = ehi->createSnaphot(hbaseTable);
-	//retcode = ehi->createSnaphot(hbaseTable);
+
 	retcode = ehi->createSnaphot(tableList, ddlExpr->getBackupTag());
     if (retcode < 0)
 	{
@@ -227,9 +223,6 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
 	 // break;
 	}
 	    
-	//Register snapshot in snapshot meta.
-	//TODO
-	
 	
 	//deallocate, not needed anymore.
 	ehi->close();
@@ -237,9 +230,6 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
 	
 	//unlockAll 
 	unlockAll();
-	
-	//done phase 1 backup
-
 	return 0;
 	
 }
@@ -276,7 +266,8 @@ short CmpSeabaseDDL::restore(DDLExpr * ddlExpr,
         return -1;
     }
 
-    retcode = ehi->restoreSnapshots(ddlExpr->getBackupTag());
+    retcode = ehi->restoreSnapshots(ddlExpr->getBackupTag(),
+                                    ddlExpr->getBackupTagTimeStamp());
     if (retcode < 0)
     {
         *CmpCommon::diags() << DgSqlCode(-8448)

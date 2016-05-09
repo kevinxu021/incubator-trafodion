@@ -1060,10 +1060,14 @@ void OptimizerSimulator::loadHiveDDLs()
     //create external table
     while(readHiveStmt(hiveCreateExternalTableSql, statement, comment))
    {
-        if(statement.length() > 0)
-        {
+        if(statement.length() > 0) {
             debugMessage("%s\n", extractAsComment("CREATE EXTERNAL TABLE", statement));
-            executeFromMetaContext(statement.data()); //create hive external table
+            retcode = executeFromMetaContext(statement.data()); //create hive external table
+            if(retcode < 0)
+            {
+                CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
+                raiseOsimException("Create hive external table error:  %d", retcode);
+            }
         }
    }
 }

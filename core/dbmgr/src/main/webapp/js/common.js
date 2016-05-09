@@ -30,6 +30,8 @@ define(['moment',
 			this.databaseVersion = "";
 			this.databaseEdition = "";
 			this.serverConfigLoaded = false;
+			this.LIBRARY_CREATED_EVENT = 'LIBRARY_CREATED_EVENT';
+			this.LIBRARY_DROPPED_EVENT = 'LIBRARY_DROPPED_EVENT';
 			this.NOFITY_MESSAGE = 'nofigyMessage';
 			this.MESSAGE_LIST=new Array();
 			this.popupIndex;
@@ -352,8 +354,10 @@ define(['moment',
 				if($(REFRESH_INTERVAL).val()!=null){
 					isAutoRefresh=$(REFRESH_INTERVAL).val();
 				}else{
-					if(_this.commonTimeRange.isAutoRefresh!=null){
+					if(_this.commonTimeRange && _this.commonTimeRange.isAutoRefresh!=null){
 						isAutoRefresh=_this.commonTimeRange.isAutoRefresh;
+					}else {
+						isAutoRefresh="";
 					}
 				}
 				switch (selection) {

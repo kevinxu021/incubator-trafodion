@@ -74,13 +74,14 @@ public:
   // get host name from host number
   static const char * getHostName(HostId hostNum);
 
-  static CollIndex entries()                 { return getHosts()->entries(); }
-  static CollIndex getNumSQNodes()                     { return numSQNodes_; }
+  static CollIndex entries();
+  static CollIndex getNumSQNodes();
   static void resetNumSQNodes() { numSQNodes_ = 0; }
   static void resethasVirtualSQNodes() { hasVirtualSQNodes_ = FALSE; }
-  static CollIndex getNumNonSQNodes() { return getHosts()->entries()-numSQNodes_; }
+
+  static CollIndex getNumNonSQNodes();
   static NABoolean usesRemoteHDFS()         { return getNumNonSQNodes() > 0; }
-  static NABoolean hasVirtualSQNodes()          { return hasVirtualSQNodes_; }
+  static NABoolean hasVirtualSQNodes();
 
   static const CollIndex InvalidHostId = NULL_COLL_INDEX;
 

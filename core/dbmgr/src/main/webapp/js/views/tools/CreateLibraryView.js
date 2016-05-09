@@ -58,11 +58,13 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			
 			validator = $(LIB_FORM).validate({
 				rules: {
-					"library_name": { required: true },
+					"schema_name": { required: true, validateSchemaName:true },
+					"library_name": { required: true, validateLibraryName: true },
 					"file_name": { required: true}
 				},
 				messages: {
-					"library_name": "Please enter a library name",
+					"schema_name": {"required":"Please enter a schema name"},
+					"library_name": {"required":"Please enter a library name"},
 					"file_name": "Please enter a code file name"
 		        },
 				highlight: function(element) {
@@ -81,6 +83,29 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 					}
 				}
 			});
+			$.validator.addMethod("validateSchemaName", function(value, element) {
+				var schemaName = $(SCHEMA_NAME).val();
+				var isNormalName = (!schemaName.startsWith("_") && (schemaName.match("^[\"a-zA-Z0-9_]+$")!=null));
+				if(!isNormalName){
+					if(schemaName.startsWith('"') && schemaName.endsWith('"')){
+						isNormalName = true;
+					}
+				}
+				return isNormalName;
+
+			}, "* Schema name contains special characters. It needs be enclosed within double quotes.");
+			
+			$.validator.addMethod("validateLibraryName", function(value, element) {
+				var libName = $(LIBRARY_NAME).val();
+				var isNormalName = (!libName.startsWith("_") && (libName.match("^[a-zA-Z0-9_]+$")!=null));
+				if(!isNormalName){
+					if(libName.startsWith('"') && libName.endsWith('"')){
+						isNormalName = true;
+					}
+				}
+				return isNormalName;
+
+			}, "* Library name contains special characters. It needs be enclosed within double quotes.");
 		},
 		doResume : function(args) {
 			$(FILE_SELECT).on('click', this.fileDialogOpened);
@@ -111,8 +136,8 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 				$(LIBRARY_NAME).val(_args.library);
 				$(LIBRARY_NAME).prop('disabled', true);
 				$(SCHEMA_NAME).prop('disabled', true);
-				$(PAGE_HEADER).text("Update Library");
-				$(CREATE_BTN).prop('value','Update');
+				$(PAGE_HEADER).text("Alter Library");
+				$(CREATE_BTN).prop('value','Alter');
 				$(OVERWRITE_CHECKBOX).prop('disabled', true);
 				$(OVERWRITE_CHECKBOX).prop('checked' ,true);
 				var libParams = sessionStorage.getItem(_args.library);
@@ -228,18 +253,21 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 		},
 		createLibrarySuccess : function(){
 			_this.isAjaxCompleted=true;
-			var msg='Created library ' + common.ExternalForm(_this.currentSchemaName) + "." + common.ExternalForm(_this.currentLibraryName) + ' successfully';
+			var msgPrefix = (PAGE_MODE == 'UPDATE' ? "altered" : "created");
+			var msg= 'Library '+ common.ExternalForm(_this.currentSchemaName) + "." + common.ExternalForm(_this.currentLibraryName) + ' was ' + msgPrefix + ' successfully';
 			if(UPLOAD_INDEX==UPLOAD_LENGTH){
 				$(LOADING).css('visibility', 'hidden');
 				$(CREATE_BTN).prop('disabled', false);
 				$(CLEAR_BTN).prop('disabled', false);
-				var msgObj={msg: msg,tag:"success",url:null,shortMsg:"Created library successfully."};
+				var msgObj={msg: msg,tag:"success",url:null,shortMsg:'Library was ' + msgPrefix + ' successfully.'};
 				if(_this.redirectFlag==false){
 					_this.popupNotificationMessage(null,msgObj);
 				}else{
 					
 					common.fire(common.NOFITY_MESSAGE,msgObj);
 				}
+				common.fire(common.LIBRARY_CREATED_EVENT,'');
+				
 				//alert("Create library Success!");
 			}else if(UPLOAD_INDEX==UPLOAD_LENGTH-1){
 				_this.executeUploadChunk(OVERWRITE_FLAG, false, true);
@@ -254,9 +282,10 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			$(CLEAR_BTN).prop('disabled', false);
 			var errorIndex = error.responseText.lastIndexOf("*** ERROR");
 			var errorString = error.responseText.substring(errorIndex);
-			var msg="Failed to create library " + common.ExternalForm(_this.currentSchemaName) + "." + common.ExternalForm(_this.currentLibraryName)+ " : " + errorString;
+			var msgPrefix = (PAGE_MODE == 'UPDATE' ? "Failed to alter library " : "Failed to create library ");
+			var msg= msgPrefix + common.ExternalForm(_this.currentSchemaName) + "." + common.ExternalForm(_this.currentLibraryName)+ " : " + errorString;
 			//alert(errorString);
-			var msgObj={msg:msg,tag:"danger",url:null,shortMsg:"Failed to create library."};
+			var msgObj={msg:msg,tag:"danger",url:null,shortMsg:msgPrefix};
 			if(_this.redirectFlag==false){
 				_this.popupNotificationMessage(null,msgObj);
 			}else{

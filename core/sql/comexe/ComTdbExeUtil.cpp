@@ -1390,6 +1390,65 @@ void ComTdbExeUtilGetStatistics::displayContents(Space * space,ULng32 flag)
     }
 }
 
+///////////////////////////////////////////////////////////////////////////
+//
+// Methods for class ComTdbExeUtilBackupRestore
+//
+///////////////////////////////////////////////////////////////////////////
+ComTdbExeUtilBackupRestore::ComTdbExeUtilBackupRestore
+(
+     ex_cri_desc * work_cri_desc,
+     const unsigned short work_atp_index,
+     ex_cri_desc * given_cri_desc,
+     ex_cri_desc * returned_cri_desc,
+     queue_index down,
+     queue_index up,
+     Lng32 num_buffers,
+     ULng32 buffer_size,
+     char * server,
+     char * zkPort)
+     : ComTdbExeUtil(ComTdbExeUtil::BACKUP_RESTORE_,
+         NULL, 0, (Int16)SQLCHARSETCODE_UNKNOWN,
+         NULL, 0,
+         NULL, 0,
+         NULL, 0,
+         NULL,
+         work_cri_desc, work_atp_index,
+         given_cri_desc, returned_cri_desc,
+         down, up, 
+         num_buffers, buffer_size),
+         server_(server),
+         zkPort_(zkPort)
+{
+  setNodeType(ComTdb::ex_BACKUP_RESTORE);
+}
+
+Long ComTdbExeUtilBackupRestore::pack(void * space)
+{
+  if (server_)
+    server_.pack(space);
+  if (zkPort_)
+    zkPort_.pack(space);
+  return ComTdbExeUtil::pack(space);
+}
+
+Lng32 ComTdbExeUtilBackupRestore::unpack(void * base, void * reallocator)
+{
+  if (server_.unpack(base))
+    return -1;
+  if (zkPort_.unpack(base))
+    return -1;
+  
+  return ComTdbExeUtil::unpack(base, reallocator);
+}
+
+void ComTdbExeUtilBackupRestore::displayContents(Space * space,ULng32 flag)
+{
+  ComTdb::displayContents(space,flag & 0xFFFFFFFE);
+}
+
+
+
 void ComTdbExeUtilGetProcessStatistics::displayContents(Space * space,ULng32 flag)
 {
   ComTdb::displayContents(space,flag & 0xFFFFFFFE);

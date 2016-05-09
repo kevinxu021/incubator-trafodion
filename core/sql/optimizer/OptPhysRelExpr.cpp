@@ -14647,8 +14647,9 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   NodeMap* myNodeMap = NULL;
 
   //
-  // Setup partKeys_, iff the hive table is clustered, sorted and in ORC format. 
-  // such tables are created with the DDL similar to the following.
+  // Setup partKeys_, iff the hive table is clustered, sorted and in ORC format, or
+  // indexKey is present. In the frst case, the tables are created with the DDL 
+  // similar to the following.
   //
   // create table store_sorted_orc
   // (
@@ -14667,7 +14668,11 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   //     clustering columns: IndexDesc::getPartitioningKey()
   //     sorted columns:     Indexdesc::getIndexKey()
   //
-  NABoolean canUseSearchKey = indexDesc_->isSortedORCHive();
+  //NABoolean canUseSearchKey =  indexDesc_->isSortedORCHive() ;
+
+  NABoolean canUseSearchKey = ( indexDesc_->isSortedORCHive() ||
+                                indexDesc_->getIndexKey().entries() > 0 );
+
  
   const RequireReplicateNoBroadcast* rpnb = NULL;
   // If the requirement is repN, produce a repN partition func to satisfy it.
@@ -14768,7 +14773,7 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
         SinglePartitionPartitioningFunction(myNodeMap);
     }
 
-  
+ 
   if ( !canUseSearchKey ) {
      // create a very simple physical property for now, no sort order
      // and no partitioning key for now

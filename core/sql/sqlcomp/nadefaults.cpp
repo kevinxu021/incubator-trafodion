@@ -2695,7 +2695,7 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
 
   DDkwd__(OLT_QUERY_OPT,			"ON"),
   DDkwd__(OLT_QUERY_OPT_LEAN,			"OFF"),
-
+  DDint__(ONLINE_BACKUP_TIMEOUT,                 "30"),
   // -----------------------------------------------------------------------
   // Optimizer pruning heuristics.
   // -----------------------------------------------------------------------
