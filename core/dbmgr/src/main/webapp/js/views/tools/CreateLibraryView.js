@@ -113,7 +113,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			_args = args;
 			_this.processArgs();
 			this.redirectFlag=false;
-			if(this.isAjaxCompleted=true){
+			if(this.isAjaxCompleted==true){
 				$(LOADING).css('visibility', 'hidden');
 				$(CREATE_BTN).prop('disabled', false);
 				$(CLEAR_BTN).prop('disabled', false);
@@ -142,12 +142,14 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 				$(OVERWRITE_CHECKBOX).prop('checked' ,true);
 				var libParams = sessionStorage.getItem(_args.library);
 				sessionStorage.removeItem(_args.library);
+				/*
 				if(libParams != undefined){
 					libParams = JSON.parse(libParams);
 					if(libParams.file){
 						$(FILE_NAME).val(libParams.file);
 					}
 				}
+				*/
 				PAGE_MODE = "UPDATE";
 			}else{
 				$(SCHEMA_NAME).prop('disabled', false);
@@ -157,6 +159,9 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 				$(OVERWRITE_CHECKBOX).prop('disabled', false);
 				$(OVERWRITE_CHECKBOX).prop('checked', false);
 				PAGE_MODE = "CREATE";
+				$(FILE_SELECT).on('change', this.onFileSelected);
+				$(SCHEMA_NAME).val("");
+				$(LIBRARY_NAME).val("");
 			}
 		},
 		
