@@ -965,7 +965,7 @@ public:
   // those from selectionPredicates
   NABoolean computePartitionPredicates(
        const GroupAttributes *ga,
-       const ValueIdSet &selectionPredicates);
+       ValueIdSet &selectionPredicates);
 
   // add more runtime partition elimination predicates, those
   // must be validated by the caller

@@ -1035,13 +1035,12 @@ void createAndInsertDP2Scan( const IndexDesc * idesc,
 
         if (fileScan->isHiveTable())
           {
-            ValueIdSet preds(bef->selectionPred());
             HivePartitionAndBucketKey *hpk =
               new(CmpCommon::statementHeap()) HivePartitionAndBucketKey(
                    bef->getTableDesc());
             hpk->computePartitionPredicates(
                  bef->getGroupAttr(),
-                 fileScan->getSelectionPred());
+                 fileScan->selectionPred());
             if (hpk->computeActivePartitions() < 0)
               return; // error encountered, diags are set
             fileScan->setHiveSearchKey(hpk);
