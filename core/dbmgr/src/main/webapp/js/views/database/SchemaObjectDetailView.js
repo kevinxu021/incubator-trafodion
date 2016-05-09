@@ -162,9 +162,7 @@ define([
 			this.redirectFlag=false;
 			$(DDL_CONTAINER).hide();
 			$(COLUMNS_CONTAINER).hide();
-			if(this.isAjaxCompleted=true){
-				$(DROP_LIBRARY_SPINNER).css('visibility', 'hidden');
-			}
+
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			$(UPDATE_LIBRARY_BUTTON).on('click', this.updateLibrary);
 			$(DROP_LIBRARY_BUTTON).on('click',this.dropLibrary);
@@ -196,6 +194,10 @@ define([
 					objectAttributes = JSON.parse(objectAttributes);
 				}
 				_this.doReset();
+			}else{
+				if(this.isAjaxCompleted=true){
+					$(DROP_LIBRARY_SPINNER).css('visibility', 'hidden');
+				}
 			}	
 
 			prevRouteArgs = args;
@@ -281,6 +283,7 @@ define([
 			$(USAGES_ERROR_CONTAINER).text("");
 			$(INDEXES_CONTAINER).empty();
 			$(INDEXES_ERROR_CONTAINER).text("");
+			$(DROP_LIBRARY_BUTTON).prop('disabled',false);
 			
 			pageStatus.ddlFetched == false
 			if(ddlTextEditor){
@@ -333,6 +336,8 @@ define([
 		},
 		dropLibrary: function(){
 			$(DROP_LIBRARY_SPINNER).css('visibility', 'visible');
+			$(DROP_LIBRARY_BUTTON).prop('disabled',true);
+			
 			_this.isAjaxCompleted=false;
 			dbHandler.dropObject(common.ExternalDisplayName(routeArgs.schema), routeArgs.type, common.ExternalDisplayName(routeArgs.name));
 		},
@@ -1360,10 +1365,9 @@ define([
 		},
 		dropObjectSuccess: function(result){
 			_this.isAjaxCompleted=true;
+			$(DROP_LIBRARY_BUTTON).prop('disabled',false);
 			$(DROP_LIBRARY_SPINNER).css('visibility', 'hidden');
-			if(routeArgs.parentView != null && routeArgs.parentView.doReset){
-				routeArgs.parentView.doReset();
-			}
+
 			var msgPrefix = "dropped";
 			var msg= 'Library '+ common.ExternalForm(result.schemaName) + "." + common.ExternalForm(result.objectName) + ' was ' + msgPrefix + ' successfully';
 			var msgObj={msg: msg,tag:"success",url:null,shortMsg:'Library was ' + msgPrefix + ' successfully.'};
@@ -1378,9 +1382,11 @@ define([
 			}else{
 				common.fire(common.NOFITY_MESSAGE,msgObj);
 			}
+			common.fire(common.LIBRARY_DROPPED_EVENT, '');
 		},
 		dropObjectError: function(jqXHR){
 			_this.isAjaxCompleted=true;
+			$(DROP_LIBRARY_BUTTON).prop('disabled',false);
 			$(DROP_LIBRARY_SPINNER).css('visibility', 'hidden');
 			var errorIndex = jqXHR.responseText.lastIndexOf("*** ERROR");
 			var errorString = jqXHR.responseText.substring(errorIndex);

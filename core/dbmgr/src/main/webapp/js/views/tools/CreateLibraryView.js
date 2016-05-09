@@ -266,6 +266,8 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 					
 					common.fire(common.NOFITY_MESSAGE,msgObj);
 				}
+				common.fire(common.LIBRARY_CREATED_EVENT,'');
+				
 				//alert("Create library Success!");
 			}else if(UPLOAD_INDEX==UPLOAD_LENGTH-1){
 				_this.executeUploadChunk(OVERWRITE_FLAG, false, true);

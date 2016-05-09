@@ -30,6 +30,8 @@ define(['moment',
 			this.databaseVersion = "";
 			this.databaseEdition = "";
 			this.serverConfigLoaded = false;
+			this.LIBRARY_CREATED_EVENT = 'LIBRARY_CREATED_EVENT';
+			this.LIBRARY_DROPPED_EVENT = 'LIBRARY_DROPPED_EVENT';
 			this.NOFITY_MESSAGE = 'nofigyMessage';
 			this.MESSAGE_LIST=new Array();
 			this.popupIndex;

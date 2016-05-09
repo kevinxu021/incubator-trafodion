@@ -20,6 +20,7 @@ define([
 	var oDataTable = null;
 	var _this = null;
 	var schemaName = null;
+	var isPaused = false;
 	
 	var BREAD_CRUMB = '#database-crumb';
 	var ERROR_CONTAINER = '#db-objects-error-text',
@@ -36,6 +37,7 @@ define([
 	var schemaName = null;
 	var bCrumbsArray = [];
 	var pageStatus = {};
+	var refreshLibraries = false;
 	
 	var SchemaObjectsView = BaseView.extend({
 		template:  _.template(DatabaseT),
@@ -45,7 +47,7 @@ define([
 			routeArgs = args;
 			prevRouteArgs = args;
 			pageStatus = {};
-			
+			isPaused = false;
 			schemaName = routeArgs.schema;
 			
 			$(ERROR_CONTAINER).hide();
@@ -55,11 +57,14 @@ define([
 			$(CREATE_LIBRARY_BUTTON).on('click', this.createLibrary);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayObjectList);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
+			common.on(common.LIBRARY_CREATED_EVENT, this.libraryCreatedEvent);
+			common.on(common.LIBRARY_DROPPED_EVENT, this.libraryDroppedEvent);
+
 			_this.processRequest();
 		},
 		doResume: function(args){
 			routeArgs = args;
-			
+			isPaused = false;
 			$(ERROR_CONTAINER).hide();
 			$(OBJECT_LIST_CONTAINER).hide();
 			
@@ -67,6 +72,11 @@ define([
 				prevRouteArgs.type != routeArgs.type){
 				schemaName = routeArgs.schema;
 				_this.doReset();
+			}else{
+				if(routeArgs.type == 'libraries' && _this.refreshLibraries == true){
+					_this.doReset();
+					_this.refreshLibraries = false;
+				}
 			}
 			prevRouteArgs = args;
 			$(REFRESH_ACTION).on('click', this.doRefresh);
@@ -76,6 +86,7 @@ define([
 			_this.processRequest();
 		},
 		doPause: function(){
+			isPaused = true;
 			$(REFRESH_ACTION).off('click', this.doRefresh);
 			$(CREATE_LIBRARY_BUTTON).off('click', this.createLibrary);
 			dbHandler.off(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayObjectList);
@@ -96,6 +107,20 @@ define([
 			pageStatus[routeArgs.type] =  false;
 			_this.processRequest();
 			$(ERROR_CONTAINER).hide();
+		},
+		libraryCreatedEvent: function(){
+			if(!isPaused && routeArgs.type == 'libraries'){
+				_this.doRefresh();
+			}else{
+				_this.refreshLibraries = true;
+			}
+		},
+		libraryDroppedEvent: function(){
+			if(!isPaused && routeArgs.type == 'libraries'){
+				_this.doRefresh();
+			}else{
+				_this.refreshLibraries = true;
+			}
 		},
 		createLibrary: function(){
 			window.location.hash = '/tools/createlibrary?schema='+common.ExternalDisplayName(schemaName);
@@ -280,7 +305,7 @@ define([
 			            			 if(schemaName != null)
 			            				 rowcontent += '&schema='+ routeArgs.schema;	            				 
 	
-			            			 rowcontent += '">' + data + '</a>';
+			            			 rowcontent += '">' + common.ExternalAnsiName(routeArgs.schema,data) + '</a>';
 			            			 return rowcontent;                         
 			            		 }else { 
 			            			 return data;
@@ -305,9 +330,9 @@ define([
 				            			 var rowcontent = '<a href="#/database/objdetail?type=library&name=' + data ;
 				            			 if(libSchema != null && libSchema.length > 0){
 				            				 rowcontent += '&schema='+ libSchema;
-				            				 rowcontent += '">' + libSchema+'.'+data + '</a>';		            				 
+				            				 rowcontent += '">' + common.ExternalAnsiName(libSchema,data) + '</a>';		            				 
 				            			 }else{
-				            				 rowcontent += '">' + libSchema+'.'+data + '</a>';	
+				            				 rowcontent += '">' + common.ExternalAnsiName(libSchema,data) + '</a>';	
 				            			 }
 				            			 return rowcontent; 
 			            			 }else{
@@ -336,9 +361,9 @@ define([
 				            			 var rowcontent = '<a href="#/database/objdetail?type=library&name=' + data ;
 				            			 if(libSchema != null && libSchema.length > 0){
 				            				 rowcontent += '&schema='+ libSchema;
-				            				 rowcontent += '">' + libSchema+'.'+data + '</a>';		            				 
+				            				 rowcontent += '">' + common.ExternalAnsiName(libSchema,data)  + '</a>';		            				 
 				            			 }else{
-				            				 rowcontent += '">' + libSchema+'.'+data + '</a>';	
+				            				 rowcontent += '">' + common.ExternalAnsiName(libSchema,data) + '</a>';	
 				            			 }
 				            			 return rowcontent; 
 			            			 }else{
