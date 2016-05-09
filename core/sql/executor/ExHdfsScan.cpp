@@ -1657,12 +1657,13 @@ char * ExHdfsScanTcb::extractAndTransformAsciiSourceToSqlRow(int &err,
             if (attr->getNullFlag())
             {
               // for non-varchar, length of zero indicates a null value
-              if ((tgtAttr) &&
-                  (NOT DFS2REC::isSQLVarChar(tgtAttr->getDatatype())) &&
-                  (len == 0))
-                {
+              if (tgtAttr && len == 0) {
+                 if (DFS2REC::isSQLVarChar(tgtAttr->getDatatype()) &&
+                     (NOT hdfsScanTdb().emptyAsNULL())) 
+                   *(short *)&hdfsAsciiSourceData_[attr->getNullIndOffset()] = 0;
+                 else
                   *(short *)&hdfsAsciiSourceData_[attr->getNullIndOffset()] = -1;
-                }
+              }
 	      else if ((len > 0) && (memcmp(sourceData, "\\N", len) == 0))
                 *(short *)&hdfsAsciiSourceData_[attr->getNullIndOffset()] = -1;
               else

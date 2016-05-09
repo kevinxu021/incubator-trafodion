@@ -241,6 +241,9 @@ select count(*) from store_sales_salt;
 --hive insert 0
 insert overwrite table hive.hive.nulls select * from nulls;
 select * from hive.hive.nulls order by a,b;
+cqd hive_treat_empty_string_as_null 'on' ;
+select * from hive.hive.nulls order by a,b;
+cqd hive_treat_empty_string_as_null reset ;
 
 ---index 0
 create index customer_idx1 on customer_salt(c_first_name, c_last_name);
@@ -253,6 +256,13 @@ unload with purgedata from target
    into '/user/hive/exttables/nulls'
    select * from nulls;
 select * from hive.hive.nulls order by a,b;
+
+cqd hive_treat_empty_string_as_null 'on' ;
+unload with purgedata from target
+   into '/user/hive/exttables/nulls'
+   select * from nulls;
+select * from hive.hive.nulls order by a,b;
+cqd hive_treat_empty_string_as_null reset ;
 
 --exp1
 explain options 'f' 
