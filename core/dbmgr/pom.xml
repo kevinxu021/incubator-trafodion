@@ -409,8 +409,8 @@
 							<sourceHighlighter>coderay</sourceHighlighter>
 							<attributes>
 								<pdf-stylesdir>${project.basedir}/src/main/asciidoc/</pdf-stylesdir>
-                                                                <pdf-style>dbmgr</pdf-style>
-								<ouputFileName>demo.pdf</ouputFileName>
+                                <pdf-style>dbmgr</pdf-style>
+								<ouputFileName>dbmgr.pdf</ouputFileName>
 								<projectVersion>${project.version}</projectVersion>
 								<buildDate>${maven.build.timestamp}</buildDate>
 								<icons>font</icons>

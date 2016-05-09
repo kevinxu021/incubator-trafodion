@@ -43,11 +43,15 @@
 					    	<div id="attributes-spinner">Fetching attributes... <img style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></div>
 							<div>
 								<table id="db-object-attributes-container" class="dbmgr-table"></table>
-							<!-- 	<div id="update-library-div">
-									<button id="update-library-btn" type="button" class="btn btn-primary btn-xs" style="height: 30px;margin-top:10px;margin-bottom:10px">
-										Update Library
+							 	<div id="update-library-div">
+									<button id="update-library-btn" type="button" class="btn btn-primary btn-sm fa fa-edit" style="height: 30px;margin-top:10px;margin-bottom:10px">
+										Alter
 									</button>
-								</div>		-->						
+									<button id="drop-library-btn" type="button" class="btn btn-primary btn-sm fa fa-trash-o" style="height: 30px;margin-top:10px;margin-bottom:10px;margin-left:20px">
+										Drop
+									</button>
+									<img id="drop-library-spinner" style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" />									
+								</div>						
 							</div>
 							<textarea id="db-object-attributes-error-text" readonly name="db-object-attributes-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
 					    </div>

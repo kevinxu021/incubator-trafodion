@@ -3860,6 +3860,14 @@ enum DefaultConstants
   HIVE_SCAN_SPECIAL_MODE,
   HIVE_HDFS_STATS_MAX_SAMPLE_FILES,
   HIVE_HDFS_STATS_SAMPLE_LOB_INTFC,
+  
+  //Amount of time transactional and non transactional queries 
+  //loop around when online backup lock is activated. During this
+  //time queries at HtableClient.java and commit work loop until
+  //online backup lock gets unlocked. After this threshold, queries
+  //return error.
+  ONLINE_BACKUP_TIMEOUT,
+  
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!
   __NUM_DEFAULT_ATTRIBUTES

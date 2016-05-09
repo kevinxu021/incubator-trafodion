@@ -280,7 +280,7 @@ DB Manager uses logback for its logging.
 
 You can edit the *dbmgr-{projectVersion}/conf/logback.xml* to change the log file rollover settings and also set the default LOG level.
 
-The EsgynDB Manager runtime logs are written in the *dbmgr-{projectVersion}/logs* directory.
+The EsgynDB Manager runtime logs are written to the *dbmgr-{projectVersion}/logs* directory.
 
 === Check Status of EsgynDB Manager
 To check the state of EsgynDB Manager, run the following command from the bin directory.
