@@ -159,6 +159,9 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 				$(OVERWRITE_CHECKBOX).prop('disabled', false);
 				$(OVERWRITE_CHECKBOX).prop('checked', false);
 				PAGE_MODE = "CREATE";
+				$(FILE_SELECT).on('change', this.onFileSelected);
+				$(SCHEMA_NAME).val("");
+				$(LIBRARY_NAME).val("");
 			}
 		},
 		
