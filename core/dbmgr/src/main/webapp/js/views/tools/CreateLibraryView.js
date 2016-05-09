@@ -142,12 +142,14 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 				$(OVERWRITE_CHECKBOX).prop('checked' ,true);
 				var libParams = sessionStorage.getItem(_args.library);
 				sessionStorage.removeItem(_args.library);
+				/*
 				if(libParams != undefined){
 					libParams = JSON.parse(libParams);
 					if(libParams.file){
 						$(FILE_NAME).val(libParams.file);
 					}
 				}
+				*/
 				PAGE_MODE = "UPDATE";
 			}else{
 				$(SCHEMA_NAME).prop('disabled', false);
