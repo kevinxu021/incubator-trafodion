@@ -959,6 +959,7 @@ short BEGINTX(int *pp_tag, int pv_timeout, int64 pv_type_flags)
 short ENDTRANSACTION() 
 {
     short lv_error = FEOK;
+    short lv_retries = 0;
     // instantiate a gp_trans_thr object for this thread if needed.
     if (gp_trans_thr == NULL)
        gp_trans_thr = new TMLIB_ThreadTxn_Object();
@@ -973,7 +974,16 @@ short ENDTRANSACTION()
      }
 
     TMlibTrace(("TMLIB_TRACE : ENDTRANSACTION ENTRY: txid: %d\n", lp_trans->getTransid()->get_seq_num()), 1);
-    lv_error =  lp_trans->end();
+    
+    do {
+       if (lv_retries > 0)
+       {
+	 TMlibTrace(("TMLIB_TRACE : ENDTRANSACTION error FETMLOCKED, sleeping 1 second and trying again\n"), 1);
+	 SB_Thread::Sthr::sleep(1000); // in msec (1 second)
+       }
+       lv_error =  lp_trans->end();
+    }while ((lv_error == FETMLOCKED) && (lv_retries++ < 60));
+  
     TMlibTrace(("TMLIB_TRACE : ENDTRANSACTION EXIT: txid: %d, retcode: %d\n", lp_trans->getTransid()->get_seq_num(), lv_error), 1);
 
      // cleanup for legacy API
