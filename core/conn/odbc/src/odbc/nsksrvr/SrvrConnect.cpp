@@ -61,6 +61,7 @@
 #include <tal.h>
 
 #include <string.h>
+#include <list>
 #include "DrvrSrvr.h"
 #include "Global.h"
 #include "QSGlobal.h"
@@ -138,6 +139,25 @@ int interval_count=0;
 int interval_max=1;
 int limit_count=0;
 int limit_max=-1;
+
+//profile cqds
+string sla;
+string profile;
+string lastUpdate;
+
+string connectProfile;
+time_t connectctime=0;
+time_t connectmtime=0;
+char* profConnectData=NULL;
+list<char*> connectList;
+bool connectProfileExecuted = false;
+
+string disconnectProfile;
+time_t disconnectctime=0;
+time_t disconnectmtime=0;
+char* profDisconnectData=NULL;
+list<char*> disconnectList;
+bool disconnectProfileExecuted = false;
 
 bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState);
 
@@ -1929,13 +1949,11 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 	sts = CEE_TMP_ALLOCATE(call_id_, sizeof(VERSION_def)*2, (void **)&versionPtr);
 	if( sts != CEE_SUCCESS)
 	{
-//LCOV_EXCL_START
 		strcpy( errStrBuf2, "SrvrConnect.cpp");
 		strcpy( errStrBuf3, "odbc_SQLSvc_InitializeDialogue_sme_");
 		strcpy( errStrBuf4, "CEE_TMP_ALLOCATE");
 		sprintf( errStrBuf5, "Failed to get <%d> bytes", sizeof(VERSION_def)*2);
 		logError( NO_MEMORY, SEVERITY_MAJOR, CAPTURE_ALL + PROCESS_STOP );
-//LCOV_EXCL_STOP
 	}
 
 	int len_length = inContext->clientVersionList._length;
@@ -2002,14 +2020,17 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 	char *data = NULL;
 
 	string user;
-	string sla;
-	string profile;
-	string lastUpdate;
 	string definedSla ;
 	string definedProfile;
 
-	string connectProfile;
-	string disconnectProfile;
+	string curConnectProfile;
+	string curDisconnectProfile;
+	int profConnectDataLen = 0;
+	int profDisconnectDataLen = 0;
+	time_t tctime=0;
+	time_t tmtime=0;
+	char* cqds=NULL;
+
 
 	int rc = zoo_exists(zh, dcsRegisteredNode.c_str(), 0, &stat);
 	if( rc == ZOK )
@@ -2116,12 +2137,12 @@ odbc_SQLSvc_InitializeDialogue_ame_(
             serverPort,-------------------------8
             computerName,-----------------------9
             clientSocketAddress,----------------10
-            windowText,-------------------------11
-            sla,--------------------------------12
-            profile,----------------------------13
-            lastUpdate--------------------------14
+            clientPort--------------------------11
+            windowText,-------------------------12
+            sla,--------------------------------13
+            profile,----------------------------14
+            lastUpdate--------------------------15
 */
-
 			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #4
 			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #5
 			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #6
@@ -2131,12 +2152,13 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #10
 			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #11
 			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #12
-			else
-				sla = string(tkn);
 			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #13
 			else
-				profile = string(tkn);
+				sla = string(tkn);
 			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #14
+			else
+				profile = string(tkn);
+			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #15
 			else
 				lastUpdate = string(tkn);
 TNULL:
@@ -2183,21 +2205,21 @@ TNULL:
 						if(strcmp(tkn, "onConnectProfile") == 0)
 						{
 							tkn = strtok(NULL,":");
-							connectProfile = string(tkn);
+							curConnectProfile = string(tkn);
 						}
 						else if(strcmp(tkn, "onConnectProfile") == 0)
 						{
 							tkn = strtok(NULL,":");
-							disconnectProfile = string(tkn);
+							curDisconnectProfile = string(tkn);
 						}
 						else
 							tkn = strtok(NULL, ":");
 						tkn = strtok(NULL, "=");
 					}
-					if(connectProfile.length()==0)
-						connectProfile = string("defaultProfile");
-					if(disconnectProfile.length()==0)
-						disconnectProfile = string("defaultProfile");
+					if(curConnectProfile.length()==0)
+						curConnectProfile = string("defaultProfile");
+					if(curDisconnectProfile.length()==0)
+						curDisconnectProfile = string("defaultProfile");
 				}
 				if(slaData!=NULL)
 					delete[]slaData;
@@ -2206,56 +2228,120 @@ TNULL:
 //Profiles
 		if( rc == ZOK )
 		{
-			char* profData=NULL;
-			int profDataLen = 0;
-			unsigned int version = 0;
-			unsigned int aversion = 0;
-			unsigned int cversion = 0;
-
-			definedProfile = "/" + user + "/wms/profiles/" + connectProfile;
+			definedProfile = "/" + user + "/wms/profiles/" + curConnectProfile;
 			rc == zoo_exists(zh, definedProfile.c_str(), false, &stat);
             if (rc == ZOK )
             {
-            	version = stat.version;
-            	cversion = stat.cversion;
-            	aversion = stat.aversion;
-            	profDataLen = stat.dataLength;
-				profData = new char[profDataLen + 1];
+                tctime = stat.ctime/1000;
+                tmtime = stat.mtime/1000;
 
-				rc = zoo_get(zh, definedProfile.c_str(), false, profData, &profDataLen, &stat);
-				if( rc == ZOK )
-				{
-				}
-				if(profData != NULL)
-					delete[] profData;
+                if(tmtime != connectmtime)
+                {
+                	connectProfile = curConnectProfile;
+                	connectctime=tctime;
+                	connectmtime=tmtime;
+					if(profConnectData != NULL)
+						delete[] profConnectData;
+					cqds = NULL;
+					profConnectData = NULL;
+					connectList.clear();
+
+					profConnectDataLen = stat.dataLength;
+					profConnectData = new char[profConnectDataLen + 1];
+
+					rc = zoo_get(zh, definedProfile.c_str(), false, profConnectData, &profConnectDataLen, &stat);
+					if( rc == ZOK )
+					{
+						profConnectData[profConnectDataLen]=0;
+						tkn = strtok(profConnectData, "=");
+						while(true)
+						{
+							if(tkn == NULL) break;
+							if(strcmp(tkn, "cqd") == 0)
+							{
+								cqds = strtok(NULL,":");
+								break;
+							}
+							else
+								tkn = strtok(NULL, ":");
+							tkn = strtok(NULL, "=");
+						}
+						if(cqds != NULL)
+						{
+		                	connectProfileExecuted = false;
+							tkn = strtok(cqds, ",");
+							while(tkn != NULL)
+							{
+								connectList.push_back(tkn);
+								tkn = strtok(NULL, ",");
+							}
+						}
+						else
+		                	connectProfileExecuted = true;
+					}
+                }
+                else
+                	connectProfileExecuted = true;
             }
             if (rc == ZOK){
-				profData=NULL;
-				profDataLen = 0;
-				version = 0;
-				aversion = 0;
-				cversion = 0;
-				definedProfile = "/" + user + "/wms/profiles/" + disconnectProfile;
+				definedProfile = "/" + user + "/wms/profiles/" + curDisconnectProfile;
 				rc == zoo_exists(zh, definedProfile.c_str(), false, &stat);
 				if (rc == ZOK )
 				{
-					version = stat.version;
-					cversion = stat.cversion;
-					aversion = stat.aversion;
-					profDataLen = stat.dataLength;
-					profData = new char[profDataLen];
+	                tctime = stat.ctime/1000;
+	                tmtime = stat.mtime/1000;
 
-					rc = zoo_get(zh, definedProfile.c_str(), false, profData, &profDataLen, &stat);
-					if( rc == ZOK )
-					{
-					}
-					if(profData != NULL)
-						delete[] profData;
+	                if(tmtime != disconnectmtime)
+	                {
+	                	disconnectProfile = curDisconnectProfile;
+	                	disconnectctime=tctime;
+	                	disconnectmtime=tmtime;
+						if(profDisconnectData != NULL)
+							delete[] profDisconnectData;
+						profDisconnectData = NULL;
+						disconnectList.clear();
+						cqds = NULL;
+
+						profDisconnectDataLen = stat.dataLength;
+						profDisconnectData = new char[profDisconnectDataLen];
+
+						rc = zoo_get(zh, definedProfile.c_str(), false, profDisconnectData, &profDisconnectDataLen, &stat);
+						if( rc == ZOK )
+						{
+							profDisconnectData[profDisconnectDataLen]=0;
+							tkn = strtok(profDisconnectData, "=");
+							while(true)
+							{
+								if(tkn == NULL) break;
+								if(strcmp(tkn, "cqd") == 0)
+								{
+									cqds = strtok(NULL,":");
+									break;
+								}
+								else
+									tkn = strtok(NULL, ":");
+								tkn = strtok(NULL, "=");
+							}
+							if(cqds != NULL)
+							{
+			                	disconnectProfileExecuted = false;
+								tkn = strtok(cqds, ",");
+								while(tkn != NULL)
+								{
+									disconnectList.push_back(tkn);
+									tkn = strtok(NULL, ",");
+								}
+							}
+							else
+			                	disconnectProfileExecuted = true;
+						}
+	                }
+	                else
+	                	disconnectProfileExecuted = true;
 				}
             }
 		}
 	}
-
 	if( rc != ZOK )
 	{
 		sprintf(tmpString, "Error %d getting registered node data from Zookeeper. Server exiting.", rc);
@@ -2275,12 +2361,9 @@ TNULL:
 
 	if( TestPointArray != NULL )
 	{
-//LCOV_EXCL_START
 		delete[] TestPointArray;
 		TestPointArray = NULL;
-//LCOV_EXCL_STOP
 	}
-
 	setConnectException.exception_nr = 0;
 	WSQL_EXEC_ClearDiagnostics(NULL);
 
@@ -2297,7 +2380,6 @@ TNULL:
 			securitySetup = true;
 		else
 		{
-//LCOV_EXCL_START
 			exception_.exception_detail = retCode;
 			exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
 			SETSECURITYERROR(retCode, &exception_.u.SQLError.errorList);
@@ -2311,7 +2393,6 @@ TNULL:
 				exitServerProcess();
 			}
 			return;
-//LCOV_EXCL_STOP
 		}
 	}
 
@@ -2319,15 +2400,12 @@ TNULL:
 //	R2.5  - Allow old driver connection without password encryption if security policy allows it
 	if ( !(srvrGlobal->drvrVersion.buildId & PASSWORD_SECURITY))
 	{
-//LCOV_EXCL_START
 		exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
 		SETSRVRERROR(SECURITYERR, -8837, "HY000", SQLSVC_EXCEPTION_PASSWORD_ENCRYPTION_REQUIRED, &exception_.u.SQLError.errorList);
 		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
 		updateSrvrState(SRVR_CONNECT_REJECTED);
 		return;
-//LCOV_EXCL_STOP
 	}
-
 	if (srvrGlobal->drvrVersion.buildId & PASSWORD_SECURITY)
 	{
 		if (inContext->inContextOptions1 & INCONTEXT_OPT1_CERTIFICATE_TIMESTAMP)
@@ -2345,7 +2423,6 @@ TNULL:
 				retCode = GET_CERTIFICATE(NULL, &certificateLen);
 				if (retCode == SECMXO_NO_ERROR)
 				{
-//LCOV_EXCL_START
 					sts = CEE_TMP_ALLOCATE(call_id_, certificateLen+1, (void **)&certificatePtr);
 					if( sts != CEE_SUCCESS)
 					{
@@ -2354,7 +2431,6 @@ TNULL:
 						strcpy( errStrBuf4, "CEE_TMP_ALLOCATE");
 						sprintf( errStrBuf5, "Failed to get <%d> bytes", certificateLen);
 						logError( NO_MEMORY, SEVERITY_MAJOR, CAPTURE_ALL + PROCESS_STOP );
-//LCOV_EXCL_STOP
 					}
 					retCode = GET_CERTIFICATE(certificatePtr, &certificateLen);
 				}
@@ -2369,7 +2445,6 @@ TNULL:
 				}
 				else
 				{
-//LCOV_EXCL_START
 					exception_.exception_detail = retCode;
 					exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
 					SETSECURITYERROR(retCode, &exception_.u.SQLError.errorList);
@@ -2383,7 +2458,6 @@ TNULL:
 						exitServerProcess();
 					}
 					return;
-//LCOV_EXCL_STOP
 				}
 				break;
 			case SECMXO_NO_CERTIFICATE:
@@ -2395,7 +2469,6 @@ TNULL:
 				odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
 				return;
 				break;
-//LCOV_EXCL_START
 			case SECMXO_CERTIFICATE_EXPIRED:
 				// certificates match, but they are expired, and policy enforces certificate expiration
 				// report error to user, no autodownload
@@ -2414,7 +2487,6 @@ TNULL:
 						srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 						1, "Security layer returned fatal error. Server exiting.");
 					exitServerProcess();
-//LCOV_EXCL_STOP
 				}
 				return;
 				break;
@@ -2428,22 +2500,20 @@ TNULL:
 	}
 	if (userDesc->userName == NULL || userDesc->password._buffer == NULL)
 	{
-//LCOV_EXCL_START
 		exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_InvalidUser_exn_;
 		SETSRVRERROR(SQLERRWARN, -8837, "28000", "Invalid authorization specification", &exception_.u.SQLError.errorList);
 		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
 		updateSrvrState(SRVR_CONNECT_REJECTED);
 		return;
-//LCOV_EXCL_STOP
 	}
-
 	if (strlen(inContext->catalog) > MAX_SQL_IDENTIFIER_LEN || strlen(inContext->schema) > MAX_SQL_IDENTIFIER_LEN)
 	{
 		exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_ParamError_exn_;
 		exception_.u.ParamError.ParamDesc = SQLSVC_EXCEPTION_INVALID_OPTION_VALUE_STR;
+		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
 		updateSrvrState(SRVR_CONNECT_REJECTED);
+		return;
 	}
-
 	// RAJANI KANTH
 	/*
 	 * Read the set values as it has SQL_ATTR_WARNING has to be
@@ -2505,19 +2575,14 @@ TNULL:
 										NULL
 										, &sqlWarning
 										);
-
 	if (setConnectException.exception_nr != CEE_SUCCESS)
 	{
-//LCOV_EXCL_START
 		sprintf(tmpString, "%ld", inContext->txnIsolationLevel);
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 			2, "SQL_TXN_ISOLATION", tmpString);
 		goto MapException;
-//LCOV_EXCL_STOP
 	}
-
-
 	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
 										call_id_,
 										&setConnectException,
@@ -2529,12 +2594,10 @@ TNULL:
 										);
 	if (setConnectException.exception_nr != CEE_SUCCESS)
 	{
-//LCOV_EXCL_START
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 			2, "RESET_DEFAULTS", "");
 		goto MapException;
-//LCOV_EXCL_STOP
 	}
 
 	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
@@ -2548,12 +2611,10 @@ TNULL:
 										);
 	if (setConnectException.exception_nr != CEE_SUCCESS)
 	{
-//LCOV_EXCL_START
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 			2, "CUT_CONTROLQUERYSHAPE", "");
 		goto MapException;
-//LCOV_EXCL_STOP
 	}
 
 	// collect information for auditing and repository
@@ -2648,12 +2709,10 @@ TNULL:
 												);
 			if (setConnectException.exception_nr != CEE_SUCCESS)
 			{
-//LCOV_EXCL_START
 				SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 					srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 					2, "RESET_SCHEMA", schemaValueStr);
 				goto MapException;
-//LCOV_EXCL_STOP
 			}
 		}
 		if (inContext->schema[0] != NULL)
@@ -2723,8 +2782,6 @@ TNULL:
 		strncpy(outContext.schema, srvrGlobal->DefaultSchema, sizeof(outContext.schema));
 		outContext.schema[sizeof(outContext.schema)-1] = '\0';
 	}
-
-
 	// Added to detect MODE_SPECIAL_1 CQD
 	static bool firstTime = true;
 	if ( firstTime )
@@ -2751,8 +2808,6 @@ TNULL:
 		#endif
 		srvrGlobal->tip_gateway = NULL;
 	}
-
-
 	//getSQLInfo(USER_ROLE); // srvrGlobal->RoleName and srvrGlobal->QSRoleName is set here
 
 	if (srvrGlobal->QSRoleName[0] != '\0')
@@ -2764,8 +2819,6 @@ TNULL:
 	}
 	else
 		outContext.outContextOptionStringLen = 0;
-
-
 	//  +++ Fix for update stats problem on volatile table. This code was earlier
 	//  just before SET_ODBC_PROCESS connection attr above.
 	//	Have moved the BEGIN_SESSION here to fix an issue with AQR.
@@ -2826,19 +2879,10 @@ TNULL:
 			strcpy(srvrGlobal->sessionId,tmpsrvrSessionId);
 		}
 	}
-
 	if (srvrGlobal->srvrState == SRVR_CONNECTING)
 	{
 	   updateSrvrState(SRVR_CONNECTED);
 	}
-
-	// For performance reasons, SQL statements to setup the initial context
-	// are executed after responding back to client
-	//
-
-
-	odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
-
 	if (outContext.outContextOptionStringLen > 0)
 		delete [] outContext.outContextOptionString;
 
@@ -2846,7 +2890,6 @@ TNULL:
 	{
 		srvrGlobal->traceLogger->TraceConnectExit(exception_, outContext);
 	}
-
 	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
 										call_id_,
 										&setConnectException,
@@ -2858,14 +2901,11 @@ TNULL:
 										);
 	if (setConnectException.exception_nr != CEE_SUCCESS)
 	{
-//LCOV_EXCL_START
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 			2, "SET_ODBC_PROCESS", "");
 		goto MapException;
-//LCOV_EXCL_STOP
 	}
-
 	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
 										call_id_,
 										&setConnectException,
@@ -2877,15 +2917,11 @@ TNULL:
 										);
 	if (setConnectException.exception_nr != CEE_SUCCESS)
 	{
-//LCOV_EXCL_START
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 			2, "WMS_QUERY_MONITORING", "");
 		goto MapException;
-//LCOV_EXCL_STOP
 	}
-
-
 // Need to enable this for JDBC driver
 	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
 										call_id_,
@@ -2898,15 +2934,11 @@ TNULL:
 										);
 	if (setConnectException.exception_nr != CEE_SUCCESS)
 	{
-//LCOV_EXCL_START
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 			2, "SET_JDBC_PROCESS", "");
 		goto MapException;
-//LCOV_EXCL_STOP
 	}
-
-// Need to enable this for NCI
 	if (strcmp(srvrGlobal->ApplicationName, HPDCI_APPLICATION) == 0)
 	{
 		odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
@@ -2920,16 +2952,12 @@ TNULL:
 											);
 		if (setConnectException.exception_nr != CEE_SUCCESS)
 		{
-//LCOV_EXCL_START
 			SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 				srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 				2, "SET_NVCI_PROCESS", "");
 			goto MapException;
-//LCOV_EXCL_STOP
 		}
 	}
-
-// Need to enable this for to generate explain plans by default.
 	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
 										call_id_,
 										&setConnectException,
@@ -2941,14 +2969,11 @@ TNULL:
 										);
 	if (setConnectException.exception_nr != CEE_SUCCESS)
 	{
-//LCOV_EXCL_START
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 			2, "SET_EXPLAIN_PLAN", "");
 		goto MapException;
-//LCOV_EXCL_STOP
 	}
-
 	// This is added for dynamic reconfiguration. To reset the nametype back to ANSI.
 	// Then is set according to Data Source configured.
 	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
@@ -2962,15 +2987,11 @@ TNULL:
 										);
 	if (setConnectException.exception_nr != CEE_SUCCESS)
 	{
-//LCOV_EXCL_START
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 			2, "SET_CATALOGNAMETYPE", "");
 		goto MapException;
-//LCOV_EXCL_STOP
 	}
-
-
 	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
 										call_id_,
 										&setConnectException,
@@ -2982,14 +3003,11 @@ TNULL:
 										);
 	if (setConnectException.exception_nr != CEE_SUCCESS)
 	{
-//LCOV_EXCL_START
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 			2, "SET_AUTOBEGIN", "");
 		goto MapException;
-//LCOV_EXCL_STOP
 	}
-
 	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
 										call_id_,
 										&setConnectException,
@@ -3002,15 +3020,12 @@ TNULL:
 
 	if (setConnectException.exception_nr != CEE_SUCCESS)
 	{
-//LCOV_EXCL_START
 		sprintf(tmpString, "%ld", inContext->autoCommit);
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 			2, "SQL_AUTOCOMMIT", tmpString);
 		goto MapException;
-//LCOV_EXCL_STOP
 	}
-
 	srvrGlobal->estCardinality = srvrGlobal->estCost = -1;
 	if (srvrGlobal->envVariableOn)
 	{
@@ -3558,15 +3573,12 @@ TNULL:
 											);
 		if (setConnectException.exception_nr != CEE_SUCCESS)
 		{
-//LCOV_EXCL_START
 			SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 				srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 				2, "SET_SCHEMA", schemaValueStr);
 			goto MapException;
-//LCOV_EXCL_STOP
 		}
 	}
-
 	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
 										call_id_,
 										&setConnectException,
@@ -3578,15 +3590,11 @@ TNULL:
 										);
 	if (setConnectException.exception_nr != CEE_SUCCESS)
 	{
-//LCOV_EXCL_START
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 			2, "RESET_RESET_DEFAULTS", "");
 		goto MapException;
-//LCOV_EXCL_STOP
 	}
-
-
 	SRVR_STMT_HDL *RbwSrvrStmt;
 	SRVR_STMT_HDL *CmwSrvrStmt;
 
@@ -3594,51 +3602,43 @@ TNULL:
 		RbwSrvrStmt->Close(SQL_DROP);
 	if ((RbwSrvrStmt = getSrvrStmt("STMT_ROLLBACK_1", TRUE)) == NULL)
 	{
-//LCOV_EXCL_START
 		setConnectException.exception_nr = 99;
 		sprintf(tmpString, "%s", "Unable to allocate statement to Rollback.");
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 			2, "STMT_ROLLBACK_1", tmpString);
 		goto MapException;
-//LCOV_EXCL_STOP
 	}
 	retCode = RbwSrvrStmt->Prepare("ROLLBACK WORK",INTERNAL_STMT,SQL_ASYNC_ENABLE_OFF, 0);
 	if (retCode == SQL_ERROR)
 	{
-//LCOV_EXCL_START
 		setConnectException.exception_nr = 99;
 		sprintf(tmpString, "%s", "Error in Preparing Query for Rollback.");
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 			2, "STMT_ROLLBACK_1", tmpString);
 		goto MapException;
-//LCOV_EXCL_STOP
 	}
 	if ((CmwSrvrStmt = getSrvrStmt("STMT_COMMIT_1", FALSE)) != NULL)
 		CmwSrvrStmt->Close(SQL_DROP);
 	if ((CmwSrvrStmt = getSrvrStmt("STMT_COMMIT_1", TRUE)) == NULL)
 	{
-//LCOV_EXCL_START
 		setConnectException.exception_nr = 99;
 		sprintf(tmpString, "%s", "Unable to allocate statement for Commit.");
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 			2, "STMT_ROLLBACK_1", tmpString);
 		goto MapException;
-//LCOV_EXCL_STOP
 	}
 	retCode = CmwSrvrStmt->Prepare("COMMIT WORK",INTERNAL_STMT,SQL_ASYNC_ENABLE_OFF, 0);
 	if (retCode == SQL_ERROR)
 	{
-//LCOV_EXCL_START
 		setConnectException.exception_nr = 99;
 		sprintf(tmpString, "%s", "Error in Preparing Query for Commit.");
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 			2, "STMT_ROLLBACK_1", tmpString);
 		goto MapException;
-//LCOV_EXCL_STOP
 	}
 
 	// batch job support for T4
@@ -3649,53 +3649,44 @@ TNULL:
 		TranOnSrvrStmt->Close(SQL_DROP);
 	if ((TranOnSrvrStmt = getSrvrStmt("STMT_TRANS_ON_1", TRUE)) == NULL)
 	{
-//LCOV_EXCL_START
 		setConnectException.exception_nr = 99;
 		sprintf(tmpString, "%s", "Unable to allocate statement to set transaction on.");
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 			2, "STMT_TRANS_ON_1", tmpString);
 		goto MapException;
-//LCOV_EXCL_STOP
 	}
 	retCode = TranOnSrvrStmt->Prepare("SET TRANSACTION AUTOCOMMIT ON",INTERNAL_STMT,SQL_ASYNC_ENABLE_OFF, 0);
 	if (retCode == SQL_ERROR)
 	{
-//LCOV_EXCL_START
 		setConnectException.exception_nr = 99;
 		sprintf(tmpString, "%s", "Error in Preparing Query for set transaction on.");
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 			2, "STMT_TRANS_ON_1", tmpString);
 		goto MapException;
-//LCOV_EXCL_STOP
 	}
 	if ((TranOffSrvrStmt = getSrvrStmt("STMT_TRANS_OFF_1", FALSE)) != NULL)
 		TranOffSrvrStmt->Close(SQL_DROP);
 	if ((TranOffSrvrStmt = getSrvrStmt("STMT_TRANS_OFF_1", TRUE)) == NULL)
 	{
-//LCOV_EXCL_START
 		setConnectException.exception_nr = 99;
 		sprintf(tmpString, "%s", "Unable to allocate statement to set transaction off.");
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 			2, "STMT_TRANS_OFF_1", tmpString);
 		goto MapException;
-//LCOV_EXCL_STOP
 	}
 	retCode = TranOffSrvrStmt->Prepare("SET TRANSACTION AUTOCOMMIT OFF",INTERNAL_STMT,SQL_ASYNC_ENABLE_OFF, 0);
 	if (retCode == SQL_ERROR)
 	{
-//LCOV_EXCL_START
 		setConnectException.exception_nr = 99;
 		sprintf(tmpString, "%s", "Error in Preparing Query for set transaction off.");
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 			2, "STMT_TRANS_OFF_1", tmpString);
 		goto MapException;
-//LCOV_EXCL_STOP
 	}
-
 	srvrGlobal->javaConnIdleTimeout = JDBC_DATASOURCE_CONN_IDLE_TIMEOUT;
 	if ((srvrGlobal->drvrVersion.componentId == JDBC_DRVR_COMPONENT) && ((long) (inContext->idleTimeoutSec) > JDBC_DATASOURCE_CONN_IDLE_TIMEOUT))
 		srvrGlobal->javaConnIdleTimeout = inContext->idleTimeoutSec;
@@ -3736,45 +3727,15 @@ TNULL:
 
 	crID = userSession->getUserID();
 	userSession->getDBUserName(srvrGlobal->QSDBUserName, sizeof(srvrGlobal->QSDBUserName));
-
 	// Get the current external name of the user.
-
 	userSession->getExternalUsername(srvrGlobal->QSUserName, sizeof(srvrGlobal->QSUserName));
 
-
-
 	strcpyUTF8(setinit.userName,srvrGlobal->QSUserName, sizeof(setinit.userName));
-
 	// For component privileges
 	bzero(hpdcsPrivMask, sizeof(hpdcsPrivMask));
 
-#ifdef NSK_PLATFORM
-	if ((error = PROCESS_GETINFO_(TPT_REF(srvrGlobal->nskProcessInfo.pHandle),
-		OMITREF, OMITSHORT,OMITREF,		// proc string,max buf len,act len
-		&priority,						// priority
-		OMITREF,						// Mom's proc handle
-		OMITREF, OMITSHORT,OMITREF,		// home term,max buf len,act len
-		OMITREF,						// Process execution time
-		&crID,							// Creator Access Id
-		OMITREF,						// Process Access Id
-		OMITREF,						// Grand Mom's proc handle
-		OMITREF,						// Job Id
-		OMITREF, OMITSHORT,OMITREF,		// Program file,max buf len,act len
-		OMITREF, OMITSHORT,OMITREF,		// Swap file,max buf len,act len
-		OMITREF,
-		OMITREF,						// Process type
-		OMITREF) ) != 0)			    // OSS or NT process Id
-	{
-		sprintf(tmpString, "%d", error);
-		SendEventMsg(MSG_ODBC_NSK_ERROR, EVENTLOG_ERROR_TYPE,
-			0, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			1, tmpString);
-	}
-	setinit.startPriority = priority;
-
-#else
    MS_Mon_Process_Info_Type  proc_info;
-	char  myProcname[128];
+   char  myProcname[128];
    short procname_len;
 
 	if ((error = PROCESSHANDLE_DECOMPOSE_ (
@@ -3791,31 +3752,23 @@ TNULL:
 				,OMITREF			//[ long long *sequence-number ]
 				)) != 0)
 	{
-//LCOV_EXCL_START
 		sprintf(tmpString, "%d", error);
 		SendEventMsg(MSG_ODBC_NSK_ERROR, EVENTLOG_ERROR_TYPE,
 			0, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 			1, tmpString);
-//LCOV_EXCL_STOP
 	}
-
 	myProcname[procname_len] = 0;
-
-   error = msg_mon_get_process_info_detail(myProcname, &proc_info);
-   if (error != XZFIL_ERR_OK )
-   {
-//LCOV_EXCL_START
+	error = msg_mon_get_process_info_detail(myProcname, &proc_info);
+	if (error != XZFIL_ERR_OK )
+	{
 		sprintf(tmpString, "%d", error);
 		SendEventMsg(MSG_ODBC_NSK_ERROR, EVENTLOG_ERROR_TYPE,
 			0, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 			1, tmpString);
-//LCOV_EXCL_STOP
    }
 	setinit.startPriority = priority = (short)proc_info.priority;
-
 	srvrGlobal->process_id = proc_info.pid;
 	srvrGlobal->cpu = proc_info.nid;
-#endif
 
 	srvrGlobal->ProcessAccessId = setinit.userId = crID;
 
@@ -3916,14 +3869,16 @@ TNULL:
 					2, "COMPILER_CACHE_RESET", "Fatal Error - Server exiting");
 
 				exitServerProcess();
-//LCOV_EXCL_STOP
 			}
 		}
 	}
-//
-
 	if( (maxHeapPctExit != 0) &&  (initSessMemSize == 0))
 		initSessMemSize = getMemSize("Initial");
+
+	// (moved from line 2922)
+	// For performance reasons, SQL statements to setup the initial context
+	// are executed after responding back to client
+	odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
 
 	return;
 
@@ -9269,7 +9224,13 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 				   << s_port
 				   << ":"
 				   << srvrGlobal->ApplicationName
-			   	   << ":";
+			   	   << ":"
+				   << sla
+				   << ":"
+				   << profile
+				   << ":"
+				   << lastUpdate
+				   << ":";
 
 			}
 			else {
@@ -9288,7 +9249,13 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 				   << errno
 				   << ":"
 				   << srvrGlobal->ApplicationName
-			   	   << ":";
+			   	   << ":"
+				   << sla
+				   << ":"
+				   << profile
+				   << ":"
+				   << lastUpdate
+				   << ":";
 
 			}
 			string data(ss.str());
@@ -9328,6 +9295,12 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 			   << ":"					// Client address
 			   << ":"					// Client port
 			   << ":"					// Client Appl name
+			   << ":"
+			   << sla
+			   << ":"
+			   << profile
+			   << ":"
+			   << lastUpdate
 			   << ":";
 
 			string data(ss.str());
@@ -9370,6 +9343,12 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 			   << ":"					// Client address
 			   << ":"					// Client port
 			   << ":"					// Client Appl name
+			   << ":"
+			   << sla
+			   << ":"
+			   << profile
+			   << ":"
+			   << lastUpdate
 			   << ":";
 
 			string data(ss.str());
@@ -9423,6 +9402,12 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 				   << ":"					// Client address
 				   << ":"					// Client port
 				   << ":"					// Client Appl name
+				   << ":"
+				   << sla
+				   << ":"
+				   << profile
+				   << ":"
+				   << lastUpdate
 				   << ":";
 
 			string data(ss.str());
@@ -9467,6 +9452,12 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 			   << ":"					// Client address
 			   << ":"					// Client port
 			   << ":"					// Client Appl name
+			   << ":"
+			   << sla
+			   << ":"
+			   << profile
+			   << ":"
+			   << lastUpdate
 			   << ":";
 
 			string data(ss.str());
@@ -9724,4 +9715,49 @@ void SyncPublicationThread()
                    cleanup_curl();
                 } 
 	}
+}
+/*
+if(connectProfileExecuted == false)
+{
+	connectProfileExecuted = true;
+	string requestError = execProfileCqdList(&connList);
+	if (requestError.length() != 0)
+	{
+			returnCode = SQL_ERROR;
+			GETMXCSWARNINGORERROR(-1, "HY000", requestError.c_str(), &sqlWarningOrErrorLength, sqlWarningOrError);
+	}
+}
+*/
+string execProfileCqdList(list<char*> *pList)
+{
+	char* ControlQuery;
+	SRVR_STMT_HDL *QryControlSrvrStmt = NULL;
+	SQLRETURN rc = SQL_SUCCESS;
+	string requestError;
+
+	if ((QryControlSrvrStmt = getSrvrStmt("STMT_QRYRES_ON_1", TRUE)) == NULL)
+	{
+		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
+			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+			2, "PROFILE_QUERY", "Allocate Statement");
+		requestError = "Allocate Statement STMT_QRYRES_ON_1 failed.";
+		goto BAILOUT;
+	}
+
+    for(list<char*>::iterator lti = (*pList).begin(); lti != (*pList).end(); lti++)
+    {
+    	ControlQuery = *lti;
+    	rc = QryControlSrvrStmt->ExecDirect(NULL, ControlQuery, INTERNAL_STMT, TYPE_UNKNOWN, SQL_ASYNC_ENABLE_OFF, 0);
+    	if (rc == SQL_ERROR)
+    	{
+    		ERROR_DESC_def *p_buffer = QryControlSrvrStmt->sqlError.errorList._buffer;
+    		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
+    			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+    			2, "PROFILE+QUERY", requestError);
+    		requestError = "CQD failed :" + string(ControlQuery) + " error :"+ p_buffer->errorText;
+    		break;
+    	}
+    }
+BAILOUT:
+	return requestError;
 }

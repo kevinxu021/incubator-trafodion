@@ -211,7 +211,9 @@ public class ConnectionContext {
             if (hostList.isEmpty() || hostList.contains(hostName)){
                 String value = availableServers.get(key);
                 String[] sValue = value.split(":");
+                System.out.println("value :" + value);
                 System.out.println("sValue.length :" + sValue.length);
+                System.out.println("sValue :" + sValue.toString());
                 LinkedHashMap<String,Object> attr = new LinkedHashMap<String,Object>();
                 attr.put(Constants.HOST_NAME, hostName);
                 attr.put(Constants.INSTANCE, instance);
@@ -227,10 +229,10 @@ public class ConnectionContext {
                 else {
                     attr.put(Constants.COMPUTER_NAME, sValue[8]);
                     attr.put(Constants.CLIENT_SOCKET, sValue[9]);
-                    attr.put(Constants.WINDOW_TEXT, sValue[10]);
-                    attr.put(Constants.MAPPED_SLA, sValue[11]);
-                    attr.put(Constants.MAPPED_PROFILE, sValue[12]);
-                    attr.put(Constants.MAPPED_PROFILE_TIMESTAMP, Long.parseLong(sValue[13]));
+                    attr.put(Constants.WINDOW_TEXT, sValue[11]);
+                    attr.put(Constants.MAPPED_SLA, sValue[12]);
+                    attr.put(Constants.MAPPED_PROFILE, sValue[13]);
+                    attr.put(Constants.MAPPED_PROFILE_TIMESTAMP, Long.parseLong(sValue[14]));
                     if(sValue[11].equals(sla)){
                         reusedSlaServers.put(key, attr);
                     }
