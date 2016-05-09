@@ -247,9 +247,7 @@ define([
 				schemaObjectDetailView = new SchemaObjectDetailView();	
 				viewCollection.push(schemaObjectDetailView);
 			}
-			if(schemaObjectsView != null){
-				args.parentView = schemaObjectsView;
-			}
+
 			switchView(schemaObjectDetailView, args);
 		});
 
