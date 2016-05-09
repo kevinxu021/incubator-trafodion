@@ -113,7 +113,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			_args = args;
 			_this.processArgs();
 			this.redirectFlag=false;
-			if(this.isAjaxCompleted=true){
+			if(this.isAjaxCompleted==true){
 				$(LOADING).css('visibility', 'hidden');
 				$(CREATE_BTN).prop('disabled', false);
 				$(CLEAR_BTN).prop('disabled', false);
