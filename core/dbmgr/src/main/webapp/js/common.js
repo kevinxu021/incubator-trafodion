@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2016 Esgyn Corporation
+//(C) Copyright 2015-2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -302,7 +302,7 @@ define(['moment',
 				var diff = end - start;
 				var timeAgo;
 				if(diff < 0){
-				 alert("end date could not be earlier than start date ！");
+				 alert("End date could not be earlier than start date");
 				 }
 				if(diff<minute){
 					timeAgo=(diff/minute).toFixed(0) +' minutes ago';

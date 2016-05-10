@@ -1,0 +1,59 @@
+<div id="page-wrapper">
+	<div class="row">
+		<div class="col-lg-12">
+			<h3 id="alter-library-page-header" class="page-header">Alter Library</h3>
+		</div>
+	</div>
+	<div class="dbmgr-tools-form col-lg-6"
+		style="border: 1px solid #dce4ec; border-width: 2px; border-radius: 2px; padding-left: 30px; padding-top: 30px">
+		<form id="alter-library-form">
+			<div class="form-group">
+				<label class="control-label">Schema Name</label>
+				<div class="input-group" style="width: 600px;">
+					<input class="form-control input-sm" style="width: 500px;" id="schema_name"
+						name="schema_name" maxlength="125">
+				</div>
+			</div>
+
+			<div class="form-group">
+				<label class="control-label">Library Name<span
+					style="color: red"> *</span>
+				</label>
+				<div class="input-group" style="width: 600px;">
+					<input class="form-control input-sm" style="width: 500px;" id="library_name"
+						name="library_name" maxlength="125">
+				</div>
+			</div>
+
+			<div class="form-group">
+				<label class="control-label">Code File Name<span
+					style="color: red"> *</span>
+				</label>
+				<div class="input-group" style="width: 600px;">
+					<input id="file_name" name="file_name" type="text"
+						class="form-control input-sm" placeholder="Use the browse button and select a code file" readonly="readonly" style = "background-color:white"/>
+					<div class="input-group-btn ">
+						<a class='btn btn-primary glyphicon glyphicon-search input-sm' href='javascript:;' style="top:0;padding-top: 7px;" tabindex="-1"> 
+							<input id="file" type="file" tabindex="-1"
+							style="width:50px;position: absolute;z-index: 2; top: 0; left: 0; opacity: 0; background-color: transparent; color: transparent;"
+							name="file_source">
+						</a>
+					</div>
+				</div>
+			</div>
+
+			<div class="form-group">
+				<label class="control-label" style="width:200px;">Overwrite Existing Code File</label>
+				<input id="overwrite" name="overwrite" type="checkbox">
+			</div>
+
+			<input id="alter_btn" type="button" value="Alter"
+				class="submit btn btn-primary" disabled> <img
+				id="alter-loading-spinner" src="img/ajax-loader.gif"
+				style="padding-left: 2px" /><input id="clear_btn" type="button"
+				value="Clear" class="submit btn btn-primary">
+			<div style="height: 10px;"></div>
+
+		</form>
+	</div>
+</div>

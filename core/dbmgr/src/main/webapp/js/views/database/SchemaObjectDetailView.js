@@ -332,7 +332,7 @@ define([
 		updateLibrary: function(){
 			var codeFileName = _this.getObjectAttribute('Code File Name');
 			sessionStorage.setItem(routeArgs.name, JSON.stringify({file: codeFileName}));	
-			window.location.hash = '/tools/createlibrary?schema='+common.ExternalDisplayName(routeArgs.schema)+'&library='+common.ExternalDisplayName(routeArgs.name);
+			window.location.hash = '/tools/alterlibrary?schema='+common.ExternalDisplayName(routeArgs.schema)+'&library='+common.ExternalDisplayName(routeArgs.name);
 		},
 		dropLibrary: function(){
 			$(DROP_LIBRARY_SPINNER).css('visibility', 'visible');
