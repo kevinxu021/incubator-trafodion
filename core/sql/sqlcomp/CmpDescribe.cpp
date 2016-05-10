@@ -3041,7 +3041,7 @@ short CmpDescribeSeabaseTable (
     {
       sprintf(buf,  "CREATE%sTABLE %s",
               (isVolatile ? " VOLATILE " : isExternalTable ? " EXTERNAL " : " "), 
-               extName.data());
+               (isExternalTable ? extName.data() : tableName.data()));
       outputShortLine(*space, buf);
     }
 
