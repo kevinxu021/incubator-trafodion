@@ -39,8 +39,7 @@ $ tar xfz dbmgr-{projectVersion}.tar.gz
 ----
 
 === Configuration
-EsgynDB Manager communicates with the EsgynDB runtime via ODBC or HTTP.
-And if you are using the Enterprise Advanced Edition, DB Manager uses OpenTSDB for time series metrics and Bosun for alerts.
+EsgynDB Manager communicates with the EsgynDB runtime via ODBC or HTTP. DB Manager uses OpenTSDB for time series metrics and Bosun for alerts.
 
 DB Manager uses a configuration file *dbgmr-{projectVersion}./conf/config.xml* that contains the following configuration information to connect to these manageability components.
 
@@ -78,12 +77,6 @@ The default value is 4205. The value may need to be changed if this port number 
 This is the port the EsgynDB Manager embedded Jetty server binds to waiting for client HTTPS connections.
 The default value is 4206. The value may need to be changed if this port number conflicts with other ports in use on your cluster.
 This port needs to be open through the firewall since the external clients use this port to connect to DB Manager.
-*EsgynDB Admin User ID*::
-This is the EsgynDB Admin User ID. Use the LDAP user id that is mapped to the DB__ADMIN database user ID.
-DB Manager uses this admin user id for its internal queries to EsgynDB.
-*EsgynDB Admin Password*::
-This is the password for EsgynDB Admin User. The password is obfuscated.
-DB Manager uses this admin password for its jdbc connections for the admin queries.
 *SSL Keystore Password*::
 A self-signed certificate will be generated and stored in a SSL keystore using the provided password.
 The password is obfuscated and the SSL keystore is saved as *dbmgr-{projectVersion}/etc/dbmgr.keystore*.
@@ -92,6 +85,17 @@ The hostname or IP address for the node on which DCS Master is listening. DB Man
 *DCS Master Listen Port*::
 The listen port number for DCS Master.  DB Manager uses this property to make a JDBC connection.
 The default value is 23400.
+*EsgynDB Admin User ID*::
+This is the EsgynDB Admin User ID. Use the LDAP user id that is mapped to the DB__ADMIN database user ID.
+DB Manager uses this admin user id for its internal queries to EsgynDB.
+*EsgynDB Admin Password*::
+This is the password for EsgynDB Admin User. The password is obfuscated.
+DB Manager uses this admin password for its jdbc connections for the admin queries.
+*Min Pool Size*::
+DB Manager uses connection pooling for its internal queries. This parameter dictates the initial and minimum pool size. Default value is 2.
+*Max Pool Size*::
+DB Manager uses connection pooling for its internal queries. This parameter dictates the maximum pool size. Default value is 8.
+
 *REST Server Host*::
 The hostname or IP address for the node on which EsgynDB REST server is listening.
 *REST Server Port*::
@@ -218,20 +222,20 @@ EsgynDB Manager has been stopped.
 
 In the Enterprise and Advanced Editions, DB Manager and the manageability tools (OpenTSDB, TCollector and Bosun) are integrated with the EsgynDB runtime. DB Manager and the manageability components are persistent and fault-tolerant.
 
-- Persistence : If the process were to exit for some reason it would be started right back up.
-- Fault-tolerant: If the primary node on which DB Manager is running was to fail, DB Manager would be automatically started on a secondary node.
+*Persistence*:: If the process were to exit for some reason it would be started right back up.
+*Fault-tolerant*:: If the primary node on which DB Manager is running was to fail, DB Manager would be automatically started on a secondary node.
 
-- By default, DB Manager ONLY runs on the primary node in the cluster. If the node fails, DB Manager is started on a secondary node which then becomes the primary node.
+* By default, DB Manager ONLY runs on the primary node in the cluster. If the node fails, DB Manager is started on a secondary node which then becomes the primary node.
 
-- TSD runs on every node
+* OpenTSDB TSD process runs on every node
 
-- TCollector runs on every node and collects metrics for that node, and the collected metrics are sent to the TSD running on that local node.
+* TCollector runs on every node and collects metrics for that node, and the collected metrics are sent to the TSD running on that local node.
 
-- Bosun ONLY runs on the primary node in the cluster. If the node fails, Bosun is started on a secondary node which then becomes the primary node.
+* Bosun ONLY runs on the primary node in the cluster. If the node fails, Bosun is started on a secondary node which then becomes the primary node.
 
 The fault-tolerance and persistence is provided by CMON (Cluster Monitor) and NMON (Node Monitor) processes.
 
-- *CMON* runs on the primary node. It is started and managed by the EsynDB monitor process, so CMON is inherently persistent.
+* *CMON* runs on the primary node. It is started and managed by the EsynDB monitor process, so CMON is inherently persistent.
 +
 CMON reads a list of commands from *$MY_SQROOT/sql/scripts/cluster_monitor.cmd* file and executes them every 1 minute.
 
@@ -253,7 +257,7 @@ With the *watch* option, the runbosun.sh script first checks if Bosun is running
 
 ** If the primary node were to fail, the CMON process would fail over to a secondary node and that node will become the primary and all the commands from the cluster_monitor.cmd are executed to start the defined processes on the new primary node.
 
-- *NMON* runs on every node. It is started and managed by the EsynDB monitor process, so NMON is inherently persistent.
+* *NMON* runs on every node. It is started and managed by the EsynDB monitor process, so NMON is inherently persistent.
 
 +
 NMON reads a list of commands from *$MY_SQROOT/sql/scripts/node_monitor.cmd* file and executes them every 1 minute.

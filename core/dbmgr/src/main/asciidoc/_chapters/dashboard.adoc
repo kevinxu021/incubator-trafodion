@@ -1,0 +1,111 @@
+////
+<!--
+/**
+  *(C) Copyright 2015-2016 Esgyn Corporation
+  *
+  * Confidential computer software. Valid license from Esgyn required for
+  * possession, use or copying. Consistent with FAR 12.211 and 12.212,
+  * Commercial Computer Software, Computer Software Documentation, and
+  * Technical Data for Commercial Items are licensed to the U.S. Government
+  * under vendor's standard commercial license.
+  *
+  */
+-->
+////
+[[dashboard]]
+== Dashboard
+:doctype: book
+:numbered:
+:toc: left
+:icons: font
+:experimental:
+
+The dashboard page displays the status of the EsgynDB services, nodes and display time-series charts for key system and HBase metrics.
+
+The dashboard page by default auto-refreshes every 30 seconds and displays the more current status. You can change the time window or turn OFF auto-refresh using the *Auto Refresh* drop-down menu.
+
+If you select a different time range using the Custom option, then you see the service status, node status and the system metrics as of that end time.
+
+=== Service Status
+
+The service status displays the status of the core EsgynDB services : *Transaction Manager, Connectivity Service and Runtime Manageability Service*.
+
+For each service, you can see the number of configured processes, the number of actual running processes, the number of down processes if any.
+
+- The status icon is green if all configured servers are up.
+- The status icon is Yellow (Warning) if the number of actual servers is not equal to the configured servers.
+- The status icon is RED (Error) if actual server count is 0 or if the actual servers are < 30% of the configured servers.
+
+A tooltip on the status icon displays down process information if there are any. You can also export the data to a spreadsheet or clipboard. The service status information is provided by the EsgynDB REST Server which invokes the trafcheck script.
+
+Click on the zoom-in icon to open a drill-down page and view the service status in a larger window.
+
+=== Node Status
+
+The node status reports if EsgynDB is *Up* or *Down* on the logical nodes configured in the EsgynDB cluster.
+This information is provided by the EsgynDB REST Server which invokes the trafnodestatus script.
+
+Click on the zoom-in icon to open a drill-down page and view the node status in a larger window.
+
+=== Transaction Counts
+A time series chart to show the number of EsgynDB transaction begins, commits and aborts across all nodes.
+
+The chart uses the OpenTSDB metrics *esgyndb.dtm.txnaborts*, *esgyndb.dtm.txnbegins*, *esgyndb.dtm.txncommits*. These metrics are collected and published every 5 minutes.
+
+Click on the zoom-in icon to open a drill-down page and view the individual transaction metric.
+
+=== Canary Response
+The response times from an EsgynDB database canary check. The metrics displayed are the time taken to open a JDBC connection, and time taken to read (select) from the canary table.
+
+The chart uses the OpenTSDB metrics *esgyndb.canary.sqlconnect.time* and *esgyndb.canary.sqlread.time*. These metrics are collected and published every 5 minutes.
+
+Click on the zoom-in icon to open a drill-down page and view the individual canary metric.
+
+=== IO Waits
+The average IO Wait time percentage across all nodes. 
+
+The chart uses OpenTSDB metric *proc.stat.cpu{type=iowait}*.
+
+Click on the zoom-in icon to open a drill-down page and view the IO Wait time for each node. Each line in the drill-down graph represents a node.
+
+=== Disk Space Used %
+The average disk space used percentage across all nodes.
+
+The chart uses OpenTSDB metric *df.bytes.percentused*.
+
+Click on the zoom-in icon to open a drill-down page and view the disk usage % for each node. Each line in the drill-down graph represents a node.
+
+=== GC Time
+The average JVM garbage collection time in milliseconds.
+
+The chart uses OpenTSDB metric *hbase.regionserver.jvmmetrics.GcTimeMillis*.
+
+Click on the zoom-in icon to open a drill-down page and view the average GC time for each node. Each line in the drill-down graph represents a node.
+
+=== Regionserver Memory Use
+The average memory (MB) used by the regionservers.
+
+The chart uses OpenTSDB metric *hbase.regionserver.jvmmetrics.MemHeapUsedM*.
+
+Click on the zoom-in icon to open a drill-down page and view the average memory used by each regionserver/node. Each line in the drill-down graph represents a node.
+
+=== Memstore Size
+The total memstore size (MB) of the different regions in the cluster.
+
+The chart uses OpenTSDB metric *hbase.regionserver.regions.memStoreSize*.
+
+Click on the zoom-in icon to open a drill-down page and view the total memstore file size in each node. Each line in the drill-down graph represents a node.
+
+=== CPU Load
+The average CPU Load average across all nodes.
+
+The chart uses OpenTSDB metric *proc.loadavg.15min*.
+
+Click on the zoom-in icon to open a drill-down page and view the average CPU load on each node. Each line in the drill-down graph represents a node.
+
+=== Network IO
+The average network IO (In/Out) measured in MB.
+
+The chart uses OpenTSDB metric *proc.net.bytes*.
+
+Click on the zoom-in icon to open a drill-down page and view the average network IO on each node. Each line in the drill-down graph represents a node.

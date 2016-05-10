@@ -1,0 +1,29 @@
+////
+<!--
+/**
+  *(C) Copyright 2015-2016 Esgyn Corporation
+  *
+  * Confidential computer software. Valid license from Esgyn required for
+  * possession, use or copying. Consistent with FAR 12.211 and 12.212,
+  * Commercial Computer Software, Computer Software Documentation, and
+  * Technical Data for Commercial Items are licensed to the U.S. Government
+  * under vendor's standard commercial license.
+  *
+  */
+-->
+////
+[[tools]]
+== Tools
+:doctype: book
+:numbered:
+:toc: left
+:icons: font
+:experimental:
+
+The tools menu provides a list of generic tools to manage or make changes to EsgynDB.
+In the current release, we support a create library tool to ease the deployment of library code files.
+
+=== Create Library Tool
+The create library tool is made easily accessible through the Tools menu without having to navigate through the database library pages.
+
+See <<Create Library, Create Library>> for details.
