@@ -271,6 +271,9 @@ public:
   
   virtual OsimHHDFSStatsBase* osimSnapShot();
 
+  static void resetTotalAccumulatedRows() 
+   { totalAccumulatedRows_ = 0; totalReadCount_ = 0; }
+
 protected:
   // Assign all stripes in this to ESPs, considering locality
   Int64 assignToESPs(Int64 *espDistribution,
@@ -296,6 +299,9 @@ protected:
   LIST(Int64) numOfRows_;
   LIST(Int64) offsets_;
   LIST(Int64) totalBytes_;
+
+  static THREAD_P Int64 totalAccumulatedRows_;
+  static THREAD_P Int64 totalReadCount_;
 };
 
 class HHDFSBucketStats : public HHDFSStatsBase

@@ -3860,6 +3860,10 @@ enum DefaultConstants
   HIVE_SCAN_SPECIAL_MODE,
   HIVE_HDFS_STATS_MAX_SAMPLE_FILES,
   HIVE_HDFS_STATS_SAMPLE_LOB_INTFC,
+
+  // ON: to read number of rows from each ORC data file
+  // OFF: skip the reading and fake a row count of 100 per ORC data file
+  ORC_READ_NUM_ROWS,
   
   //Amount of time transactional and non transactional queries 
   //loop around when online backup lock is activated. During this

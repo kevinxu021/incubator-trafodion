@@ -387,7 +387,7 @@ void HHDFSFileStats::populate(hdfsFS fs, hdfsFileInfo *fileInfo,
                         "HHDFSFileStats::populate");
     }
 
-  if ( totalSize_ > 0 && diags.isSuccess())
+  if ( NodeMap::useLocalityForHiveScanInfo() && totalSize_ > 0 && diags.isSuccess())
     {
 
       blockHosts_ = new(heap_) HostId[replication_*numBlocks_];
@@ -1164,6 +1164,8 @@ NABoolean HHDFSTableStats::populate(struct hive_tbl_desc *htd)
   Int32 hdfsPort = -1;
   NAString tableDir;
 
+  HHDFSORCFileStats::resetTotalAccumulatedRows();
+
   if (hsd)
     {
       if (hsd->isTextFile())
@@ -1749,6 +1751,9 @@ void HHDFSORCFileStats::assignToESPs(NodeMapIterator* nmi,
    }
 } 
 
+THREAD_P Int64 HHDFSORCFileStats::totalAccumulatedRows_ = 0;
+THREAD_P Int64 HHDFSORCFileStats::totalReadCount_ = 0;
+
 void HHDFSORCFileStats::populate(hdfsFS fs,
                 hdfsFileInfo *fileInfo,
                 Int32& samples,
@@ -1756,48 +1761,67 @@ void HHDFSORCFileStats::populate(hdfsFS fs,
                 NABoolean doEstimation,
                 char recordTerminator)
 {
-   HHDFSFileStats::populate(fs, fileInfo, samples, diags, doEstimation, recordTerminator);
-
-   ExpORCinterface* orci = ExpORCinterface::newInstance(heap_);
-   if (orci == NULL) {
-     diags.recordError(NAString("Could not allocate an object of class ExpORCInterface") +
-		       "HHDFSORCFileStats::populate");
-     return;
-   }
-
-   Lng32 rc = orci->open((char*)(getFileName().data()));
-   if (rc) {
-     diags.recordError(NAString("ORC interface open() failed"));
-     return;
-   }
+   // do not estimate # of records on ORC files
+   HHDFSFileStats::populate(fs, fileInfo, samples, diags, FALSE, recordTerminator);
 
    NABoolean readStripeInfo = (CmpCommon::getDefault(ORC_READ_STRIPE_INFO) == DF_ON);
+   NABoolean readNumRows = doEstimation || (CmpCommon::getDefault(ORC_READ_NUM_ROWS) == DF_ON);
+   NABoolean needToOpenORCI = (readStripeInfo || readNumRows );
 
-   if ( readStripeInfo ) {
-     orci->getStripeInfo(numOfRows_, offsets_, totalBytes_);
+
+   ExpORCinterface* orci = NULL;
+   Lng32 rc = 0;
+
+   if ( needToOpenORCI ) {
+     orci = ExpORCinterface::newInstance(heap_);
+     if (orci == NULL) {
+       diags.recordError(NAString("Could not allocate an object of class ExpORCInterface") +
+  		       "HHDFSORCFileStats::populate");
+       return;
+     }
+
+      rc = orci->open((char*)(getFileName().data()));
+      if (rc) {
+        diags.recordError(NAString("ORC interface open() failed"));
+        return;
+      }
    }
 
-   ByteArrayList* bal = NULL;
-   Lng32 colIndex = -1;
-   rc = orci->getColStats(colIndex, bal);
+   if ( readStripeInfo ) 
+      orci->getStripeInfo(numOfRows_, offsets_, totalBytes_);
 
-   if (rc) {
-     diags.recordError(NAString("ORC interface getColStats() failed"));
-     return;
+
+   if ( readNumRows ) {
+     ByteArrayList* bal = NULL;
+     Lng32 colIndex = -1;
+     rc = orci->getColStats(colIndex, bal);
+
+     if (rc) {
+       diags.recordError(NAString("ORC interface getColStats() failed"));
+       return;
+     }
+
+      // read the total # of rows
+      Lng32 len = 0;
+      bal->getEntry(0, (char*)&totalRows_, sizeof(totalRows_), len);
+
+      totalAccumulatedRows_ += totalRows_;
+      totalReadCount_ ++;
+   } else {
+      if ( totalReadCount_ > 0 )
+         totalRows_ = totalAccumulatedRows_ / totalReadCount_;
+      else
+         totalRows_ = 100;
+   } 
+
+   if ( needToOpenORCI ) {
+      rc = orci->close();
+      if (rc) {
+        diags.recordError(NAString("ORC interface close() failed"));
+        return;
+      }
+      delete orci;
    }
-
-   // read the total # of rows
-   Lng32 len = 0;
-   bal->getEntry(0, (char*)&totalRows_, sizeof(totalRows_), len);
-
-   rc = orci->close();
-   if (rc) {
-     diags.recordError(NAString("ORC interface close() failed"));
-     return;
-   }
-
-   delete orci;
-
 }
 
 OsimHHDFSStatsBase* HHDFSORCFileStats::osimSnapShot()

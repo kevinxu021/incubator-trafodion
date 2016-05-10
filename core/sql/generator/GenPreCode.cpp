@@ -157,14 +157,14 @@ FileScan::convertKeyPredsToRangePreds(const ValueIdSet& beginKeyAsEQ,
 
        ItemExpr* beginKey = NULL;
        if ( keyVal->isNullConstant() ) {
-         beginKey = expr;
+         beginKey = new(heap)UnLogic(ITM_IS_NULL, expr->child(0));
        } else {
          beginKey = new(heap)BiRelat(ITM_GREATER_EQ,
                                      expr->child(0),
                                      expr->child(1));
-          // Synthesize its type for and assign a ValueId to it.
-          beginKey->synthTypeAndValueId();
        }
+       // Synthesize its type 
+       beginKey->synthTypeAndValueId();
 
        beginKeyAsRange.insert(beginKey->getValueId());
     }
@@ -176,14 +176,14 @@ FileScan::convertKeyPredsToRangePreds(const ValueIdSet& beginKeyAsEQ,
 
        ItemExpr* endKey = NULL;
        if ( keyVal->isNullConstant() ) {
-         endKey = expr;
+         endKey = new(heap)UnLogic(ITM_IS_NULL, expr->child(0));
        } else {
          endKey = new(heap)BiRelat(ITM_LESS_EQ,
                                    expr->child(0),
                                   expr->child(1));
-         // Synthesize its type for and assign a ValueId to it.
-         endKey->synthTypeAndValueId();
        }
+       // Synthesize its type 
+       endKey->synthTypeAndValueId();
 
        endKeyAsRange.insert(endKey->getValueId());
     }
