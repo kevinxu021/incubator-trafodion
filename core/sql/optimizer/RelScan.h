@@ -51,6 +51,7 @@
 #include "HbaseSearchSpec.h"
 #include "OptHints.h"
 #include "orcPushdownPredInfo.h"
+#include "ExpHbaseDefs.h"
 #include <vector>
 
 // -----------------------------------------------------------------------
@@ -87,7 +88,6 @@ class QRDescGenerator;
 class RangeSpecRef;
 
 class MVMatch;
-class ByteArrayList;
 class ComCompressionInfo;
 
 
@@ -1311,7 +1311,7 @@ public:
   static desc_struct *createVirtualTableDesc(const char * name,
 					     NABoolean isRW = FALSE,
 					     NABoolean isCW = FALSE, 
-                                             ByteArrayList* hbaseKeys = NULL);
+                                             NAArray<HbaseStr> * hbaseKeys = NULL);
 
   static desc_struct *createVirtualTableDesc(const char * name,
 					     NAList<char*> &colNameList,

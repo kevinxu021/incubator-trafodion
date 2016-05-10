@@ -2449,6 +2449,8 @@ public:
 
   NABoolean noStringTruncationWarnings() { return noStringTruncationWarnings_; }
 
+  NABoolean convertNullWhenError() { return convertNullWhenError_; }
+
   // get and set for flags_. See enum Flags.
   NABoolean matchChildType()   { return (flags_ & MATCH_CHILD_TYPE) != 0; }
   void setMatchChildType(NABoolean v)
@@ -2481,6 +2483,9 @@ public:
 
   void setNoStringTruncationWarnings(NABoolean v)
   { noStringTruncationWarnings_ = v; }
+
+  void setConvertNullWhenError(NABoolean v)
+  { convertNullWhenError_= v; }
 
 private:
 
@@ -2518,6 +2523,9 @@ private:
   // If true, string truncation warnings are not returned. This is set to true
   
   NABoolean noStringTruncationWarnings_;
+
+  // If true, convert error will not returned, move null into target
+  NABoolean convertNullWhenError_; 
 
   UInt32 flags_;
 
