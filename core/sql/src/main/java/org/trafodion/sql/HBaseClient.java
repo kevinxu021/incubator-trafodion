@@ -1837,19 +1837,19 @@ public class HBaseClient {
     return count;
   }
  
-  public byte[][] getStartKeys(String tblName, boolean useTRex, boolean bSynchronize) throws IOException 
+  public byte[][] getStartKeys(String tblName, boolean useTRex) throws IOException 
   {
     byte[][] startKeys;
-    HTableClient htc = getHTableClient(0, tblName, useTRex, bSynchronize);
+    HTableClient htc = getHTableClient(0, tblName, useTRex, false);
     startKeys = htc.getStartKeys();
     releaseHTableClient(htc);
     return startKeys;
   }
 
-  public byte[][] getEndKeys(String tblName, boolean useTRex, boolean bSynchronize) throws IOException 
+  public byte[][] getEndKeys(String tblName, boolean useTRex) throws IOException 
   {
     byte[][] endKeys;
-    HTableClient htc = getHTableClient(0, tblName, useTRex, bSynchronize);
+    HTableClient htc = getHTableClient(0, tblName, useTRex, false);
     endKeys = htc.getEndKeys();
     releaseHTableClient(htc);
     return endKeys;

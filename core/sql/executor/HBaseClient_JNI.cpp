@@ -4249,17 +4249,17 @@ ByteArrayList* HBaseClient_JNI::showTablesHDFSCache(const TextVec& tables)
   return tableHdfsCacheStats;
 }
 
-NAArray<HbaseStr>* HBaseClient_JNI::getStartKeys(NAHeap *heap, const char *tableName, bool useTRex, NABoolean replSync)
+NAArray<HbaseStr>* HBaseClient_JNI::getStartKeys(NAHeap *heap, const char *tableName, bool useTRex)
 {
-   return HBaseClient_JNI::getKeys(JM_HBC_GETSTARTKEYS, heap, tableName, useTRex, replSync);
+   return HBaseClient_JNI::getKeys(JM_HBC_GETSTARTKEYS, heap, tableName, useTRex);
 }
 
-NAArray<HbaseStr>* HBaseClient_JNI::getEndKeys(NAHeap *heap, const char * tableName, bool useTRex, NABoolean replSync)
+NAArray<HbaseStr>* HBaseClient_JNI::getEndKeys(NAHeap *heap, const char * tableName, bool useTRex)
 {
-   return HBaseClient_JNI::getKeys(JM_HBC_GETENDKEYS, heap, tableName, useTRex, replSync);
+   return HBaseClient_JNI::getKeys(JM_HBC_GETENDKEYS, heap, tableName, useTRex);
 }
 
-NAArray<HbaseStr>* HBaseClient_JNI::getKeys(Int32 funcIndex, NAHeap *heap, const char *tableName, bool useTRex, NABoolean replSync)
+NAArray<HbaseStr>* HBaseClient_JNI::getKeys(Int32 funcIndex, NAHeap *heap, const char *tableName, bool useTRex)
 {
 
   if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
@@ -4273,9 +4273,8 @@ NAArray<HbaseStr>* HBaseClient_JNI::getKeys(Int32 funcIndex, NAHeap *heap, const
     return NULL;
   }
   jboolean j_useTRex = useTRex;
-  jboolean j_replSync = replSync;
   jarray j_keyArray=
-     (jarray)jenv_->CallObjectMethod(javaObj_, JavaMethods_[funcIndex].methodID, js_tblName, j_useTRex, j_replSync);
+     (jarray)jenv_->CallObjectMethod(javaObj_, JavaMethods_[funcIndex].methodID, js_tblName, j_useTRex);
 
   if (jenv_->ExceptionCheck())
   {

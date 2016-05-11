@@ -539,13 +539,13 @@ public:
 
   HBC_RetCode addTablesToHDFSCache(const TextVec& tables, const char* poolName);
   HBC_RetCode removeTablesFromHDFSCache(const TextVec& tables, const char* poolName);
-  NAArray<HbaseStr>* getStartKeys(NAHeap *heap, const char *tableName, bool useTRex, NABoolean replSync);
-  NAArray<HbaseStr>* getEndKeys(NAHeap *heap, const char * tableName, bool useTRex, NABoolean replSync);
+  NAArray<HbaseStr>* getStartKeys(NAHeap *heap, const char *tableName, bool useTRex);
+  NAArray<HbaseStr>* getEndKeys(NAHeap *heap, const char * tableName, bool useTRex);
 
 private:   
   // private default constructor
   HBaseClient_JNI(NAHeap *heap, int debugPort, int debugTimeout);
-  NAArray<HbaseStr>* getKeys(Int32 funcIndex, NAHeap *heap, const char *tableName, bool useTRex, NABoolean replSync);
+  NAArray<HbaseStr>* getKeys(Int32 funcIndex, NAHeap *heap, const char *tableName, bool useTRex);
 
 private:
   NAString  getLastJavaError();
