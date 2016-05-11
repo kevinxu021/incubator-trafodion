@@ -135,7 +135,7 @@ define([
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			$(UPDATE_LIBRARY_BUTTON).on('click', this.updateLibrary);
 			$(DROP_LIBRARY_BUTTON).on('click',this.dropLibrary);
-			
+			common.on(common.LIBRARY_ALTERED_EVENT, this.libraryAlteredEvent);
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
 			dbHandler.on(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
@@ -269,6 +269,7 @@ define([
 				}
 			}
 			pageStatus = {};
+			objectAttributes = null;
 			$(ATTRIBUTES_CONTAINER).empty();
 			$(ATTRIBUTES_ERROR_CONTAINER).text("");
 			$(COLUMNS_CONTAINER).empty();
@@ -292,7 +293,13 @@ define([
 				ddlTextEditor.refresh();
 			}			
 		},
-
+		libraryAlteredEvent: function(args) {
+			 if(routeArgs.type == 'library'){
+				if(args.schemaName == routeArgs.schema && args.libName == routeArgs.name){
+					_this.doReset();
+				}				 
+			 }
+		},
 		getParentObjectName: function(){
 			var parentObjectName = null;
 			if(objectAttributes != null){
@@ -1382,7 +1389,10 @@ define([
 			}else{
 				common.fire(common.NOFITY_MESSAGE,msgObj);
 			}
-			common.fire(common.LIBRARY_DROPPED_EVENT, '');
+			var args = {};
+			args.schemaName = result.schemaName;
+			args.libName = result.objectName;
+			common.fire(common.LIBRARY_DROPPED_EVENT, args);
 		},
 		dropObjectError: function(jqXHR){
 			_this.isAjaxCompleted=true;

@@ -32,6 +32,7 @@ define(['moment',
 			this.serverConfigLoaded = false;
 			this.LIBRARY_CREATED_EVENT = 'LIBRARY_CREATED_EVENT';
 			this.LIBRARY_DROPPED_EVENT = 'LIBRARY_DROPPED_EVENT';
+			this.LIBRARY_ALTERED_EVENT = 'LIBRARY_ALTERED_EVENT';
 			this.NOFITY_MESSAGE = 'nofigyMessage';
 			this.MESSAGE_LIST=new Array();
 			this.popupIndex;
@@ -55,14 +56,8 @@ define(['moment',
 				
 				if(_this.isAdvanced()){
 					$('.dbmgr-adv').show();
-					if(data.enableAlerts != null && data.enableAlerts == false){
-						$('#alerts-feature').hide();
-					}else{
-						$('#alerts-feature').show();
-					}
 				}else{
 					$('.dbmgr-adv').hide();
-					$('#alerts-feature').hide();
 				}
 			};
 
@@ -366,7 +361,7 @@ define(['moment',
 					break;
 				default:
 					if(isAutoRefresh==""){
-						_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:"0",isAutoRefresh:isAutoRefresh};	
+						_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:selection,isAutoRefresh:isAutoRefresh};	
 					}else{
 						_this.commonTimeRange={startTime:null,endTime:null,timeRangeTag:selection,isAutoRefresh:isAutoRefresh};
 					}
