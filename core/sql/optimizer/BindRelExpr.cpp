@@ -10749,7 +10749,7 @@ RelExpr *Delete::bindNode(BindWA *bindWA)
     return this;
   }
 
-  if ((getFirstNRows() > 0) &&
+  if ((getFirstNRows() >= 0) &&
       (CmpCommon::getDefault(ALLOW_FIRSTN_IN_IUD) == DF_OFF))
     {
       *CmpCommon::diags() << DgSqlCode(-3242)
@@ -10892,7 +10892,7 @@ RelExpr *Delete::bindNode(BindWA *bindWA)
   if (isMtsStatement())
     bindWA->setEmbeddedIUDStatement(TRUE);
 
-  if (getFirstNRows() > 0)
+  if (scanNode && (getFirstNRows() >= 0))
     {
       scanNode->setFirstNRows(getFirstNRows());
       setFirstNRows(-1);
@@ -11586,6 +11586,7 @@ RelExpr *GenericUpdate::bindNode(BindWA *bindWA)
 
   Int64 transId=-1;
   if ((isNoRollback() && 
+       (getOperatorType() != REL_UNARY_DELETE) &&
        (NOT (Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL)))) &&
       ((CmpCommon::transMode()->getAutoCommit() != TransMode::ON_ ) ||
        (NAExecTrans(0, transId)))) {
@@ -11997,6 +11998,16 @@ RelExpr *GenericUpdate::bindNode(BindWA *bindWA)
   NABoolean isView = naTable->getViewText() != NULL;
   RelExpr *boundView = NULL;      // ## delete when done with it?
   Scan *scanNode = NULL;
+
+  if ((isView) &&
+      (getFirstNRows() >= 0))
+    {
+      *CmpCommon::diags() << DgSqlCode(-3242)
+			  << DgString0("[FIRST N] not allowed on delete from a view.");
+      
+      bindWA->setErrStatus();
+      return this;      
+    }
 
   if (getOperatorType() == REL_UNARY_INSERT ||
       getOperatorType() == REL_LEAF_INSERT) {

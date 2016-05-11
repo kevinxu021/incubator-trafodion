@@ -5585,6 +5585,9 @@ RelExpr * HbaseDelete::preCodeGen(Generator * generator,
       ((isNoRollback()) && (NOT inlinedActions)))
     {
       // no transaction needed
+
+      if ((isNoRollback()) && (NOT inlinedActions))
+        noDTMxn() = TRUE;
     }
   else
     {
@@ -12893,7 +12896,7 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
     snpType_ = SNP_SUFFIX;
 
   RelExpr * retExpr = this;
-  if (getFirstNRows() > 0)
+  if (getFirstNRows() >= 0)
     {
       retExpr = new(generator->wHeap()) FirstN(this,
                                                getFirstNRows());

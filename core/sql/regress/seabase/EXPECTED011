@@ -8,10 +8,14 @@
 
 -- Definition of Trafodion table TRAFODION.SCH.T011T1
 <<<<<<< HEAD
+<<<<<<< HEAD
 -- Definition current  Tue Mar  8 05:49:30 2016
 =======
 -- Definition current  Thu Dec 10 18:41:46 2015
 >>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+=======
+-- Definition current  Tue Dec 15 18:40:59 2015
+>>>>>>> eb97b87... fixes for mantis 141,142,143
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -148,10 +152,14 @@ A            B
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... NOT NAMED
 <<<<<<< HEAD
+<<<<<<< HEAD
 PLAN_ID .................. 212324176171390042
 =======
 PLAN_ID .................. 212316532907350094
 >>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+=======
+PLAN_ID .................. 212316964861201656
+>>>>>>> eb97b87... fixes for mantis 141,142,143
 ROWS_OUT ................. 7
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t011t1 where a >= 3 and a < 5;
@@ -195,10 +203,14 @@ DESCRIPTION
   QUERY_CACHE ............ 0
   GENERATE_EXPLAIN ....... ON
 <<<<<<< HEAD
+<<<<<<< HEAD
   ObjectUIDs ............. 7433846178641183029
 =======
   ObjectUIDs ............. 4055012914933141968
 >>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+=======
+  ObjectUIDs ............. 8956618591333700931
+>>>>>>> eb97b87... fixes for mantis 141,142,143
   select_list ............ TRAFODION.SCH.T011T1.A, TRAFODION.SCH.T011T1.B
 
 
@@ -1272,10 +1284,14 @@ METRIC_TEXT_TABLE
 
 -- Definition of Trafodion table TRAFODION."_REPOS_".METRIC_QUERY_TABLE
 <<<<<<< HEAD
+<<<<<<< HEAD
 -- Definition current  Tue Mar  8 05:51:31 2016
 =======
 -- Definition current  Thu Dec 10 18:43:39 2015
 >>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+=======
+-- Definition current  Tue Dec 15 18:42:48 2015
+>>>>>>> eb97b87... fixes for mantis 141,142,143
 
   (
     INSTANCE_ID                      INT UNSIGNED NO DEFAULT NOT NULL NOT
@@ -1461,10 +1477,14 @@ METRIC_TEXT_TABLE
 >>get qid for statement explstmt;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 MXID11000029589212324176152856001000000000206U3333300_1994_EXPLSTMT
 =======
 MXID11000007203212316532878893000000000000206U3333300_2051_EXPLSTMT
 >>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+=======
+MXID11000032294212316964840002000000000000206U3333300_2044_EXPLSTMT
+>>>>>>> eb97b87... fixes for mantis 141,142,143
 
 --- SQL operation complete.
 >>
@@ -1517,10 +1537,14 @@ SEQ_NUM      OPERATOR
 >>get qid for statement explstmt2;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 MXID11000029589212324176152856001000000000206U3333300_2005_EXPLSTMT2
 =======
 MXID11000007203212316532878893000000000000206U3333300_2062_EXPLSTMT2
 >>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+=======
+MXID11000032294212316964840002000000000000206U3333300_2055_EXPLSTMT2
+>>>>>>> eb97b87... fixes for mantis 141,142,143
 
 --- SQL operation complete.
 >>set qid MXID123456 for explstmt2;
@@ -2110,8 +2134,12 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>create table t011t8n(a int) attributes no replication;
 =======
 -- Definition of Trafodion table TRAFODION.SCH.T011T7
+<<<<<<< HEAD
 -- Definition current  Thu Dec 10 18:44:12 2015
 >>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+=======
+-- Definition current  Tue Dec 15 18:43:23 2015
+>>>>>>> eb97b87... fixes for mantis 141,142,143
 
 --- SQL operation complete.
 >>showddl t011t8s;
@@ -2141,8 +2169,12 @@ CREATE TABLE TRAFODION.SCH.T011T8A
 ;
 =======
 -- Definition of Trafodion table TRAFODION.SCH.T011T7
+<<<<<<< HEAD
 -- Definition current  Thu Dec 10 18:44:13 2015
 >>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+=======
+-- Definition current  Tue Dec 15 18:43:27 2015
+>>>>>>> eb97b87... fixes for mantis 141,142,143
 
 CREATE INDEX T011T8AI ON TRAFODION.SCH.T011T8A
   (
@@ -2167,8 +2199,12 @@ CREATE TABLE TRAFODION.SCH.T011T8N
 >>explain s;
 =======
 -- Definition of Trafodion table TRAFODION.SCH.T011T7
+<<<<<<< HEAD
 -- Definition current  Thu Dec 10 18:44:14 2015
 >>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+=======
+-- Definition current  Tue Dec 15 18:43:28 2015
+>>>>>>> eb97b87... fixes for mantis 141,142,143
 
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
@@ -2782,18 +2818,81 @@ A            B
 
 --- 0 row(s) selected.
 >>
+>>insert into t011t8s values (1,1), (2,2), (3,3), (4,4), (5,5);
+
+--- 5 row(s) inserted.
+>>select * from t011t8s;
+
+A            B          
+-----------  -----------
+
+          1            1
+          2            2
+          3            3
+          4            4
+          5            5
+
+--- 5 row(s) selected.
+>>-- first 0 should not delete anything
+>>delete [first 0] from t011t8s;
+
+--- 0 row(s) deleted.
+>>select * from t011t8s;
+
+A            B          
+-----------  -----------
+
+          1            1
+          2            2
+          3            3
+          4            4
+          5            5
+
+--- 5 row(s) selected.
+>>
+>>-- with no rollback should delete even if Xn is rolled back
+>>drop index t011t8si1;
+
+--- SQL operation complete.
+>>begin work;
+
+--- SQL operation complete.
+>>delete with no rollback from t011t8s;
+
+--- 5 row(s) deleted.
+>>select * from t011t8s;
+
+--- 0 row(s) selected.
+>>rollback work;
+
+--- SQL operation complete.
+>>select * from t011t8s;
+
+--- 0 row(s) selected.
+>>
 >>-- negative tests
 >>
 >>-- cant do 'no rollback' with indexes.
->>delete with no rollback from t011t8s;
+>>delete with no rollback from t011t8;
 
-*** ERROR[3232] INSERT, UPDATE, or DELETE of table TRAFODION.SCH.T011T8S with dependent Index : TRAFODION.SCH.T011T8SI1 is not allowed when NO ROLLBACK transaction setting is in effect.
+*** ERROR[3232] INSERT, UPDATE, or DELETE of table TRAFODION.SCH.T011T8 with dependent Index : TRAFODION.SCH.T011T8I1 is not allowed when NO ROLLBACK transaction setting is in effect.
 
 *** ERROR[8822] The statement was not prepared.
 
->>delete with no rollback [first 2] from t011t8s;
+>>delete with no rollback [first 2] from t011t8;
 
-*** ERROR[3232] INSERT, UPDATE, or DELETE of table TRAFODION.SCH.T011T8S with dependent Index : TRAFODION.SCH.T011T8SI1 is not allowed when NO ROLLBACK transaction setting is in effect.
+*** ERROR[3232] INSERT, UPDATE, or DELETE of table TRAFODION.SCH.T011T8 with dependent Index : TRAFODION.SCH.T011T8I1 is not allowed when NO ROLLBACK transaction setting is in effect.
+
+*** ERROR[8822] The statement was not prepared.
+
+>>
+>>-- cannot do first N delete on a view
+>>create view t011t8v as select * from t011t8s;
+
+--- SQL operation complete.
+>>delete [first 2] from t011t8v;
+
+*** ERROR[3242] This statement is not supported. Reason: [FIRST N] not allowed on delete from a view.
 
 *** ERROR[8822] The statement was not prepared.
 
@@ -2866,6 +2965,9 @@ A            B
 
 --- SQL operation complete.
 >>
+>>drop view t011t8v;
+
+--- SQL operation complete.
 >>drop table t011t8;
 
 --- SQL operation complete.

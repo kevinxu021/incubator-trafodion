@@ -49,9 +49,15 @@ drop table t011t6b;
 
 drop table t011t7;
 
+<<<<<<< HEAD
 drop table t011t8s cascade;
 drop table t011t8a cascade;
 drop table t011t8n cascade;
+=======
+drop view t011t8v;
+drop table t011t8;
+drop table t011t8s;
+>>>>>>> eb97b87... fixes for mantis 141,142,143
 
 -- delete explain for statement explstmt from repository
 set parserflags 131072;
@@ -640,11 +646,29 @@ select * from t011t8s;
 execute s;
 select * from t011t8s;
 
+insert into t011t8s values (1,1), (2,2), (3,3), (4,4), (5,5);
+select * from t011t8s;
+-- first 0 should not delete anything
+delete [first 0] from t011t8s;
+select * from t011t8s;
+
+-- with no rollback should delete even if Xn is rolled back
+drop index t011t8si1;
+begin work;
+delete with no rollback from t011t8s;
+select * from t011t8s;
+rollback work;
+select * from t011t8s;
+
 -- negative tests
 
 -- cant do 'no rollback' with indexes.
-delete with no rollback from t011t8s;
-delete with no rollback [first 2] from t011t8s;
+delete with no rollback from t011t8;
+delete with no rollback [first 2] from t011t8;
+
+-- cannot do first N delete on a view
+create view t011t8v as select * from t011t8s;
+delete [first 2] from t011t8v;
 
 cqd allow_firstn_in_iud 'OFF';
 delete [first 2] from t011t8s;

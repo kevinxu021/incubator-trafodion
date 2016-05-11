@@ -370,7 +370,7 @@ SDDkwd__(ALLOW_AUDIT_ATTRIBUTE_CHANGE,	       "FALSE"), // Used to control if ro
 
 SDDkwd__(ALLOW_DP2_ROW_SAMPLING,               "SYSTEM"),
 
- DDkwd__(ALLOW_FIRSTN_IN_IUD,	               "FALSE"),
+ DDkwd__(ALLOW_FIRSTN_IN_IUD,	               "TRUE"),
 
  DDkwd__(ALLOW_FIRSTN_IN_SUBQUERIES,	       "FALSE"),
 
