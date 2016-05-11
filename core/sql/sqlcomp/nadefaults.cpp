@@ -78,7 +78,7 @@
 
 #include "seabed/ms.h"
 #include "seabed/fs.h"
-
+#include "CompException.h"
 
 #define   NADHEAP		 CTXTHEAP
 #define   ERRWARN(msg)		 ToErrorOrWarning(msg, errOrWarn)
@@ -4265,8 +4265,14 @@ void NADefaults::updateSystemParameters(NABoolean reInit)
   //  Extract SMP node number and cluster number where this arkcmp is running.
   short nodeNum = 0;
   Int32   clusterNum = 0;
-  OSIM_getNodeAndClusterNumbers(nodeNum, clusterNum);
-
+  try {
+        OSIM_getNodeAndClusterNumbers(nodeNum, clusterNum);
+  }
+  catch(OsimLogException & e)
+  {
+        OSIM_errorMessage(e.getErrMessage());
+        return;
+  }
   // First (but only if NSK-LITE Services exist),
   // write system parameters (attributes DEF_*) into DefaultDefaults,
   // then copy DefaultDefaults into CurrentDefaults.
