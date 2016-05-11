@@ -114,8 +114,6 @@ class NAType;
 struct desc_struct;
 class OutputInfo;
 
-class ByteArrayList;
-
 class HbaseCreateOption;
 
 class Parser;
@@ -1462,7 +1460,7 @@ private:
   NABoolean cmpSwitched_;
 };
 
-desc_struct* assembleDescs(ByteArrayList* bal, populateFuncT func, NAMemory* heap);
+desc_struct* assembleDescs(NAArray<HbaseStr>*keyArray, populateFuncT func, NAMemory* heap);
 
 
 #endif // _CMP_SEABASE_DDL_H_

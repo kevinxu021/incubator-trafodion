@@ -40,6 +40,7 @@
 #include "ExpCompressionWA.h"
 
 #define HIVE_MODE_DOSFORMAT    1
+#define HIVE_MODE_CONV_ERROR_TO_NULL 2
 
 // -----------------------------------------------------------------------
 // Classes defined in this file

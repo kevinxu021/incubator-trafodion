@@ -241,7 +241,8 @@ int HbaseAccess::createAsciiColAndCastExpr(Generator * generator,
   castValue = NULL;
   CollHeap * h = generator->wHeap();
   bool needTranslate = FALSE;
-
+  UInt32 hiveScanMode = CmpCommon::getDefaultLong(HIVE_SCAN_SPECIAL_MODE);
+ 
   // if this is an upshifted datatype, remove the upshift attr.
   // We dont want to upshift data during retrievals or while building keys.
   // Data is only upshifted during insert or updates.
@@ -300,6 +301,9 @@ int HbaseAccess::createAsciiColAndCastExpr(Generator * generator,
   asciiValue = new (h) NATypeToItem(asciiType->newCopy(h));
   castValue = new(h) Cast(asciiValue, newGivenType);
   ((Cast*)castValue)->setSrcIsVarcharPtr(TRUE);
+
+  if(( hiveScanMode & 2 ) >0 ) 
+    ((Cast*)castValue)->setConvertNullWhenError(TRUE);
   
   if (newGivenType->getTypeQualifier() == NA_INTERVAL_TYPE)
     ((Cast*)castValue)->setAllowSignInInterval(TRUE);
@@ -1162,6 +1166,12 @@ short FileScan::codeGenForHive(Generator * generator)
   if (longVC && (CmpCommon::getDefault(COMPRESSED_INTERNAL_FORMAT) != DF_OFF))
     generator->setCompressedInternalFormat();
 
+  UInt32 hiveScanMode = CmpCommon::getDefaultLong(HIVE_SCAN_SPECIAL_MODE);
+  //enhance pCode to handle this mode in the future
+  //this is for JIRA 1920
+  if((hiveScanMode & 2 ) > 0)   //if HIVE_SCAN_SPECIAL_MODE is 2, disable pCode
+    exp_gen->setPCodeMode(ex_expr::PCODE_NONE);
+
   // Add ascii columns to the MapTable. After this call the MapTable
   // has ascii values in the work ATP at index asciiTuppIndex.
   exp_gen->processValIdList(
@@ -1573,7 +1583,6 @@ if (hTabStats->isOrcFile())
 
   char * tablename = 
     space->AllocateAndCopyToAlignedSpace(GenGetQualifiedName(getIndexDesc()->getNAFileSet()->getFileSetName()), 0);
-  UInt32 hiveScanMode = CmpCommon::getDefaultLong(HIVE_SCAN_SPECIAL_MODE);
 
   // create hdfsscan_tdb
   ComTdbHdfsScan *hdfsscan_tdb = NULL;
@@ -1813,7 +1822,7 @@ void populateRangeDescForBeginKey(char* buf, Int32 len, struct desc_struct* targ
 void populateRegionDescAsRANGE(char* buf, Int32 len, struct desc_struct* target, NAMemory*);
 
 desc_struct *HbaseAccess::createVirtualTableDesc(const char * name,
-						 NABoolean isRW, NABoolean isCW, ByteArrayList* beginKeys)
+						 NABoolean isRW, NABoolean isCW, NAArray<HbaseStr>* beginKeys)
 {
   desc_struct * table_desc = NULL;
 
