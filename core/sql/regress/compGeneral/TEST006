@@ -182,7 +182,9 @@ control query default mp_subvolume 'raydddddd';
 control query default mp_subvolume 'raydd~@';
 
 -- Error 3233
+set parserflags 131072;
 prepare xx from update with no rollback t006t4 set a = b;
+reset parserflags 131072;
 
 -- Error 3416
 prepare xx from select coalesce(a, NULL) from t006t1;

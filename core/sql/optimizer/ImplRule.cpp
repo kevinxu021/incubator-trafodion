@@ -702,6 +702,9 @@ void copyCommonGenericUpdateFields(GenericUpdate *result,
   result->setPrecondition(bef->getPrecondition());
 
   result->setOptHbaseAccessOptions(bef->getOptHbaseAccessOptions());
+  result->flags() = bef->flags();
+
+  result->setFirstNRows(bef->getFirstNRows());
 }
 
 void copyCommonUpdateFields(Update *result,

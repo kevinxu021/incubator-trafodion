@@ -193,12 +193,18 @@
 
 >>
 >>-- Error 3233
+>>set parserflags 131072;
+
+--- SQL operation complete.
 >>prepare xx from update with no rollback t006t4 set a = b;
 
 *** ERROR[3233] This type of UPDATE is not allowed when NO ROLLBACK transaction setting is in effect. Suggestion: Set ALLOW_RISKY_UPDATE_WITH_NO_ROLLBACK CQD to ON to allow UPDATE command with right-hand side SET clause consisting of columns.
 
 *** ERROR[8822] The statement was not prepared.
 
+>>reset parserflags 131072;
+
+--- SQL operation complete.
 >>
 >>-- Error 3416
 >>prepare xx from select coalesce(a, NULL) from t006t1;

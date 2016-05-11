@@ -143,7 +143,8 @@ GenericUpdate(const CorrName &name,
     noIMneeded_(FALSE),
     useMVCC_(FALSE),
     useSSCC_(FALSE),
-    preconditionTree_(NULL)
+    preconditionTree_(NULL),
+    flags_(0)
   {}
 
   // copy ctor
@@ -279,6 +280,8 @@ GenericUpdate(const CorrName &name,
   {
     return noIMneeded_;
   }
+
+  UInt32 &flags() { return flags_; }
 
   // The generator needs a reference to the original scan columns
   // ##IM: not needed any more (?) -- REMOVE the scanIndexDesc_ member! (?)
@@ -550,7 +553,6 @@ protected:
   ValueIdSet exprsInDerivedClasses_;
   
 private:
-
   // ---------------------------------------------------------------------
   // Triggers --
   // Methods for inlining triggers, RI and IM.
@@ -930,6 +932,7 @@ private:
   ValueIdSet precondition_;
  
 
+  UInt32 flags_;
 };
 
 // -----------------------------------------------------------------------

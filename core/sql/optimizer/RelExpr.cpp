@@ -12273,7 +12273,9 @@ RelExpr * GenericUpdate::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
     result->preconditionTree_ = preconditionTree_->copyTree(outHeap)->castToItemExpr();
   result->setPrecondition(precondition_);
   result->exprsInDerivedClasses_ = exprsInDerivedClasses_;
-  
+
+  result->flags_ = flags_;
+
   return RelExpr::copyTopNode(result, outHeap);
 }
 

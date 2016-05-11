@@ -370,6 +370,8 @@ SDDkwd__(ALLOW_AUDIT_ATTRIBUTE_CHANGE,	       "FALSE"), // Used to control if ro
 
 SDDkwd__(ALLOW_DP2_ROW_SAMPLING,               "SYSTEM"),
 
+ DDkwd__(ALLOW_FIRSTN_IN_IUD,	               "FALSE"),
+
  DDkwd__(ALLOW_FIRSTN_IN_SUBQUERIES,	       "FALSE"),
 
  // ON/OFF flag to invoke ghost objects from non-licensed process (non-super.super user) who can not use parserflags

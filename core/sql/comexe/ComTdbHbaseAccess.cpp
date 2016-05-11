@@ -201,7 +201,8 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
   hbaseRowsetVsbbSize_(0),
   hbaseCellTS_(-1),
   comHbaseAccessOptions_(comHbaseAccessOptions),
-  trafLoadFlushSize_(0)
+  trafLoadFlushSize_(0),
+  firstNRows_(-1)
 {};
 
 ComTdbHbaseAccess::ComTdbHbaseAccess(
@@ -315,7 +316,8 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
   hbaseRowsetVsbbSize_(0),
   hbaseCellTS_(-1),
   comHbaseAccessOptions_(NULL),
-  trafLoadFlushSize_(0)
+  trafLoadFlushSize_(0),
+  firstNRows_(-1)
 {
 }
 
@@ -986,6 +988,12 @@ void ComTdbHbaseAccess::displayContents(Space * space,ULng32 flag)
       if (hbaseCellTS_ > 0)
         {
           str_sprintf(buf, "hbaseCellTS_ = %Ld", hbaseCellTS_);
+          space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+        }
+
+      if (firstNRows_ > 0)
+        {
+          str_sprintf(buf, "firstNRows_ = %Ld", firstNRows_);
           space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
         }
 

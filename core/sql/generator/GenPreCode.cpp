@@ -5581,7 +5581,8 @@ RelExpr * HbaseDelete::preCodeGen(Generator * generator,
        (generator->getTransMode()->getAutoCommit() == TransMode::ON_) &&
        (! NAExecTrans(0, transId)) &&
        (NOT generator->oltOptInfo()->multipleRowsReturned())) ||
-      (noDTMxn()))
+      (noDTMxn()) ||
+      ((isNoRollback()) && (NOT inlinedActions)))
     {
       // no transaction needed
     }
@@ -7863,6 +7864,11 @@ RelExpr * Exchange::preCodeGen(Generator * generator,
         generator->setQueryUsesSM(TRUE);
       
     } // isEspExchange() && !eliminateThisExchange
+
+  // if this esp exchange is doing parallel delete with 'first N' clause,
+  // then set the value of N to N/dop in the scan node.
+
+  if (child(0)->getOperatorType() == REL_EXTRACT_SOURCE)
   
   if ((ActiveSchemaDB()->getDefaults()).getAsDouble(EXE_MEMORY_LIMIT_PER_CPU) > 0)
     generator->incrNBMOsMemoryPerCPU(getEstimatedRunTimeMemoryUsage(TRUE));
@@ -11359,12 +11365,21 @@ RelExpr * FirstN::preCodeGen(Generator * generator,
   if (nodeIsPreCodeGenned())
     return this;
 
+  RelExpr * retExpr = this;
+
   if (! RelExpr::preCodeGen(generator,externalInputs,pulledNewInputs))
     return NULL;
 
-  markAsPreCodeGenned();
+  if ((getFirstNRows() > 0) &&
+      (child(0) && (child(0)->getOperatorType() == REL_HBASE_DELETE)))
+    {
+      child(0)->setFirstNRows(getFirstNRows());
+      retExpr = child(0);
+    }
 
-  return this;
+  markAsPreCodeGenned();
+ 
+  return retExpr;
 } // FirstN::preCodeGen
 
 RelExpr * RelRoutine::preCodeGen (Generator * generator,
@@ -12877,10 +12892,30 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
     //the exsiting where snapshot scan is used with bulk unload
     snpType_ = SNP_SUFFIX;
 
+  RelExpr * retExpr = this;
+  if (getFirstNRows() > 0)
+    {
+      retExpr = new(generator->wHeap()) FirstN(this,
+                                               getFirstNRows());
+      retExpr->setEstRowsUsed(getEstRowsUsed());
+      retExpr->setMaxCardEst(getMaxCardEst());
+      retExpr->setInputCardinality(getInputCardinality());
+      retExpr->setPhysicalProperty(getPhysicalProperty());
+      retExpr->setGroupAttr(getGroupAttr());
+       
+      setFirstNRows(-1);
+
+      retExpr = retExpr->preCodeGen(generator,
+                                    getGroupAttr()->getCharacteristicInputs(),
+                                    pulledNewInputs);
+      if (! retExpr)
+        return NULL;
+    }
+
   markAsPreCodeGenned();
   
   // Done.
-  return this;
+  return retExpr;
 }
 
 void VEGRewritePairs::display() const { print(); }

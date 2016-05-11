@@ -562,6 +562,93 @@ drop table t011t6a ;
 drop table t011t6b ;
 
 
+-- tests for NO ROLLBACK and FIRST N in delete stmts
+cqd allow_firstn_in_iud 'ON';
+create table t011t8 (a int not null primary key, b int not null);
+create table t011t8s (a int not null primary key, b int not null)
+  salt using 4 partitions;
+
+insert into t011t8 values (1,1), (2,2), (3,3), (4,4), (5,5);
+explain options 'f' delete with no rollback [first 2] from t011t8;
+delete with no rollback [first 2] from t011t8;
+explain options 'f' delete with no rollback from t011t8;
+delete with no rollback from t011t8;
+select * from t011t8;
+
+insert into t011t8 values (1,1), (2,2), (3,3), (4,4), (5,5);
+prepare s from delete with no rollback [first 2] from t011t8;
+explain options 'f' s;
+execute s;
+select * from t011t8;
+execute s;
+select * from t011t8;
+execute s;
+select * from t011t8;
+execute s;
+select * from t011t8;
+
+insert into t011t8 values (1,1), (2,2), (3,3), (4,4), (5,5);
+delete with no rollback from t011t8;
+
+insert into t011t8 values (1,1), (2,2), (3,3), (4,4), (5,5);
+create index t011t8i1 on t011t8(b);
+prepare s from delete [first 2] from t011t8;
+explain options 'f' s;
+execute s;
+select * from t011t8;
+execute s;
+select * from t011t8;
+execute s;
+select * from t011t8;
+execute s;
+select * from t011t8;
+
+insert into t011t8s values (1,1), (2,2), (3,3), (4,4), (5,5);
+control query shape esp_exchange (cut);
+prepare s from delete with no rollback [first 2] from t011t8s;
+explain options 'f' s;
+execute s;
+select * from t011t8s;
+execute s;
+select * from t011t8s;
+execute s;
+select * from t011t8s;
+
+insert into t011t8s values (1,1), (2,2), (3,3), (4,4), (5,5);
+delete with no rollback from t011t8s;
+
+create index t011t8si1 on t011t8s(b);
+insert into t011t8s values (1,1), (2,2), (3,3), (4,4), (5,5);
+control query shape esp_exchange (cut);
+prepare s from delete [first 2] from t011t8s;
+explain options 'f' s;
+execute s;
+select * from t011t8s;
+execute s;
+select * from t011t8s;
+execute s;
+select * from t011t8s;
+
+insert into t011t8s values (1,1), (2,2), (3,3), (4,4), (5,5);
+control query shape cut;
+prepare s from delete [first 2] from t011t8s;
+explain options 'f' s;
+execute s;
+select * from t011t8s;
+execute s;
+select * from t011t8s;
+execute s;
+select * from t011t8s;
+
+-- negative tests
+
+-- cant do 'no rollback' with indexes.
+delete with no rollback from t011t8s;
+delete with no rollback [first 2] from t011t8s;
+
+cqd allow_firstn_in_iud 'OFF';
+delete [first 2] from t011t8s;
+update [first 2] t011t8s set b = b + 1;
 
 -- tests for transaction replication options
 create table t011t8s(a int) attributes synchronous replication;
