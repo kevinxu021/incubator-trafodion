@@ -49,7 +49,7 @@ define([ 'views/BaseView', 'text!templates/alter_library.html', 'jquery',
 			$(CLEAR_BTN).on('click', this.cleanField);
 			$(FILE_SELECT).on('click', this.fileDialogOpened);
 			$(FILE_SELECT).on('change', this.onFileSelected);
-
+			
 			tHandler.on(tHandler.ALTER_LIBRARY_ERROR, this.alterLibraryError);
 			tHandler.on(tHandler.ALTER_LIBRARY_SUCCESS, this.alterLibrarySuccess);
 			tHandler.on(tHandler.EXECUTE_UPLOAD_CHUNK, this.executeUploadChunk);
@@ -108,6 +108,8 @@ define([ 'views/BaseView', 'text!templates/alter_library.html', 'jquery',
 			}, "* Library name contains special characters. It needs be enclosed within double quotes.");
 		},
 		doResume : function(args) {
+			$(ALTER_BTN).on('click', this.uploadFile);
+			$(CLEAR_BTN).on('click', this.cleanField);
 			$(FILE_SELECT).on('click', this.fileDialogOpened);
 			this.currentURL = window.location.hash;
 			_args = args;
@@ -120,6 +122,8 @@ define([ 'views/BaseView', 'text!templates/alter_library.html', 'jquery',
 			}
 		},
 		doPause : function() {
+			$(ALTER_BTN).off('click', this.uploadFile);
+			$(CLEAR_BTN).off('click', this.cleanField);
 			$(FILE_SELECT).off('click', this.fileDialogOpened);
 			this.redirectFlag=true;
 		},
@@ -127,11 +131,14 @@ define([ 'views/BaseView', 'text!templates/alter_library.html', 'jquery',
 			this.value = null; //reset the value so the file can be selected even if the same file that was selected before
 		},
 		processArgs: function(){
-			if( _args.schema != undefined && _this.currentSchemaName != _args.schema){
-				_this.currentSchemaName= _args.schema;
+			if( _args.schema != undefined){
 				$(SCHEMA_NAME).val( _args.schema);
-				$(FILE_NAME).val("");
+				if(_this.currentSchemaName != _args.schema){
+					_this.currentSchemaName= _args.schema;
+					$(FILE_NAME).val("");
+				}
 			}
+			
 			if(_args.library != undefined && _this.currentLibraryName != _args.library){
 				$(FILE_NAME).val("");
 				_this.currentLibraryName = _args.library;
@@ -231,10 +238,10 @@ define([ 'views/BaseView', 'text!templates/alter_library.html', 'jquery',
 			$(ALTER_BTN).prop('disabled', false);
 			$(FILE_NAME).val(FILE.name);
 		},
-		alterLibrarySuccess : function(){
+		alterLibrarySuccess : function(data){
 			_this.isAjaxCompleted=true;
 			var msgPrefix = "altered";
-			var msg= 'Library '+ common.ExternalForm(_this.currentSchemaName) + "." + common.ExternalForm(_this.currentLibraryName) + ' was ' + msgPrefix + ' successfully';
+			var msg= 'Library '+ common.ExternalForm(data.schemaName) + "." + common.ExternalForm(data.libraryName) + ' was ' + msgPrefix + ' successfully';
 			if(UPLOAD_INDEX==UPLOAD_LENGTH){
 				$(LOADING).css('visibility', 'hidden');
 				$(ALTER_BTN).prop('disabled', false);
@@ -246,7 +253,11 @@ define([ 'views/BaseView', 'text!templates/alter_library.html', 'jquery',
 					
 					common.fire(common.NOFITY_MESSAGE,msgObj);
 				}
-				common.fire(common.LIBRARY_CREATED_EVENT,'');
+				var args = {};
+				args.schemaName = data.schemaName;
+				args.libName = data.libraryName;
+				
+				common.fire(common.LIBRARY_ALTERED_EVENT,args);
 				
 				//alert("Alter library Success!");
 			}else if(UPLOAD_INDEX==UPLOAD_LENGTH-1){
@@ -263,7 +274,7 @@ define([ 'views/BaseView', 'text!templates/alter_library.html', 'jquery',
 			var errorIndex = error.responseText.lastIndexOf("*** ERROR");
 			var errorString = error.responseText.substring(errorIndex);
 			var msgPrefix = "Failed to alter library ";
-			var msg= msgPrefix + common.ExternalForm(_this.currentSchemaName) + "." + common.ExternalForm(_this.currentLibraryName)+ " : " + errorString;
+			var msg= msgPrefix + common.ExternalForm(error.schemaName) + "." + common.ExternalForm(error.libraryName) + " : " + errorString;
 			//alert(errorString);
 			var msgObj={msg:msg,tag:"danger",url:null,shortMsg:msgPrefix};
 			if(_this.redirectFlag==false){

@@ -8,7 +8,6 @@ package com.esgyn.dbmgr.resources;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -413,9 +412,6 @@ public class DatabaseResource {
 				ansiObjectName = Helper.ExternalForm(schemaName) + "." + Helper.ExternalForm(objectName);
 			}
 
-			// String url = ConfigurationResource.getInstance().getJdbcUrl();
-			// connection = DriverManager.getConnection(url, soc.getUsername(),
-			// soc.getPassword());
 			connection = JdbcHelper.getInstance().getAdminConnection();
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_DDL_TEXT),
 					ddlObjectType, ansiObjectName);
@@ -736,8 +732,8 @@ public class DatabaseResource {
 				ansiObjectName = Helper.ExternalForm(schemaName) + "." + Helper.ExternalForm(objectName);
 			}
 			Session soc = SessionModel.getSession(servletRequest, servletResponse);
-			String url = ConfigurationResource.getInstance().getJdbcUrl();
-			connection = DriverManager.getConnection(url, soc.getUsername(), soc.getPassword());
+
+			connection = JdbcHelper.getInstance().getConnection(soc.getUsername(), soc.getPassword());
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_DDL_TEXT),
 					objectType, ansiObjectName);
 			if (objectType.equalsIgnoreCase("library")) {

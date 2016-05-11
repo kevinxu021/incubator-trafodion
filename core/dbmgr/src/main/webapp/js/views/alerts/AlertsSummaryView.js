@@ -49,7 +49,8 @@ define([
 	var _this = null;
 	var validator = null;
 	var lastAppliedFilters = null; //last set of filters applied by user explicitly
-
+	var lastUsedTimeRange = null;
+	
 	var AlertsSummaryView = BaseView.extend({
 		template:  _.template(AlertsT),
 
@@ -92,7 +93,13 @@ define([
 			}else{
 				refreshTimerView.setRefreshInterval(1);
 			}
-			this.fetchAlertsSummary();
+			//this.fetchAlertsSummary();
+			if(lastUsedTimeRange != null){
+				var currTimeRange = $(FILTER_TIME_RANGE).val();
+				if(lastUsedTimeRange != currTimeRange){
+					this.fetchAlertsSummary();
+				}
+			}
 		},
 		doPause: function(){
 			this.storeCommonTimeRange();
@@ -353,7 +360,7 @@ define([
 				return;
 			}
 			_this.updateTimeRangeLabel();
-
+			lastUsedTimeRange = $(FILTER_TIME_RANGE).val();
 			var param = _this.getFilterParams();
 
 			if(lastAppliedFilters == null || source != null){
