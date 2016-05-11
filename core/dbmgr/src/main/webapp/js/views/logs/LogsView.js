@@ -59,7 +59,7 @@ define([
 	var initAppliedFilter=null;
 	var _this = null;
 	var validator = null;
-
+	var lastUsedTimeRange = null;
 	var lastAppliedFilters = null; //last set of filters applied by user explicitly
 
 	var LogsView = BaseView.extend({
@@ -105,7 +105,13 @@ define([
 				refreshTimerView.setRefreshInterval(1);
 			}
 			refreshTimerView.resume();
-			this.fetchLogs();
+			//this.fetchLogs();
+			if(lastUsedTimeRange != null){
+				var currTimeRange = $(FILTER_TIME_RANGE).val();
+				if(lastUsedTimeRange != currTimeRange){
+					this.fetchLogs();
+				}
+			}
 		},
 		doPause: function(){
 			this.storeCommonTimeRange();
@@ -252,6 +258,12 @@ define([
 					$(FILTER_START_TIME).prop("disabled", true);
 					$(FILTER_END_TIME).prop("disabled", true);
 					break;
+				case "128":
+					$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'week'));
+					$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
+					$(FILTER_START_TIME).prop("disabled", true);
+					$(FILTER_END_TIME).prop("disabled", true);
+					break;						
 				case "0":
 					$(FILTER_START_TIME).prop("disabled", false);
 					$(FILTER_END_TIME).prop("disabled", false);
@@ -293,6 +305,8 @@ define([
 			case "128":
 				$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'week'));
 				$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
+				$('#filter-start-time').prop("disabled", true);
+				$('#filter-end-time').prop("disabled", true);
 				break;		
 			case "0":
 				$('#filter-start-time').prop("disabled", false);
@@ -382,7 +396,7 @@ define([
 				return;
 			}
 			_this.updateTimeRangeLabel();
-
+			lastUsedTimeRange = $(FILTER_TIME_RANGE).val();
 			var param = _this.getFilterParams();
 
 			if(lastAppliedFilters == null || source != null){

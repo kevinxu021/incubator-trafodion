@@ -35,10 +35,6 @@ define(['handlers/EventDispatcher'],
 					fd.append("endFlag", eflag);
 					fd.append("updateFlag", uflag);
 					
-					var xhr = xhrs["create_library"];
-					if(xhr && xhr.readyState !=4){
-						xhr.abort();
-					}
 					$.ajax({
 						url: 'resources/tools/createlibrary',
 						//url: 'resources/tools/upload',
@@ -51,9 +47,15 @@ define(['handlers/EventDispatcher'],
 							403 : _this.sessionTimeout
 						},
 						success: function(data){
-							dispatcher.fire(_this.CREATE_LIBRARY_SUCCESS);
+							var result = {};
+							result.data = data;
+							result.schemaName = schemaName;
+							result.libraryName = libraryName;
+							dispatcher.fire(_this.CREATE_LIBRARY_SUCCESS, result);
 						},
 						error:function(jqXHR, res, error){
+							jqXHR.schemaName = schemaName;
+							jqXHR.libraryName = libraryName;
 							dispatcher.fire(_this.CREATE_LIBRARY_ERROR, jqXHR, res, error);
 						}
 					});
@@ -85,9 +87,15 @@ define(['handlers/EventDispatcher'],
 							403 : _this.sessionTimeout
 						},
 						success: function(data){
-							dispatcher.fire(_this.ALTER_LIBRARY_SUCCESS);
+							var result = {};
+							result.data = data;
+							result.schemaName = schemaName;
+							result.libraryName = libraryName;
+							dispatcher.fire(_this.ALTER_LIBRARY_SUCCESS, result);
 						},
 						error:function(jqXHR, res, error){
+							jqXHR.schemaName = schemaName;
+							jqXHR.libraryName = libraryName;
 							dispatcher.fire(_this.ALTER_LIBRARY_ERROR, jqXHR, res, error);
 						}
 					});

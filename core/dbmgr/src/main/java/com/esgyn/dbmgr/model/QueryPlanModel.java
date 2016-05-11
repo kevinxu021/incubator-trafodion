@@ -7,7 +7,6 @@
 package com.esgyn.dbmgr.model;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -23,7 +22,6 @@ import org.slf4j.LoggerFactory;
 
 import com.esgyn.dbmgr.common.EsgynDBMgrException;
 import com.esgyn.dbmgr.common.JdbcHelper;
-import com.esgyn.dbmgr.resources.ConfigurationResource;
 import com.esgyn.dbmgr.sql.SystemQueryCache;
 
 
@@ -155,8 +153,7 @@ public class QueryPlanModel {
 		ArrayList<QueryPlanData> planArray = new ArrayList<QueryPlanData>();
 		Connection connection = null;
 		try {
-			String url = ConfigurationResource.getInstance().getJdbcUrl();
-			connection = DriverManager.getConnection(url, userName, password);
+			connection = JdbcHelper.getInstance().getConnection(userName, password);
 			planArray = GetPlan(connection, queryText, controlStmts, queryID, queryType);
 		} catch (EsgynDBMgrException e) {
 			throw e;
