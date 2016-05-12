@@ -680,17 +680,9 @@ fi
 #==============================================
 #Install location
 
-if [ -z $SQ_ROOT ]; then
 
-	# if we have a package file then use its name for the default install dir
-	if [ ! -z "$TRAF_PACKAGE" ]; then
-	   traf_filename=$(basename "$TRAF_PACKAGE")
-	   SQ_ROOT="$HOME_DIR/$TRAF_USER/${traf_filename%.tar.gz}"
-	else
-	   # otherwise, create a default install dir using a timestamp
-	   SQ_ROOT="$HOME_DIR/$TRAF_USER/traf_$(date +%F_%H%M)"
-	fi
-fi
+traf_filename=$(basename "$TRAF_PACKAGE")
+SQ_ROOT="$HOME_DIR/$TRAF_USER/${traf_filename%.tar.gz}"
 
 echo -n "Enter directory to install trafodion to, default is [$SQ_ROOT]: "
 read answer
@@ -725,7 +717,10 @@ fi
 #==============================================
 #DCS Servers
 
-DCS_SERVERS_PARM=$(($node_count * 8))
+if [[ -z $DCS_SERVERS_PARM ]]; then
+   DCS_SERVERS_PARM=$(($node_count * 8))
+fi
+
 echo -n "Total number of client connections per cluster, default [$DCS_SERVERS_PARM]: "
 read answer
 

@@ -170,8 +170,6 @@ echo "export CDH_VERSION=\"$CDH_VERSION\"" >> $TRAF_CONFIG
 sudo chmod 777 $TRAF_CONFIG
 sudo rm -rf hbaseVersion.txt
 
-trafodionFullName=$(basename $TRAF_BUILD)
-echo "***INFO: trafodionFullName=$trafodionFullName"
 #Debug version
 trafodionVersion=$(echo $trafodionFullName | sed 's/trafodion_.*server-//' | sed 's/-debug//' | sed 's/.tgz//')
 
