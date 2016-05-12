@@ -2490,6 +2490,7 @@ NUM         WORKGROUPNUM  ANNUALSALARY  (EXPR)                (EXPR)            
 
 --- 30 row(s) selected.
 >>
+>>
 >>SELECT  num, workgroupnum, annualsalary, 
 +>    SUM(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) ,
 +>    AVG(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) ,
@@ -2535,7 +2536,52 @@ NUM         WORKGROUPNUM  ANNUALSALARY  (EXPR)                (EXPR)            
         30             3            30                   255                    25          21          30   9.16666666666666624E+000   3.02765035409749184E+000                    10
 
 --- 30 row(s) selected.
+>>
+>>SELECT  num, workgroupnum, annualsalary, 
++>    SUM(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) ,
++>    AVG(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) ,
++>    MIN(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) ,
++>    MAX(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) ,
++>    VARIANCE_POP(AnnualSalary  )  OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) ,
++>    STDDEV_POP(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) ,
++>    COUNT(*)          OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) 
++>FROM olap_emp ;
 
+NUM         WORKGROUPNUM  ANNUALSALARY  (EXPR)                (EXPR)                (EXPR)      (EXPR)      (EXPR)                     (EXPR)                     (EXPR)
+----------  ------------  ------------  --------------------  --------------------  ----------  ----------  -------------------------  -------------------------  --------------------
+
+         1             1            21                    21                    21          21          21   0.00000000000000000E+000   0.00000000000000000E+000                     1
+         2             1            22                    43                    21          21          22   2.50000000000000000E-001   5.00000000000000000E-001                     2
+         3             1            23                    66                    22          21          23   6.66666666666666624E-001   8.16496580927726080E-001                     3
+         4             1            24                    90                    22          21          24   1.25000000000000000E+000   1.11803398874989488E+000                     4
+         5             1            25                   115                    23          21          25   2.00000000000000000E+000   1.41421356237309520E+000                     5
+         6             1            26                   141                    23          21          26   2.91666666666666624E+000   1.70782512765993312E+000                     6
+         7             1            27                   168                    24          21          27   4.00000000000000000E+000   2.00000000000000000E+000                     7
+         8             1            28                   196                    24          21          28   5.25000000000000000E+000   2.29128784747792000E+000                     8
+         9             1            29                   225                    25          21          29   6.66666666666666752E+000   2.58198889747161120E+000                     9
+        10             1            30                   255                    25          21          30   8.25000000000000000E+000   2.87228132326901440E+000                    10
+        11             2            21                    21                    21          21          21   0.00000000000000000E+000   0.00000000000000000E+000                     1
+        12             2            22                    43                    21          21          22   2.50000000000000000E-001   5.00000000000000000E-001                     2
+        13             2            23                    66                    22          21          23   6.66666666666666624E-001   8.16496580927726080E-001                     3
+        14             2            24                    90                    22          21          24   1.25000000000000000E+000   1.11803398874989488E+000                     4
+        15             2            25                   115                    23          21          25   2.00000000000000000E+000   1.41421356237309520E+000                     5
+        16             2            26                   141                    23          21          26   2.91666666666666624E+000   1.70782512765993312E+000                     6
+        17             2            27                   168                    24          21          27   4.00000000000000000E+000   2.00000000000000000E+000                     7
+        18             2            28                   196                    24          21          28   5.25000000000000000E+000   2.29128784747792000E+000                     8
+        19             2            29                   225                    25          21          29   6.66666666666666752E+000   2.58198889747161120E+000                     9
+        20             2            30                   255                    25          21          30   8.25000000000000000E+000   2.87228132326901440E+000                    10
+        21             3            21                    21                    21          21          21   0.00000000000000000E+000   0.00000000000000000E+000                     1
+        22             3            22                    43                    21          21          22   2.50000000000000000E-001   5.00000000000000000E-001                     2
+        23             3            23                    66                    22          21          23   6.66666666666666624E-001   8.16496580927726080E-001                     3
+        24             3            24                    90                    22          21          24   1.25000000000000000E+000   1.11803398874989488E+000                     4
+        25             3            25                   115                    23          21          25   2.00000000000000000E+000   1.41421356237309520E+000                     5
+        26             3            26                   141                    23          21          26   2.91666666666666624E+000   1.70782512765993312E+000                     6
+        27             3            27                   168                    24          21          27   4.00000000000000000E+000   2.00000000000000000E+000                     7
+        28             3            28                   196                    24          21          28   5.25000000000000000E+000   2.29128784747792000E+000                     8
+        29             3            29                   225                    25          21          29   6.66666666666666752E+000   2.58198889747161120E+000                     9
+        30             3            30                   255                    25          21          30   8.25000000000000000E+000   2.87228132326901440E+000                    10
+
+--- 30 row(s) selected.
 >>
 >>--**************************************ALL OLAP FUNCTIONS/ROWS N PRECEDING *****************************
 >>
@@ -2680,7 +2726,6 @@ NUM         WORKGROUPNUM  ANNUALSALARY  (EXPR)                (EXPR)            
 
 --- 30 row(s) selected.
 >>
->>
 >>SELECT  num, workgroupnum, annualsalary, 
 +>    SUM(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS CURRENT ROW  ) ,
 +>    AVG(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS CURRENT ROW  ) ,
@@ -2726,6 +2771,8 @@ NUM         WORKGROUPNUM  ANNUALSALARY  (EXPR)                (EXPR)            
         30             3            30                    30                    30          30          30   0.00000000000000000E+000   0.00000000000000000E+000                     1
 
 --- 30 row(s) selected.
+>>
+>>
 >>
 >>
 >>--**************************************Support for ASC / DESC****************************

@@ -915,6 +915,16 @@ SELECT  num, workgroupnum, annualsalary,
     COUNT(*)          OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) 
 FROM olap_emp ;
 
+SELECT  num, workgroupnum, annualsalary, 
+    SUM(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) ,
+    AVG(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) ,
+    MIN(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) ,
+    MAX(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) ,
+    VARIANCE_POP(AnnualSalary  )  OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) ,
+    STDDEV_POP(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) ,
+    COUNT(*)          OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) 
+FROM olap_emp ;
+
 --**************************************ALL OLAP FUNCTIONS/ROWS N PRECEDING *****************************
 
 
