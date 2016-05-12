@@ -39,13 +39,13 @@ https://my.esgyndb.server:4206
 In the Login page, a valid EsgynDB database user name and password and click on the Login button. EsgynDB Manager relies on database authentication and makes a JDBC connection to authenticate the user.
 
 === Navigation
-To Navigate the UI and access the different features, use the navigation menu at the top of the screen.
+To Navigate the UI and access the different features, use the navigation menus at the top of the screen.
 [[img-rest]]
 image::navigation.png[caption="Figure 2: ", title="Navigation Menus"]
 
 === Notifications Panel
 
-In the top-right corer of the page, you will see a bell icon and whenever there is an async notification, you'll see a yellow exclamation mark on it indicating there is a new notification. When you click on the bell icon, you'll be shown a list of notifications with details.
+In the top-right corner of the page, you will see a bell icon and whenever there is an asynchronous  notification, you'll see a yellow exclamation mark on it indicating there is a new notification. When you click on the bell icon, you'll be shown a list of notifications with details.
 
 The notifications panel is used to notify that an asynchronous operation is complete and the results are available. The results are added to the notifications panel, only if you have navigated away from the page where the operation was initiated.
 
@@ -54,13 +54,17 @@ For example: In the Create Library page, you initiate a create library operation
 You can click on the notifications panel anytime to view the results. Clicking on the x mark on the notification message will remove the message from the notification panel.
 
 These asynchronous notifications are available for the following functions:
+
 * Create Library
 * Alter Library
 * Execute or Explain operations in Query Workbench
 * Cancel Query from the workload pages
 
+=== EsgynDB Manager User Guide
+You can access an online version of this user guide using the *Help +++->+++ User Guide* navigation menu.
+
 === About
-Use the *Help +++->+++ About* to view the version of DB Manager. The page also displays the version of the EsgynDB instance you are currently connected to. When you contact Esgyn for DB Manager technical support, provide the information in the About page.
+Use the *Help +++->+++ About* navigation menu to view the version of DB Manager. The page also displays the version of the EsgynDB instance you are currently connected to. When you contact Esgyn for DB Manager technical support, provide the information in the About page.
 
 === Log Out
 You can click on the user icon at the top right corner of the application and select the *Logout* option.

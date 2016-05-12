@@ -36,9 +36,9 @@ Use these common tips to troubleshoot any display issues with EsgynDB Manager.
 ** Check the browser console for errors.
 
 * The Datetime values do not look right
-** DB Manager displays all datetime values in the servers local time zone
+** DB Manager displays all datetime values in the server's local time zone
 ** Make sure the timeZoneName property in the DB Manager config.xml matches the EsgynDB server time zone
-** Make sure the timezoneName is specified the correct canonical form like America/Los_Angeles or Asia/Shanghai or Etc/UTC etc..
+** Make sure the timezoneName is specified the correct canonical form like America/Los_Angeles or Asia/Shanghai or Etc/UTC etc.
 
 *Note:* You will need to restart DB Manager anytime you change property values in config.xml
 
@@ -47,9 +47,9 @@ When contacting Esgyn Support, the following information will be handy and reque
 
 * Latest logs in *$MY_SQROOT/dbmgr-{projectVersion}/logs/*
 * $MY_SQROOT/dbmgr-{projectVersion}/conf/config.xml
-* EsgynDB Manager version information from the About page
+* EsgynDB Manager version information from the About page.
 
 For UI issues:
 
-* A screen shot of the error
+* A screen shot of the error message in the screen or in the browser console.
 * If error is reproducible, a description of the sequence of actions the user performed to reproduce the error.

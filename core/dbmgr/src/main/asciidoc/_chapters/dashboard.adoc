@@ -22,13 +22,13 @@
 
 The dashboard page displays the status of the EsgynDB services, nodes and display time-series charts for key system and HBase metrics.
 
-The dashboard page by default auto-refreshes every 30 seconds and displays the more current status. You can change the time window or turn OFF auto-refresh using the *Auto Refresh* drop-down menu.
+The dashboard page by default auto-refreshes every 30 seconds and displays the more current status. You can change the time window or turn OFF auto-refresh using the *Auto Refresh* drop-down control.
 
 If you select a different time range using the Custom option, then you see the service status, node status and the system metrics as of that end time.
 
 === Service Status
 
-The service status displays the status of the core EsgynDB services : *Transaction Manager, Connectivity Service and Runtime Manageability Service*.
+The service status displays the status of the core EsgynDB services: *Transaction Manager, Connectivity Service and Runtime Manageability Service*.
 
 For each service, you can see the number of configured processes, the number of actual running processes, the number of down processes if any.
 
@@ -62,7 +62,7 @@ The chart uses the OpenTSDB metrics *esgyndb.canary.sqlconnect.time* and *esgynd
 Click on the zoom-in icon to open a drill-down page and view the individual canary metric.
 
 === IO Waits
-The average IO Wait time percentage across all nodes. 
+The average IO Wait time percentage across all nodes.
 
 The chart uses OpenTSDB metric *proc.stat.cpu{type=iowait}*.
 
