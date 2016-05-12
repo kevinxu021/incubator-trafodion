@@ -3,7 +3,6 @@ package com.esgyn.dbmgr.resources;
 import java.io.InputStream;
 import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -63,7 +62,7 @@ public class ToolsResource {
 		try {
 			_LOG.info("**************");
 			adminConnection = connection = JdbcHelper.getInstance().getAdminConnection();
-			connection = DriverManager.getConnection(url, soc.getUsername(), soc.getPassword());
+			connection = JdbcHelper.getInstance().getConnection(soc.getUsername(), soc.getPassword());
 
 			// pre-check phase
 			String checkSchemaName = Helper.InternalForm(schemaName);

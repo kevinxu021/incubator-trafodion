@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -28,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.esgyn.dbmgr.common.EsgynDBMgrException;
+import com.esgyn.dbmgr.common.JdbcHelper;
 import com.esgyn.dbmgr.resources.ConfigurationResource;
 
 public class SessionModel {
@@ -174,8 +176,13 @@ public class SessionModel {
           // password and create a session object
           try {
             Class.forName(ConfigurationResource.getInstance().getJdbcDriverClass());
+						Properties connProp = new Properties();
+						connProp.put("user", userName);
+						connProp.put("password", password);
+						connProp.put("applicationName", JdbcHelper.APPLICATION_NAME);
+
             connection = DriverManager.getConnection(
-              ConfigurationResource.getInstance().getJdbcUrl(), userName, password);
+								ConfigurationResource.getInstance().getJdbcUrl(), connProp);
             if (connection != null) {
               result = new Session(userName, password, new DateTime(DateTimeZone.UTC));
               synchronized (activeSessions) {

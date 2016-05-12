@@ -83,7 +83,7 @@ gv_internalip_set=1
 if [[ $AWS_CLOUD == "true" ]]; then
    awscmd="/usr/local/bin/aws ec2 --output text "
    #Get the network interface
-   NETWORKINTERFACE=`$awscmd describe-network-interfaces| grep -i networkinterfaces| grep -i $gv_float_internal_ip|cut -f5`
+   NETWORKINTERFACE=`$awscmd describe-network-interfaces| grep -i networkinterfaces| grep -i -w $gv_float_internal_ip|cut -f5`
 
    # Get the attachment id for the network interface
    ATTACH_ID=`$awscmd describe-network-interfaces --network-interface-ids $NETWORKINTERFACE |grep -i attachment |cut -f3`
