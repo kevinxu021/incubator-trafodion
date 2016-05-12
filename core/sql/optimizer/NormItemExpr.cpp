@@ -4921,7 +4921,7 @@ void ItmSeqRunningFunction::transformNode(NormWA & normWARef,
   OperatorTypeEnum op = getOperatorType();
 
   if (op  == ITM_RUNNING_SDEV  ||
-       op == ITM_RUNNING_VARIANCE  ||
+	   op == ITM_RUNNING_VARIANCE ||
        op == ITM_RUNNING_AVG ||
        op == ITM_RUNNING_RANK ||
        op == ITM_RUNNING_DRANK)
@@ -5034,12 +5034,12 @@ ItemExpr * ItmSeqRunningFunction::transformRunningVariance()
 
   if (getOperatorType() == ITM_RUNNING_VARIANCE)
   {
-   newOp = ITM_VARIANCE;
+   newOp = ITM_VARIANCE_SAMP;
   }
   else
   {
    CMPASSERT (getOperatorType() == ITM_RUNNING_SDEV);
-   newOp = ITM_STDDEV;
+   newOp = ITM_STDDEV_SAMP;
   }
   ItemExpr *result = new HEAP
                         ScalarVariance(newOp,
@@ -5146,10 +5146,13 @@ void ItmSeqOlapFunction::transformNode(NormWA & normWARef,
 
   switch (getOperatorType())
   {
-    case ITM_OLAP_VARIANCE:
-    case ITM_OLAP_SDEV:
+    case ITM_OLAP_VARIANCE_SAMP:
+    case ITM_OLAP_VARIANCE_POP:
+  	case ITM_OLAP_SDEV_SAMP:
+	case ITM_OLAP_SDEV_POP:
       tfm = transformOlapVariance(normWARef.wHeap());
       break;
+
     case ITM_OLAP_AVG:
       tfm = transformOlapAvg(normWARef.wHeap());
       break;
@@ -5215,14 +5218,19 @@ ItemExpr * ItmSeqOlapFunction::transformOlapVariance(CollHeap *wHeap)
 
   OperatorTypeEnum newOp;
 
-  if (getOperatorType() == ITM_OLAP_VARIANCE)
+  if (getOperatorType() == ITM_OLAP_VARIANCE_SAMP)
   {
-   newOp = ITM_VARIANCE;
+   newOp = ITM_VARIANCE_SAMP;
+  }
+  else if (getOperatorType() == ITM_OLAP_VARIANCE_POP){
+   newOp = ITM_VARIANCE_POP;
+  }
+  else if (getOperatorType() == ITM_OLAP_SDEV_POP){
+   newOp = ITM_STDDEV_POP;
   }
   else
   {
-   CMPASSERT (getOperatorType() == ITM_OLAP_SDEV);
-   newOp = ITM_STDDEV;
+   newOp = ITM_STDDEV_SAMP;
   }
   ItemExpr *result = new (wHeap)
                         ScalarVariance(newOp,
@@ -5839,12 +5847,12 @@ ItemExpr * ItmSeqMovingFunction::transformMovingVariance()
 
   if (getOperatorType() == ITM_MOVING_VARIANCE)
   {
-   newOp = ITM_VARIANCE;
+   newOp = ITM_VARIANCE_SAMP;
   }
   else
   {
    CMPASSERT (getOperatorType() == ITM_MOVING_SDEV);
-   newOp = ITM_STDDEV;
+   newOp = ITM_STDDEV_SAMP;
   }
   ItemExpr *result = new HEAP
                         ScalarVariance(newOp,

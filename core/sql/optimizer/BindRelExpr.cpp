@@ -3496,7 +3496,8 @@ static NABoolean checkUnresolvedAggregates(BindWA *bindWA)
   // This is to avoid printing the aggregate functions more than once.
 
     if((agg->origOpType() != ITM_AVG || agg->getOperatorType() == ITM_SUM) &&
-       (!(agg->origOpType() == ITM_STDDEV || agg->origOpType() == ITM_VARIANCE)
+       (!(agg->origOpType() == ITM_STDDEV_SAMP || agg->origOpType() == ITM_VARIANCE_SAMP ||
+		  agg->origOpType() == ITM_STDDEV_POP || agg->origOpType() == ITM_VARIANCE_POP)
        || agg->getOperatorType() == ITM_COUNT_NONULL)){
 
       unparsed += ", ";
@@ -3579,7 +3580,7 @@ static short replaceRenamedColInHavingWithSelIndex(
   if (((expr->getOperatorType() >= ITM_ROW_SUBQUERY) &&
        (expr->getOperatorType() <= ITM_GREATER_EQ_ANY)) ||
       ((expr->getOperatorType() >= ITM_AVG) &&
-       (expr->getOperatorType() <= ITM_VARIANCE)) ||
+       (expr->getOperatorType() <= ITM_VARIANCE_SAMP)) ||
       ((expr->getOperatorType() >= ITM_DIFF1) &&
        (expr->getOperatorType() <= ITM_NOT_THIS)))
     {
@@ -3614,7 +3615,7 @@ static short setValueIdForRenamedColsInHaving(BindWA * bindWA,
   if (((expr->getOperatorType() >= ITM_ROW_SUBQUERY) &&
        (expr->getOperatorType() <= ITM_GREATER_EQ_ANY)) ||
       ((expr->getOperatorType() >= ITM_AVG) &&
-       (expr->getOperatorType() <= ITM_VARIANCE)) ||
+       (expr->getOperatorType() <= ITM_VARIANCE_SAMP)) ||
       ((expr->getOperatorType() >= ITM_DIFF1) &&
        (expr->getOperatorType() <= ITM_NOT_THIS)))
     {

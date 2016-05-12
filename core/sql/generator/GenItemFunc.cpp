@@ -1992,12 +1992,14 @@ ScalarVariance::codeGen(Generator *generator)
 
   switch(getOperatorType())
     {
-    case ITM_VARIANCE:
-      function_clause =	new(space) ExFunctionSVariance(attr, space);
-      break;
-    case ITM_STDDEV:
-      function_clause =	new(space) ExFunctionSStddev(attr, space);
-      break;
+	case ITM_STDDEV_SAMP:
+	case ITM_STDDEV_POP:
+      function_clause =	new(space) ExFunctionSStddev(getOperatorType(), attr, space);
+	  break;
+	case ITM_VARIANCE_SAMP:
+	case ITM_VARIANCE_POP:
+      function_clause =	new(space) ExFunctionSVariance(getOperatorType(), attr, space);
+	  break;
     default:
       GenAssert(0,"ScalarVariance: Unknown operator");
       break;
