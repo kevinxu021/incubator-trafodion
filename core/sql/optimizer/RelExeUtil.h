@@ -243,6 +243,7 @@ public:
     addSeqTable_(FALSE),
     addSchemaObjects_(FALSE),
     returnStatus_(FALSE),
+    backupTagTimeStamp_(FALSE),
     flags_(0)
   {
     if (explObjName)
@@ -281,6 +282,7 @@ public:
     addSeqTable_(addSeqTable),
     addSchemaObjects_(addSchemaObjects),
     returnStatus_(FALSE),
+    backupTagTimeStamp_(FALSE),
     flags_(0)
   {
     if (createMDviews)

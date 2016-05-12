@@ -655,6 +655,9 @@ fi
 
 function checkHadoopVersion {
 count=0
+
+source $TRAF_CONFIG
+
 for node in $HADOOP_NODES;
 do
    ssh -q -n $node 'echo "exit" | hbase shell &> $HOME/hbaseVersion.txt'
