@@ -434,6 +434,7 @@ else
     fi
     hadoopPath="$HADOOP_PATH"
     hadoopBinPath="$HADOOP_BIN_PATH"
+
     export PATH="$JAVA_HOME/bin:$PATH"
     sudo chmod 777 $TRAF_CONFIG
     sed -i '/PATH\=/d' $TRAF_CONFIG
@@ -914,19 +915,35 @@ fi
 
 function checkHadoopSupport {
 
-if [[ -z $TRAF_BUILD ]] || [[ ! -e $TRAF_BUILD ]] ; then
+if [[ "$ONE_TAR_INSTALL" == "N" ]] || [[ -z "$ONE_TAR_INSTALL" ]] ; then
    TRAF_BUILD=$(tar -tf $TRAF_PACKAGE | grep "trafodion_.*server")
    tar -xzf $TRAF_PACKAGE --directory $LOCAL_WORKDIR
    TRAF_BUILD_PATH=$LOCAL_WORKDIR/$TRAF_BUILD
+   install_features_path=$(tar -tf $TRAF_BUILD_PATH | grep "install_features")
+
 else
-   TRAF_BUILD_PATH=$TRAF_BUILD
+   TRAF_BUILD_PATH=$TRAF_PACKAGE
+   install_features_path=$(tar -tf $TRAF_PACKAGE | grep "install_features")
+
 fi
 
-install_features_path=$(tar -tf $TRAF_BUILD_PATH | grep "install_features")
 
 if [[ ! -z $install_features_path ]]; then
-   tar -xzf $TRAF_BUILD_PATH $install_features_path
+   if [[ "$ONE_TAR_INSTALL" == "N" ]]; then
+      tar -xzf $TRAF_BUILD_PATH $install_features_path
+      if [[ $? -ne "0" ]]; then
+         echo "***ERROR: Error with untar of $TRAF_BUILD_PATH"
+         exit -1
+      fi
+   else
+      tar -xzf $TRAF_PACKAGE $install_features_path
+      if [[ $? -ne "0" ]]; then
+         echo "***ERROR: Error with untar of $TRAF_BUILD_PATH"
+         exit -1
+      fi           
+   fi
    source $install_features_path
+
    sudo chmod 777 $TRAF_CONFIG
    echo "export CDH_5_3_HDP_2_2_SUPPORT=\"$CDH_5_3_HDP_2_2_SUPPORT\"" >> $TRAF_CONFIG
    sudo chmod 777 $TRAF_CONFIG
