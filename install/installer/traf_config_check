@@ -32,8 +32,13 @@ source $TRAF_CONFIG
 
 function majorErrorFound {
    if [[ "$errorFound" == "1" ]]; then
+      echo
+      echo
+      echo "******************************************" 
       cat $ERROR_LOG
       echo
+      echo
+      echo "******************************************" 
       exit -1
    fi
 }
@@ -188,6 +193,7 @@ else
       echo "TRAFODION NODE LIST" >> $ERROR_LOG
       echo "***ERROR: Could not ssh to $ERROR_NODES." >> $ERROR_LOG
       echo "***ERROR: Check permissions and known hosts files." >> $ERROR_LOG
+      majorErrorFound
    fi
 
    node_count=$(echo $NODE_LIST | wc -w)
@@ -264,11 +270,12 @@ else
    done
 
    NODE_LIST=$NODES
- if [[ $error == "1" ]]; then
+   if [[ $error == "1" ]]; then
       errorFound=1
-       echo "MANAGEMENT NODE LIST" >> $ERROR_LOG
+      echo "MANAGEMENT NODE LIST" >> $ERROR_LOG
       echo "***ERROR: $ERROR_NODES does not have sudo access." >> $ERROR_LOG
       echo "***ERROR: Must have sudo access on all nodes." >> $ERROR_LOG
+      majorErrorFound
    fi
 
 
@@ -286,6 +293,7 @@ else
       echo "TRAFODION NODE LIST" >> $ERROR_LOG
       echo "***ERROR: Could not ssh to $ERROR_NODES." >> $ERROR_LOG
       echo "***ERROR: Check permissions and known hosts files." >> $ERROR_LOG
+      majorErrorFound
    fi
 
 
