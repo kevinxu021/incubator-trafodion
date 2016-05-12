@@ -271,6 +271,9 @@ public:
   
   virtual OsimHHDFSStatsBase* osimSnapShot();
 
+  static void resetTotalAccumulatedRows() 
+   { totalAccumulatedRows_ = 0; totalAccumulatedTotalSize_ = 0; }
+
 protected:
   // Assign all stripes in this to ESPs, considering locality
   Int64 assignToESPs(Int64 *espDistribution,
@@ -296,6 +299,9 @@ protected:
   LIST(Int64) numOfRows_;
   LIST(Int64) offsets_;
   LIST(Int64) totalBytes_;
+
+  static THREAD_P Int64 totalAccumulatedRows_;
+  static THREAD_P Int64 totalAccumulatedTotalSize_;
 };
 
 class HHDFSBucketStats : public HHDFSStatsBase
@@ -347,7 +353,6 @@ public:
     bucketStatsList_(heap),
     partIndex_(-1),
     defaultBucketIdx_(-1),
-    doEstimation_(FALSE),
     recordTerminator_(0)
     {}
   ~HHDFSListPartitionStats();
@@ -368,7 +373,7 @@ public:
                 const char *partitionKeyValues,
                 Int32 numOfBuckets, 
                 HHDFSDiags &diags,
-                NABoolean doEstimation, char recordTerminator, 
+                NABoolean canDoEstimation, char recordTerminator, 
                 NABoolean isORC);
   NABoolean validateAndRefresh(hdfsFS fs, HHDFSDiags &diags, NABoolean refresh, 
                                NABoolean isORC);
@@ -394,7 +399,6 @@ private:
   // array of buckets in this partition (index is bucket #)
   ARRAY(HHDFSBucketStats *) bucketStatsList_;
 
-  NABoolean doEstimation_;
   char recordTerminator_;
   
   NAMemory *heap_;
