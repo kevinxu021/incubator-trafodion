@@ -138,7 +138,7 @@ cleanall: sqroot eclipseclean cleantests
 
 package-all: rpmbuild pkg-client pkg-sql-regress pkg-phx-tests pkg-dcs-tests
 
-pkg-product: all  
+pkg-product: all dcs rest 
 	cd sqf && $(MAKE) package 2>&1 | sed -e "s/$$/	##(Package)/";exit $${PIPESTATUS[0]}
 
 pkg-client: ci ndcs odb
@@ -175,14 +175,14 @@ check-copyrights:
 
 ##############
 # RPM defines
-PKG_PROD=trafodion_adv
+PKG_PROD=esgynDB_adv
 
 ifeq ($(SQ_BUILD_TYPE),release)
   RELEASE ?= 1
-  SERVERTAR="$(PKG_PROD)_server-$(TRAFODION_VER).tgz"
+  SERVERTAR="$(PKG_PROD)_server-$(TRAFODION_VER).tar.gz"
 else
   RELEASE ?= devel
-  SERVERTAR="$(PKG_PROD)_server-$(TRAFODION_VER)-debug.tgz"
+  SERVERTAR="$(PKG_PROD)_server-$(TRAFODION_VER)-debug.tar.gz"
 endif
 
 ifeq ($(SQ_MTYPE),64)
@@ -207,11 +207,7 @@ rpmpackage: pkg-product
 	mkdir -p $(BUILDDIR)
 	mkdir -p $(BUILDROOTDIR)
 	mkdir -p $(SRPMDIR)
-	ln -L ../distribution/$(SERVERTAR) $(SOURCEDIR)/$(PKG_PROD)_server-$(TRAFODION_VER).tgz
-	ln -L ../distribution/rest-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
-	ln -L ../distribution/dcs-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
-	ln -L ../distribution/mgblty-tools-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
-	ln -L ../distribution/dbmgr-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
+	ln -L ../distribution/$(SERVERTAR) $(SOURCEDIR)/$(PKG_PROD)_server-$(TRAFODION_VER).tar.gz
 
 rpmbuild: rpmpackage
 	rpmbuild -vv -bb \
@@ -226,7 +222,6 @@ rpmbuild: rpmpackage
                         --define "_topdir $(RPMROOT)" \
                         $(SPECFILE)
 	mv $(RPMROOT)/RPMS/$(ARCH)/$(PKG_PROD)*.rpm ../distribution/
-	mv $(RPMROOT)/RPMS/$(ARCH)/esgynDB-manager*.rpm ../distribution/
 
 
 eclipse: rest/.project dcs/.project sql/.project sqf/src/seatrans/hbase-trx/.project .project
