@@ -50,7 +50,7 @@ If you need to change any of the configuration properties, you can edit the conf
 +
 - If you are doing a stand-alone install of DB Manager, you will need to explicitly configure DB Manager using the following steps:
 
-** Find the canonical timezone name of the EsgynDB instance. DB Manager displays all date time values in the EsgynDB server local time. You can use the handy script *gettimezone.sh* that is provided in the *dbmgr-{projectVersion}/bin* directory to find the canonical timezone name like *Etc/UTC* or *America/Los_Angeles*.
+** Find the canonical time zone name of the EsgynDB instance. DB Manager displays all date time values in the EsgynDB server local time. You can use the handy script *gettimezone.sh* that is provided in the *dbmgr-{projectVersion}/bin* directory to find the canonical time zone name like *Etc/UTC* or *America/Los_Angeles*.
 +
 [source,bash,subs="attributes"]
 ----
@@ -112,8 +112,8 @@ The default value is 5242.
 *Only used in Advanced Edition*. The listen port number for Bosun.
 The default value is 8070.
 *Server TimeZone Name*::
-The canonical timezone name of the EsgynDB instance. DB Manager displays all date time values in the EsgynDB server local time.
-The timezone name has to be in the canonical format like *Etc/UTC* or *America/Los_Angeles*. You can use the handy script *gettimezone.sh* to find the canonical timezone name of the instance.
+The canonical time zone name of the EsgynDB instance. DB Manager displays all date time values in the EsgynDB server local time.
+The timezone name has to be in the canonical format like *Etc/UTC* or *America/Los_Angeles*. You can use the handy script *gettimezone.sh* to find the canonical time zone name of the instance.
 
 - A sample *dbgmr-{projectVersion}./conf/config.xml* is as shown below.
 +
@@ -136,7 +136,7 @@ The timezone name has to be in the canonical format like *Etc/UTC* or *America/L
 	<!--  Max number of connections for jdbc connection pool -->
 	<entry key="maxPoolSize">8</entry>
 
-	<!--  Max number of statements for jdbc statemt caching -->
+	<!--  Max number of statements for jdbc statement caching -->
 	<entry key="maxStatementsCache">100</entry>
 
 		<!-- The Trafodion REST Server URI -->
@@ -235,7 +235,7 @@ In the Enterprise and Advanced Editions, DB Manager and the manageability tools 
 
 The fault-tolerance and persistence is provided by CMON (Cluster Monitor) and NMON (Node Monitor) processes.
 
-* *CMON* runs on the primary node. It is started and managed by the EsynDB monitor process, so CMON is inherently persistent.
+* *CMON* runs on the primary node. It is started and managed by the EsgynDB monitor process, so CMON is inherently persistent.
 +
 CMON reads a list of commands from *$MY_SQROOT/sql/scripts/cluster_monitor.cmd* file and executes them every 1 minute.
 
@@ -247,7 +247,7 @@ $DBMGR_INSTALL_DIR/bin/dbmgr.sh watch
 +
 With the *watch* option, the dbmgr.sh script first checks if DB Manager is running. If DB Manager is running then the script exits normally, otherwise it starts DB Manager.
 
-** Similarly the cluster_monitor.cmd file has a command to check and start Bosun.
+** Similarly, the cluster_monitor.cmd file has a command to check and start Bosun.
 +
 ----
 $MGBLTY_INSTALL_DIR/bosun/bin/runbosun.sh watch
@@ -257,7 +257,7 @@ With the *watch* option, the runbosun.sh script first checks if Bosun is running
 
 ** If the primary node were to fail, the CMON process would fail over to a secondary node and that node will become the primary and all the commands from the cluster_monitor.cmd are executed to start the defined processes on the new primary node.
 
-* *NMON* runs on every node. It is started and managed by the EsynDB monitor process, so NMON is inherently persistent.
+* *NMON* runs on every node. It is started and managed by the EsgynDB monitor process, so NMON is inherently persistent.
 
 +
 NMON reads a list of commands from *$MY_SQROOT/sql/scripts/node_monitor.cmd* file and executes them every 1 minute.
@@ -270,7 +270,7 @@ $MGBLTY_INSTALL_DIR/opentsdb/bin/tsd.sh watch
 +
 With the *watch* option, the tsd.sh script first checks if TSD is running. If TSD is running then the script exits, otherwise it starts TSD.
 
-** Similarly the node_monitor.cmd file has a command to check and start TCollector.
+** Similarly, the node_monitor.cmd file has a command to check and start TCollector.
 +
 ----
 $MGBLTY_INSTALL_DIR/tcollector/startstop watch

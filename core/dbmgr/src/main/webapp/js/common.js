@@ -45,7 +45,26 @@ define(['moment',
 			this.DATE_FORMAT_ZONE = this.DATE_FORMAT + ' z';
 
 			this.sqlKeywords = "alter and as asc between by count create cqd delete desc distinct drop from group having in insert into is join like not on or order select set table union update values where ";
-
+			
+			if (!String.prototype.startsWith) {
+				  String.prototype.startsWith = function(searchString, position) {
+				    position = position || 0;
+				    return this.indexOf(searchString, position) === position;
+				  };
+			}
+			
+			if (!String.prototype.endsWith) {
+				  String.prototype.endsWith = function(searchString, position) {
+				      var subjectString = this.toString();
+				      if (typeof position !== 'number' || !isFinite(position) || Math.floor(position) !== position || position > subjectString.length) {
+				        position = subjectString.length;
+				      }
+				      position -= searchString.length;
+				      var lastIndex = subjectString.indexOf(searchString, position);
+				      return lastIndex !== -1 && lastIndex === position;
+				  };
+			}
+			
 			this.storeSessionProperties = function(data){
 				_this.serverTimeZone = data.serverTimeZone;
 				_this.serverUtcOffset = data.serverUTCOffset;

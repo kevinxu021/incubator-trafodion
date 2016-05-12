@@ -49,7 +49,7 @@ The attributes tab displays the schema attributes like the name, the owner, crea
 The DDL tab displays the CREATE SCHEMA statement used to create this schema. This output is obtained using the SHOWDDL statement.
 
 === Tables
-In the schema details page you can click on the *Tables* link to view all the tables in that schema.
+In the schema details page, you can click on the *Tables* link to view all the tables in that schema.
 
 *Table Name*::
 The name of the table. The table name is displayed as a hyperlink and allows you drilldown into the table details.
@@ -112,7 +112,7 @@ The Privileges tab displays all the SQL privilege information for the table. It 
 The Indexes tab displays all the indexes defined on the table.
 
 ==== Usage
-The Usage tab displays all the SQL objects that use this table. For example you can see all the SQL Views that use this table.
+The Usage tab displays all the SQL objects that use this table. For example, you can see all the SQL Views that use this table.
 
 === Views
 In the schema details page, you can click on the *Views* link to view all the views in that schema.
@@ -136,7 +136,7 @@ Specifies that no row can be inserted or updated in the database through the vie
 Indicates if the view is updateable. Single table views can be updatable. Multi-table views cannot be updatable. Refer to the EsgynDB SQL Reference manual for more details.
 
 *Insertable*::
-Indicates if the view is insertable. Single table views can be insertable. Multi-table views cannot be insetable. Refer to the EsgynDB SQL Reference manual for more details.
+Indicates if the view is insertable. Single table views can be insertable. Multi-table views cannot be insertable. Refer to the EsgynDB SQL Reference manual for more details.
 
 === View Details
 From the Views page, you can click on the hyperlink on a specific view to see its details.
@@ -157,7 +157,7 @@ The Privileges tab displays all the SQL privilege information for the view. It s
 The Usage tab displays all the SQL objects that use this view and also all the SQL objects used by this view. For example, this view can have a child view. This page will display the parent base table as well as the child view. The Usage_Type column shows either 'Uses' or 'Used By' to indicate the relation of the view to the displayed object.
 
 === Indexes
-In the schema details page you can click on the *Indexes* link to view all the indexes in that schema.
+In the schema details, page you can click on the *Indexes* link to view all the indexes in that schema.
 
 *Index Name*::
 The name of the index. The index name is displayed as a hyperlink and allows you drilldown into the index details.
@@ -175,7 +175,7 @@ The time the index was last modified.
 The name of the base table on which the index is defined. The table name is displayed as a hyperlink and allows you drilldown into the table details.
 
 *Is Unique*::
-Indicates if the index is an Unique or Non-Unique index.
+Indicates if the index is a Unique or Non-Unique index.
 
 *Key Col. Count*::
 The number of columns that make up the key for the index. For non-unique index, this includes the columns defined in the index as well as the base table key columns.
@@ -196,7 +196,7 @@ The Regions tab displays the HBase region details for all the HBase regions that
 The DDL tab displays the CREATE INDEX statement used to create this index. This output is obtained using the SHOWDDL statement.
 
 === Libraries
-In the schema details page you can click on the *Libraries* link to view all the libraries in that schema.
+In the schema details, page you can click on the *Libraries* link to view all the libraries in that schema.
 
 *Library Name*::
 The name of the library. The library name is displayed as a hyperlink and allows you drilldown into the library details.
@@ -214,15 +214,15 @@ The time the library was last modified.
 The name of the jar or dll that this library encapsulates. The library code file is stored under *$MY_SQROOT/udr/lib/<user>*.
 
 ==== Create Library
-Creating a library is a two step process. You first deploy the code file to the EsgynDB platform and then create a library.
+Creating a library is a two-step process. You first deploy the code file to the EsgynDB platform and then create a library.
 
 You can use the *Create Library* page to perform these two steps with a single click. You can access this page in two ways.
 
 * In the Libraries page, you can use the *Create Library* button to switch to the Create Library page.
 
-* Use the *Tools  +++->+++ Create Library* menu
+* Use the *Tools  +++->+++ Create Library* navigation menu
 
-To create a library do the following:
+To create a library, do the following:
 
 * Enter a valid schema name in the *Schema Name* field. If the schema name contains special characters or you need to preserve the case, you need to delimit the name within double quotes. The schema name is pre-filled when you navigate to the Create Library page from the Libraries page.
 
@@ -280,7 +280,7 @@ You can drop a library and remove it from the EsgynDB metadata.
 * A success or failure message is displayed.
 
 === Procedures
-In the schema details page you can click on the *Procedures* link to view all the java stored procedures in that schema.
+In the schema details, page you can click on the *Procedures* link to view all the java stored procedures in that schema.
 
 *Name*::
 The name of the procedure. The procedure name is displayed as a hyperlink and allows you drilldown into the procedure details.
@@ -313,7 +313,7 @@ The Privileges tab displays all the SQL privilege information for the procedure.
 The Usage tab displays the library used by this stored procedure.
 
 === Functions
-In the schema details page you can click on the *Functions* link to view all the user defined functions in that schema. This lists both the Scalar Functions and Table Mapping Functions.
+In the schema details, page you can click on the *Functions* link to view all the user defined functions in that schema. This lists both the Scalar Functions and Table Mapping Functions.
 
 *Name*::
 The name of the function. The procedure name is displayed as a hyperlink and allows you drilldown into the function details.

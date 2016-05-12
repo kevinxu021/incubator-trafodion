@@ -60,6 +60,6 @@ The alert detail page displays all the details of the alert. This includes the a
 
 If the alert has been acknowledged already by a user, it shows who acknowledged or closed the alert, when the alert was updated and the notes entered during the update.
 
-Use the *Actions* menu to update the alert. You can acknowledge new alerts and enter a comment. For alerts that are no longer active, meaning the alert condition is no longer true, you can close the alerts.
+Use the *Actions +++->+++ Update* menu to update the alert. You can acknowledge new alerts and enter a comment. For alerts that are no longer active, meaning the alert condition is no longer true, you can close the alerts.
 
 Refer to the Bosun documentation at https://bosun.org/documentation.html for more details.
