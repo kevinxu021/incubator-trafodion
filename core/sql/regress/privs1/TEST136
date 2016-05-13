@@ -86,6 +86,7 @@ unregister user y;
 unregister user user1;
 unregister user mickey;
 unregister user donald;
+alter user DB__ROOT set online;
 
 execute get_users;
 

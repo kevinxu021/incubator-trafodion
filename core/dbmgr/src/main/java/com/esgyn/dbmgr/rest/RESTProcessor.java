@@ -123,7 +123,7 @@ public class RESTProcessor {
 				});
 			} else
 				conn = (HttpURLConnection) url.openConnection();
-			conn.setReadTimeout(60000);
+			conn.setReadTimeout(180000); // 3 minutes
 			conn.setRequestProperty("Accept", "application/json, application/text, text/plain");
 			if (a.authorization == null || a.authorization.length() == 0) {
 				a.authorization = userName + ":" + password;

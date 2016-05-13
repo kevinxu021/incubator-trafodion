@@ -81,4 +81,4 @@ You can also filter on specific error codes by entering the error code as comma 
 You can also provide a partial message text and all event messages that contain this text will be selected.
 
 *Max Fetch Rows*::
-By default only the first 5000 rows that match the filter criteria is returned. You can increase this row count by using the drop-down values.
+By default, only the first 5000 rows that match the filter criteria is returned. You can increase this row count by using the drop-down values.

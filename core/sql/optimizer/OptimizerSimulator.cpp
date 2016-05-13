@@ -3119,8 +3119,6 @@ void OsimHHDFSListPartitionStats::serializeAttrs(XMLString & xml)
    
      xml.append("defaultBucketIdx='").append(std::to_string((long long)(hhstats->defaultBucketIdx_)).c_str()).append("' ");
 
-     xml.append("doEstimation='").append(hhstats->doEstimation_?"true":"false").append("' ");
-
      xml.append("recordTerminator='").append(std::to_string((long long)(hhstats->recordTerminator_)).c_str()).append("' ");
 
 }
@@ -3302,12 +3300,6 @@ NABoolean OsimHHDFSListPartitionStats::setValue(HHDFSStatsBase* stats, const cha
         hhstats->partIndex_= std::atoi(attrValue);
       else if (!strcmp(attrName, "defaultBucketIdx"))
         hhstats->defaultBucketIdx_= std::atoi(attrValue);
-      else if (!strcmp(attrName, "doEstimation")){
-        if(strcmp(attrValue, "true")==0)
-            hhstats->doEstimation_ = TRUE;
-        else
-            hhstats->doEstimation_ = FALSE;
-      }
       else if (!strcmp(attrName, "recordTerminator"))
         hhstats->recordTerminator_ = std::atoi(attrValue);
       else

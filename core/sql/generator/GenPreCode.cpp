@@ -143,52 +143,6 @@ static void generateKeyExpr(const ValueIdSet & externalInputs,
 
 } // static generateKeyExpr()
 
-void
-FileScan::convertKeyPredsToRangePreds(const ValueIdSet& beginKeyAsEQ,
-                                      const ValueIdSet& endKeyAsEQ, 
-                                      CollHeap* heap, 
-                                      ValueIdSet& beginKeyAsRange, 
-                                      ValueIdSet& endKeyAsRange)
-{
-  for (ValueId vid = beginKeyAsEQ.init(); beginKeyAsEQ.next(vid); beginKeyAsEQ.advance(vid))
-    {
-       ItemExpr* expr = vid.getItemExpr();
-       ItemExpr* keyVal = expr->child(1);
-
-       ItemExpr* beginKey = NULL;
-       if ( keyVal->isNullConstant() ) {
-         beginKey = expr;
-       } else {
-         beginKey = new(heap)BiRelat(ITM_GREATER_EQ,
-                                     expr->child(0),
-                                     expr->child(1));
-          // Synthesize its type for and assign a ValueId to it.
-          beginKey->synthTypeAndValueId();
-       }
-
-       beginKeyAsRange.insert(beginKey->getValueId());
-    }
-
-  for (ValueId vid = endKeyAsEQ.init(); endKeyAsEQ.next(vid); endKeyAsEQ.advance(vid))
-    {
-       ItemExpr* expr = vid.getItemExpr();
-       ItemExpr* keyVal = expr->child(1);
-
-       ItemExpr* endKey = NULL;
-       if ( keyVal->isNullConstant() ) {
-         endKey = expr;
-       } else {
-         endKey = new(heap)BiRelat(ITM_LESS_EQ,
-                                   expr->child(0),
-                                  expr->child(1));
-         // Synthesize its type for and assign a ValueId to it.
-         endKey->synthTypeAndValueId();
-       }
-
-       endKeyAsRange.insert(endKey->getValueId());
-    }
-}
-
 static NABoolean processConstHBaseKeys(Generator * generator,
                                        RelExpr *relExpr,
                                        const SearchKey *skey,
@@ -3832,16 +3786,16 @@ RelExpr * HashJoin::preCodeGen(Generator * generator,
  // key is already unique or if both the begin and end key are
  // exclusive (min max are inclusive and no easy way to mix
  // them).
-void FileScan::processMinMaxKeys(Generator* generator, 
+NABoolean FileScan::processMinMaxKeys(Generator* generator, 
                                  ValueIdSet& pulledNewInputs,
                                  ValueIdSet& availableValues, 
-                                 NABoolean updateSearchKeyOnly,
-                                 NABoolean filterOutMinMax 
+                                 NABoolean updateSearchKeyOnly
                                 )
 {
+    NABoolean minMaxKeyUpdated = FALSE;
     // impossible to satisfy such request.
     if ( !getSearchKey() && updateSearchKeyOnly )
-      return;
+      return minMaxKeyUpdated;
 
     CollIndex leadKeyIdx = 0;
     if (getIndexDesc()->getPrimaryTableDesc()->getNATable()->isHbaseTable() &
@@ -3955,6 +3909,7 @@ void FileScan::processMinMaxKeys(Generator* generator,
 
                   ItemExpr *keyPred = NULL;
                   ItemExpr *currentBeg = NULL;
+                  minMaxKeyUpdated = TRUE;
 
                   if ( updateSearchKeyOnly ) {
                      CMPASSERT(getSearchKey());
@@ -3963,15 +3918,8 @@ void FileScan::processMinMaxKeys(Generator* generator,
                   if ( !getBeginKeyPred().isEmpty() ) {
                      keyPred = getBeginKeyPred()[leadKeyIdx].getItemExpr();
                      currentBeg = keyPred->child(1);
-
                   }
 
-                  if ( filterOutMinMax ) {
-                     ConstValue* cv = dynamic_cast<ConstValue*>(currentBeg);
-                     if ( cv && ( cv->isMin() || cv->isMax() ) )
-                        currentBeg = NULL;
-                  }
-           
                   // Get the proper begin key (min or max) that came from
                   // the HashJoin
                   ValueId hashJoinBeg = (ascKey ?
@@ -3999,11 +3947,14 @@ void FileScan::processMinMaxKeys(Generator* generator,
                   }
 
                   if ( currentBeg ) {
-                     newBeg = new (generator->wHeap())
-                       ItmScalarMinMax((ascKey ? ITM_SCALAR_MAX : ITM_SCALAR_MIN),
-                                       currentBeg, 
-                                       newBeg);
-                     newBeg->synthTypeAndValueId(TRUE);
+                     ConstValue* cv = dynamic_cast<ConstValue*>(currentBeg);
+                     if ( !cv || !(cv->isMinOrMax()) ) {
+                       newBeg = new (generator->wHeap())
+                         ItmScalarMinMax((ascKey ? ITM_SCALAR_MAX : ITM_SCALAR_MIN),
+                                         currentBeg, 
+                                         newBeg);
+                       newBeg->synthTypeAndValueId(TRUE);
+                    }
 
                      if ( updateSearchKeyOnly )
                         searchKey()->setBeginKeyValue(leadKeyIdx, newBeg->getValueId());
@@ -4038,6 +3989,8 @@ void FileScan::processMinMaxKeys(Generator* generator,
                 // If we can use a min/max value for the end key, do so...
                 if(!getSearchKey() || !getSearchKey()->isEndKeyExclusive()) {
 
+                  minMaxKeyUpdated = TRUE;
+
                   ItemExpr *keyPred = NULL;
                   ItemExpr *currentEnd = NULL;
 
@@ -4050,12 +4003,6 @@ void FileScan::processMinMaxKeys(Generator* generator,
                      currentEnd = keyPred->child(1);
                   }
 
-                  if ( filterOutMinMax ) {
-                     ConstValue* cv = dynamic_cast<ConstValue*>(currentEnd);
-                     if ( cv && ( cv->isMin() || cv->isMax() ) )
-                        currentEnd = NULL;
-                  }
-           
                   // Get the proper end key (max or min) that came from
                   // the HashJoin
                   ValueId hashJoinEnd = (ascKey ?
@@ -4079,11 +4026,14 @@ void FileScan::processMinMaxKeys(Generator* generator,
                   }
 
                   if ( currentEnd ) {
-                     newEnd = new (generator->wHeap())
-                       ItmScalarMinMax((ascKey ? ITM_SCALAR_MIN : ITM_SCALAR_MAX),
-                                       currentEnd, 
-                                       newEnd);
-                     newEnd->synthTypeAndValueId();
+                     ConstValue* cv = dynamic_cast<ConstValue*>(currentEnd);
+                     if ( !cv || !(cv->isMinOrMax()) ) {
+                        newEnd = new (generator->wHeap())
+                          ItmScalarMinMax((ascKey ? ITM_SCALAR_MIN : ITM_SCALAR_MAX),
+                                          currentEnd, 
+                                          newEnd);
+                        newEnd->synthTypeAndValueId();
+                     }
 
                      // Replace the RHS of the key pred.
                      if ( updateSearchKeyOnly )
@@ -4120,6 +4070,8 @@ void FileScan::processMinMaxKeys(Generator* generator,
           }
         }
       }
+      
+   return minMaxKeyUpdated;
 }
 
 // A simpler version of FileScan::processMinMaxKeys() to use
@@ -4214,6 +4166,53 @@ void FileScan::processMinMaxKeysForPartitionCols(
 
   if (newPredicates.entries() > 0)
     hiveSearchKey_->addRuntimePartColPreds(newPredicates);
+}
+
+void FileScan::convertKeyToPredicate(ValueIdList& key, OperatorTypeEnum op, ValueIdSet& preds, CollHeap* heap)
+{
+   if ( key.entries() == 0 )
+      return;
+
+   ItemExprList cols(heap);
+   ItemExprList vals(heap);
+   for (CollIndex i=0; i<key.entries(); i++)
+   {
+      ItemExpr* expr = key[i].getItemExpr();
+      cols.addMember(expr->child(0));
+      vals.addMember(expr->child(1));
+   }
+
+   ItemExpr* colsExpr = cols.convertToItemExpr(LEFT_LINEAR_TREE);
+   ItemExpr* valsExpr = vals.convertToItemExpr(LEFT_LINEAR_TREE);
+
+   ItemExpr* expr = new(heap)BiRelat(op, colsExpr, valsExpr);
+
+   if ( key.entries() > 1 )
+     expr = expr->transformMultiValuePredicate();
+
+   if ( expr ) {
+     expr->synthTypeAndValueId(TRUE, TRUE);
+     preds.insert(expr->getValueId());
+   }
+}
+   
+void 
+FileScan::convertBeginKeyKeyToPredicatesForORC(ValueIdSet& preds, CollHeap* heap)
+{
+   ValueIdSet minMaxPreds;
+   ValueIdSet keyCopy(beginKeyPred_);
+   keyCopy.findAllReferencingMinMaxConstants(minMaxPreds);
+   ValueIdList keyListCopy(beginKeyPred_);
+   keyListCopy.removeCoveredExprs(minMaxPreds);
+
+   convertKeyToPredicate(keyListCopy, ITM_GREATER_EQ, preds, heap);
+
+   keyCopy = endKeyPred_;
+   minMaxPreds.clear();
+   keyCopy.findAllReferencingMinMaxConstants(minMaxPreds);
+   keyListCopy = endKeyPred_;
+   keyListCopy.removeCoveredExprs(minMaxPreds);
+   convertKeyToPredicate(keyListCopy, ITM_LESS_EQ, preds, heap);
 }
 
 RelExpr * FileScan::preCodeGen(Generator * generator,
@@ -4461,7 +4460,7 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
                              replicatePredicates);
         }
 
-        processMinMaxKeysForPartitionCols(
+         processMinMaxKeysForPartitionCols(
              generator,
              pulledNewInputs,
              availableValues);
@@ -4476,82 +4475,24 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 
            // Process the min and max keys. The function will alter the
            // beginKeyPred_ and endKeyPred_ to compute a narrowed version
-           // of begin and end key. Here we set the 2nd last argument to FALSE
-           // to side-effect begin/end key predicates only. The last argument,
-           // set to TRUE, indicates that we need to remove original predicates with
-           // min/max constants.
-           processMinMaxKeys(generator, pulledNewInputs, availableValues, FALSE, TRUE);
+           // of begin and end key. Here we set the last argument to FALSE
+           // to side-effect begin/end key predicates only. 
+           NABoolean minMaxKeyUpdated = 
+              processMinMaxKeys(generator, pulledNewInputs, availableValues, FALSE);
 
-           // Collect local predicates
-           TableAnalysis* tableAnalysis = 
-                getGroupAttr()->getGroupAnalysis()->getNodeAnalysis()->getTableAnalysis();
 
-           ValueIdSet locals(tableAnalysis->getLocalPreds());
+           ValueIdSet locals(selectionPred());
 
-           // Conditionally include any VEG predicates that may not 
-           // be defined on key columns. getVegPreds() call below 
-           // returns these VEG predicates that reference some columns 
-           // in my table. See TableAnalysis::finishAnalysis().
-           const ValueIdSet& vegPreds = tableAnalysis->getVegPreds();
-
-           // But we need to make sure any such preds refer to either 
-           // the index columns of the scan or the inputs to the scan.
-           GroupAttributes scanGA;
-           scanGA.addCharacteristicOutputs(getTableDesc()->getColumnList());
+           if ( minMaxKeyUpdated ) { 
+             ValueIdSet minMaxPreds;
+             convertBeginKeyKeyToPredicatesForORC(minMaxPreds, generator->wHeap());
+             locals += minMaxPreds;
+           }
 
            ValueIdSet availableInputs(
                         getGroupAttr()->getCharacteristicInputs());
-
-           ValueIdSet dummyRefI;
-           ValueIdSet dummyCovered;
-           ValueIdSet dummyUncovered;
-           if ( vegPreds.isCovered(availableInputs,
-                                   scanGA, 
-                                   dummyRefI, dummyCovered, dummyUncovered) )
-           {
-             locals += vegPreds;
-           }
    
-           ValueIdSet externalInputs; // not used yet
            ValueIdSet orcPushdownPreds;
-
-           // remove any predicates referencing min and max from locals
-           //
-           // do it first for the beginKeyPred_
-           ValueIdSet minMaxPreds;
-
-           // make a copy
-           ValueIdSet beginKeyPredCopy(beginKeyPred_);
-
-           // collect  min and max constants
-           beginKeyPredCopy.findAllReferencingMinMaxConstants(minMaxPreds);
-
-           // rmove any predicates involving the min and max constants
-           beginKeyPredCopy -= minMaxPreds;
-           // end of processing beginKeyPred_
-     
-
-           // do it next for the endKeyPred_
-           minMaxPreds.clear();
-
-           ValueIdSet endKeyPredCopy(endKeyPred_);
-           endKeyPredCopy.findAllReferencingMinMaxConstants(minMaxPreds);
-
-           endKeyPredCopy -= minMaxPreds;
-           // end of processing endKeyPred_
-
-
-           ValueIdSet beginKeyPredAsRange;
-           ValueIdSet endKeyPredAsRange;
-           convertKeyPredsToRangePreds(beginKeyPredCopy,
-                                       endKeyPredCopy, 
-                                       generator->wHeap(), 
-                                       beginKeyPredAsRange, 
-                                       endKeyPredAsRange);
-     
-           // add the remaining to the ORC push-down set
-           locals += beginKeyPredAsRange;
-           locals += endKeyPredAsRange;
 
            locals.replaceVEGExpressions (
    	                 availableValues,
@@ -4570,16 +4511,9 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 
            orcPushdownPreds.generatePushdownListForORC(orcListOfPPI_);
 
-           // include begin/end key predicates in executor predicates
-           ValueIdSet execPred(selectionPred());
+        } 
 
-           execPred += beginKeyPredAsRange;
-           execPred += endKeyPredAsRange;
-
-           setExecutorPredicates(execPred);
-
-        } else
-           setExecutorPredicates(selectionPred());
+        setExecutorPredicates(selectionPred());
 
         // Assign individual files and blocks or stripes to each ESPs.
 	// For repN part func, assign every file to every ESP
@@ -12657,11 +12591,9 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
        myPartFunc->isAReplicationPartitioningFunction())
   {
     //
-    // Set the 2nd last argument to TRUE to side-effect the searchKey() only. The last
-    // argument is set to FALSE to indicate do not remove predicates containing min/max
-    // constants.
+    // Set the last argument to TRUE to side-effect the searchKey() only. 
     //
-    processMinMaxKeys(generator, pulledNewInputs, availableValues, TRUE, FALSE);
+    processMinMaxKeys(generator, pulledNewInputs, availableValues, TRUE);
 
     if (!processConstHBaseKeys(
            generator,

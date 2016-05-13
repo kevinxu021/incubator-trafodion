@@ -196,6 +196,7 @@ define([
 				_this.doReset();
 			}else{
 				if(this.isAjaxCompleted=true){
+					$(DROP_LIBRARY_BUTTON).prop('disabled',false);
 					$(DROP_LIBRARY_SPINNER).css('visibility', 'hidden');
 				}
 			}	

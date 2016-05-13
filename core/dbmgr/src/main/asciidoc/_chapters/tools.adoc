@@ -20,10 +20,10 @@
 :icons: font
 :experimental:
 
-The tools menu provides a list of generic tools to manage or make changes to EsgynDB.
+The Tools navigation menu provides a list of generic tools to manage or make changes to EsgynDB.
 In the current release, we support a create library tool to ease the deployment of library code files.
 
 === Create Library Tool
-The create library tool is made easily accessible through the Tools menu without having to navigate through the database library pages.
+The create library tool is made easily accessible through the Tools navigation menu without having to access this tool through the database library pages.
 
 See <<Create Library, Create Library>> for details.
