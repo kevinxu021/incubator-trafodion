@@ -1548,8 +1548,12 @@ public:
 
   inline void setEstRowsAccessed(CostScalar r)  { estRowsAccessed_ = r; }
 
+  void setWasFirstN(NABoolean v) { wasFirstN_ = v; }
+  NABoolean wasFirstN() { return wasFirstN_; }
 private:
   NABoolean isFastDelete_;
+
+  NABoolean wasFirstN_;
 
   // ValueIdList  lobDeleteExpr_;
 

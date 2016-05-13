@@ -10897,6 +10897,7 @@ RelExpr *Delete::bindNode(BindWA *bindWA)
     {
       scanNode->setFirstNRows(getFirstNRows());
       setFirstNRows(-1);
+      setWasFirstN(TRUE);
     }
 
    if ((csl()) && (getTableDesc()->getNATable()->isSeabaseTable()) &&

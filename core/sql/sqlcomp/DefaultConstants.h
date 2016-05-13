@@ -2745,6 +2745,10 @@ enum DefaultConstants
   // specified in a regular CREATE VIEW (not a create MV) statement.
   ALLOW_ORDER_BY_IN_CREATE_VIEW,
 
+  // if set to ON, then ORDER BY could be
+  // specified in a subquery
+  ALLOW_ORDER_BY_IN_SUBQUERIES,
+
   GEN_EIDR_STATS_REPLY_INTERVAL,
 
   EXE_LOG_RETRY_IPC,

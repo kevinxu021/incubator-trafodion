@@ -420,6 +420,10 @@ SDDkwd__(ALLOW_DP2_ROW_SAMPLING,               "SYSTEM"),
   // specified in a regular CREATE VIEW (not a create MV) statement.
   DDkwd__(ALLOW_ORDER_BY_IN_CREATE_VIEW,	"ON"),
 
+  // if set to ON, then ORDER BY could be
+  // specified in a subquery
+  DDkwd__(ALLOW_ORDER_BY_IN_SUBQUERIES,	        "OFF"),
+
   // rand() function in sql is disabled unless this CQD is turned on
   DDkwd__(ALLOW_RAND_FUNCTION,			"OFF"),
 

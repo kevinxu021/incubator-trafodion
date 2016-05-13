@@ -18633,7 +18633,8 @@ rel_subquery : '(' query_expression order_by_clause ')'
                                   if ( temp->getOperatorType() != REL_ROOT )
                                     temp = new (PARSERHEAP()) RelRoot($2);
 
-                                  if (CmpCommon::getDefault(MODE_SPECIAL_4) == DF_OFF) 
+                                  if ((CmpCommon::getDefault(MODE_SPECIAL_4) == DF_OFF) &&
+                                      (CmpCommon::getDefault(ALLOW_ORDER_BY_IN_SUBQUERIES) == DF_OFF))
                                     {
                                       if ($3)
                                         {

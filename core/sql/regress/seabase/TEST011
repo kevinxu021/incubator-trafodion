@@ -49,15 +49,12 @@ drop table t011t6b;
 
 drop table t011t7;
 
-<<<<<<< HEAD
 drop table t011t8s cascade;
 drop table t011t8a cascade;
 drop table t011t8n cascade;
-=======
 drop view t011t8v;
 drop table t011t8;
 drop table t011t8s;
->>>>>>> eb97b87... fixes for mantis 141,142,143
 
 -- delete explain for statement explstmt from repository
 set parserflags 131072;
@@ -567,6 +564,29 @@ select count(*) from t011t6b;
 drop table t011t6a ;
 drop table t011t6b ;
 
+-- tests for transaction replication options
+create table t011t8s(a int) attributes synchronous replication;
+create index t011t8si on t011t8s(a) attribute synchronous replication;
+create index t011t8si on t011t8s(a);
+create table t011t8a(a int) attributes asynchronous replication;
+create index t011t8ai on t011t8a(a);
+create table t011t8n(a int) attributes no replication;
+showddl t011t8s;
+showddl t011t8a;
+showddl t011t8n;
+prepare s from insert into t011t8s values (1);
+explain s;
+prepare s from insert into t011t8a values (1);
+explain s;
+alter table t011t8s attribute no replication;
+showddl t011t8s;
+alter table t011t8s attribute synchronous replication;
+showddl t011t8s;
+alter table t011t8s attribute asynchronous replication;
+showddl t011t8s;
+alter table t011t8n attribute synchronous replication;
+showddl t011t8n;
+drop table t011t8s cascade;
 
 -- tests for NO ROLLBACK and FIRST N in delete stmts
 cqd allow_firstn_in_iud 'ON';
@@ -673,29 +693,6 @@ delete [first 2] from t011t8v;
 cqd allow_firstn_in_iud 'OFF';
 delete [first 2] from t011t8s;
 update [first 2] t011t8s set b = b + 1;
-
--- tests for transaction replication options
-create table t011t8s(a int) attributes synchronous replication;
-create index t011t8si on t011t8s(a) attribute synchronous replication;
-create index t011t8si on t011t8s(a);
-create table t011t8a(a int) attributes asynchronous replication;
-create index t011t8ai on t011t8a(a);
-create table t011t8n(a int) attributes no replication;
-showddl t011t8s;
-showddl t011t8a;
-showddl t011t8n;
-prepare s from insert into t011t8s values (1);
-explain s;
-prepare s from insert into t011t8a values (1);
-explain s;
-alter table t011t8s attribute no replication;
-showddl t011t8s;
-alter table t011t8s attribute synchronous replication;
-showddl t011t8s;
-alter table t011t8s attribute asynchronous replication;
-showddl t011t8s;
-alter table t011t8n attribute synchronous replication;
-showddl t011t8n;
 
 
 

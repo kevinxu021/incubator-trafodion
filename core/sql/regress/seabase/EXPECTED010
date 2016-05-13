@@ -55,11 +55,7 @@
 >>invoke t010t1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T010T1
-<<<<<<< HEAD
--- Definition current  Sat Apr 23 04:03:53 2016
-=======
--- Definition current  Wed Dec  9 01:59:14 2015
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+-- Definition current  Thu May 12 20:14:38 2016
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -72,11 +68,7 @@
 >>invoke hbase."_CELL_"."TRAFODION.SCH.T010T1";
 
 -- Definition of Trafodion table HBASE."_CELL_"."TRAFODION.SCH.T010T1"
-<<<<<<< HEAD
--- Definition current  Sat Apr 23 04:03:53 2016
-=======
--- Definition current  Wed Dec  9 01:59:14 2015
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+-- Definition current  Thu May 12 20:14:39 2016
 
   (
     ROW_ID                           VARCHAR(10) CHARACTER SET ISO88591 COLLATE
@@ -95,11 +87,7 @@
 >>invoke hbase."_ROW_"."TRAFODION.SCH.T010T1";
 
 -- Definition of Trafodion table HBASE."_ROW_"."TRAFODION.SCH.T010T1"
-<<<<<<< HEAD
--- Definition current  Sat Apr 23 04:03:53 2016
-=======
--- Definition current  Wed Dec  9 01:59:14 2015
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+-- Definition current  Thu May 12 20:14:39 2016
 
   (
     ROW_ID                           VARCHAR(10) CHARACTER SET ISO88591 COLLATE
@@ -230,11 +218,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144236102671
-=======
-PLAN_ID .................. 212316386356302669
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844081904408
 ROWS_OUT ................ 11
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where a=1 or b='1';
@@ -276,11 +260,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266698537
-=======
-  ObjectUIDs ............. 4065708817506491042
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539852865
   select_list ............ TRAFODION.SCH.T010T1.A, TRAFODION.SCH.T010T1.B
 
 
@@ -320,11 +300,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144236172868
-=======
-PLAN_ID .................. 212316386356366001
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844081967303
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where a=1 and b='1';
@@ -367,11 +343,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266698537
-=======
-  ObjectUIDs ............. 4065708817506491042
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539852865
   select_list ............ %(1), %('1')
   input_variables ........ %(1), %('1')
 
@@ -410,11 +382,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144236246122
-=======
-PLAN_ID .................. 212316386356433727
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844082036448
 ROWS_OUT ................ 10
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where b='1';
@@ -456,11 +424,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266698537
-=======
-  ObjectUIDs ............. 4065708817506491042
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539852865
   select_list ............ TRAFODION.SCH.T010T1.A, %('1')
   input_variables ........ %('1')
 
@@ -500,11 +464,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144234883898
-=======
-PLAN_ID .................. 212316386354853043
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844080242805
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where a = 2;
@@ -547,11 +507,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266698537
-=======
-  ObjectUIDs ............. 4065708817506491042
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539852865
   select_list ............ %(2), TRAFODION.SCH.T010T1.B
   input_variables ........ %(2)
 
@@ -814,11 +770,7 @@ A            B           C            D
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X1
-<<<<<<< HEAD
-PLAN_ID .................. 212328144237774804
-=======
-PLAN_ID .................. 212316386357813503
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844083651362
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -862,11 +814,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266698665
-=======
-  ObjectUIDs ............. 4065708817506491167
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539852957
   select_list ............ TRAFODION.SCH.T010T2.A, %('a'), %(1),
                              TRAFODION.SCH.T010T2.D
   input_variables ........ %('a'), %(1)
@@ -900,11 +848,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X2
-<<<<<<< HEAD
-PLAN_ID .................. 212328144237838319
-=======
-PLAN_ID .................. 212316386357897639
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844083717348
 ROWS_OUT ................. 5
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -949,11 +893,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266698665
-=======
-  ObjectUIDs ............. 4065708817506491167
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539852957
   select_list ............ TRAFODION.SCH.T010T2.A, %('a'),
                              TRAFODION.SCH.T010T2.C, TRAFODION.SCH.T010T2.D
   input_variables ........ %('a')
@@ -988,11 +928,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X3
-<<<<<<< HEAD
-PLAN_ID .................. 212328144237933701
-=======
-PLAN_ID .................. 212316386357974622
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844083798381
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -1036,11 +972,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266698665
-=======
-  ObjectUIDs ............. 4065708817506491167
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539852957
   select_list ............ TRAFODION.SCH.T010T2.A, %('a'),
                              TRAFODION.SCH.T010T2.C, TRAFODION.SCH.T010T2.D
   input_variables ........ %('a')
@@ -1075,11 +1007,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X4
-<<<<<<< HEAD
-PLAN_ID .................. 212328144238040780
-=======
-PLAN_ID .................. 212316386358041256
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844083868819
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ delete from t010t2
@@ -1123,11 +1051,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266698665
-=======
-  ObjectUIDs ............. 4065708817506491167
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539852957
   input_variables ........ %('a')
 
 
@@ -1191,11 +1115,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X5
-<<<<<<< HEAD
-PLAN_ID .................. 212328144238219552
-=======
-PLAN_ID .................. 212316386358212002
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844084080807
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0
 STATEMENT ................ update t010t2
@@ -1241,11 +1161,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266698665
-=======
-  ObjectUIDs ............. 4065708817506491167
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539852957
   input_variables ........ %('upd'), %(4)
 
 
@@ -1272,11 +1188,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y1
-<<<<<<< HEAD
-PLAN_ID .................. 212328144238293051
-=======
-PLAN_ID .................. 212316386358293253
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844084169029
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -1321,11 +1233,7 @@ DESCRIPTION
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266698665
-=======
-  ObjectUIDs ............. 4065708817506491167
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539852957
   select_list ............ TRAFODION.SCH.T010T2.A, %('a'), %(1),
                              TRAFODION.SCH.T010T2.D
   input_variables ........ %('a'), %(1)
@@ -1359,11 +1267,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y2
-<<<<<<< HEAD
-PLAN_ID .................. 212328144238342233
-=======
-PLAN_ID .................. 212316386358347295
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844084225032
 ROWS_OUT ................. 5
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -1409,11 +1313,7 @@ DESCRIPTION
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266698665
-=======
-  ObjectUIDs ............. 4065708817506491167
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539852957
   select_list ............ TRAFODION.SCH.T010T2.A, %('a'),
                              TRAFODION.SCH.T010T2.C, TRAFODION.SCH.T010T2.D
   input_variables ........ %('a')
@@ -1448,11 +1348,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y3
-<<<<<<< HEAD
-PLAN_ID .................. 212328144238413387
-=======
-PLAN_ID .................. 212316386358413349
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844084303864
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -1497,11 +1393,7 @@ DESCRIPTION
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266698665
-=======
-  ObjectUIDs ............. 4065708817506491167
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539852957
   select_list ............ TRAFODION.SCH.T010T2.A, %('a'),
                              TRAFODION.SCH.T010T2.C, TRAFODION.SCH.T010T2.D
   input_variables ........ %('a')
@@ -1536,11 +1428,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y4
-<<<<<<< HEAD
-PLAN_ID .................. 212328144238472839
-=======
-PLAN_ID .................. 212316386358493670
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844084370750
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ delete from t010t2
@@ -1585,11 +1473,7 @@ DESCRIPTION
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266698665
-=======
-  ObjectUIDs ............. 4065708817506491167
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539852957
   input_variables ........ %('a')
 
 
@@ -1653,11 +1537,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y5
-<<<<<<< HEAD
-PLAN_ID .................. 212328144238597986
-=======
-PLAN_ID .................. 212316386358639555
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844084533613
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0
 STATEMENT ................ update t010t2
@@ -1704,11 +1584,7 @@ DESCRIPTION
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266698665
-=======
-  ObjectUIDs ............. 4065708817506491167
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539852957
   input_variables ........ %('uuu'), %(4)
 
 
@@ -1885,11 +1761,7 @@ _SALT_      A            B           C            D
 >>invoke t010t1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T010T1
-<<<<<<< HEAD
--- Definition current  Sat Apr 23 04:04:22 2016
-=======
--- Definition current  Wed Dec  9 01:59:36 2015
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+-- Definition current  Thu May 12 20:15:09 2016
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -1902,11 +1774,7 @@ _SALT_      A            B           C            D
 >>invoke hbase."_CELL_"."TRAFODION.SCH.T010T1";
 
 -- Definition of Trafodion table HBASE."_CELL_"."TRAFODION.SCH.T010T1"
-<<<<<<< HEAD
--- Definition current  Sat Apr 23 04:04:22 2016
-=======
--- Definition current  Wed Dec  9 01:59:36 2015
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+-- Definition current  Thu May 12 20:15:09 2016
 
   (
     ROW_ID                           VARCHAR(10) CHARACTER SET ISO88591 COLLATE
@@ -1925,11 +1793,7 @@ _SALT_      A            B           C            D
 >>invoke hbase."_ROW_"."TRAFODION.SCH.T010T1";
 
 -- Definition of Trafodion table HBASE."_ROW_"."TRAFODION.SCH.T010T1"
-<<<<<<< HEAD
--- Definition current  Sat Apr 23 04:04:22 2016
-=======
--- Definition current  Wed Dec  9 01:59:36 2015
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+-- Definition current  Thu May 12 20:15:09 2016
 
   (
     ROW_ID                           VARCHAR(10) CHARACTER SET ISO88591 COLLATE
@@ -2060,11 +1924,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144264792830
-=======
-PLAN_ID .................. 212316386378108917
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844111139706
 ROWS_OUT ................ 11
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where a=1 or b='1';
@@ -2106,11 +1966,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... OFF
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266701767
-=======
-  ObjectUIDs ............. 4065708817506493829
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539855955
   select_list ............ TRAFODION.SCH.T010T1.A, TRAFODION.SCH.T010T1.B
 
 
@@ -2150,11 +2006,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144264858194
-=======
-PLAN_ID .................. 212316386378193101
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844111242778
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where a=1 and b='1';
@@ -2197,11 +2049,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... OFF
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266701767
-=======
-  ObjectUIDs ............. 4065708817506493829
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539855955
   select_list ............ 1, '1'
 
 
@@ -2239,11 +2087,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144264920731
-=======
-PLAN_ID .................. 212316386378251178
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844111322324
 ROWS_OUT ................ 10
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where b='1';
@@ -2285,11 +2129,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... OFF
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266701767
-=======
-  ObjectUIDs ............. 4065708817506493829
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539855955
   select_list ............ TRAFODION.SCH.T010T1.A, '1'
 
 
@@ -2328,11 +2168,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144264982346
-=======
-PLAN_ID .................. 212316386378305516
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844111393981
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where a=1;
@@ -2375,11 +2211,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... OFF
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266701767
-=======
-  ObjectUIDs ............. 4065708817506493829
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539855955
   select_list ............ 1, TRAFODION.SCH.T010T1.B
 
 
@@ -2641,11 +2473,7 @@ A            B           C            D
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X1
-<<<<<<< HEAD
-PLAN_ID .................. 212328144266615337
-=======
-PLAN_ID .................. 212316386380220434
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844113296571
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -2689,11 +2517,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... OFF
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266701834
-=======
-  ObjectUIDs ............. 4065708817506493890
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539856027
   select_list ............ TRAFODION.SCH.T010T2.A, 'a', 1,
                              TRAFODION.SCH.T010T2.D
 
@@ -2727,11 +2551,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X2
-<<<<<<< HEAD
-PLAN_ID .................. 212328144266661893
-=======
-PLAN_ID .................. 212316386380268764
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844113334809
 ROWS_OUT ................. 5
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -2776,11 +2596,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... OFF
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266701834
-=======
-  ObjectUIDs ............. 4065708817506493890
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539856027
   select_list ............ TRAFODION.SCH.T010T2.A, 'a', TRAFODION.SCH.T010T2.C,
                              TRAFODION.SCH.T010T2.D
 
@@ -2827,11 +2643,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X3
-<<<<<<< HEAD
-PLAN_ID .................. 212328144266702743
-=======
-PLAN_ID .................. 212316386380306857
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844113390167
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -2875,11 +2687,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... OFF
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266701834
-=======
-  ObjectUIDs ............. 4065708817506493890
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539856027
   select_list ............ TRAFODION.SCH.T010T2.A, 'a', TRAFODION.SCH.T010T2.C,
                              TRAFODION.SCH.T010T2.D
 
@@ -2917,11 +2725,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X4
-<<<<<<< HEAD
-PLAN_ID .................. 212328144266745552
-=======
-PLAN_ID .................. 212316386380349466
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844113446558
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ delete from t010t2
@@ -2965,11 +2769,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... OFF
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266701834
-=======
-  ObjectUIDs ............. 4065708817506493890
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539856027
 
 
 TUPLE_FLOW ================================  SEQ_NO 3        CHILDREN 1, 2
@@ -3036,11 +2836,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X5
-<<<<<<< HEAD
-PLAN_ID .................. 212328144266819972
-=======
-PLAN_ID .................. 212316386380427454
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844113537063
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0
 STATEMENT ................ update t010t2
@@ -3086,11 +2882,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... OFF
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266701834
-=======
-  ObjectUIDs ............. 4065708817506493890
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539856027
 
 
 TRAFODION_UPDATE ==========================  SEQ_NO 1        NO CHILDREN
@@ -3120,11 +2912,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y1
-<<<<<<< HEAD
-PLAN_ID .................. 212328144266913570
-=======
-PLAN_ID .................. 212316386380494499
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844113637851
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -3169,11 +2957,7 @@ DESCRIPTION
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... OFF
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266701834
-=======
-  ObjectUIDs ............. 4065708817506493890
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539856027
   select_list ............ TRAFODION.SCH.T010T2.A, 'a', 1,
                              TRAFODION.SCH.T010T2.D
 
@@ -3208,11 +2992,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y2
-<<<<<<< HEAD
-PLAN_ID .................. 212328144266974806
-=======
-PLAN_ID .................. 212316386380535031
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844113682223
 ROWS_OUT ................. 5
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -3258,11 +3038,7 @@ DESCRIPTION
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... OFF
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266701834
-=======
-  ObjectUIDs ............. 4065708817506493890
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539856027
   select_list ............ TRAFODION.SCH.T010T2.A, 'a', TRAFODION.SCH.T010T2.C,
                              TRAFODION.SCH.T010T2.D
 
@@ -3298,11 +3074,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y3
-<<<<<<< HEAD
-PLAN_ID .................. 212328144267036984
-=======
-PLAN_ID .................. 212316386380573479
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844113722499
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -3347,11 +3119,7 @@ DESCRIPTION
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... OFF
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266701834
-=======
-  ObjectUIDs ............. 4065708817506493890
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539856027
   select_list ............ TRAFODION.SCH.T010T2.A, 'a', TRAFODION.SCH.T010T2.C,
                              TRAFODION.SCH.T010T2.D
 
@@ -3387,11 +3155,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y4
-<<<<<<< HEAD
-PLAN_ID .................. 212328144267100023
-=======
-PLAN_ID .................. 212316386380616627
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844113770213
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ delete from t010t2
@@ -3436,11 +3200,7 @@ DESCRIPTION
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... OFF
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266701834
-=======
-  ObjectUIDs ............. 4065708817506493890
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539856027
 
 
 TUPLE_FLOW ================================  SEQ_NO 3        CHILDREN 1, 2
@@ -3504,11 +3264,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y5
-<<<<<<< HEAD
-PLAN_ID .................. 212328144267191615
-=======
-PLAN_ID .................. 212316386380694060
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844113858330
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0
 STATEMENT ................ update t010t2
@@ -3555,11 +3311,7 @@ DESCRIPTION
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... OFF
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266701834
-=======
-  ObjectUIDs ............. 4065708817506493890
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539856027
 
 
 TRAFODION_UPDATE ==========================  SEQ_NO 1        NO CHILDREN
@@ -3736,11 +3488,7 @@ _SALT_      A            B           C            D
 >>invoke t010t1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T010T1
-<<<<<<< HEAD
--- Definition current  Sat Apr 23 04:04:48 2016
-=======
--- Definition current  Wed Dec  9 02:00:01 2015
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+-- Definition current  Thu May 12 20:15:41 2016
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -3753,11 +3501,7 @@ _SALT_      A            B           C            D
 >>invoke hbase."_CELL_"."TRAFODION.SCH.T010T1";
 
 -- Definition of Trafodion table HBASE."_CELL_"."TRAFODION.SCH.T010T1"
-<<<<<<< HEAD
--- Definition current  Sat Apr 23 04:04:48 2016
-=======
--- Definition current  Wed Dec  9 02:00:01 2015
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+-- Definition current  Thu May 12 20:15:41 2016
 
   (
     ROW_ID                           VARCHAR(10) CHARACTER SET ISO88591 COLLATE
@@ -3776,11 +3520,7 @@ _SALT_      A            B           C            D
 >>invoke hbase."_ROW_"."TRAFODION.SCH.T010T1";
 
 -- Definition of Trafodion table HBASE."_ROW_"."TRAFODION.SCH.T010T1"
-<<<<<<< HEAD
--- Definition current  Sat Apr 23 04:04:48 2016
-=======
--- Definition current  Wed Dec  9 02:00:01 2015
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+-- Definition current  Thu May 12 20:15:41 2016
 
   (
     ROW_ID                           VARCHAR(10) CHARACTER SET ISO88591 COLLATE
@@ -3911,11 +3651,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144290107608
-=======
-PLAN_ID .................. 212316386403061579
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844143636871
 ROWS_OUT ................ 11
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where a=1 or b='1';
@@ -3957,11 +3693,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... OFF
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266704365
-=======
-  ObjectUIDs ............. 4065708817506496280
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539859208
   select_list ............ TRAFODION.SCH.T010T1.A, TRAFODION.SCH.T010T1.B
 
 
@@ -4001,11 +3733,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144290179279
-=======
-PLAN_ID .................. 212316386403146262
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844143706682
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where a=1 and b='1';
@@ -4048,11 +3776,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... OFF
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266704365
-=======
-  ObjectUIDs ............. 4065708817506496280
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539859208
   select_list ............ %(1), %('1')
   input_variables ........ %(1), %('1')
 
@@ -4091,11 +3815,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144290246591
-=======
-PLAN_ID .................. 212316386403223284
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844143768841
 ROWS_OUT ................ 10
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where b='1';
@@ -4137,11 +3857,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... OFF
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266704365
-=======
-  ObjectUIDs ............. 4065708817506496280
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539859208
   select_list ............ TRAFODION.SCH.T010T1.A, %('1')
   input_variables ........ %('1')
 
@@ -4181,11 +3897,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144288935078
-=======
-PLAN_ID .................. 212316386401811471
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844142185118
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where a = 2;
@@ -4228,11 +3940,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... OFF
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266704365
-=======
-  ObjectUIDs ............. 4065708817506496280
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539859208
   select_list ............ %(2), TRAFODION.SCH.T010T1.B
   input_variables ........ %(2)
 
@@ -4495,11 +4203,7 @@ A            B           C            D
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X1
-<<<<<<< HEAD
-PLAN_ID .................. 212328144292121052
-=======
-PLAN_ID .................. 212316386405015189
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844145737530
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -4543,11 +4247,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... OFF
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266704430
-=======
-  ObjectUIDs ............. 4065708817506496339
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539859284
   select_list ............ TRAFODION.SCH.T010T2.A, %('a'), %(1),
                              TRAFODION.SCH.T010T2.D
   input_variables ........ %('a'), %(1)
@@ -4582,11 +4282,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X2
-<<<<<<< HEAD
-PLAN_ID .................. 212328144292161638
-=======
-PLAN_ID .................. 212316386405055331
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844145783087
 ROWS_OUT ................. 5
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -4631,11 +4327,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... OFF
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266704430
-=======
-  ObjectUIDs ............. 4065708817506496339
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539859284
   select_list ............ TRAFODION.SCH.T010T2.A, %('a'),
                              TRAFODION.SCH.T010T2.C, TRAFODION.SCH.T010T2.D
   input_variables ........ %('a')
@@ -4671,11 +4363,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X3
-<<<<<<< HEAD
-PLAN_ID .................. 212328144292198590
-=======
-PLAN_ID .................. 212316386405090087
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844145834397
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -4719,11 +4407,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... OFF
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266704430
-=======
-  ObjectUIDs ............. 4065708817506496339
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539859284
   select_list ............ TRAFODION.SCH.T010T2.A, %('a'),
                              TRAFODION.SCH.T010T2.C, TRAFODION.SCH.T010T2.D
   input_variables ........ %('a')
@@ -4759,11 +4443,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X4
-<<<<<<< HEAD
-PLAN_ID .................. 212328144292239365
-=======
-PLAN_ID .................. 212316386405129217
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844145883198
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ delete from t010t2
@@ -4807,11 +4487,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... OFF
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266704430
-=======
-  ObjectUIDs ............. 4065708817506496339
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539859284
   input_variables ........ %('a')
 
 
@@ -4875,11 +4551,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X5
-<<<<<<< HEAD
-PLAN_ID .................. 212328144292320041
-=======
-PLAN_ID .................. 212316386405213656
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844145968834
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0
 STATEMENT ................ update t010t2
@@ -4925,11 +4597,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... OFF
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266704430
-=======
-  ObjectUIDs ............. 4065708817506496339
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539859284
   input_variables ........ %('upd'), %(4)
 
 
@@ -4956,11 +4624,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y1
-<<<<<<< HEAD
-PLAN_ID .................. 212328144292393136
-=======
-PLAN_ID .................. 212316386405277075
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844146048413
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -5005,11 +4669,7 @@ DESCRIPTION
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... OFF
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266704430
-=======
-  ObjectUIDs ............. 4065708817506496339
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539859284
   select_list ............ TRAFODION.SCH.T010T2.A, %('a'), %(1),
                              TRAFODION.SCH.T010T2.D
   input_variables ........ %('a'), %(1)
@@ -5044,11 +4704,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y2
-<<<<<<< HEAD
-PLAN_ID .................. 212328144292431753
-=======
-PLAN_ID .................. 212316386405314414
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844146088212
 ROWS_OUT ................. 5
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -5094,11 +4750,7 @@ DESCRIPTION
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... OFF
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266704430
-=======
-  ObjectUIDs ............. 4065708817506496339
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539859284
   select_list ............ TRAFODION.SCH.T010T2.A, %('a'),
                              TRAFODION.SCH.T010T2.C, TRAFODION.SCH.T010T2.D
   input_variables ........ %('a')
@@ -5134,11 +4786,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y3
-<<<<<<< HEAD
-PLAN_ID .................. 212328144292474349
-=======
-PLAN_ID .................. 212316386405353994
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844146143199
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -5183,11 +4831,7 @@ DESCRIPTION
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... OFF
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266704430
-=======
-  ObjectUIDs ............. 4065708817506496339
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539859284
   select_list ............ TRAFODION.SCH.T010T2.A, %('a'),
                              TRAFODION.SCH.T010T2.C, TRAFODION.SCH.T010T2.D
   input_variables ........ %('a')
@@ -5223,11 +4867,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y4
-<<<<<<< HEAD
-PLAN_ID .................. 212328144292514451
-=======
-PLAN_ID .................. 212316386405397340
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844146195361
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ delete from t010t2
@@ -5272,11 +4912,7 @@ DESCRIPTION
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... OFF
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266704430
-=======
-  ObjectUIDs ............. 4065708817506496339
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539859284
   input_variables ........ %('a')
 
 
@@ -5340,11 +4976,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y5
-<<<<<<< HEAD
-PLAN_ID .................. 212328144292590301
-=======
-PLAN_ID .................. 212316386405486613
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844146287577
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0
 STATEMENT ................ update t010t2
@@ -5391,11 +5023,7 @@ DESCRIPTION
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... OFF
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266704430
-=======
-  ObjectUIDs ............. 4065708817506496339
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539859284
   input_variables ........ %('uuu'), %(4)
 
 
@@ -5572,11 +5200,7 @@ _SALT_      A            B           C            D
 >>invoke t010t1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T010T1
-<<<<<<< HEAD
--- Definition current  Sat Apr 23 04:05:13 2016
-=======
--- Definition current  Wed Dec  9 02:00:25 2015
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+-- Definition current  Thu May 12 20:16:14 2016
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -5589,11 +5213,7 @@ _SALT_      A            B           C            D
 >>invoke hbase."_CELL_"."TRAFODION.SCH.T010T1";
 
 -- Definition of Trafodion table HBASE."_CELL_"."TRAFODION.SCH.T010T1"
-<<<<<<< HEAD
--- Definition current  Sat Apr 23 04:05:13 2016
-=======
--- Definition current  Wed Dec  9 02:00:25 2015
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+-- Definition current  Thu May 12 20:16:14 2016
 
   (
     ROW_ID                           VARCHAR(10) CHARACTER SET ISO88591 COLLATE
@@ -5612,11 +5232,7 @@ _SALT_      A            B           C            D
 >>invoke hbase."_ROW_"."TRAFODION.SCH.T010T1";
 
 -- Definition of Trafodion table HBASE."_ROW_"."TRAFODION.SCH.T010T1"
-<<<<<<< HEAD
--- Definition current  Sat Apr 23 04:05:13 2016
-=======
--- Definition current  Wed Dec  9 02:00:25 2015
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+-- Definition current  Thu May 12 20:16:14 2016
 
   (
     ROW_ID                           VARCHAR(10) CHARACTER SET ISO88591 COLLATE
@@ -5747,11 +5363,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144315059805
-=======
-PLAN_ID .................. 212316386427692312
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844176410323
 ROWS_OUT ................ 11
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where a=1 or b='1';
@@ -5793,11 +5405,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266706876
-=======
-  ObjectUIDs ............. 4065708817506498768
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539862413
   select_list ............ TRAFODION.SCH.T010T1.A, TRAFODION.SCH.T010T1.B
 
 
@@ -5837,11 +5445,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144315122372
-=======
-PLAN_ID .................. 212316386427749777
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844176510694
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where a=1 and b='1';
@@ -5884,11 +5488,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266706876
-=======
-  ObjectUIDs ............. 4065708817506498768
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539862413
   select_list ............ 1, '1'
 
 
@@ -5926,11 +5526,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144315180866
-=======
-PLAN_ID .................. 212316386427802222
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844176576109
 ROWS_OUT ................ 10
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where b='1';
@@ -5972,11 +5568,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266706876
-=======
-  ObjectUIDs ............. 4065708817506498768
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539862413
   select_list ............ TRAFODION.SCH.T010T1.A, '1'
 
 
@@ -6015,11 +5607,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144315245579
-=======
-PLAN_ID .................. 212316386427863535
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844176640815
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where a=1;
@@ -6062,11 +5650,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266706876
-=======
-  ObjectUIDs ............. 4065708817506498768
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539862413
   select_list ............ 1, TRAFODION.SCH.T010T1.B
 
 
@@ -6328,11 +5912,7 @@ A            B           C            D
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X1
-<<<<<<< HEAD
-PLAN_ID .................. 212328144316926240
-=======
-PLAN_ID .................. 212316386429509896
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844178431857
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -6376,11 +5956,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266706932
-=======
-  ObjectUIDs ............. 4065708817506498826
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539862483
   select_list ............ TRAFODION.SCH.T010T2.A, 'a', 1,
                              TRAFODION.SCH.T010T2.D
 
@@ -6413,11 +5989,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X2
-<<<<<<< HEAD
-PLAN_ID .................. 212328144317000051
-=======
-PLAN_ID .................. 212316386429586895
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844178485570
 ROWS_OUT ................. 5
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -6462,11 +6034,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266706932
-=======
-  ObjectUIDs ............. 4065708817506498826
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539862483
   select_list ............ TRAFODION.SCH.T010T2.A, 'a', TRAFODION.SCH.T010T2.C,
                              TRAFODION.SCH.T010T2.D
 
@@ -6500,11 +6068,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X3
-<<<<<<< HEAD
-PLAN_ID .................. 212328144317075938
-=======
-PLAN_ID .................. 212316386429661191
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844178561774
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -6548,11 +6112,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266706932
-=======
-  ObjectUIDs ............. 4065708817506498826
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539862483
   select_list ............ TRAFODION.SCH.T010T2.A, 'a', TRAFODION.SCH.T010T2.C,
                              TRAFODION.SCH.T010T2.D
 
@@ -6586,11 +6146,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X4
-<<<<<<< HEAD
-PLAN_ID .................. 212328144317135494
-=======
-PLAN_ID .................. 212316386429744858
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844178632466
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ delete from t010t2
@@ -6634,11 +6190,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266706932
-=======
-  ObjectUIDs ............. 4065708817506498826
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539862483
 
 
 TUPLE_FLOW ================================  SEQ_NO 3        CHILDREN 1, 2
@@ -6701,11 +6253,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X5
-<<<<<<< HEAD
-PLAN_ID .................. 212328144317248537
-=======
-PLAN_ID .................. 212316386429882215
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844178757440
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0
 STATEMENT ................ update t010t2
@@ -6751,11 +6299,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... OFF
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266706932
-=======
-  ObjectUIDs ............. 4065708817506498826
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539862483
 
 
 TRAFODION_UPDATE ==========================  SEQ_NO 1        NO CHILDREN
@@ -6785,11 +6329,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y1
-<<<<<<< HEAD
-PLAN_ID .................. 212328144317303309
-=======
-PLAN_ID .................. 212316386429949473
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844178826719
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -6834,11 +6374,7 @@ DESCRIPTION
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266706932
-=======
-  ObjectUIDs ............. 4065708817506498826
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539862483
   select_list ............ TRAFODION.SCH.T010T2.A, 'a', 1,
                              TRAFODION.SCH.T010T2.D
 
@@ -6871,11 +6407,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y2
-<<<<<<< HEAD
-PLAN_ID .................. 212328144317349912
-=======
-PLAN_ID .................. 212316386430003551
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844178885810
 ROWS_OUT ................. 5
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -6921,11 +6453,7 @@ DESCRIPTION
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266706932
-=======
-  ObjectUIDs ............. 4065708817506498826
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539862483
   select_list ............ TRAFODION.SCH.T010T2.A, 'a', TRAFODION.SCH.T010T2.C,
                              TRAFODION.SCH.T010T2.D
 
@@ -6959,11 +6487,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y3
-<<<<<<< HEAD
-PLAN_ID .................. 212328144317409876
-=======
-PLAN_ID .................. 212316386430092677
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844178950332
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -7008,11 +6532,7 @@ DESCRIPTION
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266706932
-=======
-  ObjectUIDs ............. 4065708817506498826
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539862483
   select_list ............ TRAFODION.SCH.T010T2.A, 'a', TRAFODION.SCH.T010T2.C,
                              TRAFODION.SCH.T010T2.D
 
@@ -7046,11 +6566,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y4
-<<<<<<< HEAD
-PLAN_ID .................. 212328144317469296
-=======
-PLAN_ID .................. 212316386430187784
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844179010157
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ delete from t010t2
@@ -7095,11 +6611,7 @@ DESCRIPTION
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266706932
-=======
-  ObjectUIDs ............. 4065708817506498826
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539862483
 
 
 TUPLE_FLOW ================================  SEQ_NO 3        CHILDREN 1, 2
@@ -7162,11 +6674,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y5
-<<<<<<< HEAD
-PLAN_ID .................. 212328144317572749
-=======
-PLAN_ID .................. 212316386430305124
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844179154882
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0
 STATEMENT ................ update t010t2
@@ -7213,11 +6721,7 @@ DESCRIPTION
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266706932
-=======
-  ObjectUIDs ............. 4065708817506498826
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539862483
 
 
 TRAFODION_UPDATE ==========================  SEQ_NO 1        NO CHILDREN
@@ -7414,11 +6918,7 @@ _SALT_      A            B           C            D
 >>invoke t010t1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T010T1
-<<<<<<< HEAD
--- Definition current  Sat Apr 23 04:05:38 2016
-=======
--- Definition current  Wed Dec  9 02:00:48 2015
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+-- Definition current  Thu May 12 20:16:46 2016
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -7431,11 +6931,7 @@ _SALT_      A            B           C            D
 >>invoke hbase."_CELL_"."TRAFODION.SCH.T010T1";
 
 -- Definition of Trafodion table HBASE."_CELL_"."TRAFODION.SCH.T010T1"
-<<<<<<< HEAD
--- Definition current  Sat Apr 23 04:05:38 2016
-=======
--- Definition current  Wed Dec  9 02:00:48 2015
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+-- Definition current  Thu May 12 20:16:46 2016
 
   (
     ROW_ID                           VARCHAR(10) CHARACTER SET ISO88591 COLLATE
@@ -7454,11 +6950,7 @@ _SALT_      A            B           C            D
 >>invoke hbase."_ROW_"."TRAFODION.SCH.T010T1";
 
 -- Definition of Trafodion table HBASE."_ROW_"."TRAFODION.SCH.T010T1"
-<<<<<<< HEAD
--- Definition current  Sat Apr 23 04:05:38 2016
-=======
--- Definition current  Wed Dec  9 02:00:48 2015
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+-- Definition current  Thu May 12 20:16:46 2016
 
   (
     ROW_ID                           VARCHAR(10) CHARACTER SET ISO88591 COLLATE
@@ -7589,11 +7081,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144340252394
-=======
-PLAN_ID .................. 212316386450502614
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844208821604
 ROWS_OUT ................ 11
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where a=1 or b='1';
@@ -7635,11 +7123,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... ON
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266709376
-=======
-  ObjectUIDs ............. 4065708817506501005
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539865722
   select_list ............ TRAFODION.SCH.T010T1.A, TRAFODION.SCH.T010T1.B
 
 
@@ -7679,11 +7163,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144340312113
-=======
-PLAN_ID .................. 212316386450570999
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844208887855
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where a=1 and b='1';
@@ -7726,11 +7206,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... ON
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266709376
-=======
-  ObjectUIDs ............. 4065708817506501005
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539865722
   select_list ............ %(1), %('1')
   input_variables ........ %(1), %('1')
 
@@ -7769,11 +7245,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144340368341
-=======
-PLAN_ID .................. 212316386450646703
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844208956330
 ROWS_OUT ................ 10
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where b='1';
@@ -7815,11 +7287,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... ON
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266709376
-=======
-  ObjectUIDs ............. 4065708817506501005
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539865722
   select_list ............ TRAFODION.SCH.T010T1.A, %('1')
   input_variables ........ %('1')
 
@@ -7860,11 +7328,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144339112888
-=======
-PLAN_ID .................. 212316386449280017
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844207383946
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where a = 2;
@@ -7907,11 +7371,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... ON
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266709376
-=======
-  ObjectUIDs ............. 4065708817506501005
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539865722
   select_list ............ %(2), TRAFODION.SCH.T010T1.B
   input_variables ........ %(2)
 
@@ -8174,11 +7634,7 @@ A            B           C            D
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X1
-<<<<<<< HEAD
-PLAN_ID .................. 212328144342277216
-=======
-PLAN_ID .................. 212316386452467574
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844210958804
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -8222,11 +7678,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... ON
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266709434
-=======
-  ObjectUIDs ............. 4065708817506501120
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539865796
   select_list ............ TRAFODION.SCH.T010T2.A, %('a'), %(1),
                              TRAFODION.SCH.T010T2.D
   input_variables ........ %('a'), %(1)
@@ -8260,11 +7712,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X2
-<<<<<<< HEAD
-PLAN_ID .................. 212328144342325330
-=======
-PLAN_ID .................. 212316386452537629
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844211026298
 ROWS_OUT ................. 5
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -8309,11 +7757,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... ON
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266709434
-=======
-  ObjectUIDs ............. 4065708817506501120
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539865796
   select_list ............ TRAFODION.SCH.T010T2.A, %('a'),
                              TRAFODION.SCH.T010T2.C, TRAFODION.SCH.T010T2.D
   input_variables ........ %('a')
@@ -8348,11 +7792,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X3
-<<<<<<< HEAD
-PLAN_ID .................. 212328144342385845
-=======
-PLAN_ID .................. 212316386452633463
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844211105017
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -8396,11 +7836,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... ON
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266709434
-=======
-  ObjectUIDs ............. 4065708817506501120
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539865796
   select_list ............ TRAFODION.SCH.T010T2.A, %('a'),
                              TRAFODION.SCH.T010T2.C, TRAFODION.SCH.T010T2.D
   input_variables ........ %('a')
@@ -8435,11 +7871,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X4
-<<<<<<< HEAD
-PLAN_ID .................. 212328144342447114
-=======
-PLAN_ID .................. 212316386452734200
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844211177524
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ delete from t010t2
@@ -8483,11 +7915,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... ON
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266709434
-=======
-  ObjectUIDs ............. 4065708817506501120
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539865796
   input_variables ........ %('a')
 
 
@@ -8551,11 +7979,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X5
-<<<<<<< HEAD
-PLAN_ID .................. 212328144342571114
-=======
-PLAN_ID .................. 212316386452918100
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844211317417
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0
 STATEMENT ................ update t010t2
@@ -8601,11 +8025,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... ON
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266709434
-=======
-  ObjectUIDs ............. 4065708817506501120
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539865796
   input_variables ........ %('upd'), %(4)
 
 
@@ -8632,11 +8052,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y1
-<<<<<<< HEAD
-PLAN_ID .................. 212328144342639729
-=======
-PLAN_ID .................. 212316386452991223
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844211397994
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -8681,11 +8097,7 @@ DESCRIPTION
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266709434
-=======
-  ObjectUIDs ............. 4065708817506501120
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539865796
   select_list ............ TRAFODION.SCH.T010T2.A, %('a'), %(1),
                              TRAFODION.SCH.T010T2.D
   input_variables ........ %('a'), %(1)
@@ -8719,11 +8131,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y2
-<<<<<<< HEAD
-PLAN_ID .................. 212328144342687157
-=======
-PLAN_ID .................. 212316386453049844
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844211453917
 ROWS_OUT ................. 5
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -8769,11 +8177,7 @@ DESCRIPTION
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266709434
-=======
-  ObjectUIDs ............. 4065708817506501120
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539865796
   select_list ............ TRAFODION.SCH.T010T2.A, %('a'),
                              TRAFODION.SCH.T010T2.C, TRAFODION.SCH.T010T2.D
   input_variables ........ %('a')
@@ -8808,11 +8212,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y3
-<<<<<<< HEAD
-PLAN_ID .................. 212328144342740627
-=======
-PLAN_ID .................. 212316386453133638
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844211519558
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -8857,11 +8257,7 @@ DESCRIPTION
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266709434
-=======
-  ObjectUIDs ............. 4065708817506501120
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539865796
   select_list ............ TRAFODION.SCH.T010T2.A, %('a'),
                              TRAFODION.SCH.T010T2.C, TRAFODION.SCH.T010T2.D
   input_variables ........ %('a')
@@ -8896,11 +8292,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y4
-<<<<<<< HEAD
-PLAN_ID .................. 212328144342829114
-=======
-PLAN_ID .................. 212316386453218340
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844211637950
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ delete from t010t2
@@ -8945,11 +8337,7 @@ DESCRIPTION
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266709434
-=======
-  ObjectUIDs ............. 4065708817506501120
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539865796
   input_variables ........ %('a')
 
 
@@ -9013,11 +8401,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y5
-<<<<<<< HEAD
-PLAN_ID .................. 212328144342988889
-=======
-PLAN_ID .................. 212316386453356977
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844211775031
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0
 STATEMENT ................ update t010t2
@@ -9064,11 +8448,7 @@ DESCRIPTION
   QUERY_CACHE ........ 1,024
   MDAM_SCAN_METHOD ....... ON
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266709434
-=======
-  ObjectUIDs ............. 4065708817506501120
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539865796
   input_variables ........ %('uuu'), %(4)
 
 
@@ -9245,11 +8625,7 @@ _SALT_      A            B           C            D
 >>invoke t010t1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T010T1
-<<<<<<< HEAD
--- Definition current  Sat Apr 23 04:06:04 2016
-=======
--- Definition current  Wed Dec  9 02:01:10 2015
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+-- Definition current  Thu May 12 20:17:18 2016
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -9262,11 +8638,7 @@ _SALT_      A            B           C            D
 >>invoke hbase."_CELL_"."TRAFODION.SCH.T010T1";
 
 -- Definition of Trafodion table HBASE."_CELL_"."TRAFODION.SCH.T010T1"
-<<<<<<< HEAD
--- Definition current  Sat Apr 23 04:06:04 2016
-=======
--- Definition current  Wed Dec  9 02:01:10 2015
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+-- Definition current  Thu May 12 20:17:18 2016
 
   (
     ROW_ID                           VARCHAR(10) CHARACTER SET ISO88591 COLLATE
@@ -9285,11 +8657,7 @@ _SALT_      A            B           C            D
 >>invoke hbase."_ROW_"."TRAFODION.SCH.T010T1";
 
 -- Definition of Trafodion table HBASE."_ROW_"."TRAFODION.SCH.T010T1"
-<<<<<<< HEAD
--- Definition current  Sat Apr 23 04:06:04 2016
-=======
--- Definition current  Wed Dec  9 02:01:10 2015
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+-- Definition current  Thu May 12 20:17:19 2016
 
   (
     ROW_ID                           VARCHAR(10) CHARACTER SET ISO88591 COLLATE
@@ -9420,11 +8788,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144365540549
-=======
-PLAN_ID .................. 212316386472214555
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844240838739
 ROWS_OUT ................ 11
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where a=1 or b='1';
@@ -9466,11 +8830,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... ON
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266711846
-=======
-  ObjectUIDs ............. 4065708817506503231
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539868952
   select_list ............ TRAFODION.SCH.T010T1.A, TRAFODION.SCH.T010T1.B
 
 
@@ -9510,11 +8870,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144365595968
-=======
-PLAN_ID .................. 212316386472283821
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844240907143
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where a=1 and b='1';
@@ -9557,11 +8913,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... ON
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266711846
-=======
-  ObjectUIDs ............. 4065708817506503231
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539868952
   select_list ............ 1, '1'
 
 
@@ -9599,11 +8951,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144365647254
-=======
-PLAN_ID .................. 212316386472358499
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844240970450
 ROWS_OUT ................ 10
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where b='1';
@@ -9645,11 +8993,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... ON
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266711846
-=======
-  ObjectUIDs ............. 4065708817506503231
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539868952
   select_list ............ TRAFODION.SCH.T010T1.A, '1'
 
 
@@ -9689,11 +9033,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-<<<<<<< HEAD
-PLAN_ID .................. 212328144365700486
-=======
-PLAN_ID .................. 212316386472420594
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844241034044
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t010t1 where a=1;
@@ -9736,11 +9076,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... ON
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266711846
-=======
-  ObjectUIDs ............. 4065708817506503231
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539868952
   select_list ............ 1, TRAFODION.SCH.T010T1.B
 
 
@@ -10002,11 +9338,7 @@ A            B           C            D
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X1
-<<<<<<< HEAD
-PLAN_ID .................. 212328144367286744
-=======
-PLAN_ID .................. 212316386474216892
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844242897896
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -10050,11 +9382,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... ON
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266711903
-=======
-  ObjectUIDs ............. 4065708817506503286
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539869019
   select_list ............ TRAFODION.SCH.T010T2.A, 'a', 1,
                              TRAFODION.SCH.T010T2.D
 
@@ -10087,11 +9415,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X2
-<<<<<<< HEAD
-PLAN_ID .................. 212328144367337278
-=======
-PLAN_ID .................. 212316386474275851
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844242966866
 ROWS_OUT ................. 5
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -10136,11 +9460,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... ON
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266711903
-=======
-  ObjectUIDs ............. 4065708817506503286
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539869019
   select_list ............ TRAFODION.SCH.T010T2.A, 'a', TRAFODION.SCH.T010T2.C,
                              TRAFODION.SCH.T010T2.D
 
@@ -10174,11 +9494,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X3
-<<<<<<< HEAD
-PLAN_ID .................. 212328144367394943
-=======
-PLAN_ID .................. 212316386474342966
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844243041628
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -10222,11 +9538,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... ON
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266711903
-=======
-  ObjectUIDs ............. 4065708817506503286
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539869019
   select_list ............ TRAFODION.SCH.T010T2.A, 'a', TRAFODION.SCH.T010T2.C,
                              TRAFODION.SCH.T010T2.D
 
@@ -10260,11 +9572,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X4
-<<<<<<< HEAD
-PLAN_ID .................. 212328144367453475
-=======
-PLAN_ID .................. 212316386474410563
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844243111927
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ delete from t010t2
@@ -10308,11 +9616,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... ON
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266711903
-=======
-  ObjectUIDs ............. 4065708817506503286
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539869019
 
 
 TUPLE_FLOW ================================  SEQ_NO 3        CHILDREN 1, 2
@@ -10375,11 +9679,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... X5
-<<<<<<< HEAD
-PLAN_ID .................. 212328144367556161
-=======
-PLAN_ID .................. 212316386474550429
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844243242141
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0
 STATEMENT ................ update t010t2
@@ -10425,11 +9725,7 @@ DESCRIPTION
   HBASE_FILTER_PREDS ..... ON
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266711903
-=======
-  ObjectUIDs ............. 4065708817506503286
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539869019
 
 
 TRAFODION_UPDATE ==========================  SEQ_NO 1        NO CHILDREN
@@ -10459,11 +9755,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y1
-<<<<<<< HEAD
-PLAN_ID .................. 212328144367612269
-=======
-PLAN_ID .................. 212316386474629734
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844243325246
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -10508,11 +9800,7 @@ DESCRIPTION
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266711903
-=======
-  ObjectUIDs ............. 4065708817506503286
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539869019
   select_list ............ TRAFODION.SCH.T010T2.A, 'a', 1,
                              TRAFODION.SCH.T010T2.D
 
@@ -10545,11 +9833,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y2
-<<<<<<< HEAD
-PLAN_ID .................. 212328144367662094
-=======
-PLAN_ID .................. 212316386474697543
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844243393706
 ROWS_OUT ................. 5
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -10595,11 +9879,7 @@ DESCRIPTION
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266711903
-=======
-  ObjectUIDs ............. 4065708817506503286
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539869019
   select_list ............ TRAFODION.SCH.T010T2.A, 'a', TRAFODION.SCH.T010T2.C,
                              TRAFODION.SCH.T010T2.D
 
@@ -10633,11 +9913,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y3
-<<<<<<< HEAD
-PLAN_ID .................. 212328144367715857
-=======
-PLAN_ID .................. 212316386474768161
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844243463271
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0
 STATEMENT ................ select *
@@ -10682,11 +9958,7 @@ DESCRIPTION
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266711903
-=======
-  ObjectUIDs ............. 4065708817506503286
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539869019
   select_list ............ TRAFODION.SCH.T010T2.A, 'a', TRAFODION.SCH.T010T2.C,
                              TRAFODION.SCH.T010T2.D
 
@@ -10720,11 +9992,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y4
-<<<<<<< HEAD
-PLAN_ID .................. 212328144367769413
-=======
-PLAN_ID .................. 212316386474835381
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844243530496
 ROWS_OUT ................. 4
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ delete from t010t2
@@ -10769,11 +10037,7 @@ DESCRIPTION
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266711903
-=======
-  ObjectUIDs ............. 4065708817506503286
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539869019
 
 
 TUPLE_FLOW ================================  SEQ_NO 3        CHILDREN 1, 2
@@ -10836,11 +10100,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... Y5
-<<<<<<< HEAD
-PLAN_ID .................. 212328144367903054
-=======
-PLAN_ID .................. 212316386474974484
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+PLAN_ID .................. 212329844243647826
 ROWS_OUT ................. 2
 EST_TOTAL_COST ........... 0
 STATEMENT ................ update t010t2
@@ -10887,11 +10147,7 @@ DESCRIPTION
   QUERY_CACHE ............ 0
   MDAM_SCAN_METHOD ....... ON
   HBASE_MAX_NUM_SEARCH_KE  1
-<<<<<<< HEAD
-  ObjectUIDs ............. 8974081219266711903
-=======
-  ObjectUIDs ............. 4065708817506503286
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+  ObjectUIDs ............. 2599237646539869019
 
 
 TRAFODION_UPDATE ==========================  SEQ_NO 1        NO CHILDREN
@@ -11399,21 +10655,13 @@ CREATE TABLE TRAFODION.SCH."delim_tab"
 --- SQL operation complete.
 >>get all volatile schemas;
 
-<<<<<<< HEAD
-Schema(Active  ): VOLATILE_SCHEMA_MXID110000323252123281442173510010000000002
-=======
-Schema(Active  ): VOLATILE_SCHEMA_MXID110000072222123163863374030000000000002
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
+Schema(Active  ): VOLATILE_SCHEMA_MXID110000046172123298440339100020000000002
 
 --- SQL operation complete.
 >>get all volatile tables;
 
-<<<<<<< HEAD
-Schema(Active  ): VOLATILE_SCHEMA_MXID110000323252123281442173510010000000002
+Schema(Active  ): VOLATILE_SCHEMA_MXID110000046172123298440339100020000000002
   Table: VTAB1
-=======
-Schema(Active  ): VOLATILE_SCHEMA_MXID110000072222123163863374030000000000002
->>>>>>> 7fc96dd... non-transactional delete and 'first N' delete support.
   Table: VTAB2
 
 --- SQL operation complete.
