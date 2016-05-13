@@ -1701,7 +1701,7 @@ Lng32 ExpHbaseInterface_JNI::getBlockCacheFraction(float& frac)
   return retCode_;
 }
 
-ByteArrayList* ExpHbaseInterface_JNI::showTablesHDFSCache(const std::vector<Text>& tables)
+NAArray<HbaseStr>* ExpHbaseInterface_JNI::showTablesHDFSCache(const std::vector<Text>& tables)
 {
   if (client_ == NULL)
   {
@@ -1709,7 +1709,7 @@ ByteArrayList* ExpHbaseInterface_JNI::showTablesHDFSCache(const std::vector<Text
       return NULL;
   }
     
-  ByteArrayList* stats = client_->showTablesHDFSCache(tables);
+  NAArray<HbaseStr>* stats = client_->showTablesHDFSCache((NAHeap *)heap_, tables);
   if (stats == NULL)
     return NULL;
 

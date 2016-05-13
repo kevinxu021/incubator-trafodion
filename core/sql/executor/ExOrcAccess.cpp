@@ -692,7 +692,7 @@ ExOrcFastAggrTcb::ExOrcFastAggrTcb(
   if (aggrExpr())
     aggrExpr()->fixup(0, getExpressionMode(), this,  space, heap, FALSE, glob);
 
-  bal_ = NULL;
+  colStats_ = NULL;
 }
 
 ExOrcFastAggrTcb::~ExOrcFastAggrTcb()
@@ -873,7 +873,7 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
         case ORC_AGGR_NV_LOWER_BOUND:
         case ORC_AGGR_NV_UPPER_BOUND:
 	  {
-            retcode = orci_->getColStats(colNum_, bal_);
+            retcode = orci_->getColStats(colNum_, &colStats_);
             if (retcode < 0)
               {
 		ContextCli *currContext = GetCliGlobals()->currContext();
@@ -907,10 +907,14 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
               }
 
             Int32 len = 0;
-
+            HbaseStr *hbaseStr;
             if (step_ == ORC_AGGR_COUNT)
               {
-                bal_->getEntry(0, orcAggrLoc, attr->getLength(), len);
+               
+                hbaseStr = &colStats_->at(0);
+                ex_assert(hbaseStr->len <= attr->getLength(), "Insufficent orcAggrLoc length");
+                memcpy(orcAggrLoc, hbaseStr->val, hbaseStr->len);
+                len = hbaseStr->len;
                 step_ = ORC_AGGR_NEXT;
                 break;
               }
@@ -918,22 +922,31 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
             if (step_ == ORC_AGGR_NV_LOWER_BOUND || step_ == ORC_AGGR_NV_UPPER_BOUND)
               {
                 // number of values (excluding dups and nulls)
-                bal_->getEntry(2, orcAggrLoc, attr->getLength(), len);
+                hbaseStr = &colStats_->at(2);
+                ex_assert(hbaseStr->len <= attr->getLength(), "Insufficent orcAggrLoc length");
+                memcpy(orcAggrLoc, hbaseStr->val, hbaseStr->len);
+                len = hbaseStr->len;
                 step_ = ORC_AGGR_NEXT;
                 break;
               }
 
             // num vals (incl dups and nulls)
             long numVals = -1;
-            bal_->getEntry(0, (char*)&numVals, sizeof(numVals), len);
+            hbaseStr = &colStats_->at(0);
+            ex_assert(hbaseStr->len <= sizeof(numVals), "Insufficent length");
+            memcpy(&numVals, hbaseStr->val, hbaseStr->len);
  
             // aggr type
             int type = -1;
-            bal_->getEntry(1, (char*)&type, sizeof(type), len);
+            hbaseStr = &colStats_->at(1);
+            ex_assert(hbaseStr->len <= sizeof(type), "Insufficient length");
+            memcpy(&type, hbaseStr->val, hbaseStr->len);
 
              // num uniq vals (excl dups and nulls)
             long numUniqVals = -1;
-            bal_->getEntry(2, (char*)&numUniqVals, sizeof(numVals), len);
+            hbaseStr = &colStats_->at(2);
+            ex_assert(hbaseStr->len <= sizeof(numUniqVals), "Insufficient length");
+            memcpy(&numUniqVals, hbaseStr->val, hbaseStr->len);
 
             if (numUniqVals == 0)
               {
@@ -946,24 +959,27 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
             else
               {
                 memset(orcAggrLoc, ' ', attr->getLength());
-                BAL_RetCode brc = BAL_OK;
-                if (step_ == ORC_AGGR_MIN)
-                  brc = bal_->getEntry(3, orcAggrLoc, attr->getLength(), len);
+                if (step_ == ORC_AGGR_MIN) 
+                {
+                   hbaseStr = &colStats_->at(3);
+                   ex_assert(hbaseStr->len <= attr->getLength(), "Insufficent orcAggrLoc length");
+                   memcpy(orcAggrLoc, hbaseStr->val, hbaseStr->len);
+                   len = hbaseStr->len;
+                }
                 else if (step_ == ORC_AGGR_MAX)
-                  brc = bal_->getEntry(4, orcAggrLoc, attr->getLength(), len);
+                {
+                   hbaseStr = &colStats_->at(4);
+                   ex_assert(hbaseStr->len <= attr->getLength(), "Insufficent orcAggrLoc length");
+                   memcpy(orcAggrLoc, hbaseStr->val, hbaseStr->len);
+                   len = hbaseStr->len;
+                }
                 else if (step_ == ORC_AGGR_SUM)
-                  brc = bal_->getEntry(5, orcAggrLoc, attr->getLength(), len);
-
-                if (brc != BAL_OK)
-                  {
-                    setupError(EXE_ERROR_FROM_LOB_INTERFACE, 
-			       brc, 
-			       "ByteArray", 
-			       "getEntry", 
-                               bal_->getErrorText(brc));
-                    step_ = HANDLE_ERROR;
-                    break;
-                  }
+                {
+                  hbaseStr = &colStats_->at(5);
+                  ex_assert(hbaseStr->len <= attr->getLength(), "Insufficent orcAggrLoc length");
+                  memcpy(orcAggrLoc, hbaseStr->val, hbaseStr->len);
+                  len = hbaseStr->len;
+                }
 
                 if (attr->getVCIndicatorLength() > 0)
                   {
@@ -1069,7 +1085,11 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
 	  {
 	    if (handleDone(rc))
 	      return rc;
-
+            if (colStats_ != NULL)
+            {
+               deleteNAArray(getHeap(), colStats_);
+               colStats_ = NULL;
+            }
 	    step_ = NOT_STARTED;
 	  }
 	  break;

@@ -33,7 +33,10 @@
 #include "ExpHbaseDefs.h"
 #include "NAMemory.h"
 
-#include "ByteArrayList.h"
+using namespace apache::hadoop::hbase::thrift;
+namespace {
+  typedef std::vector<Text> TextVec;
+}
 
 // ===========================================================================
 // ===== The OrcFileReader class implements access to th Java 
@@ -137,7 +140,7 @@ public:
 
   OFR_RetCode    fetchRowsIntoBuffer(Int64 stopOffset, char* buffer, Int64 buffSize, Int64& bytesRead, char rowDelimiter);
   
-  ByteArrayList* getColStats(int colNum);
+  NAArray<HbaseStr> *getColStats(NAHeap *heap, int colNum);
 
   virtual char*  getErrorText(OFR_RetCode errEnum);
 
