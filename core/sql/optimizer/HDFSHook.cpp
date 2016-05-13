@@ -44,11 +44,54 @@ HHDFSMasterHostList::~HHDFSMasterHostList()
 // translate a host name to a number (add host if needed)
 HostId HHDFSMasterHostList::getHostNum(const char *hostName)
 {
-  if (getHosts()->entries() == 0)
-    initializeWithSeaQuestNodes();
+  if (getHosts()->entries() == 0) {
+     NABoolean result = initializeWithSeaQuestNodes();
+     CMPASSERT(result);
+  }
 
   return getHostNumInternal(hostName);
 }
+
+CollIndex HHDFSMasterHostList::getNumSQNodes()
+{ 
+  if (getHosts()->entries() == 0) {
+     NABoolean result = initializeWithSeaQuestNodes();
+     CMPASSERT(result);
+  }
+
+   return numSQNodes_; 
+}
+
+CollIndex HHDFSMasterHostList::getNumNonSQNodes()
+{
+  if (getHosts()->entries() == 0) {
+     NABoolean result = initializeWithSeaQuestNodes();
+     CMPASSERT(result);
+  }
+
+  return getHosts()->entries()-numSQNodes_;
+}
+
+NABoolean HHDFSMasterHostList::hasVirtualSQNodes()          
+{ 
+  if (getHosts()->entries() == 0) {
+     NABoolean result = initializeWithSeaQuestNodes();
+     CMPASSERT(result);
+  }
+
+   return hasVirtualSQNodes_; 
+}
+
+CollIndex HHDFSMasterHostList::entries()                 
+{ 
+  if (getHosts()->entries() == 0) {
+     NABoolean result = initializeWithSeaQuestNodes();
+     CMPASSERT(result);
+  }
+
+  return getHosts()->entries(); 
+}
+
 
 // translate a host name to a number (add host if needed)
 HostId HHDFSMasterHostList::getHostNumInternal(const char *hostName)
@@ -395,21 +438,38 @@ void HHDFSFileStats::sampleFileWithLOBInterface(hdfsFileInfo *fileInfo,
                                                 HHDFSDiags &diags,
                                                 char recordTerminator)
 {
-  Int64 sampleBufferSize = MINOF(blockSize_, 65536);
-  sampleBufferSize = MAXOF(MINOF(sampleBufferSize,totalSize_/10), 10000);
-  // for now, we need a buffer at least the size of the compression scratch block size
-  sampleBufferSize = MAXOF(sampleBufferSize, compressionInfo_.getMinScratchBufferSize());
+  Int64 totalCompressedBytesToRead = MINOF(blockSize_, 65536);
+  totalCompressedBytesToRead =
+    MAXOF(MINOF(totalCompressedBytesToRead,totalSize_/10), 10000);
+
+  // make this constant (important for LOB interface - we share the
+  // same LOB globals for all files to be sampled!!) and reasonably
+  // big
+  Int64 sampleBufferSize = 100000;
   int retcode = 0;
   ExpCompressionWA *compressionWA =
     ExpCompressionWA::createCompressionWA(&compressionInfo_, heap_);
   char cursorId[10];
   Int64 dummyRequestTag;
-  Int64 totalCompressedBytesToRead = sampleBufferSize;
   Int64 offset = 0;
   Int64 compressedBytesRead = 0;
   Int64 uncompressedBytesRead = 0;
 
   snprintf(cursorId, sizeof(cursorId), "sampling");
+
+  if (compressionWA)
+    {
+      ExpCompressionWA::CompressionReturnCode r = 
+        compressionWA->initCompressionLib();
+
+      if (r != ExpCompressionWA::COMPRESS_SUCCESS)
+        {
+          diags.recordError(
+               NAString("Unable to initialize compression library for ") + compressionWA->getText(),
+               "HHDFSFileStats::sampleFileWithLOBInterface");
+          return;
+        }
+    }
 
   // open cursor
   retcode = ExpLOBInterfaceSelectCursor(
@@ -1558,10 +1618,11 @@ void HHDFSFileStats::assignToESPs(NodeMapIterator* nmi,
    }
 }
 
-void HHDFSFileStats::assignToESPsRepN(HiveNodeMapEntry*& entry)
+void HHDFSFileStats::assignToESPsRepN(HiveNodeMapEntry*& entry,
+                                      const HHDFSListPartitionStats* p)
 {
    Int64 filled = getTotalSize();
-   HiveScanInfo info(this, 0, (filled > 0) ? filled-1 : 0);
+   HiveScanInfo info(this, 0, (filled > 0) ? filled-1 : 0, FALSE, p);
    entry->addScanInfo(info, filled);
 }
 

@@ -21,7 +21,8 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 	var FILE_SELECT = "#file";
 	var CREATE_BTN = "#create_btn";
 	var CLEAR_BTN = "#clear_btn";
-	var LOADING = "#loading-spinner";
+	var OVERWRITE_CHECKBOX = "#overwrite";
+	var LOADING = "#create-loading-spinner";
 	var PAGE_HEADER = "#create-library-page-header";
 	var FILE = null;
 	var CHUNKS = [];
@@ -45,7 +46,9 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			this.currentURL = window.location.hash;
 			$(CREATE_BTN).on('click', this.uploadFile);
 			$(CLEAR_BTN).on('click', this.cleanField);
+			$(FILE_SELECT).on('click', this.fileDialogOpened);
 			$(FILE_SELECT).on('change', this.onFileSelected);
+
 			tHandler.on(tHandler.CREATE_LIBRARY_ERROR, this.createLibraryError);
 			tHandler.on(tHandler.CREATE_LIBRARY_SUCCESS, this.createLibrarySuccess);
 			tHandler.on(tHandler.EXECUTE_UPLOAD_CHUNK, this.executeUploadChunk);
@@ -54,11 +57,13 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			
 			validator = $(LIB_FORM).validate({
 				rules: {
-					"library_name": { required: true },
+					"schema_name": { required: true, validateSchemaName:true },
+					"library_name": { required: true, validateLibraryName: true },
 					"file_name": { required: true}
 				},
 				messages: {
-					"library_name": "Please enter a library name",
+					"schema_name": {"required":"Please enter a schema name"},
+					"library_name": {"required":"Please enter a library name"},
 					"file_name": "Please enter a code file name"
 		        },
 				highlight: function(element) {
@@ -77,50 +82,71 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 					}
 				}
 			});
+			$.validator.addMethod("validateSchemaName", function(value, element) {
+				var schemaName = $(SCHEMA_NAME).val();
+				var isNormalName = (!schemaName.startsWith("_") && (schemaName.match("^[\"a-zA-Z0-9_]+$")!=null));
+				if(!isNormalName){
+					if(schemaName.startsWith('"') && schemaName.endsWith('"')){
+						isNormalName = true;
+					}
+				}
+				return isNormalName;
+
+			}, "* Schema name contains special characters. It needs be enclosed within double quotes.");
+			
+			$.validator.addMethod("validateLibraryName", function(value, element) {
+				var libName = $(LIBRARY_NAME).val();
+				var isNormalName = (!libName.startsWith("_") && (libName.match("^[a-zA-Z0-9_]+$")!=null));
+				if(!isNormalName){
+					if(libName.startsWith('"') && libName.endsWith('"')){
+						isNormalName = true;
+					}
+				}
+				return isNormalName;
+
+			}, "* Library name contains special characters. It needs be enclosed within double quotes.");
 		},
 		doResume : function(args) {
+			$(CREATE_BTN).on('click', this.uploadFile);
+			$(CLEAR_BTN).on('click', this.cleanField);
+			$(FILE_SELECT).on('click', this.fileDialogOpened);
 			this.currentURL = window.location.hash;
 			_args = args;
 			_this.processArgs();
 			this.redirectFlag=false;
-			if(this.isAjaxCompleted=true){
+			if(this.isAjaxCompleted==true){
 				$(LOADING).css('visibility', 'hidden');
 				$(CREATE_BTN).prop('disabled', false);
 				$(CLEAR_BTN).prop('disabled', false);
 			}
-			validator.resetForm();
 		},
 		doPause : function() {
+			$(CREATE_BTN).off('click', this.uploadFile);
+			$(CLEAR_BTN).off('click', this.cleanField);
+			$(FILE_SELECT).off('click', this.fileDialogOpened);
 			this.redirectFlag=true;
-			validator.resetForm();
+		},
+		fileDialogOpened: function(){
+			this.value = null; //reset the value so the file can be selected even if the same file that was selected before
 		},
 		processArgs: function(){
 			if( _args.schema != undefined){
 				$(SCHEMA_NAME).val( _args.schema);
-			}
-			if(_args.library != undefined){
-				$(LIBRARY_NAME).val(_args.library);
-				$(LIBRARY_NAME).prop('disabled', true);
-				$(SCHEMA_NAME).prop('disabled', true);
-				$(PAGE_HEADER).text("Update Library");
-				$(CREATE_BTN).prop('value','Update');
-				var libParams = sessionStorage.getItem(_args.library);
-				sessionStorage.removeItem(_args.library);
-				if(libParams != undefined){
-					libParams = JSON.parse(libParams);
-					if(libParams.file){
-						$(FILE_NAME).val(libParams.file);
-					}
+				if(_this.currentSchemaName != _args.schema){
+					_this.currentSchemaName= _args.schema;
+					$(FILE_NAME).val("");
 				}
-			}else{
-				$(SCHEMA_NAME).prop('disabled', false);
-				$(LIBRARY_NAME).prop('disabled', false);
-				$(PAGE_HEADER).text("Create Library");
-				$(CREATE_BTN).prop('value','Create');
 			}
+
+			$(SCHEMA_NAME).prop('disabled', false);
+			$(LIBRARY_NAME).prop('disabled', false);
+			$(OVERWRITE_CHECKBOX).prop('disabled', false);
+			$(OVERWRITE_CHECKBOX).prop('checked', false);
+			$(FILE_SELECT).on('change', this.onFileSelected);
 		},
 		
 		cleanField:function(){
+			_this.processArgs();
 			$(SCHEMA_NAME).val("");
 			$(LIBRARY_NAME).val("");
 			$(FILE_NAME).val("");
@@ -132,7 +158,6 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			CHUNKS=[];
 			UPLOAD_INDEX = 0;
 			UPLOAD_LENGTH = 0;
-			_this.processArgs();
 		},
 		uploadFile : function() {
 			if($(LIB_FORM).valid()){
@@ -187,19 +212,20 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 				end = start + chunk_size;
 			}
 			UPLOAD_LENGTH = CHUNKS.length;
-			OVERWRITE_FLAG = $("#overwrite").prop('checked');
+			OVERWRITE_FLAG = $(OVERWRITE_CHECKBOX).prop('checked');
 			if(UPLOAD_LENGTH==1){
 				_this.executeUploadChunk(OVERWRITE_FLAG, true, true);	
 			}else{
 				_this.executeUploadChunk(OVERWRITE_FLAG, true, false);
 			}
-			
+		
 		},
 		
-		executeUploadChunk : function(oflag, sflag, eflag){
+		executeUploadChunk : function(oflag, sflag, eflag, uflag){
 			_this.isAjaxCompleted=false;
 			var data = CHUNKS[UPLOAD_INDEX];
-			tHandler.createLibrary(data.chunk, data.fileName, data.filePart, data.fileSize, data.schemaName, data.libraryName, oflag, sflag, eflag);
+			var uflag = false;
+			tHandler.createLibrary(data.chunk, data.fileName, data.filePart, data.fileSize, common.ExternalForm(data.schemaName), common.ExternalForm(data.libraryName), oflag, sflag, eflag, uflag);
 			UPLOAD_INDEX++;
 		}, 
 		onFileSelected : function(e) {
@@ -208,20 +234,23 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			$(CREATE_BTN).prop('disabled', false);
 			$(FILE_NAME).val(FILE.name);
 		},
-		createLibrarySuccess : function(){
+		createLibrarySuccess : function(data){
 			_this.isAjaxCompleted=true;
-			var msg='Created library ' + _this.currentSchemaName + "." + _this.currentLibraryName + ' successfully';
+			var msgPrefix = "created";
+			var msg= 'Library '+ common.ExternalForm(data.schemaName) + "." + common.ExternalForm(data.libraryName) + ' was ' + msgPrefix + ' successfully';
 			if(UPLOAD_INDEX==UPLOAD_LENGTH){
 				$(LOADING).css('visibility', 'hidden');
 				$(CREATE_BTN).prop('disabled', false);
 				$(CLEAR_BTN).prop('disabled', false);
-				var msgObj={msg: msg,tag:"success",url:null,shortMsg:"Created library successfully."};
+				var msgObj={msg: msg,tag:"success",url:null,shortMsg:'Library was ' + msgPrefix + ' successfully.'};
 				if(_this.redirectFlag==false){
 					_this.popupNotificationMessage(null,msgObj);
 				}else{
 					
 					common.fire(common.NOFITY_MESSAGE,msgObj);
 				}
+				common.fire(common.LIBRARY_CREATED_EVENT,'');
+				
 				//alert("Create library Success!");
 			}else if(UPLOAD_INDEX==UPLOAD_LENGTH-1){
 				_this.executeUploadChunk(OVERWRITE_FLAG, false, true);
@@ -236,9 +265,10 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			$(CLEAR_BTN).prop('disabled', false);
 			var errorIndex = error.responseText.lastIndexOf("*** ERROR");
 			var errorString = error.responseText.substring(errorIndex);
-			var msg="Failed to create library " + _this.currentSchemaName + "." + _this.currentLibraryName + " :" + errorString;
+			var msgPrefix =  "Failed to create library ";
+			var msg= msgPrefix + common.ExternalForm(error.schemaName) + "." + common.ExternalForm(error.libraryName)+ " : " + errorString;
 			//alert(errorString);
-			var msgObj={msg:msg,tag:"danger",url:null,shortMsg:"Failed to create library."};
+			var msgObj={msg:msg,tag:"danger",url:null,shortMsg:msgPrefix};
 			if(_this.redirectFlag==false){
 				_this.popupNotificationMessage(null,msgObj);
 			}else{

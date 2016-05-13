@@ -222,6 +222,12 @@ void SscpNewIncomingConnectionStream::actOnReceive(IpcConnection *connection)
   case SECURITY_INVALID_KEY_REQ:
     processSecInvReq();
     break;
+  case SNAPSHOT_LOCK_REQ:
+    processSnapshotLockReq();
+    break;
+  case SNAPSHOT_UNLOCK_REQ:
+    processSnapshotUnLockReq();
+    break;
   default:
     ex_assert(FALSE,"Invalid request for first client message");
   }
@@ -912,4 +918,85 @@ void SscpNewIncomingConnectionStream::processSecInvReq()
   reply->decrRefCount();
   request->decrRefCount();
 }
+
+void SscpNewIncomingConnectionStream::processSnapshotLockReq()
+{
+  IpcMessageObjVersion msgVer = getNextObjVersion();
+
+  ex_assert(msgVer <= CurrSnapshotLockVersionNumber, "Up-rev message received.");
+
+  SnapshotLockRequest *request = new(getHeap())
+    SnapshotLockRequest(getHeap());
+
+  *this >> *request;
+
+  ex_assert( !moreObjects(), "unknown object follows SnapshotLockRequest.");
+
+  SscpGlobals *sscpGlobals = getSscpGlobals();
+  StatsGlobals *statsGlobals = sscpGlobals->getStatsGlobals();
+  short savedPriority, savedStopMode;
+  short error = statsGlobals->getStatsSemaphore(sscpGlobals->getSemId(),
+                  sscpGlobals->myPin(),
+                  savedPriority, savedStopMode, FALSE /*shouldTimeout*/);
+  ex_assert(error == 0, "getStatsSemaphore() returned an error");
+  
+  statsGlobals->setSnapshotInProgress();
+    
+  statsGlobals->releaseStatsSemaphore(sscpGlobals->getSemId(),
+                                    sscpGlobals->myPin(), savedPriority,
+                                    savedStopMode);
+  clearAllObjects();
+  setType(IPC_MSG_SSCP_REPLY);
+  setVersion(CurrSscpReplyMessageVersion);
+
+  RmsGenericReply *reply = new(getHeap())
+    RmsGenericReply(getHeap());
+
+  *this << *reply;
+
+  send(FALSE);
+  reply->decrRefCount();
+  request->decrRefCount();
+}
+
+void SscpNewIncomingConnectionStream::processSnapshotUnLockReq()
+{
+  IpcMessageObjVersion msgVer = getNextObjVersion();
+
+  ex_assert(msgVer <= CurrSnapshotUnLockVersionNumber, "Up-rev message received.");
+
+  SnapshotUnLockRequest *request = new(getHeap())
+    SnapshotUnLockRequest(getHeap());
+
+  *this >> *request;
+
+  ex_assert( !moreObjects(), "unknown object follows SnapshotUnLockRequest.");
+
+  SscpGlobals *sscpGlobals = getSscpGlobals();
+  StatsGlobals *statsGlobals = sscpGlobals->getStatsGlobals();
+  short savedPriority, savedStopMode;
+  short error = statsGlobals->getStatsSemaphore(sscpGlobals->getSemId(),
+                  sscpGlobals->myPin(),
+                  savedPriority, savedStopMode, FALSE /*shouldTimeout*/);
+  ex_assert(error == 0, "getStatsSemaphore() returned an error");
+  
+  statsGlobals->resetSnapshotInProgress();
+    
+  statsGlobals->releaseStatsSemaphore(sscpGlobals->getSemId(),
+                                    sscpGlobals->myPin(), savedPriority,
+                                    savedStopMode);
+  clearAllObjects();
+  setType(IPC_MSG_SSCP_REPLY);
+  setVersion(CurrSscpReplyMessageVersion);
+
+  RmsGenericReply *reply = new(getHeap())
+    RmsGenericReply(getHeap());
+
+  *this << *reply;
+
+  send(FALSE);
+  reply->decrRefCount();
+  request->decrRefCount();
+}
+
 

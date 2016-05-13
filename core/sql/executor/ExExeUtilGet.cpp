@@ -3208,6 +3208,172 @@ short ExExeUtilGetHbaseObjectsTcb::work()
   return WORK_OK;
 }
 
+
+///////////////////////////////////////////////////////////////////
+ex_tcb * ExExeUtilBackupRestoreTdb::build(ex_globals * glob)
+{
+  ex_tcb * exe_util_tcb;
+
+  exe_util_tcb = new(glob->getSpace()) ExExeUtilBackupRestoreTcb(*this, glob);
+
+  exe_util_tcb->registerSubtasks();
+
+  return (exe_util_tcb);
+}
+
+
+////////////////////////////////////////////////////////////////
+//Constructor for class ExExeUtilBackupRestoreTcb
+///////////////////////////////////////////////////////////////
+ExExeUtilBackupRestoreTcb::ExExeUtilBackupRestoreTcb(
+  const ComTdbExeUtilBackupRestore & exe_util_tdb,
+  ex_globals * glob)
+  : ExExeUtilTcb( exe_util_tdb, NULL, glob)
+{
+    int jniDebugPort = 0;
+    int jniDebugTimeout = 0;
+    ehi_ = ExpHbaseInterface::newInstance(glob->getDefaultHeap(),
+                 (char*)exe_util_tdb.server(), 
+                 (char*)exe_util_tdb.zkPort(),
+                                     jniDebugPort,
+                                     jniDebugTimeout);
+    ehi_->initBRC(NULL);
+    step_ = INITIAL_;
+
+   
+}
+
+ExExeUtilBackupRestoreTcb::~ExExeUtilBackupRestoreTcb()
+{
+  if (ehi_)
+    delete ehi_;
+
+  //if (hbaseNameBuf_)
+    //NADELETEBASIC(hbaseNameBuf_, getGlobals()->getDefaultHeap());
+
+  //if (outBuf_)
+   // NADELETEBASIC(outBuf_, getGlobals()->getDefaultHeap());
+}
+
+//////////////////////////////////////////////////////
+//work() for ExExeUtilGetHbaseObjectsTcb
+//////////////////////////////////////////////////////
+short ExExeUtilBackupRestoreTcb::work()
+{
+  short retcode = 0;
+  Lng32 cliRC = 0;
+  ex_expr::exp_return_type exprRetCode = ex_expr::EXPR_OK;
+  
+  // if no parent request, return
+  if (qparent_.down->isEmpty())
+    return WORK_OK;
+  
+  // if no room in up queue, won't be able to return data/status.
+  // Come back later.
+  if (qparent_.up->isFull())
+    return WORK_OK;
+  
+  ex_queue_entry * pentry_down = qparent_.down->getHeadEntry();
+  ExExeUtilPrivateState & pstate =
+   *((ExExeUtilPrivateState*) pentry_down->pstate);
+  
+  // Get the globals stucture of the master executor.
+  ExExeStmtGlobals *exeGlob = getGlobals()->castToExExeStmtGlobals();
+  ExMasterStmtGlobals *masterGlob = exeGlob->castToExMasterStmtGlobals();
+  ContextCli * currContext = masterGlob->getStatement()->getContext();
+  NAArray<HbaseStr>* backupList = NULL;
+  char cBuf[1000];
+  
+  while (1)
+  {
+    switch (step_)
+    { 
+    case INITIAL_:
+    {
+      if (ehi_ == NULL)
+      {
+        step_ = HANDLE_ERROR_;
+        break;
+      }
+      currIndex_ = 0;
+      step_ = SETUP_HBASE_QUERY_;
+    }
+    break;
+ 
+    case SETUP_HBASE_QUERY_:
+    {
+      backupList = ehi_->listAllBackups();
+      if (! backupList)
+      {
+        step_ = HANDLE_ERROR_;
+        break;
+      }
+      step_ = PROCESS_NEXT_ROW_;
+    }
+    break;
+  
+    case PROCESS_NEXT_ROW_:
+    {
+      if (currIndex_ == backupList->entries())
+      {
+        step_ = DONE_;
+        break;
+      }
+      Int32 len = backupList->at(currIndex_).len;
+      char *val = backupList->at(currIndex_).val;
+      if (len >= sizeof(cBuf))
+        len = sizeof(cBuf)-1;
+      strncpy(cBuf, val, len);
+      cBuf[len] = '\0';
+      backupName_ = cBuf; 
+      currIndex_++;
+      step_ = EVAL_EXPR_;
+    }
+    break;
+  
+    case EVAL_EXPR_:
+    {
+      step_ = RETURN_ROW_;
+    }
+    break;
+
+    case RETURN_ROW_:
+    {
+      if (qparent_.up->isFull())
+        return WORK_OK;
+
+      short rc = 0;
+      //cout<<backupName_<<" trace"<<endl;
+      moveRowToUpQueue(backupName_, 0, &rc);
+      step_ = PROCESS_NEXT_ROW_;
+    }
+    break;
+  
+    case HANDLE_ERROR_:
+     {
+       retcode = handleError();
+       if (retcode == 1)
+         return WORK_OK;
+       step_ = DONE_;
+     }
+     break;
+
+    case DONE_:
+     {
+       retcode = handleDone();
+       if (retcode == 1)
+         return WORK_OK;
+       deleteNAArray(ehi_->getHeap(),backupList);
+       step_ = INITIAL_;
+       return WORK_OK;
+     }
+     break;
+    }
+  }
+  return WORK_OK;
+}
+/////////////////////////
+///////////////////
 ////////////////////////////////////////////////////////////////
 // Constructor for class ExExeUtilGetMetadataInfoVersionTcb
 ///////////////////////////////////////////////////////////////

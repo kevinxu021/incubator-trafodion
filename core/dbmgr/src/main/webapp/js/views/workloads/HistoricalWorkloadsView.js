@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2016 Esgyn Corporation
+//(C) Copyright 2015-2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -53,7 +53,8 @@ define([
 	var validator = null;
 	var resizeTimer = null;
 	var lastAppliedFilters = null; //last set of filters applied by user explicitly
-
+	var lastUsedTimeRange = null;
+	
 	var WorkloadsView = BaseView.extend({
 		template:  _.template(WorkloadsT),
 
@@ -163,6 +164,12 @@ define([
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
 			$(window).on('resize', this.onResize);
 			//this.fetchQueriesInRepository();
+			if(lastUsedTimeRange != null){
+				var currTimeRange = $(FILTER_TIME_RANGE).val();
+				if(lastUsedTimeRange != currTimeRange){
+					this.fetchQueriesInRepository();
+				}
+			}
 		},
 		doPause: function(){
 			this.storeCommonTimeRange();
@@ -200,8 +207,12 @@ define([
 		hideLoading: function () {
 			$(LOADING_SELECTOR).hide();
 		},
-		updateFilter: function(){
-			var selection = $(FILTER_TIME_RANGE).val();
+		updateFilter: function(selection){
+			if(selection==null){
+				selection = $(FILTER_TIME_RANGE).val();
+			}else{
+				$(FILTER_TIME_RANGE).val(selection);
+			}
 			switch(selection){
 			case "1":
 				$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
@@ -221,6 +232,12 @@ define([
 				$(FILTER_START_TIME).prop("disabled", true);
 				$(FILTER_END_TIME).prop("disabled", true);
 				break;
+			case "128":
+				$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'week'));
+				$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
+				$(FILTER_START_TIME).prop("disabled", true);
+				$(FILTER_END_TIME).prop("disabled", true);
+				break;					
 			case "0":
 				$(FILTER_START_TIME).prop("disabled", false);
 				$(FILTER_END_TIME).prop("disabled", false);
@@ -276,7 +293,9 @@ define([
 			_this.updateTimeRangeLabel();
 
 			var param = _this.getFilterParams();
-
+			
+			lastUsedTimeRange = $(FILTER_TIME_RANGE).val();
+				
 			if(lastAppliedFilters == null || source != null){
 				lastAppliedFilters = param;
 			}else{

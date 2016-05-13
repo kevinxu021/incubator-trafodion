@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 //
-//(C) Copyright 2016 Esgyn Corporation
+//(C) Copyright 2015-2016 Esgyn Corporation
 //
 //@@@ END COPYRIGHT @@@
 
@@ -156,7 +156,7 @@ define([
 
 				oDataTable = $('#dcs-query-results').DataTable({
 					"oLanguage": {
-						"sEmptyTable": "There are no dcs servers"
+						"sEmptyTable": "Could not find any master executor processes"
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					processing: true,

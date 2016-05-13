@@ -1195,6 +1195,9 @@ class CmpSeabaseDDL
   void dropSeabaseLibrary(StmtDDLDropLibrary  * dropLibraryNode,
                           NAString &currCatName, NAString &currSchName);
 
+  void  alterSeabaseLibrary(StmtDDLAlterLibrary  *alterLibraryNode,
+                            NAString &currCatName, NAString &currSchName);
+
   void createSeabaseRoutine(StmtDDLCreateRoutine  * createRoutineNode,
                             NAString &currCatName, NAString &currSchName);
   

@@ -144,8 +144,8 @@ def run():
     if not options.adminuser :
         done = None
         while (done==None) :
-            options.adminuser = raw_input('Please provide the EsgynDB Admin User ID (DB__ADMINUSER): ')
-            if not options.adminuser : options.adminuser = "DB__ADMINUSER"
+            options.adminuser = raw_input('Please provide the EsgynDB Admin User ID (DB__ADMIN): ')
+            if not options.adminuser : options.adminuser = "DB__ADMIN"
             if options.adminuser and len(options.adminuser)>1: done = True
 
     if not options.adminpassword :

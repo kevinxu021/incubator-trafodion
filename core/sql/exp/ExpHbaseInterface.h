@@ -61,6 +61,7 @@ class CliGlobals;
 class ExHbaseAccessStats;
 
 Int64 getTransactionIDFromContext();
+Int32 checkAndWaitSnapshotInProgress();
 
 using namespace apache::thrift;
 using namespace apache::thrift::protocol;
@@ -84,7 +85,6 @@ class ExpHbaseInterface : public NABasicObject
 {
  public:
   NAHeap *getHeap() { return (NAHeap*)heap_; }
-
   static ExpHbaseInterface* newInstance(CollHeap* heap, 
                                         const char* server = NULL, 
                                         const char *zkPort = NULL, 
@@ -142,7 +142,8 @@ class ExpHbaseInterface : public NABasicObject
                      NABoolean force = FALSE);
 
   virtual Lng32 createSnaphot(const std::vector<Text>& tables, const char* backuptag);
-  virtual Lng32 restoreSnapshots(const char* backuptag);
+  virtual Lng32 restoreSnapshots(const char* backuptag, NABoolean timestamp = FALSE);
+  virtual NAArray<HbaseStr> *listAllBackups();
   
   virtual Lng32 exists(HbaseStr &tblName) = 0;
 
@@ -486,7 +487,8 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
                      NABoolean force = FALSE);
 
   virtual Lng32 createSnaphot(const std::vector<Text>& tables, const char* backuptag);
-  virtual Lng32 restoreSnapshots(const char* backuptag);
+  virtual Lng32 restoreSnapshots(const char* backuptag, NABoolean timestamp = FALSE);
+  virtual NAArray<HbaseStr> *listAllBackups();
   
   // -1, if table exists. 0, if doesn't. -ve num, error.
   virtual Lng32 exists(HbaseStr &tblName);

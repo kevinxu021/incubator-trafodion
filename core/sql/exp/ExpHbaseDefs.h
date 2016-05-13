@@ -170,6 +170,7 @@ typedef enum
     HBASE_RETRY_AGAIN,
     HBASE_CREATE_SNAPSHOT_ERROR,
     HBASE_RESTORE_SNAPSHOT_ERROR,
+    HBASE_BACKUP_LOCK_TIMEOUT_ERROR,
     HBASE_MAX_ERROR_NUM     // keep this as the last element in enum list.
 
   } HbaseError;
@@ -196,6 +197,8 @@ static const char * const hbaseErrorEnumStr[] =
     "HBASE_INIT_HBLC_ERROR",
     "HBASE_INIT_BRC_ERROR",
     "HBASE_CREATE_SNAPSHOT_ERROR",
+    "HBASE_RESTORE_SNAPSHOT_ERROR",
+    "HBASE_BACKUP_LOCK_TIMEOUT_ERROR",
     "HBASE_MAX_ERROR_NUM"     // keep this as the last element in enum list.
   };
 

@@ -141,8 +141,8 @@ public:
     FUNC_CURR_TRANSID_ID     =56,
     FUNC_USER_ID             =57,
     FUNC_ANSI_USER_ID        =58,
-    FUNC_VARIANCE_ID         =59,
-    FUNC_STDDEV_ID           =60,
+    FUNC_VARIANCE_SAMP_ID    =59,
+    FUNC_STDDEV_SAMP_ID      =60,
     FUNC_RAISE_ERROR_ID      =61,
     FUNC_RANDOMNUM_ID        =62,
     FUNC_HDPHASH_ID          =63,
@@ -201,7 +201,9 @@ public:
     FUNC_HBASE_VISIBILITY = 116,
     FUNC_HBASE_VISIBILITY_SET = 117,
     FUNC_HBASE_TIMESTAMP     = 118,
-    FUNC_HBASE_VERSION = 119
+    FUNC_HBASE_VERSION = 119,
+	FUNC_STDDEV_POP_ID = 120,
+	FUNC_VARIANCE_POP_ID = 121
   };
 
   // max number of operands (including result) in a clause.

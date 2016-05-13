@@ -481,6 +481,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_AVERAGE_STREAM_WAIT         /* Tandem extension non-reserved word */
 %token <tokval> TOK_AVG
 %token <tokval> TOK_BACKUP
+%token <tokval> TOK_BACKUPS
 %token <tokval> TOK_BEFORE
 
 %token <tokval> TOK_BEGIN
@@ -1090,6 +1091,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_STABLE_ACCESS	/* Tandem extension */
 %token <tokval> TOK_STATUS
 %token <tokval> TOK_STDDEV              /* Tandem extension */
+%token <tokval> TOK_STDDEV_SAMP
+%token <tokval> TOK_STDDEV_POP
 %token <tokval> TOK_STOP                /* Tandem extension */
 %token <tokval> TOK_STORED
 %token <tokval> TOK_SQL
@@ -1173,6 +1176,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_VARBINARY
 %token <tokval> TOK_VARCHAR
 %token <tokval> TOK_VARIANCE            /* Tandem extension */
+%token <tokval> TOK_VARIANCE_SAMP
+%token <tokval> TOK_VARIANCE_POP
 %token <tokval> TOK_VARWCHAR
 %token <tokval> TOK_VARYING
 %token <tokval> TOK_VERSION
@@ -2820,6 +2825,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <relx>                    exe_util_get_statistics
 %type <relx>                    exe_util_get_uid
 %type <relx>                    exe_util_get_qid
+%type <relx>                    exe_util_backup_restore
 %type <relx>                    exe_util_get_lob_info
 %type <relx>                    exe_util_populate_in_memory_statistics
 %type <relx>                    exe_util_lob_extract
@@ -2828,7 +2834,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <boolean>                 load_sample_option
 %type <relx>                    exe_util_init_hbase
 %type <relx>                    backup_statement
-%type <relx>                    restore_statement     
+%type <relx>                    restore_statement
+%type <relx>                    unlock_trafodion     
 %type <hBaseBulkLoadOptionsList> optional_hbbload_options
 %type <hBaseBulkLoadOptionsList> hbbload_option_list
 %type <hBaseBulkLoadOption>      hbbload_option
@@ -7286,7 +7293,7 @@ set_function_specification : set_function_type '(' set_quantifier value_expressi
 				 $$ = new (PARSERHEAP())
 				   Aggregate($1, $4, $3, ITM_COUNT, '!');
 			       }
-			     else if ($1 == ITM_VARIANCE || $1 == ITM_STDDEV)
+			     else if ($1 == ITM_VARIANCE_SAMP || $1 == ITM_VARIANCE_POP || $1 == ITM_STDDEV_SAMP || $1 == ITM_STDDEV_POP) 
 			       $$ = new (PARSERHEAP()) Variance($1, $4, NULL, $3);
 			     else
 			       $$ = new (PARSERHEAP()) Aggregate($1, $4, $3);
@@ -7294,7 +7301,7 @@ set_function_specification : set_function_type '(' set_quantifier value_expressi
               | set_function_type '(' set_quantifier value_expression ',' 
                                                      value_expression ')'
 			   {
-			     if ($1 == ITM_VARIANCE || $1 == ITM_STDDEV)
+			     if ($1 == ITM_VARIANCE_SAMP || $1 == ITM_STDDEV_SAMP)
 			       $$ = new (PARSERHEAP()) Variance($1, $4, $6, $3);
 			     else
 			       {
@@ -7356,8 +7363,12 @@ set_function_type :   TOK_AVG 		{ $$ = ITM_AVG; }
                     | TOK_MIN 		{ $$ = ITM_MIN; }
                     | TOK_SUM 		{ $$ = ITM_SUM; }
                     | TOK_COUNT 	{ $$ = ITM_COUNT; }
-                    | TOK_VARIANCE 	{ $$ = ITM_VARIANCE; }
-                    | TOK_STDDEV 	{ $$ = ITM_STDDEV; }
+                    | TOK_VARIANCE 	{ $$ = ITM_VARIANCE_SAMP; }
+                    | TOK_STDDEV 	{ $$ = ITM_STDDEV_SAMP; }
+  		    | TOK_STDDEV_SAMP { $$ = ITM_STDDEV_SAMP;}
+		    | TOK_STDDEV_POP  { $$ = ITM_STDDEV_POP;}
+		    | TOK_VARIANCE_SAMP { $$ = ITM_VARIANCE_SAMP;}
+		    | TOK_VARIANCE_POP  { $$ = ITM_VARIANCE_POP;}
                       // max of ColumnStatistics getNumberOfValues 
                       // across all stripes of an ORC file
                     | TOK_ORC_MAX_NV  { $$ = ITM_ORC_MAX_NV; }
@@ -13611,6 +13622,12 @@ query_specification : exe_util_get_qid
 				  RelRoot *root = new (PARSERHEAP())
 				    RelRoot($1, REL_ROOT);
                                 }
+                                
+query_specification : exe_util_backup_restore
+                                {
+          RelRoot *root = new (PARSERHEAP())
+            RelRoot($1, REL_ROOT);
+                                }
 
 query_specification : exe_util_get_lob_info
                                 {
@@ -14802,7 +14819,11 @@ interactive_query_expression:
                         {
           $$ = finalize($1);
         }
-              | exe_util_get_region_access_stats
+        | unlock_trafodion
+        {
+          $$ = finalize($1);
+        }
+           | exe_util_get_region_access_stats
                                 {
 				  $$ = finalize($1);
 				}
@@ -15881,6 +15902,12 @@ exe_util_get_qid : TOK_GET TOK_QID TOK_FOR TOK_STATEMENT IDENTIFIER
 	       }
 
 /* type relx */
+exe_util_backup_restore : TOK_GET TOK_TRAFODION TOK_BACKUPS
+               {
+                 $$ = new(PARSERHEAP()) ExeUtilBackupRestore(PARSERHEAP());
+         }
+         
+/* type relx */
 exe_util_populate_in_memory_statistics : TOK_GENERATE TOK_STATISTICS TOK_FOR TOK_TABLE table_name TOK_LIKE table_name optional_from_schema
                {
 		 YYERROR;
@@ -16579,6 +16606,42 @@ restore_statement : TOK_RESTORE TOK_TRAFODION QUOTED_STRING
     $$ = de;
        }
        
+       | TOK_RESTORE TOK_TRAFODION TOK_TO QUOTED_STRING
+     {
+       CharInfo::CharSet stmtCharSet = CharInfo::UnknownCharSet;
+       NAString * stmt = getSqlStmtStr ( stmtCharSet, PARSERHEAP());
+  
+       DDLExpr * de = new(PARSERHEAP()) DDLExpr(FALSE, FALSE, FALSE, FALSE,
+                                                            FALSE, FALSE,
+                  FALSE, FALSE, FALSE,
+                  (char*)stmt->data(),
+                  stmtCharSet,
+                  PARSERHEAP());
+      de->setRestore(TRUE);
+      de->setBackupTag((char*)$4->data());
+      de->setBackupTagTimeStamp(TRUE);
+      
+      $$ = de;
+       }
+
+/* type relx */
+unlock_trafodion : TOK_UNLOCK TOK_TRAFODION
+     {
+      CharInfo::CharSet stmtCharSet = CharInfo::UnknownCharSet;
+      NAString * stmt = getSqlStmtStr ( stmtCharSet, PARSERHEAP());
+
+      DDLExpr * de = new(PARSERHEAP()) DDLExpr(FALSE, FALSE, FALSE, FALSE,
+                                                          FALSE, FALSE,
+                FALSE, FALSE, FALSE,
+                (char*)stmt->data(),
+                stmtCharSet,
+                PARSERHEAP());
+      de->setUnlockTraf(TRUE);
+      
+     $$ = de;
+    }
+         
+                
 /* type relx */
 exe_util_get_region_access_stats : TOK_GET TOK_REGION stats_or_statistics TOK_FOR TOK_TABLE table_name
                {
@@ -33854,6 +33917,8 @@ nonreserved_func_word:  TOK_ABS
                       | TOK_SPACE
                       | TOK_SQRT
                       | TOK_STDDEV
+					  | TOK_STDDEV_SAMP
+					  | TOK_STDDEV_POP
                       | TOK_STOP
 			//                      | TOK_SYSDATE
                       | TOK_TAN
@@ -33874,6 +33939,8 @@ nonreserved_func_word:  TOK_ABS
 			//                      | TOK_UUID
 		      | TOK_USERNAMEINTTOEXT
                       | TOK_VARIANCE
+					  | TOK_VARIANCE_SAMP
+					  | TOK_VARIANCE_POP
                       | TOK_WEEK
                       | TOK_XMLAGG
                       | TOK_XMLELEMENT

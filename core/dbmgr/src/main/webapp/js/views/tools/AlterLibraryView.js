@@ -1,0 +1,290 @@
+//@@@ START COPYRIGHT @@@
+
+//(C) Copyright 2016 Esgyn Corporation
+
+//@@@ END COPYRIGHT @@@
+
+define([ 'views/BaseView', 'text!templates/alter_library.html', 'jquery',
+		'handlers/ToolsHandler', 'moment', 'common', 'views/RefreshTimerView',
+		'jqueryui', 'datatables.net', 'datatables.net-bs', 'jqueryvalidate',
+        'bootstrapNotify'
+ ], function(BaseView,
+		AlterLibraryT, $, tHandler, moment, common, refreshTimer) {
+	'use strict';
+
+	var _this = null;
+	var PAGE_MODE = "NORMAL"; 
+	var LIB_FORM = "#alter-library-form";
+	var SCHEMA_NAME = "#schema_name";
+	var LIBRARY_NAME = "#library_name";
+	var LIBRARY_ERROR = "#library_name_error";
+	var FILE_NAME = "#file_name";
+	var FILE_SELECT = "#file";
+	var ALTER_BTN = "#alter_btn";
+	var CLEAR_BTN = "#clear_btn";
+	var OVERWRITE_CHECKBOX = "#overwrite";
+	var LOADING = "#alter-loading-spinner";
+	var PAGE_HEADER = "#alter-library-page-header";
+	var FILE = null;
+	var CHUNKS = [];
+	var UPLOAD_INDEX = 0;
+	var UPLOAD_LENGTH = 0;
+	var OVERWRITE_FLAG = false;
+	var validator = null;
+	var isAjaxCompleted=true;
+	var _args = null;
+	
+	var AlterLibraryView = BaseView.extend({
+		template : _.template(AlterLibraryT),
+		currentLibraryName:null,
+		currentSchemaName:null,
+
+		doInit : function(args) {
+			_this = this;
+			_args = args;
+			_this.processArgs();
+			this.redirectFlag=false;
+			this.currentURL = window.location.hash;
+			$(ALTER_BTN).on('click', this.uploadFile);
+			$(CLEAR_BTN).on('click', this.cleanField);
+			$(FILE_SELECT).on('click', this.fileDialogOpened);
+			$(FILE_SELECT).on('change', this.onFileSelected);
+			
+			tHandler.on(tHandler.ALTER_LIBRARY_ERROR, this.alterLibraryError);
+			tHandler.on(tHandler.ALTER_LIBRARY_SUCCESS, this.alterLibrarySuccess);
+			tHandler.on(tHandler.EXECUTE_UPLOAD_CHUNK, this.executeUploadChunk);
+			$(LOADING).css('visibility', 'hidden');
+			$(ALTER_BTN).prop('disabled', true);
+			
+			validator = $(LIB_FORM).validate({
+				rules: {
+					"schema_name": { required: true, validateSchemaName:true },
+					"library_name": { required: true, validateLibraryName: true },
+					"file_name": { required: true}
+				},
+				messages: {
+					"schema_name": {"required":"Please enter a schema name"},
+					"library_name": {"required":"Please enter a library name"},
+					"file_name": "Please enter a code file name"
+		        },
+				highlight: function(element) {
+					$(element).closest('.form-group').addClass('has-error');
+				},
+				unhighlight: function(element) {
+					$(element).closest('.form-group').removeClass('has-error');
+				},
+				errorElement: 'span',
+				errorClass: 'help-block',
+				errorPlacement: function(error, element) {
+					if(element.parent('.input-group').length) {
+						error.insertAfter(element.parent());
+					} else {
+						error.insertAfter(element);
+					}
+				}
+			});
+			$.validator.addMethod("validateSchemaName", function(value, element) {
+				var schemaName = $(SCHEMA_NAME).val();
+				var isNormalName = (!schemaName.startsWith("_") && (schemaName.match("^[\"a-zA-Z0-9_]+$")!=null));
+				if(!isNormalName){
+					if(schemaName.startsWith('"') && schemaName.endsWith('"')){
+						isNormalName = true;
+					}
+				}
+				return isNormalName;
+
+			}, "* Schema name contains special characters. It needs be enclosed within double quotes.");
+			
+			$.validator.addMethod("validateLibraryName", function(value, element) {
+				var libName = $(LIBRARY_NAME).val();
+				var isNormalName = (!libName.startsWith("_") && (libName.match("^[a-zA-Z0-9_]+$")!=null));
+				if(!isNormalName){
+					if(libName.startsWith('"') && libName.endsWith('"')){
+						isNormalName = true;
+					}
+				}
+				return isNormalName;
+
+			}, "* Library name contains special characters. It needs be enclosed within double quotes.");
+		},
+		doResume : function(args) {
+			$(ALTER_BTN).on('click', this.uploadFile);
+			$(CLEAR_BTN).on('click', this.cleanField);
+			$(FILE_SELECT).on('click', this.fileDialogOpened);
+			this.currentURL = window.location.hash;
+			_args = args;
+			_this.processArgs();
+			this.redirectFlag=false;
+			if(this.isAjaxCompleted==true){
+				$(LOADING).css('visibility', 'hidden');
+				$(ALTER_BTN).prop('disabled', false);
+				$(CLEAR_BTN).prop('disabled', false);
+			}
+		},
+		doPause : function() {
+			$(ALTER_BTN).off('click', this.uploadFile);
+			$(CLEAR_BTN).off('click', this.cleanField);
+			$(FILE_SELECT).off('click', this.fileDialogOpened);
+			this.redirectFlag=true;
+		},
+		fileDialogOpened: function(){
+			this.value = null; //reset the value so the file can be selected even if the same file that was selected before
+		},
+		processArgs: function(){
+			if( _args.schema != undefined){
+				$(SCHEMA_NAME).val( _args.schema);
+				if(_this.currentSchemaName != _args.schema){
+					_this.currentSchemaName= _args.schema;
+					$(FILE_NAME).val("");
+				}
+			}
+			
+			if(_args.library != undefined && _this.currentLibraryName != _args.library){
+				$(FILE_NAME).val("");
+				_this.currentLibraryName = _args.library;
+				$(LIBRARY_NAME).val(_args.library);
+				$(LIBRARY_NAME).prop('disabled', true);
+				$(SCHEMA_NAME).prop('disabled', true);
+				$(OVERWRITE_CHECKBOX).prop('disabled', true);
+				$(OVERWRITE_CHECKBOX).prop('checked' ,true);
+			}
+			$(FILE_SELECT).on('change', this.onFileSelected);
+		},
+		
+		cleanField:function(){
+			_this.processArgs();
+			$(FILE_NAME).val("");
+			$(FILE_SELECT).val("");
+			$(LIBRARY_ERROR).hide();
+			$(LOADING).css('visibility', 'hidden');
+			$(ALTER_BTN).prop('disabled', true);
+			FILE=null;
+			CHUNKS=[];
+			UPLOAD_INDEX = 0;
+			UPLOAD_LENGTH = 0;
+		},
+		uploadFile : function() {
+			if($(LIB_FORM).valid()){
+		
+			}else{
+				return;
+			}
+
+			if($(LIBRARY_NAME).val()==""){
+				$(LIBRARY_ERROR).show();
+				return;
+			}
+			$(LOADING).css('visibility', 'visible');
+			$(ALTER_BTN).prop('disabled', true);
+			$(CLEAR_BTN).prop('disabled', true);
+			var schemaName = $(SCHEMA_NAME).val()==""?"_LIBMGR_": $(SCHEMA_NAME).val();
+			var libraryName = $(LIBRARY_NAME).val();
+			_this.currentLibraryName=$(LIBRARY_NAME).val();
+			_this.currentSchemaName=schemaName;
+			var chunk_size = 10000  * 1024; //1mb = 1 * 1024 * 1024;
+			var file = FILE;
+			var fileName = file.name;
+			var filePart = 0;
+			var fileSize = file.size;
+			var start = 0;
+			var end = chunk_size;
+			var totalChunks = Math.ceil(fileSize / chunk_size);
+			OVERWRITE_FLAG = false;
+			UPLOAD_INDEX = 0;
+			CHUNKS=[];
+			while(start < fileSize){
+				var slice_method = "";
+				if ('mozSlice' in file) {
+					slice_method = 'mozSlice';
+				} else if ('webkitSlice' in file) {
+					slice_method = 'webkitSlice';
+				} else {
+					slice_method = 'slice';
+				}
+				var chunk = file[slice_method](start, end);
+				var data = {
+						"chunk":chunk,
+						"fileName":fileName,
+						"filePart":filePart,
+						"fileSize":fileSize,
+						"schemaName":schemaName,
+						"libraryName":libraryName
+				}
+				CHUNKS.push(data);
+				filePart++;
+				start = end;
+				end = start + chunk_size;
+			}
+			UPLOAD_LENGTH = CHUNKS.length;
+			OVERWRITE_FLAG = $(OVERWRITE_CHECKBOX).prop('checked');
+			if(UPLOAD_LENGTH==1){
+				_this.executeUploadChunk(OVERWRITE_FLAG, true, true);	
+			}else{
+				_this.executeUploadChunk(OVERWRITE_FLAG, true, false);
+			}
+			
+		},
+		
+		executeUploadChunk : function(oflag, sflag, eflag, uflag){
+			_this.isAjaxCompleted=false;
+			var data = CHUNKS[UPLOAD_INDEX];
+			var uflag = true;
+			tHandler.alterLibrary(data.chunk, data.fileName, data.filePart, data.fileSize, common.ExternalForm(data.schemaName), common.ExternalForm(data.libraryName), oflag, sflag, eflag, uflag);
+			UPLOAD_INDEX++;
+		}, 
+		onFileSelected : function(e) {
+			var files = e.target.files;
+			FILE = files[0];
+			$(ALTER_BTN).prop('disabled', false);
+			$(FILE_NAME).val(FILE.name);
+		},
+		alterLibrarySuccess : function(data){
+			_this.isAjaxCompleted=true;
+			var msgPrefix = "altered";
+			var msg= 'Library '+ common.ExternalForm(data.schemaName) + "." + common.ExternalForm(data.libraryName) + ' was ' + msgPrefix + ' successfully';
+			if(UPLOAD_INDEX==UPLOAD_LENGTH){
+				$(LOADING).css('visibility', 'hidden');
+				$(ALTER_BTN).prop('disabled', false);
+				$(CLEAR_BTN).prop('disabled', false);
+				var msgObj={msg: msg,tag:"success",url:null,shortMsg:'Library was ' + msgPrefix + ' successfully.'};
+				if(_this.redirectFlag==false){
+					_this.popupNotificationMessage(null,msgObj);
+				}else{
+					
+					common.fire(common.NOFITY_MESSAGE,msgObj);
+				}
+				var args = {};
+				args.schemaName = data.schemaName;
+				args.libName = data.libraryName;
+				
+				common.fire(common.LIBRARY_ALTERED_EVENT,args);
+				
+				//alert("Alter library Success!");
+			}else if(UPLOAD_INDEX==UPLOAD_LENGTH-1){
+				_this.executeUploadChunk(OVERWRITE_FLAG, false, true);
+			}else{
+				_this.executeUploadChunk(OVERWRITE_FLAG, false, false);
+			}
+		},
+		alterLibraryError : function(error){
+			_this.isAjaxCompleted=true;
+			$(LOADING).css('visibility', 'hidden');
+			$(ALTER_BTN).prop('disabled', false);
+			$(CLEAR_BTN).prop('disabled', false);
+			var errorIndex = error.responseText.lastIndexOf("*** ERROR");
+			var errorString = error.responseText.substring(errorIndex);
+			var msgPrefix = "Failed to alter library ";
+			var msg= msgPrefix + common.ExternalForm(error.schemaName) + "." + common.ExternalForm(error.libraryName) + " : " + errorString;
+			//alert(errorString);
+			var msgObj={msg:msg,tag:"danger",url:null,shortMsg:msgPrefix};
+			if(_this.redirectFlag==false){
+				_this.popupNotificationMessage(null,msgObj);
+			}else{
+				
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+			}
+		}
+	});
+
+	return AlterLibraryView;
+});

@@ -1970,7 +1970,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DD_____(HIVE_FILE_NAME,     "/hive/tpcds/customer/customer.dat" ),
   DD_____(HIVE_HDFS_STATS_LOG_FILE,             ""),
   DDint__(HIVE_HDFS_STATS_MAX_SAMPLE_FILES,     "10"),
-  DDkwd__(HIVE_HDFS_STATS_SAMPLE_LOB_INTFC,     "OFF"),
+  DDkwd__(HIVE_HDFS_STATS_SAMPLE_LOB_INTFC,     "ON"),
   DDint__(HIVE_LIB_HDFS_PORT_OVERRIDE,          "-1"),
   DDint__(HIVE_LOCALITY_BALANCE_LEVEL,          "3"),
   DDui___(HIVE_MAX_ESPS,                        "9999"),
@@ -2696,7 +2696,7 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
 
   DDkwd__(OLT_QUERY_OPT,			"ON"),
   DDkwd__(OLT_QUERY_OPT_LEAN,			"OFF"),
-
+  DDint__(ONLINE_BACKUP_TIMEOUT,                 "30"),
   // -----------------------------------------------------------------------
   // Optimizer pruning heuristics.
   // -----------------------------------------------------------------------
@@ -2763,7 +2763,7 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
 
   DDkwd__(ORC_AGGR_PUSHDOWN,                    "ON"),
   DDkwd__(ORC_COLUMNS_PUSHDOWN,                 "ON"),
-  DDkwd__(ORC_NJS,                              "ON"),
+  DDkwd__(ORC_NJS,                              "OFF"),
   DDkwd__(ORC_PRED_PUSHDOWN,                    "ON"),
   DDkwd__(ORC_READ_STRIPE_INFO,                 "OFF"),
   DDkwd__(ORC_VECTORIZED_SCAN,                  "ON"),

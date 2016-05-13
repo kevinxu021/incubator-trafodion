@@ -1,0 +1,84 @@
+////
+<!--
+/**
+  *(C) Copyright 2015-2016 Esgyn Corporation
+  *
+  * Confidential computer software. Valid license from Esgyn required for
+  * possession, use or copying. Consistent with FAR 12.211 and 12.212,
+  * Commercial Computer Software, Computer Software Documentation, and
+  * Technical Data for Commercial Items are licensed to the U.S. Government
+  * under vendor's standard commercial license.
+  *
+  */
+-->
+////
+[[logs]]
+== Logs
+:doctype: book
+:numbered:
+:toc: left
+:icons: font
+:experimental:
+
+The Logs page displays the log and event messages from the various EsgynDB processes. The logs are fetched using the logs Table Mapping Function which scans and filters the log entries from all the EsgynDB log files on all nodes and provides a single consolidated time sequenced view.
+
+=== Log Summary
+The Log details include the following:
+
+*Time*::
+The time when the log event occurred
+*Severity*::
+The event severity (FATAL/ERROR/WARN/INFO/DEBUG)
+*Component*::
+The EsgynDB component name reporting the event
+*Process*::
+The component process reporting the event
+*Error Code*::
+Error code if applicable. SQL Errors have error codes.
+*Message*::
+The event message
+
+The logs page by default auto-refreshes every 30 seconds. You can change the time window or turn OFF auto-refresh using the *Auto Refresh* drop-down menu.
+
+You can use the Logs filter to look for log entries from specific times or processes.
+
+=== Log Filter
+
+Use the *Filters* button to specify custom filters for your search. You can filter the log entries using:
+
+*Time Range*::
+Select one of the pre-define time ranges or use the custom time range and provide a start and end time. Only the log entries that are within this time range are fetched and displayed.
+*Severity*::
+If are you only interested in specific severities, check those severity level checkboxes.
+*Component Names(s)*::
+If are you only interested in specific components, check those component name checkboxes.
+The table below describes the component names:
+[options="header"]
+|===========================
+|Component Name |Description
+|MON | Monitor
+|MXOSRVR | Master Executor
+|SQL | SQL
+|SQL.COMP | Compiler
+|SQL.ESP | Executor Server Process
+|SQL.EXE | Master Executor SQL
+|SQL.LOB | SQL Large Objects
+|SQL.SSCP | Runtime Manageability Service
+|SQL.SSMP | Runtime Manageability Service
+|SQL.UDR | User Defined Routines
+|WDG | Watchdog
+|DCS | Connectivity Servers
+|REST | REST Server
+|===========================
+
+*Process Name(s)*::
+You can also filter on specific process names by entering the process name as comma separated list.
+
+*Error Code(s)*::
+You can also filter on specific error codes by entering the error code as comma separated list. You can only enter non-zero integer values.
+
+*Message*::
+You can also provide a partial message text and all event messages that contain this text will be selected.
+
+*Max Fetch Rows*::
+By default, only the first 5000 rows that match the filter criteria is returned. You can increase this row count by using the drop-down values.

@@ -83,6 +83,13 @@ define([
 			}else{
 				$(TIME_RANGE).val(selection);
 			}
+			
+			if(!$(START_TIME_PICKER).data("DateTimePicker")){
+				$(START_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
+			}
+			if(!$(END_TIME_PICKER).data("DateTimePicker")){
+				$(END_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
+			}
 				
 			switch(selection){
 			case "1":

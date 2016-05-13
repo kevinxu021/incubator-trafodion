@@ -8,10 +8,11 @@
 		style="border: 1px solid #dce4ec; border-width: 2px; border-radius: 2px; padding-left: 30px; padding-top: 30px">
 		<form id="create-library-form">
 			<div class="form-group">
-				<label class="control-label">Schema Name</label>
+				<label class="control-label">Schema Name<span
+					style="color: red"> *</span></label>
 				<div class="input-group" style="width: 600px;">
 					<input class="form-control input-sm" style="width: 500px;" id="schema_name"
-						name="schema_name" maxlength="25">
+						name="schema_name" maxlength="125">
 				</div>
 			</div>
 
@@ -21,12 +22,8 @@
 				</label>
 				<div class="input-group" style="width: 600px;">
 					<input class="form-control input-sm" style="width: 500px;" id="library_name"
-						name="library_name" maxlength="25">
+						name="library_name" maxlength="125">
 				</div>
-			</div>
-			<div class="form-group">
-				<label class="control-label">Overwrite</label>
-				<input id="overwrite" name="overwrite" type="checkbox">
 			</div>
 
 			<div class="form-group">
@@ -35,7 +32,7 @@
 				</label>
 				<div class="input-group" style="width: 600px;">
 					<input id="file_name" name="file_name" type="text"
-						class="form-control input-sm" placeholder="Browse for code file..." />
+						class="form-control input-sm" placeholder="Use the browse button and select a code file" readonly="readonly" style = "background-color:white"/>
 					<div class="input-group-btn ">
 						<a class='btn btn-primary glyphicon glyphicon-search input-sm' href='javascript:;' style="top:0;padding-top: 7px;" tabindex="-1"> 
 							<input id="file" type="file" tabindex="-1"
@@ -46,12 +43,16 @@
 				</div>
 			</div>
 
+			<div class="form-group">
+				<label class="control-label" style="width:200px;">Overwrite Existing Code File</label>
+				<input id="overwrite" name="overwrite" type="checkbox">
+			</div>
 
-			<label></label><input id="create_btn" type="button" value="Create"
+			<input id="create_btn" type="button" value="Create"
 				class="submit btn btn-primary" disabled> <img
-				id="loading-spinner" src="img/ajax-loader.gif"
+				id="create-loading-spinner" src="img/ajax-loader.gif"
 				style="padding-left: 2px" /><input id="clear_btn" type="button"
-				value="Clear" class="submit btn btn-default">
+				value="Clear" class="submit btn btn-primary">
 			<div style="height: 10px;"></div>
 
 		</form>
