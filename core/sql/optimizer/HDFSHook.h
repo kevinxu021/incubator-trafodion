@@ -374,7 +374,8 @@ public:
                 Int32 numOfBuckets, 
                 HHDFSDiags &diags,
                 NABoolean canDoEstimation, char recordTerminator, 
-                NABoolean isORC);
+                NABoolean isORC,
+                Int32& filesEstimated);
   NABoolean validateAndRefresh(hdfsFS fs, HHDFSDiags &diags, NABoolean refresh, 
                                NABoolean isORC);
   Int32 determineBucketNum(const char *fileName);
@@ -453,7 +454,8 @@ public:
                         Int32 numOfBuckets, 
                         NABoolean doEstimation,
                         char recordTerminator,
-                        NABoolean isORC);
+                        NABoolean isORC, 
+                        Int32& filesEstimated);
 
   void setPortOverride(Int32 portOverride)         { hdfsPortOverride_ = portOverride; }
 

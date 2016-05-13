@@ -853,7 +853,8 @@ void HHDFSListPartitionStats::populate(hdfsFS fs,
                                        HHDFSDiags &diags,
                                        NABoolean canDoEstimation,
                                        char recordTerminator, 
-                                       NABoolean isORC)
+                                       NABoolean isORC,
+                                       Int32& filesEstimated)
 {
   int numFiles = 0;
 
@@ -884,10 +885,10 @@ void HHDFSListPartitionStats::populate(hdfsFS fs,
                                                   &numFiles);
 
 
-      NABoolean doEstimate = canDoEstimation;
-
       // sample only a limited number of files
       Int32 filesToEstimate = CmpCommon::getDefaultLong(HIVE_HDFS_STATS_MAX_SAMPLE_FILES);
+
+      NABoolean doEstimate = canDoEstimation;
 
       // populate partition stats
       for (int f=0; f<numFiles && diags.isSuccess(); f++)
@@ -906,11 +907,14 @@ void HHDFSListPartitionStats::populate(hdfsFS fs,
             else
               bucketStats = bucketStatsList_[bucketNum];
 
-            if (getNumFiles() + f > filesToEstimate )
+            if ( filesEstimated > filesToEstimate )
                doEstimate = FALSE;
+            else
+               filesEstimated++;
 
             bucketStats->addFile(fs, &fileInfos[f], diags, doEstimate, 
                                  recordTerminator, NULL_COLL_INDEX, isORC);
+
           }
 
       hdfsFreeFileInfo(fileInfos, numFiles);
@@ -1202,13 +1206,17 @@ NABoolean HHDFSTableStats::populate(struct hive_tbl_desc *htd)
 
       NABoolean canDoEstimate = hsd->isTrulyText() || hsd->isOrcFile();
 
+      // sample only a limited number of files
+      Int32 filesEstimated = 0;
+
       // visit the directory
       processDirectory(tableDir,
                        hsd->partitionColValues_,
                        hsd->buckets_, 
                        canDoEstimate, 
                        hsd->getRecordTerminator(), 
-                       type_==ORC_);
+                       type_==ORC_, 
+                       filesEstimated);
 
       hsd = hsd->next_;
     }
@@ -1354,13 +1362,15 @@ void HHDFSTableStats::processDirectory(const NAString &dir,
                                        Int32 numOfBuckets, 
                                        NABoolean canDoEstimate,
                                        char recordTerminator,
-                                       NABoolean isORC)
+                                       NABoolean isORC, 
+                                       Int32& filesEstimated)
 {
   HHDFSListPartitionStats *partStats = new(heap_)
     HHDFSListPartitionStats(heap_, this);
   partStats->populate(fs_, dir, listPartitionStatsList_.entries(),
                       partColValues, numOfBuckets,
-                      diags_, canDoEstimate, recordTerminator, isORC);
+                      diags_, canDoEstimate, recordTerminator, isORC, 
+                      filesEstimated);
 
   if (diags_.isSuccess())
     {
