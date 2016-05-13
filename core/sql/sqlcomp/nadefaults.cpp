@@ -370,6 +370,8 @@ SDDkwd__(ALLOW_AUDIT_ATTRIBUTE_CHANGE,	       "FALSE"), // Used to control if ro
 
 SDDkwd__(ALLOW_DP2_ROW_SAMPLING,               "SYSTEM"),
 
+ DDkwd__(ALLOW_FIRSTN_IN_IUD,	               "TRUE"),
+
  DDkwd__(ALLOW_FIRSTN_IN_SUBQUERIES,	       "FALSE"),
 
  // ON/OFF flag to invoke ghost objects from non-licensed process (non-super.super user) who can not use parserflags
@@ -417,6 +419,10 @@ SDDkwd__(ALLOW_DP2_ROW_SAMPLING,               "SYSTEM"),
   // if set to ON, then ORDER BY could be
   // specified in a regular CREATE VIEW (not a create MV) statement.
   DDkwd__(ALLOW_ORDER_BY_IN_CREATE_VIEW,	"ON"),
+
+  // if set to ON, then ORDER BY could be
+  // specified in a subquery
+  DDkwd__(ALLOW_ORDER_BY_IN_SUBQUERIES,	        "OFF"),
 
   // rand() function in sql is disabled unless this CQD is turned on
   DDkwd__(ALLOW_RAND_FUNCTION,			"OFF"),

@@ -3089,21 +3089,6 @@ RelExpr *GenericUpdate::inlineOnlyRIandIMandMVLogging(BindWA *bindWA,
   RelExpr *mvTree = NULL;
   RelExpr *result = NULL;
 
-  if (needIM || (riConstraints!=NULL) || isMVLoggingRequired)
-  {
-    if (topNode->getFirstNRows() >= 0)
-	{
-	  // create a firstN node to delete N rows.
-	  FirstN * firstn = new(bindWA->wHeap())
-	    FirstN(topNode, topNode->getFirstNRows());
-	  firstn->bindNode(bindWA);
-	  if (bindWA->errStatus())
-	    return NULL;
-
-	  topNode->setFirstNRows(-1);
-	  topNode = firstn;
-	}
-  }
   // Create the tree that handles Index Maintainance.
   if (needIM)
     {
@@ -3273,19 +3258,7 @@ RelExpr *GenericUpdate::inlineAfterOnlyBackbone(BindWA *bindWA,
 
 
   RelExpr   *topNode = this;
-  if (topNode->getFirstNRows() > 0)
-  {
-    // create a firstN node to delete N rows.
-    FirstN * firstn = new(bindWA->wHeap())
-      FirstN(topNode, topNode->getFirstNRows());
-    firstn->bindNode(bindWA);
-    if (bindWA->errStatus())
-      return NULL;
 
-    topNode->setFirstNRows(-1);
-    topNode = firstn;
-  }
-  
   NABoolean noPipelinedActions = 
     (rowTriggers == NULL) && (riConstraints == NULL);
 
@@ -3388,19 +3361,7 @@ RelExpr *GenericUpdate::inlineAfterOnlyBackboneForUndo(BindWA *bindWA,
   RelExpr *mvTree = NULL;
   RelExpr *result = NULL;
   RelExpr   *topNode = this;
-  if (topNode->getFirstNRows() > 0)
-    {
-      // create a firstN node to delete N rows.
-      FirstN * firstn = new(bindWA->wHeap())
-	FirstN(topNode, topNode->getFirstNRows());
-      firstn->bindNode(bindWA);
-      if (bindWA->errStatus())
-	return NULL;
 
-      topNode->setFirstNRows(-1);
-      topNode = firstn;
-    }
-  
   NABoolean noPipelinedActions = 
     (rowTriggers == NULL) && (riConstraints == NULL);
 
