@@ -2745,6 +2745,10 @@ enum DefaultConstants
   // specified in a regular CREATE VIEW (not a create MV) statement.
   ALLOW_ORDER_BY_IN_CREATE_VIEW,
 
+  // if set to ON, then ORDER BY could be
+  // specified in a subquery
+  ALLOW_ORDER_BY_IN_SUBQUERIES,
+
   GEN_EIDR_STATS_REPLY_INTERVAL,
 
   EXE_LOG_RETRY_IPC,
@@ -3763,6 +3767,10 @@ enum DefaultConstants
   MERGE_WITH_UNIQUE_INDEX,
 
   USTAT_MAX_CHAR_DATASIZE_FOR_IS,
+
+  // allow firstN specification in IUD.
+  // Currently only Delete is supported.
+  ALLOW_FIRSTN_IN_IUD,
 
   // If the next two are 'ON' we use the HBase costing code; if they
   // are 'OFF' we use a stub cost of 1 for Updates and Deletes to

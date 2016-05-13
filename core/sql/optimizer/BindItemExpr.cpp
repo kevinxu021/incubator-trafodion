@@ -4939,7 +4939,8 @@ ItemExpr *Aggregate::bindNode(BindWA *bindWA)
 
   CMPASSERT(NOT context->colRefInAgg());
   CMPASSERT(NOT context->outerColRefInAgg() ||
-	    origOpType() == ITM_STDDEV || origOpType() == ITM_VARIANCE);
+		origOpType() == ITM_STDDEV_SAMP || origOpType() == ITM_VARIANCE_SAMP ||
+		origOpType() == ITM_STDDEV_POP || origOpType() == ITM_VARIANCE_POP);
 
   if (checkForSQLnullChild(bindWA, this, FALSE, FUNCTION_)) return this;
 
@@ -5049,7 +5050,8 @@ ItemExpr *Aggregate::bindNode(BindWA *bindWA)
          break;
     }
   }
-  if (getOperatorType() == ITM_STDDEV || getOperatorType() == ITM_VARIANCE)
+  if (getOperatorType() == ITM_STDDEV_SAMP || getOperatorType() == ITM_VARIANCE_SAMP ||
+	  getOperatorType() == ITM_STDDEV_POP || getOperatorType() == ITM_VARIANCE_POP)
   {
     if (childDegree < 1 || childDegree > 2 )
     {
@@ -5096,7 +5098,8 @@ ItemExpr *Aggregate::bindNode(BindWA *bindWA)
   // STDDEV or VARIANCE.  The important thing is that returning now preserves
   // the BindContext, in particular outerColRefInAgg() and (outer)aggScope.
   //
-  if (getOperatorType() == ITM_STDDEV || getOperatorType() == ITM_VARIANCE)
+  if (getOperatorType() == ITM_STDDEV_SAMP || getOperatorType() == ITM_VARIANCE_SAMP ||
+	  getOperatorType() == ITM_STDDEV_POP || getOperatorType() == ITM_VARIANCE_POP)
     return getValueId().getItemExpr();
 
   // If second or subsequent part of any other decomposed aggregate like AVG,

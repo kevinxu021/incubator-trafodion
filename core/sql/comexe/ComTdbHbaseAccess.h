@@ -833,6 +833,9 @@ public:
   void setHbaseCellTS(Int64 ts) { hbaseCellTS_ = ts; }
   Int64 getHbaseCellTS() { return hbaseCellTS_;}
 
+  void setFirstNRows(Int64 f) { firstNRows_ = f; }
+  Int64 getFirstNRows() { return firstNRows_; }
+
   void setIsTrafLoadCleanup(NABoolean v)
    {(v ? flags2_ |= TRAF_LOAD_CLEANUP : flags2_ &= ~TRAF_LOAD_CLEANUP); };
   NABoolean getIsTrafLoadCleanup() { return (flags2_ & TRAF_LOAD_CLEANUP) != 0; };
@@ -1051,6 +1054,8 @@ public:
   UInt16 trafLoadFlushSize_;
   ComHbaseAccessOptionsPtr comHbaseAccessOptions_; 
   char fillers[2];
+
+  Int64 firstNRows_;
 };
 
 class ComTdbHbaseCoProcAccess : public ComTdbHbaseAccess

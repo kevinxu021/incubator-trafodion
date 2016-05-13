@@ -214,8 +214,127 @@ ID           ID           P1           P1
 
 --- 6 row(s) selected.
 >>
+>>-- min/max optimization with an ESP exchange between the join and the scan
+>>
+>>-- force a parallel type 2 join with repartitioning on the left side
+>>control query shape esp_exchange(hash_join(esp_exchange(scan('P'), 2), cut, type2), 4);
+
+--- SQL operation complete.
+>>
+>>prepare s from
++>select p.id, n.id, p.p1, n.p1
++>from hive.hive.hivepi p join hive.hive.hivenonp n
++>  on p.p1 = n.p1
++>where n.id in (2, 22);
+
+--- SQL command prepared.
+>>
+>>explain options 'f' s;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+6    .    7    root                                                  1.00E+003
+5    .    6    esp_exchange                    1:4(hash2)            1.00E+003
+4    2    5    hybrid_hash_join                                      1.00E+003
+3    .    4    esp_exchange                    4(hash2):2(hash2)     1.00E+002
+.    .    3    hive_scan                       HIVEPI                1.00E+002
+1    .    2    esp_exchange                    4(rep-b):1            2.00E+001
+.    .    1    hive_scan                       HIVENONP              2.00E+001
+
+--- SQL operation complete.
+>>
+>>-- validate that the min/max values are actually used
+>>select operator, tname
++>from table(explain(null, 'S'))
++>where description like '%:_sys_MinVal0%'
++>  and description like '%:_sys_MaxVal0%';
+
+OPERATOR                        TNAME
+------------------------------  ------------------------------------------------------------
+
+HIVE_SCAN                       P (HIVE.HIVE.HIVEPI)                                        
+HYBRID_HASH_JOIN                                                                            
+
+--- 2 row(s) selected.
+>>-- still should do min/max optimization, since this is a type 2 join
+>>
+>>execute s;
+
+ID           ID           P1           P1         
+-----------  -----------  -----------  -----------
+
+         22            2            2            2
+         22           22            2            2
+          2            2            2            2
+          2           22            2            2
+        222            2            2            2
+        222           22            2            2
+
+--- 6 row(s) selected.
+>>
+>>-- force a parallel type 2 join with repartitioning on the left side
+>>control query shape esp_exchange(hash_join(esp_exchange(scan('P'), 2), cut, type1), 4);
+
+--- SQL operation complete.
+>>
+>>prepare s from
++>select p.id, n.id, p.p1, n.p1
++>from hive.hive.hivepi p join hive.hive.hivenonp n
++>  on p.p1 = n.p1
++>where n.id in (2, 22);
+
+--- SQL command prepared.
+>>
+>>explain options 'f' s;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+6    .    7    root                                                  1.00E+003
+5    .    6    esp_exchange                    1:4(hash2)            1.00E+003
+4    2    5    hybrid_hash_join                                      1.00E+003
+3    .    4    esp_exchange                    4(hash2):2(hash2)     1.00E+002
+.    .    3    hive_scan                       HIVEPI                1.00E+002
+1    .    2    esp_exchange                    4(hash2):1            2.00E+001
+.    .    1    hive_scan                       HIVENONP              2.00E+001
+
+--- SQL operation complete.
+>>
+>>-- validate that the min/max values are actually used
+>>select operator, tname
++>from table(explain(null, 'S'))
++>where description like '%:_sys_MinVal0%'
++>  and description like '%:_sys_MaxVal0%';
+
+--- 0 row(s) selected.
+>>-- should not see min/max optimization, not supported
+>>-- for this kind of type 1 join and repartitioning
+>>
+>>execute s;
+
+ID           ID           P1           P1         
+-----------  -----------  -----------  -----------
+
+        222            2            2            2
+        222           22            2            2
+          2            2            2            2
+          2           22            2            2
+         22            2            2            2
+         22           22            2            2
+
+--- 6 row(s) selected.
+>>
+>>control query shape cut;
+
+--- SQL operation complete.
+>>
 >>-- allow VEG between varchars
 >>cqd comp_bool_158 'on';
+
+--- SQL operation complete.
+>>
+>>control query shape hash_join(scan('P'), scan('N'));
 
 --- SQL operation complete.
 >>

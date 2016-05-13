@@ -21,12 +21,12 @@
 :experimental:
 
 This chapter describes how to monitor Active workloads (queries) and analyze historical workloads.
-This workloads include all EsgynDB queries including both user and system queries.
+These workloads include all EsgynDB queries including both user and system queries.
 
 === Active Workloads
 The active workloads page displays the list of active EsgynDB queries. This includes queries that are currently executing and queries that completed within the last 30 seconds. The information is obtained from the EsgynDB Runtime Manageability Service.
 
-The list of queries are displayed as a tabular output with the following information:
+The list of queries is displayed as a tabular output with the following information:
 
 *Time*::
 The time when the information was fetched
@@ -46,7 +46,7 @@ The page by default refreshes every 30 seconds and displays the current active q
 === Active Query Details
 The active query details page displays a summary of the runtime metrics as well the operator level statistics for the selected query. The metrics are obtained from the EsgynDB Runtime Manageability Service.
 
-The metrics that have changed since the last refresh for this query, are highlighted in blue color, so you can observe how the query is progressing. For example if the operator CPU time is increasing, you know the operator and the query is progressing. If the CPU time for the operator does not increase, it indicates that operator is waiting for some other resource.
+The metrics that have changed since the last refresh for this query, are highlighted in blue color, so you can observe how the query is progressing. For example, if the operator CPU time is increasing, you know the operator and the query is progressing. If the CPU time for the operator does not increase, it indicates that operator is waiting for some other resource.
 
 The page is set to auto-refresh every 30 seconds by default. You can also use the *Action +++->+++ Refresh* menu to refresh the page and reload the latest metrics for the query.
 
@@ -58,11 +58,11 @@ Use the *Action +++->+++ Cancel* menu to cancel the executing query.
 
 You can use the historical workloads page to view queries that have run for longer than configured threshold (default 60 seconds).
 
-The threshold is defined by the *dcs.server.user.program.statistics.limit.time* property in dcs-site.xml. If this property is not explicitly set, then the default value of 60 seconds apply.
+The threshold is defined by the *dcs.server.user.program.statistics.limit.time* property in dcs-site.xml. If this property is not explicitly set, then the default value of 60 seconds applies.
 
 Queries that exceed this run threshold are recorded in the EsgynDB manageability repository tables in the "\_REPOS_" schema. The historical workloads page fetches the query summary from the *"\_REPOS_".METRIC_QUERY_TABLE*.
 
-By default the page displays the queries that either started or completed in the last 1 hour or is still executing. You can use the *Filters* option to change your search parameters. In the filter dialog, you can specify different time range or use additional filters like specific application names or user names or queries that match a particular query text. All the filter predicates are applied using *AND* operator, meaning that only queries that match all the filter predicates are returned.
+By default, the page displays the queries that either started or completed in the last 1 hour or is still executing. You can use the *Filters* option to change your search parameters. In the filter dialog, you can specify different time range or use additional filters like specific application names or user names or queries that match a particular query text. All the filter predicates are applied using *AND* operator, meaning that only queries that match all the filter predicates are returned.
 
 Use the *Action +++->+++ Refresh* action option to refresh the page.
 

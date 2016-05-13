@@ -39,4 +39,4 @@ To increase the number of master executor processes, increase the number of conf
 
 === Process Stack
 
-You can look at the current execution process stack for a master executor process, by selecting the master executor process in the grid and then using the *Action +++->+++ Process Stack* menu. A new pop-window displays the current process execution stack. This is helpful in analyzing if a query is stuck in processing and if the master executor is waiting for resources.
+You can look at the current execution process stack for a master executor process, by selecting the master executor process in the grid and then using the *Action +++->+++ Process Stack* menu. A new pop-up window displays the current process execution stack. This is helpful in analyzing if a query is stuck in processing and if the master executor is waiting for resources.

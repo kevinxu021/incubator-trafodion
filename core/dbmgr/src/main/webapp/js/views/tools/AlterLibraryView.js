@@ -271,11 +271,18 @@ define([ 'views/BaseView', 'text!templates/alter_library.html', 'jquery',
 			$(LOADING).css('visibility', 'hidden');
 			$(ALTER_BTN).prop('disabled', false);
 			$(CLEAR_BTN).prop('disabled', false);
-			var errorIndex = error.responseText.lastIndexOf("*** ERROR");
-			var errorString = error.responseText.substring(errorIndex);
-			var msgPrefix = "Failed to alter library ";
-			var msg= msgPrefix + common.ExternalForm(error.schemaName) + "." + common.ExternalForm(error.libraryName) + " : " + errorString;
-			//alert(errorString);
+			var msg = "";
+			if (error.responseText) {
+				var errorIndex = error.responseText.lastIndexOf("*** ERROR");
+				var errorString = error.responseText.substring(errorIndex);
+				var msgPrefix =  "Failed to alter library ";
+				var msg= msgPrefix + common.ExternalForm(error.schemaName) + "." + common.ExternalForm(error.libraryName)+ " : " + errorString;
+			}else{
+				if(error.status != null && error.status == 0) {
+					msg = "Error : Unable to communicate with the server.";
+				}
+			}
+
 			var msgObj={msg:msg,tag:"danger",url:null,shortMsg:msgPrefix};
 			if(_this.redirectFlag==false){
 				_this.popupNotificationMessage(null,msgObj);

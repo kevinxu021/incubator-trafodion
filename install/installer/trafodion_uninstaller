@@ -104,11 +104,14 @@ echo "***INFO: removing $HBASE_TRX from Hadoop directories"
 if [ $all_node_count -eq 1 ]; then
    sudo rm /etc/security/limits.d/trafodion.conf 2>/dev/null
    sudo rm /usr/share/cmf/lib/plugins/$HBASE_TRX 2>/dev/null
+   sudo rm -rf /tmp/hsperfdata_$TRAF_USER 2>/dev/null
    #sudo rm /usr/lib/hbase/lib/$HBASE_TRX 2>/dev/null
    #sudo rm /usr/hdp/current/hbase-regionserver/lib/$HBASE_TRX 2>/dev/null
 else
    $TRAF_PDSH "sudo rm /etc/security/limits.d/trafodion.conf 2>/dev/null"
    $TRAF_PDSH "sudo rm /usr/share/cmf/lib/plugins/$HBASE_TRX 2>/dev/null"
+
+   $TRAF_PDSH "sudo rm -rf /tmp/hsperfdata_$TRAF_USER 2>/dev/null"
    #$TRAF_PDSH "sudo rm /usr/lib/hbase/lib/$HBASE_TRX 2>/dev/null"
    #$TRAF_PDSH "sudo rm /usr/hdp/current/hbase-regionserver/lib/$HBASE_TRX 2>/dev/null" 
 fi
