@@ -2742,6 +2742,36 @@ bool Generator::setPrecodeRHSofNJ(bool newVal)
   return oldVal;
 }
 
+void Generator::addMinMaxVals(const ValueId &col,
+                              const ValueId &minVal,
+                              const ValueId &maxVal,
+                              NABoolean isNonPartitioned)
+{
+  CollIndex ix = minMaxKeys_.entries();
+
+  minMaxKeys_.insert(col);
+  minVals_.insert(minVal);
+  maxVals_.insert(maxVal);
+
+  // values start out in the enabled, unused state
+  minMaxEnabled_ += ix;
+
+  if (isNonPartitioned)
+    minMaxNonPartitioned_ += ix;
+}
+
+void Generator::disablePartitionedMinMaxKeys(NABitVector &savedState /*OUT*/)
+{
+  savedState = minMaxEnabled_;
+
+  minMaxEnabled_.intersectSet(minMaxNonPartitioned_);
+}
+
+void Generator::reenablePartitionedMinMaxKeys(const NABitVector &savedState /*IN*/)
+{
+  minMaxEnabled_ = savedState;
+}
+
 void Generator::setPlanExpirationTimestamp(Int64 t) 
 {
   // if t == -1 that has no effect (initial default is -1)
