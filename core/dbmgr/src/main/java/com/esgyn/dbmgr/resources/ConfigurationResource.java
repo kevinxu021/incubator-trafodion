@@ -183,7 +183,11 @@ public class ConfigurationResource {
 	}
 
 	public String getAdminPassword() {
-		return xmlConfig.getProperty("adminPassword", "adminpass");
+		String adminPass = xmlConfig.getProperty("adminPassword", "adminpass");
+		if (adminPass.startsWith("OBF:")) {
+			adminPass = org.eclipse.jetty.util.security.Password.deobfuscate(adminPass);
+		}
+		return adminPass;
 	}
 
 	public int getSessionTimeoutMinutes() {

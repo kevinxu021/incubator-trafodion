@@ -255,6 +255,8 @@ define([
 
 				}
 			});
+			
+			_this.clearAll();
 			serverHandler.on(serverHandler.WRKBNCH_EXECUTE_SUCCESS, this.displayResults);
 			serverHandler.on(serverHandler.WRKBNCH_EXECUTE_ERROR, this.showErrorMessage);
 			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
@@ -355,11 +357,7 @@ define([
 			else
 				$(CONTROL_STMTS_TEXT).val();
 			
-			if(scalar-result-container){
-				scalar-result-container.setValue("");
-			}else{
-				$(SCALAR_RESULT_CONTAINER).text("");
-			}
+			$(SCALAR_RESULT_CONTAINER).text("");
 
 			if(resultsDataTable  != null){
 				try{
