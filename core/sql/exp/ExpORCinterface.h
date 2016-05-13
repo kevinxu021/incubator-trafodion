@@ -120,7 +120,7 @@ class ExpORCinterface : public NABasicObject
 
   Lng32 close();
 
-  Lng32 getColStats(Lng32 colNum, ByteArrayList* &bal);
+  Lng32 getColStats(Lng32 colNum, NAArray<HbaseStr> **colStats);
 
   char * getErrorText(Lng32 errEnum);
 

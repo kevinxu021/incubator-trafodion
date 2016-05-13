@@ -30,6 +30,8 @@
 #include "NodeMap.h"
 #include "ExpLOBinterface.h"
 #include "OptimizerSimulator.h"
+#include "ex_ex.h"
+#include "HBaseClient_JNI.h"
 // for DNS name resolution
 #include <netdb.h>
 
@@ -1716,9 +1718,9 @@ void HHDFSORCFileStats::populate(hdfsFS fs,
      orci->getStripeInfo(numOfRows_, offsets_, totalBytes_);
    }
 
-   ByteArrayList* bal = NULL;
+   NAArray<HbaseStr> *colStats = NULL;
    Lng32 colIndex = -1;
-   rc = orci->getColStats(colIndex, bal);
+   rc = orci->getColStats(colIndex, &colStats);
 
    if (rc) {
      diags.recordError(NAString("ORC interface getColStats() failed"));
@@ -1727,8 +1729,10 @@ void HHDFSORCFileStats::populate(hdfsFS fs,
 
    // read the total # of rows
    Lng32 len = 0;
-   bal->getEntry(0, (char*)&totalRows_, sizeof(totalRows_), len);
-
+   HbaseStr *hbaseStr = &colStats->at(0);
+   ex_assert(hbaseStr->len <= sizeof(totalRows_), "Insufficient length");
+   memcpy(&totalRows_, hbaseStr->val, hbaseStr->len);
+   deleteNAArray((NAHeap *)heap_, colStats); 
    rc = orci->close();
    if (rc) {
      diags.recordError(NAString("ORC interface close() failed"));

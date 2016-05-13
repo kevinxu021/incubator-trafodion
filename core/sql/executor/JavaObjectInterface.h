@@ -38,7 +38,6 @@
 extern __thread JNIEnv *jenv_;
 extern __thread NAString *tsRecentJMFromJNI;
 
-
 // This structure defines the information needed for each java method used.
 struct JavaMethodInit {
     const char *jm_name;       // The method name.
