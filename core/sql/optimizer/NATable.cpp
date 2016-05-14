@@ -4893,7 +4893,10 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
            Lng32(MINOF(hiveHDFSTableStats->getEstimatedRecordLength(),
                        hiveHDFSTableStats->getEstimatedBlockSize()-100));
       }
-
+		  
+      Lng32 blockSize = MAXOF((Lng32)hiveHDFSTableStats->getEstimatedBlockSize(),
+                              (Lng32)estimatedRecordLength);
+      
       ((NATable*)table)-> setOriginalRowCount((double)estimatedRC);
 
       newIndex = new (heap)
@@ -4914,9 +4917,7 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
                   // HIVE-TBD
 		  Cardinality(estimatedRC),
                   Lng32(estimatedRecordLength),
-
-		  //hvt_desc->getBlockSize(), 
-		  (Lng32)hiveHDFSTableStats->getEstimatedBlockSize(), 
+		  blockSize,
 
 		  indexLevels, // HIVE-TBD
 		  allColumns,
