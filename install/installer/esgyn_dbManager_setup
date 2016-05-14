@@ -394,8 +394,6 @@ fi
 function editStartStop {
 
 START_STOP="$SQ_ROOT/mgblty/tcollector/startstop"
-TRAF_CANARY="$SQ_ROOT/mgblty/tcollector/collectors/300/trafcanqry.py"
-UPD_ORPHAN_QRY="$SQ_ROOT/mgblty/tcollector/collectors/1800/upd_orphan_qry.py"
 HBASE_COLLECTOR="$SQ_ROOT/mgblty/tcollector/collectors/0/hbase_master.py"
 REGIONSERVER_COLLECTOR="$SQ_ROOT/mgblty/tcollector/collectors/0/hbase_regionserver.py"
 defaultHBaseInfoPort="60010"
@@ -406,17 +404,12 @@ echo "***INFO: Editing TCollector startstop script with TSD_HOST and TSD_PORT"
 
 TSD_PORT_STR="TSD_PORT=$TSD_PORT"
 
-   
-ssh -q -n $node sudo sed -i -e "s/TSD_PORT=5242/$TSD_PORT_STR/g" $START_STOP
 
-ssh -q -n $node sudo sed -i -e "s@DCS_MASTER_HOST:DCS_PORT@$DCS_MASTER_HOST:$DCS_PORT@" $TRAF_CANARY
-  
-ssh -q -n $node sudo sed -i -e "s@DCS_MASTER_HOST:DCS_PORT@$DCS_MASTER_HOST:$DCS_PORT@" $UPD_ORPHAN_QRY
+sudo sed -i -e "s/TSD_PORT=5242/$TSD_PORT_STR/g" $START_STOP
 
-ssh -q -n $node sudo sed -i -e "s#$defaultHBaseInfoPort#$HBASE_MASTER_INFO_PORT#g" $HBASE_COLLECTOR
+sudo sed -i -e "s#$defaultHBaseInfoPort#$HBASE_MASTER_INFO_PORT#g" $HBASE_COLLECTOR
      
-ssh -q -n $node sudo sed -i -e "s#$defaultRegionServerInfoPort#$REGIONSERVER_INFO_PORT#g" $REGIONSERVER_COLLECTOR
-
+sudo sed -i -e "s#$defaultRegionServerInfoPort#$REGIONSERVER_INFO_PORT#g" $REGIONSERVER_COLLECTOR
 
 }
 
