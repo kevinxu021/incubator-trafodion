@@ -8,11 +8,9 @@ from java.sql  import DriverManager, SQLException
 
 ################################################################################
 
-JDBC_URL    = "jdbc:t4jdbc://DCS_MASTER_HOST:DCS_PORT/:"
-JDBC_DRIVER = "org.trafodion.jdbc.t4.T4Driver"
+JDBC_URL    = "jdbc:t2jdbc:"
+JDBC_DRIVER = "org.trafodion.jdbc.t2.T2Driver"
 
-USER_NAME       = "usr"
-PASS_WORD       = "pwd"
 TABLE_NAME      = "\"_MD_\".OBJECTS"
 CANARY_QUERY = """
 select object_name from %s where CATALOG_NAME = 'TRAFODION' and SCHEMA_NAME = '_MD_'
@@ -27,9 +25,18 @@ def main():
     cmon_node = os.environ.get('CMON_RUNNING')
     if cmon_node != '1':
         sys.exit(-1)
+        
+    #setup LD_PRELOAD environment variable for T2Driver
+    sq_root = os.environ.get("MY_SQROOT")
+    mb_type = os.environ.get("SQ_MBTYPE")
+    java_home = os.environ.get("JAVA_HOME")
+    
+    ldp = java_home + "/jre/lib/amd64/libjsig.so:"  + sq_root +"/export/lib" + mb_type + "/libseabasesig.so"
+    #print ldp
+    os.environ["LD_PRELOAD"] = ldp
     
     tstart = int(round(time.time() * 1000))
-    dbConn = getConnection(JDBC_URL, USER_NAME, PASS_WORD, JDBC_DRIVER)
+    dbConn = getConnection(JDBC_URL, JDBC_DRIVER)
     tend = int(round(time.time() * 1000))
     connTime = (tend-tstart)
 
@@ -48,7 +55,7 @@ def main():
 
 ################################################################################
 
-def getConnection(jdbc_url, usr, pwd, driverName):
+def getConnection(jdbc_url, driverName):
     try:
         Class.forName(driverName).newInstance()
     except Exception, msg:
@@ -56,7 +63,7 @@ def getConnection(jdbc_url, usr, pwd, driverName):
         sys.exit(-1)
 
     try:
-        dbConn = DriverManager.getConnection(jdbc_url, usr, pwd)
+        dbConn = DriverManager.getConnection(jdbc_url)
     except SQLException, msg:
         print >> sys.stderr, msg
         sys.exit(0)
@@ -67,4 +74,5 @@ def getConnection(jdbc_url, usr, pwd, driverName):
 
 if __name__ == '__main__':
     main()
+
 
