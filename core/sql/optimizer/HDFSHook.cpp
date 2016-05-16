@@ -1204,6 +1204,9 @@ NABoolean HHDFSTableStats::populate(struct hive_tbl_desc *htd)
 
   initLOBInterface();
 
+  // sample only a limited number of files
+  Int32 filesEstimated = 0;
+
   while (hsd && diags_.isSuccess())
     {
       // split table URL into host, port and filename
@@ -1217,9 +1220,6 @@ NABoolean HHDFSTableStats::populate(struct hive_tbl_desc *htd)
       tableDir = hsd->location_;
 
       NABoolean canDoEstimate = hsd->isTrulyText() || hsd->isOrcFile();
-
-      // sample only a limited number of files
-      Int32 filesEstimated = 0;
 
       // visit the directory
       processDirectory(tableDir,
