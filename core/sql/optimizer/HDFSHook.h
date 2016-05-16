@@ -56,6 +56,7 @@ class NodeMapIterator;
 class HHDFSTableStats;
 class HHDFSListPartitionStats;
 class OsimHHDFSStatsBase;
+class OptimizerSimulator;
 
 typedef CollIndex HostId;
 typedef Int64 BucketNum;
@@ -64,6 +65,7 @@ typedef Int64 Offset;
 
 class HHDFSMasterHostList : public NABasicObject
 {
+friend class OptimizerSimulator;
 public:
   HHDFSMasterHostList(NAMemory *heap) {}
   ~HHDFSMasterHostList();
