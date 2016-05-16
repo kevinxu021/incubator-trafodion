@@ -47,7 +47,7 @@ char           ga_name[BUFSIZ];
 char          *gp_shm;
 unsigned long *gp_shml;
 bool           gv_shook   = false;
-bool           gv_verbose = false;
+bool           gv_verbose = true;
 
 DEFINE_EXTERN_COMP_DOVERS(idtmsrv)
 
@@ -201,7 +201,8 @@ int timespec_to_str(char *buf, size_t max_len, struct timespec *ppv_timespec) {
 int str_to_tm_id(char *buf, unsigned long *ppv_tm_id) {
 
     if (gv_verbose)
-        printf("srv: enter str_to_tm_id\n");
+      printf("srv: enter str_to_tm_id for: %s\n", buf);
+
 
     char * ptr;
     char tmp_buffer[MAX_DATE_TIME_BUFF_LEN * 2];
@@ -462,7 +463,8 @@ void do_req(BMS_SRE *pp_sre) {
         case GID_REQ_STRING_TO_ID:
             if (lv_req.iv_req_len == (int) sizeof(lv_req.u.iv_string_to_id)) {
                 if (gv_verbose)
-                    printf("srv: received string_to_id request\n");
+                    printf("srv: received string_to_id request, string: %s\n", lv_req.u.iv_string_to_id.iv_string_to_id);
+
                 lv_rep.iv_rep_type = GID_REP_STRING_TO_ID;
                 lv_rep.iv_rep_tag = lv_req.iv_req_tag;
                 lv_ferr = str_to_tm_id(lv_req.u.iv_string_to_id.iv_string_to_id, &lv_converted_tm_id);

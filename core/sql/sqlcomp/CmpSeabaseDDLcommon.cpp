@@ -1155,13 +1155,11 @@ ExpHbaseInterface* CmpSeabaseDDL::allocBRCEHI(NADefaults * defs)
   (heap_, server, zkPort);
   
   Lng32 retcode = ehi->initBRC(NULL);
-  if (retcode < 0)
+  if (retcode != 0)
   {
       *CmpCommon::diags() << DgSqlCode(-8448)
-                        << DgString0((char*)"ExpHbaseInterface::initBRC()")
-                        << DgString1(getHbaseErrStr(-retcode))
-                        << DgInt0(-retcode)
-                        << DgString2((char*)GetCliGlobals()->getJniErrorStr().data());
+                        << DgString0((char*)"ExpHbaseInterface::initBRC()");
+                
     deallocEHI(ehi); 
     return NULL;
   }

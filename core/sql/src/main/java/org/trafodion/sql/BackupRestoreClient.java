@@ -148,7 +148,14 @@ public class BackupRestoreClient
     }
     
     public void restoreToTimeStamp(String timestamp) throws Exception {
-      RMInterface.replayEngineStart(Long.valueOf(timestamp));
+      //System.out.println("restoreToTimeStamp :" + timestamp );
+      int timeout = 1000;
+      boolean cb = false;
+      IdTm cli = new IdTm(cb);
+      IdTmId idtmid = new IdTmId();
+      cli.strToId(timeout, idtmid, timestamp);
+      //System.out.println("idtmid :" + idtmid.val + " Timestamp : " + timestamp );
+      RMInterface.replayEngineStart(idtmid.val);
     }
 
     static public long getIdTmVal() throws Exception {
@@ -216,7 +223,7 @@ public class BackupRestoreClient
           long key = s.getCompletionTime();
           cli.idToStr(timeout, key, asciiTime);
           String timeStamp = Bytes.toString(asciiTime);
-          String concatStringFullRow = userTag + "    " + key + "    " + timeStamp;
+          String concatStringFullRow = userTag + "    " + timeStamp;
           byte [] b = concatStringFullRow.getBytes();
           backupList[i++] = b;
         }
