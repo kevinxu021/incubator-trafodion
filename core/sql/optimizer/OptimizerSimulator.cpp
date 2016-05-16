@@ -383,7 +383,10 @@ void OptimizerSimulator::dumpHHDFSMasterHostList()
         hostNameList += '|'; //delimiter
     }
     if(hostNameList.length() > 0)
-    {
+    { 
+        //if there's any hostname, 
+        //hostNameList would be like "node0|node1|node2|",
+        //this is to replace '|'.
         hostNameList[hostNameList.length()-1] = '\n';
         (*writeLogStreams_[HHDFS_MASTER_HOST_LIST]) << hostNameList.data();
     }
@@ -2236,10 +2239,6 @@ void OptimizerSimulator::readLogfile_MYSYSTEMNUMBER()
 
   ifstream inLogfile(logFilePaths_[MYSYSTEMNUMBER]);
 
-  // Read and ignore the top 2 header lines.
-  //inLogfile.ignore(OSIM_LINEMAX, '\n');
-  //inLogfile.ignore(OSIM_LINEMAX, '\n');
-
   if(inLogfile.good())
   {
     // read sysNum and errSysName from the file
@@ -2255,6 +2254,8 @@ void OptimizerSimulator::readLogfile_MYSYSTEMNUMBER()
       mySystemNumber_ = sysNum;
     }
   }
+  else
+      raiseOsimException("Unable to open %s, bad handle.", logFilePaths_[MYSYSTEMNUMBER]);
 }
 
 short OptimizerSimulator::simulate_MYSYSTEMNUMBER()
@@ -2286,7 +2287,7 @@ short OSIM_MYSYSTEMNUMBER()
       break;
     default:
       // The OSIM must run under OFF (normal), CAPTURE or SIMULATE mode.
-      raiseOsimException("Invalid OSIM mode - It must be OFF or CAPTURE or SIMULATE.");
+      raiseOsimException("An invalid OSIM mode is encountered - The valid mode is OFF, CAPTURE or SIMULATE");
       break;
   }
   return sysNum;
@@ -2354,6 +2355,8 @@ void OptimizerSimulator::restoreHHDFSMasterHostList()
                 HHDFSMasterHostList::getHostNumInternal(hosts[i].data());
         }
     }
+    else
+        raiseOsimException("Unable to open %s, bad handle.", logFilePaths_[HHDFS_MASTER_HOST_LIST]);
 }
 
 void OptimizerSimulator::readLogfile_getEstimatedRows()
@@ -2983,7 +2986,7 @@ HHDFSTableStats * OptimizerSimulator::restoreHiveTableStats(const QualifiedName 
      NAString path = hiveTableStatsDir_ + '/' + qualName.getQualifiedNameAsAnsiString();
      std::ifstream s (path, std::ifstream::binary);
      if(!s.good())
-         raiseOsimException("Errors open %s \nthis table is not referred in capture mode.", path.data());
+         raiseOsimException("Errors open %s. This table is not referred to in the capture mode.", path.data());
      char * txt = new (STMTHEAP) char[bufSize];
      s.read(txt, bufSize);
      while(s.gcount() > 0)

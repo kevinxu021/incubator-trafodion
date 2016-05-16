@@ -123,7 +123,7 @@ NABoolean HHDFSMasterHostList::initializeWithSeaQuestNodes()
       catch(OsimLogException & e)
       {//table is not referred in capture mode, issue osim error
           OSIM_errorMessage(e.getErrMessage());
-          return TRUE;
+          return FALSE;
       }
   }
 
