@@ -102,7 +102,7 @@
 #include "PrivMgrComponentPrivileges.h"
 #include "PrivMgrDefs.h"
 #include "PrivMgrMD.h"
-
+#include "CompException.h"
   #define SLASH_C '/'
 
 NAWchar *SQLTEXTW();
@@ -1629,9 +1629,17 @@ NATable *BindWA::getNATable(CorrName& corrName,
       !getCurrentScope()->context()->inRIConstraint())
     table->incrReferenceCount();
 
-  if (table)
-    OSIM_captureTableOrView(table);
-
+  if (OSIM_runningInCaptureMode() && table)
+  {    
+      try{
+          OSIM_captureTableOrView(table);
+      }
+      catch(OsimLogException & e)
+      {
+          OSIM_errorMessage(e.getErrMessage());
+          return NULL;
+      }
+  }
   return table;
 } // BindWA::getNATable()
 

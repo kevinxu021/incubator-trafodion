@@ -85,7 +85,7 @@
 #include "ComUser.h"
 #include "ComSmallDefs.h"
 #include "CmpMain.h"
-
+#include "CompException.h"
 #define MAX_NODE_NAME 9
 
 #include "SqlParserGlobals.h"
@@ -4726,14 +4726,21 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
       const hive_sd_desc *sd_desc = hvt_desc->getSDs();
 
       HHDFSTableStats * hiveHDFSTableStats = NULL;
-      if(OSIM_runningSimulation())
-              hiveHDFSTableStats = OSIM_restoreHiveTableStats(table->getTableName(), heap, hvt_desc);
+      if(OSIM_runningSimulation()){
+              try {
+                  hiveHDFSTableStats = OSIM_restoreHiveTableStats(table->getTableName(), heap, hvt_desc);
+              }
+              catch(OsimLogException & e)
+              {//table is not referred in capture mode, issue osim error
+                  OSIM_errorMessage(e.getErrMessage());
+                  return TRUE;
+              }
+      }
       else
       {
               hiveHDFSTableStats = new(heap) HHDFSTableStats(heap);
               hiveHDFSTableStats->
                 setPortOverride(CmpCommon::getDefaultLong(HIVE_LIB_HDFS_PORT_OVERRIDE));
-        
               // create file-level statistics and estimate total row count and record length
               hiveHDFSTableStats->populate(hvt_desc);
       }
@@ -4746,9 +4753,16 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
           return TRUE;
         }
 
-      if(OSIM_runningInCaptureMode())
-              OSIM_captureHiveTableStats(hiveHDFSTableStats, table);
-
+      if(OSIM_runningInCaptureMode()){
+              try {
+                  OSIM_captureHiveTableStats(hiveHDFSTableStats, table);
+              }
+              catch(OsimLogException & e)
+              {//table is not referred in capture mode, issue osim error
+                  OSIM_errorMessage(e.getErrMessage());
+                  return TRUE;
+              }
+      }
       // for partitioned Hive tables, create a RangePartitioningFunction with
       // start key values that represent the Hive partition values (note that
       // there are no other allowed values than the start values and that the

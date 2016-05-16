@@ -30,6 +30,7 @@
 #include "NodeMap.h"
 #include "ExpLOBinterface.h"
 #include "OptimizerSimulator.h"
+#include "CompException.h"
 // for DNS name resolution
 #include <netdb.h>
 
@@ -115,6 +116,17 @@ const char * HHDFSMasterHostList::getHostName(HostId hostNum)
 
 NABoolean HHDFSMasterHostList::initializeWithSeaQuestNodes()
 {
+   if(OSIM_runningSimulation()){
+       try{
+           OSIM_restoreHHDFSMasterHostList();
+       }
+      catch(OsimLogException & e)
+      {//table is not referred in capture mode, issue osim error
+          OSIM_errorMessage(e.getErrMessage());
+          return FALSE;
+      }
+  }
+
   NABoolean result = FALSE;
   FILE *pp;
   NAString fakeNodeNames =
