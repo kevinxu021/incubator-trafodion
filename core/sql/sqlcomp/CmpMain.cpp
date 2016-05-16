@@ -2055,7 +2055,14 @@ CmpMain::ReturnStatus CmpMain::compile(const char *input_str,           //IN
   // Capture NAClusterInfo, VPROC, Query text etc.
   if (OSIM_runningInCaptureMode())
   {
-    OSIM_capturePrologue();
+    try {
+        OSIM_capturePrologue();
+    }
+    catch(OsimLogException & e)
+    {
+        OSIM_errorMessage(e.getErrMessage());
+        return EXCEPTIONERROR;
+    }
   }
 
   bindWA.setFailedForPrivileges(FALSE);
@@ -2627,7 +2634,14 @@ CmpMain::ReturnStatus CmpMain::compile(const char *input_str,           //IN
 
       queryExpr->generateShape(NULL, NULL, shapeStr);
       const char * qShape = shapeStr->data();
-      OSIM_captureQueryShape(qShape);
+      try {
+          OSIM_captureQueryShape(qShape);
+      }
+      catch(OsimLogException & e)
+      {
+          OSIM_errorMessage(e.getErrMessage());
+          return EXCEPTIONERROR;
+      }
     }  
 
   //

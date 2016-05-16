@@ -42,6 +42,7 @@
 #include "exp_function.h"
 
 #include "CliSemaphore.h"
+#include "CompException.h"
 
 static const int nodeNameLen = 256;
 //<pb>
@@ -2070,7 +2071,15 @@ short NodeMap::codeGen(const PartitioningFunction *partFunc,
 NABoolean
 NodeMap::hasRemotePartitions() const
 {
-  short sysNum = OSIM_MYSYSTEMNUMBER();
+  short sysNum;
+  try {
+      sysNum = OSIM_MYSYSTEMNUMBER();
+  }
+  catch(OsimLogException & e)
+  {
+        OSIM_errorMessage(e.getErrMessage());
+        return FALSE;
+  }
 
   for (ULng32 i = 0; i < getNumEntries(); i++) {
     const NodeMapEntry *ne = getNodeMapEntry(i); 

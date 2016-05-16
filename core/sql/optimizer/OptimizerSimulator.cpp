@@ -132,7 +132,8 @@ const char* OptimizerSimulator::logFileNames_[NUM_OF_LOGS]= {
   "HIVE_HISTOGRAM_PATHS.xml",
   "HIVE_CREATE_TABLE.sql",
   "HIVE_CREATE_EXTERNAL_TABLE.sql",
-  "HIVE_TABLE_LIST.txt"
+  "HIVE_TABLE_LIST.txt",
+  "HHDFS_MASTER_HOST_LIST.txt"
 };
 
 static ULng32 intHashFunc(const Int32& Int)
@@ -290,8 +291,6 @@ OptimizerSimulator::OptimizerSimulator(CollHeap *heap)
  hashDict_Views_(NULL),
  hashDict_Tables_(NULL),
  hashDict_Synonyms_(NULL),
- hashDict_TablesBeforeAction_(NULL),
- hashDict_ViewsBeforeAction_(NULL),
  hashDict_HiveTables_(NULL),
  nodeNum_(-1),
  clusterNum_(-1),
@@ -367,6 +366,32 @@ void OptimizerSimulator::dumpVersions()
     system(cmd.data()); //dump versions
 }
 
+void OptimizerSimulator::dumpHHDFSMasterHostList()
+{
+    (*writeLogStreams_[HHDFS_MASTER_HOST_LIST])
+           << "HasVirtualSQNodes" 
+           << " "
+           << HHDFSMasterHostList::hasVirtualSQNodes() << endl;
+    (*writeLogStreams_[HHDFS_MASTER_HOST_LIST])
+           << "NumSQNodes" 
+           << " "
+           << HHDFSMasterHostList::getNumSQNodes() << endl;
+    NAString hostNameList;
+    for(Int32 i = 0; i < HHDFSMasterHostList::entries(); i++)
+    {  
+        hostNameList += HHDFSMasterHostList::getHostName(i);
+        hostNameList += '|'; //delimiter
+    }
+    if(hostNameList.length() > 0)
+    { 
+        //if there's any hostname, 
+        //hostNameList would be like "node0|node1|node2|",
+        //this is to replace '|'.
+        hostNameList[hostNameList.length()-1] = '\n';
+        (*writeLogStreams_[HHDFS_MASTER_HOST_LIST]) << hostNameList.data();
+    }
+}
+
 void raiseOsimException(const char* fmt, ...)
 {
     char * buffer;
@@ -433,7 +458,12 @@ NABoolean OptimizerSimulator::setOsimModeAndLogDir(osimMode targetMode, const ch
               break;
         case CAPTURE:
             if(targetMode == OFF) //CAPURE --> OFF only
-            {
+            {  
+                //call dumpHHDFSMasterHostList() first
+                //otherwise context-switch will reset
+                //HHDFSMasterHostList::hasVirtualSQNodes_
+                //HHDFSMasterHostList::numSQNodes_
+                dumpHHDFSMasterHostList();
                 dumpHiveTableDDLs();
                 dumpHiveHistograms();
                 dumpHistograms();
@@ -575,7 +605,14 @@ void OptimizerSimulator::dumpHistograms()
                     " FROM ";
         query += name->getCatalogName();
         query += ".";
-        query += name->getSchemaName();
+        if(name->getSchemaName()[0]=='_')
+        {
+            query += "\"";
+            query += name->getSchemaName();
+            query += "\"";
+        }
+        else
+            query += name->getSchemaName();
         query += ".SB_HISTOGRAMS WHERE TABLE_UID = ";
         query += std::to_string((long long)(*tableUID)).c_str();
                             
@@ -629,7 +666,14 @@ void OptimizerSimulator::dumpHistograms()
                     " FROM ";
         query += name->getCatalogName();
         query += ".";
-        query += name->getSchemaName();
+        if(name->getSchemaName()[0]=='_')
+        {
+            query += "\"";
+            query += name->getSchemaName();
+            query += "\"";
+        }
+        else
+            query += name->getSchemaName();
         query += ".SB_HISTOGRAM_INTERVALS WHERE TABLE_UID = ";
         query += std::to_string((long long)(*tableUID)).c_str();
          
@@ -817,10 +861,8 @@ void OptimizerSimulator::dropObjects()
    short retcode;
    ifstream tables(logFilePaths_[TABLESFILE]);
    if(!tables.good())
-       raiseOsimException("Error open %s", logFilePaths_[CREATE_TABLE_DDLS]);
-   //ignore first 2 lines
-   //tables.ignore(OSIM_LINEMAX, '\n');
-   //tables.ignore(OSIM_LINEMAX, '\n');
+       raiseOsimException("Error open %s", logFilePaths_[TABLESFILE]);
+
    std::string stdQualTblNm;//get qualified table name from file
    NAString query(STMTHEAP);
    while(tables.good())
@@ -843,34 +885,46 @@ void OptimizerSimulator::dropObjects()
           raiseOsimException("Drop Table %s error: %d", stdQualTblNm.c_str(), retcode);
       }
    }
-}
 
-void OptimizerSimulator::checkDuplicateNames()
-{
-   //Get captured qualied table names
-   //and compare each with the names in hash dictionary.
-   ifstream tables(logFilePaths_[TABLESFILE]);
-   if(!tables.good())
-       raiseOsimException("Error open %s", logFilePaths_[CREATE_TABLE_DDLS]);
-   //ignore first 2 lines
-   //tables.ignore(OSIM_LINEMAX, '\n');
-   //tables.ignore(OSIM_LINEMAX, '\n');
-   std::string stdQualTblNm;
-   NAString naQualTblNm(STMTHEAP);
-   while(tables.good())
+   std::string str;
+   Int64 uid;
+   const QualifiedName * qualName = NULL;
+   Int64 * tableUID;
+   NAString trafName;
+   std::ifstream hiveTableListFile(logFilePaths_[HIVE_TABLE_LIST]);
+  //we only need one loop, no need to populate hashDict_HiveTables_
+   while(hiveTableListFile.good())
    {
-      //get one qualified table name from file
-      std::getline(tables, stdQualTblNm);
-
-      // Exit the loop if there was no data to read.
-      // eofbit is not set until an attempt is made to read beyond EOF.
-      if(!tables.good())
-         break;
-         
-      //Check if table name is in existance
-      naQualTblNm = stdQualTblNm.c_str();
-      if(hashDict_TablesBeforeAction_->contains(&naQualTblNm))
-          raiseOsimException("Object %s already exists.", stdQualTblNm.c_str());
+         // read tableName and uid from the file
+         hiveTableListFile >> str >> uid;
+         // eofbit is not set until an attempt is made to read beyond EOF.
+         // Exit the loop if there was no data to read above.
+         if(!hiveTableListFile.good())
+           break;
+         NAString name = str.c_str();
+         qualName = new (heap_) QualifiedName(name,3);
+         trafName = ComConvertNativeNameToTrafName(
+                                                                         qualName->getCatalogName(),
+                                                                         qualName->getSchemaName(),
+                                                                         qualName->getObjectName());
+         QualifiedName qualTrafName(trafName,3);
+          //drop external table
+          NAString dropStmt = "DROP TABLE IF EXISTS ";
+          dropStmt += trafName;
+          retcode = executeFromMetaContext(dropStmt.data());
+          if(retcode < 0)
+          {
+              CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
+              raiseOsimException("drop external table: %d", retcode);
+          }
+          //drop hive table
+          NAString hiveSchemaName;
+          qualName->getHiveSchemaName(hiveSchemaName);
+          dropStmt = "DROP TABLE IF EXISTS ";
+          dropStmt += hiveSchemaName;
+          dropStmt +=  '.';
+          dropStmt += qualName->getObjectName();
+          execHiveSQL(dropStmt.data());//drop hive table
    }
 }
 
@@ -2099,12 +2153,6 @@ void OptimizerSimulator::initHashDictionaries()
 
     hashDict_HiveTables_ = new(heap_) NAHashDictionary<const QualifiedName, Int64>
                                            (&QualifiedName::hash, 101, TRUE, heap_);
-
-    hashDict_TablesBeforeAction_   = new (heap_) NAHashDictionary<NAString, Int32>
-                                            (&NAString::hash, 101, TRUE, heap_);
-
-    hashDict_ViewsBeforeAction_= new (heap_) NAHashDictionary<NAString, Int32>
-                                            (&NAString::hash, 101, TRUE, heap_);
                                             
     hashDictionariesInitialized_ = TRUE;
   }
@@ -2191,10 +2239,6 @@ void OptimizerSimulator::readLogfile_MYSYSTEMNUMBER()
 
   ifstream inLogfile(logFilePaths_[MYSYSTEMNUMBER]);
 
-  // Read and ignore the top 2 header lines.
-  //inLogfile.ignore(OSIM_LINEMAX, '\n');
-  //inLogfile.ignore(OSIM_LINEMAX, '\n');
-
   if(inLogfile.good())
   {
     // read sysNum and errSysName from the file
@@ -2210,6 +2254,8 @@ void OptimizerSimulator::readLogfile_MYSYSTEMNUMBER()
       mySystemNumber_ = sysNum;
     }
   }
+  else
+      raiseOsimException("Unable to open %s, bad handle.", logFilePaths_[MYSYSTEMNUMBER]);
 }
 
 short OptimizerSimulator::simulate_MYSYSTEMNUMBER()
@@ -2241,28 +2287,12 @@ short OSIM_MYSYSTEMNUMBER()
       break;
     default:
       // The OSIM must run under OFF (normal), CAPTURE or SIMULATE mode.
-      OSIM_errorMessage("Invalid OSIM mode - It must be OFF or CAPTURE or SIMULATE.");
+      raiseOsimException("An invalid OSIM mode is encountered - The valid mode is OFF, CAPTURE or SIMULATE");
       break;
   }
   return sysNum;
 }
 // END ************* System Call: MYSYSTEMNUMBER() *************
-
-
-// BEGIN *********** System Call: getEstimatedRows() ****************
-//
-void OSIM_captureEstimatedRows(const char *tableName, double estRows)
-{
-    if(CURRCONTEXT_OPTSIMULATOR)
-        CURRCONTEXT_OPTSIMULATOR->capture_getEstimatedRows(tableName, estRows);
-}
-
-double OSIM_simulateEstimatedRows(const char *tableName)
-{
-    return CURRCONTEXT_OPTSIMULATOR ? 
-            CURRCONTEXT_OPTSIMULATOR->simulate_getEstimatedRows(tableName) : 
-            -1;
-}
 
 void OptimizerSimulator::capture_getEstimatedRows(const char *tableName, double estRows)
 {
@@ -2291,6 +2321,43 @@ void OptimizerSimulator::capture_getEstimatedRows(const char *tableName, double 
   }
 }
 
+void OSIM_restoreHHDFSMasterHostList()
+{
+  if(CURRCONTEXT_OPTSIMULATOR && 
+     CURRCONTEXT_OPTSIMULATOR->getOsimMode() == OptimizerSimulator::SIMULATE)
+         CURRCONTEXT_OPTSIMULATOR->restoreHHDFSMasterHostList();
+}
+
+void OptimizerSimulator::restoreHHDFSMasterHostList()
+{
+    NABoolean isDir;
+    if(!isFileExists(logFilePaths_[HHDFS_MASTER_HOST_LIST],isDir))
+      raiseOsimException("Unable to open %s file for reading data.", logFilePaths_[HHDFS_MASTER_HOST_LIST]);
+    
+    ifstream inLogfile(logFilePaths_[HHDFS_MASTER_HOST_LIST]);
+    
+    if(inLogfile.good())
+    {
+        std::string name;
+        std::string value;
+        //read HHDFSMasterHostList::hasVirtualSQNodes_;
+        inLogfile >> name >> value;
+        HHDFSMasterHostList::hasVirtualSQNodes_ = std::atoi(value.c_str());
+        //read HHDFSMasterHostList::numSQNodes_;
+        inLogfile >> name >> value;
+        HHDFSMasterHostList::numSQNodes_ = std::atoi(value.c_str());
+        inLogfile >> value;
+        if(value.length() > 0){
+            LIST(NAString) hosts;
+            NAString line = value.c_str();
+            line.split('|', hosts);
+            for(Int32 i = 0; i < hosts.entries(); i++)
+                HHDFSMasterHostList::getHostNumInternal(hosts[i].data());
+        }
+    }
+    else
+        raiseOsimException("Unable to open %s, bad handle.", logFilePaths_[HHDFS_MASTER_HOST_LIST]);
+}
 
 void OptimizerSimulator::readLogfile_getEstimatedRows()
 {
@@ -2425,7 +2492,7 @@ void  OSIM_getNodeAndClusterNumbers(short& nodeNum, Int32& clusterNum){
       break;
     default:
       // The OSIM must run under OFF (normal), CAPTURE or SIMULATE mode.
-      OSIM_errorMessage("Invalid OSIM mode - It must be OFF or CAPTURE or SIMULATE.");
+      raiseOsimException("Invalid OSIM mode - It must be OFF or CAPTURE or SIMULATE.");
       break;
   }
 
@@ -2477,6 +2544,8 @@ void OSIM_captureTableOrView(NATable * naTab)
 
 void OptimizerSimulator::capture_TableOrView(NATable * naTab)
 {
+  if(naTab->isHiveTable()||naTab->isHistogramTable())
+      return;
   const char * viewText = naTab->getViewText();
   const QualifiedName objQualifiedName = naTab->getTableName();
   const NAString nastrQualifiedName = objQualifiedName.getQualifiedNameAsString();
@@ -2513,9 +2582,7 @@ void OptimizerSimulator::capture_TableOrView(NATable * naTab)
   if (viewText)
   {
     // * if viewText not already written out then write out viewText
-    if(!hashDict_Views_->contains(&objQualifiedName) &&
-         hashDict_ViewsBeforeAction_->contains(&nastrQualifiedName)
-    )
+    if(!hashDict_Views_->contains(&objQualifiedName))
     {
       // Open file in append mode.
       ofstream * viewsListFile = writeLogStreams_[VIEWSFILE];
@@ -2550,10 +2617,7 @@ void OptimizerSimulator::capture_TableOrView(NATable * naTab)
   {
     // handle base tables
     // if table not already captured then:
-    if(!hashDict_Tables_->contains(&objQualifiedName) && 
-     //and only capture tables exist before capture command is issued.
-     hashDict_TablesBeforeAction_->contains(&nastrQualifiedName) 
-     )
+    if(!hashDict_Tables_->contains(&objQualifiedName))
     {
         //tables referred by this table should also be write out.
         //recursively call myself until no referred table.
@@ -2609,12 +2673,6 @@ void OptimizerSimulator::captureQueryText(const char * query)
     (*outLogfile) << ";";
   (*outLogfile) << endl;
   //(*outLogfile) << "--EndQuery" << endl;
-}
-
-void OSIM_captureQueryText(const char * query)
-{
-  if(CURRCONTEXT_OPTSIMULATOR)
-      CURRCONTEXT_OPTSIMULATOR->captureQueryText(query);
 }
 
 void OptimizerSimulator::captureQueryShape(const char * shape)
@@ -2928,7 +2986,7 @@ HHDFSTableStats * OptimizerSimulator::restoreHiveTableStats(const QualifiedName 
      NAString path = hiveTableStatsDir_ + '/' + qualName.getQualifiedNameAsAnsiString();
      std::ifstream s (path, std::ifstream::binary);
      if(!s.good())
-         raiseOsimException("Errors open %s", path.data());
+         raiseOsimException("Errors open %s. This table is not referred to in the capture mode.", path.data());
      char * txt = new (STMTHEAP) char[bufSize];
      s.read(txt, bufSize);
      while(s.gcount() > 0)
@@ -3022,7 +3080,7 @@ void OsimHHDFSFileStats::serializeAttrs(XMLString & xml)
 
      xml.append("blockSize='").append(std::to_string((long long)(hhstats->blockSize_)).c_str()).append("' ");
      
-     if(hhstats->replication_*hhstats->numBlocks_ > 0)
+     if(hhstats->replication_*hhstats->numBlocks_ > 0 && hhstats->blockHosts_)
      {
          xml.append("blockHosts='");
          for(Int64 i = 0; i < hhstats->replication_*hhstats->numBlocks_; i++)
@@ -3119,8 +3177,6 @@ void OsimHHDFSListPartitionStats::serializeAttrs(XMLString & xml)
    
      xml.append("defaultBucketIdx='").append(std::to_string((long long)(hhstats->defaultBucketIdx_)).c_str()).append("' ");
 
-     xml.append("doEstimation='").append(hhstats->doEstimation_?"true":"false").append("' ");
-
      xml.append("recordTerminator='").append(std::to_string((long long)(hhstats->recordTerminator_)).c_str()).append("' ");
 
 }
@@ -3205,7 +3261,10 @@ NABoolean OsimHHDFSFileStats::setValue(HHDFSStatsBase* stats, const char *attrNa
               values.split('|', valueList);
               hhstats->blockHosts_ = new (hhstats->heap_) HostId[valueList.entries()];
               for(Int32 i = 0; i < valueList.entries(); i++)
-                  hhstats->blockHosts_[i] = std::atoi(valueList[i].data());
+              {   
+                  if(valueList[i].length() > 0)
+                      hhstats->blockHosts_[i] = std::atoi(valueList[i].data());
+              }
           }
     }
     else
@@ -3302,12 +3361,6 @@ NABoolean OsimHHDFSListPartitionStats::setValue(HHDFSStatsBase* stats, const cha
         hhstats->partIndex_= std::atoi(attrValue);
       else if (!strcmp(attrName, "defaultBucketIdx"))
         hhstats->defaultBucketIdx_= std::atoi(attrValue);
-      else if (!strcmp(attrName, "doEstimation")){
-        if(strcmp(attrValue, "true")==0)
-            hhstats->doEstimation_ = TRUE;
-        else
-            hhstats->doEstimation_ = FALSE;
-      }
       else if (!strcmp(attrName, "recordTerminator"))
         hhstats->recordTerminator_ = std::atoi(attrValue);
       else

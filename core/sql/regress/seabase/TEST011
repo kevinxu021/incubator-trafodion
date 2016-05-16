@@ -52,6 +52,9 @@ drop table t011t7;
 drop table t011t8s cascade;
 drop table t011t8a cascade;
 drop table t011t8n cascade;
+drop view t011t8v;
+drop table t011t8;
+drop table t011t8s;
 
 -- delete explain for statement explstmt from repository
 set parserflags 131072;
@@ -561,8 +564,6 @@ select count(*) from t011t6b;
 drop table t011t6a ;
 drop table t011t6b ;
 
-
-
 -- tests for transaction replication options
 create table t011t8s(a int) attributes synchronous replication;
 create index t011t8si on t011t8s(a) attribute synchronous replication;
@@ -585,6 +586,113 @@ alter table t011t8s attribute asynchronous replication;
 showddl t011t8s;
 alter table t011t8n attribute synchronous replication;
 showddl t011t8n;
+drop table t011t8s cascade;
+
+-- tests for NO ROLLBACK and FIRST N in delete stmts
+cqd allow_firstn_in_iud 'ON';
+create table t011t8 (a int not null primary key, b int not null);
+create table t011t8s (a int not null primary key, b int not null)
+  salt using 4 partitions;
+
+insert into t011t8 values (1,1), (2,2), (3,3), (4,4), (5,5);
+explain options 'f' delete with no rollback [first 2] from t011t8;
+delete with no rollback [first 2] from t011t8;
+explain options 'f' delete with no rollback from t011t8;
+delete with no rollback from t011t8;
+select * from t011t8;
+
+insert into t011t8 values (1,1), (2,2), (3,3), (4,4), (5,5);
+prepare s from delete with no rollback [first 2] from t011t8;
+explain options 'f' s;
+execute s;
+select * from t011t8;
+execute s;
+select * from t011t8;
+execute s;
+select * from t011t8;
+execute s;
+select * from t011t8;
+
+insert into t011t8 values (1,1), (2,2), (3,3), (4,4), (5,5);
+delete with no rollback from t011t8;
+
+insert into t011t8 values (1,1), (2,2), (3,3), (4,4), (5,5);
+create index t011t8i1 on t011t8(b);
+prepare s from delete [first 2] from t011t8;
+explain options 'f' s;
+execute s;
+select * from t011t8;
+execute s;
+select * from t011t8;
+execute s;
+select * from t011t8;
+execute s;
+select * from t011t8;
+
+insert into t011t8s values (1,1), (2,2), (3,3), (4,4), (5,5);
+control query shape esp_exchange (cut);
+prepare s from delete with no rollback [first 2] from t011t8s;
+explain options 'f' s;
+execute s;
+select * from t011t8s;
+execute s;
+select * from t011t8s;
+execute s;
+select * from t011t8s;
+
+insert into t011t8s values (1,1), (2,2), (3,3), (4,4), (5,5);
+delete with no rollback from t011t8s;
+
+create index t011t8si1 on t011t8s(b);
+insert into t011t8s values (1,1), (2,2), (3,3), (4,4), (5,5);
+control query shape esp_exchange (cut);
+prepare s from delete [first 2] from t011t8s;
+explain options 'f' s;
+execute s;
+select * from t011t8s;
+execute s;
+select * from t011t8s;
+execute s;
+select * from t011t8s;
+
+insert into t011t8s values (1,1), (2,2), (3,3), (4,4), (5,5);
+control query shape cut;
+prepare s from delete [first 2] from t011t8s;
+explain options 'f' s;
+execute s;
+select * from t011t8s;
+execute s;
+select * from t011t8s;
+execute s;
+select * from t011t8s;
+
+insert into t011t8s values (1,1), (2,2), (3,3), (4,4), (5,5);
+select * from t011t8s;
+-- first 0 should not delete anything
+delete [first 0] from t011t8s;
+select * from t011t8s;
+
+-- with no rollback should delete even if Xn is rolled back
+drop index t011t8si1;
+begin work;
+delete with no rollback from t011t8s;
+select * from t011t8s;
+rollback work;
+select * from t011t8s;
+
+-- negative tests
+
+-- cant do 'no rollback' with indexes.
+delete with no rollback from t011t8;
+delete with no rollback [first 2] from t011t8;
+
+-- cannot do first N delete on a view
+create view t011t8v as select * from t011t8s;
+delete [first 2] from t011t8v;
+
+cqd allow_firstn_in_iud 'OFF';
+delete [first 2] from t011t8s;
+update [first 2] t011t8s set b = b + 1;
 
 
 

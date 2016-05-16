@@ -142,8 +142,55 @@ where description like '%:_sys_MinVal0%'
 
 execute s;
 
+-- min/max optimization with an ESP exchange between the join and the scan
+
+-- force a parallel type 2 join with repartitioning on the left side
+control query shape esp_exchange(hash_join(esp_exchange(scan('P'), 2), cut, type2), 4);
+
+prepare s from
+select p.id, n.id, p.p1, n.p1
+from hive.hive.hivepi p join hive.hive.hivenonp n
+  on p.p1 = n.p1
+where n.id in (2, 22);
+
+explain options 'f' s;
+
+-- validate that the min/max values are actually used
+select operator, tname
+from table(explain(null, 'S'))
+where description like '%:_sys_MinVal0%'
+  and description like '%:_sys_MaxVal0%';
+-- still should do min/max optimization, since this is a type 2 join
+
+execute s;
+
+-- force a parallel type 2 join with repartitioning on the left side
+control query shape esp_exchange(hash_join(esp_exchange(scan('P'), 2), cut, type1), 4);
+
+prepare s from
+select p.id, n.id, p.p1, n.p1
+from hive.hive.hivepi p join hive.hive.hivenonp n
+  on p.p1 = n.p1
+where n.id in (2, 22);
+
+explain options 'f' s;
+
+-- validate that the min/max values are actually used
+select operator, tname
+from table(explain(null, 'S'))
+where description like '%:_sys_MinVal0%'
+  and description like '%:_sys_MaxVal0%';
+-- should not see min/max optimization, not supported
+-- for this kind of type 1 join and repartitioning
+
+execute s;
+
+control query shape cut;
+
 -- allow VEG between varchars
 cqd comp_bool_158 'on';
+
+control query shape hash_join(scan('P'), scan('N'));
 
 prepare s from
 select p.id, n.id, p.p1, n.p1, p.p2

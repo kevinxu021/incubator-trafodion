@@ -316,6 +316,7 @@ class OptimizerSimulator : public NABasicObject
       HIVE_CREATE_TABLE,
       HIVE_CREATE_EXTERNAL_TABLE,
       HIVE_TABLE_LIST,
+      HHDFS_MASTER_HOST_LIST,
       NUM_OF_LOGS
     };
 
@@ -378,7 +379,7 @@ class OptimizerSimulator : public NABasicObject
     void capture_getEstimatedRows(const char *tableName, double estRows);
     void readLogfile_getEstimatedRows();
     double simulate_getEstimatedRows(const char *tableName);
-    
+    void restoreHHDFSMasterHostList();
    void simulate_getNodeAndClusterNumbers(short& nodeNum, Int32& clusterNum);
    void readLogFile_getNodeAndClusterNumbers();
    void capture_getNodeAndClusterNumbers(short& nodeNum, Int32& clusterNum);
@@ -405,7 +406,6 @@ class OptimizerSimulator : public NABasicObject
     HHDFSTableStats * restoreHiveTableStats(const QualifiedName & qualName, NAMemory* heap, hive_tbl_desc* hvt_desc);
     void captureHiveTableStats(HHDFSTableStats* tablestats, const NATable* naTab);
   private:
-    
     void readAndSetCQDs();
     void dumpHistograms();
     void dumpDDLs(const QualifiedName & qualifiedName);
@@ -423,9 +423,9 @@ class OptimizerSimulator : public NABasicObject
     void histogramHDFSToLocal();
     void removeHDFSCacheDirectory();
     void createLogDir();
-    void checkDuplicateNames();
     void dropObjects();
     void dumpVersions();
+    void dumpHHDFSMasterHostList();
     void execHiveSQL(const char* hiveSQL);
     
     // This is the directory OSIM uses to read/write log files.
@@ -447,8 +447,6 @@ class OptimizerSimulator : public NABasicObject
     NAHashDictionary<const QualifiedName, Int64> *hashDict_Tables_;
     NAHashDictionary<const QualifiedName, Int32> *hashDict_Synonyms_;
     NAHashDictionary<const QualifiedName, Int64> *hashDict_HiveTables_;
-    NAHashDictionary<NAString, Int32> * hashDict_TablesBeforeAction_;
-    NAHashDictionary<NAString, Int32> * hashDict_ViewsBeforeAction_;
     
     short nodeNum_;
     Int32 clusterNum_;
@@ -477,16 +475,13 @@ class OptimizerSimulator : public NABasicObject
 };
 
 // System call wrappers.
-
+  void OSIM_restoreHHDFSMasterHostList();
   short OSIM_MYSYSTEMNUMBER();
   void  OSIM_getNodeAndClusterNumbers(short& nodeNum, Int32& clusterNum);
   void  OSIM_captureTableOrView(NATable * naTab);
   void OSIM_captureHiveTableStats(HHDFSTableStats* tablestats, const NATable * naTab);
   void  OSIM_capturePrologue();
-  void  OSIM_captureQueryText(const char * query);
   void  OSIM_captureQueryShape(const char * shape);
-  void  OSIM_captureEstimatedRows(const char *tableName, double estRows);
-  double OSIM_simulateEstimatedRows(const char *tableName);
   // errorMessage and warningMessage wrappers.
   void OSIM_errorMessage(const char *msg);
   void OSIM_warningMessage(const char *msg);

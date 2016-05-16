@@ -1356,6 +1356,18 @@ short HbaseDelete::codeGen(Generator * generator)
 
       if (getTableDesc()->getNATable()->xnRepl() == COM_REPL_ASYNC)
         hbasescan_tdb->setReplAsync(TRUE);
+
+      if (getFirstNRows() > 0)
+        {
+          Int64 firstNrows = getFirstNRows();
+          if ((firstNrows > 0) &&
+              (generator->getNumESPs() > 1))
+            {
+              firstNrows = MAXOF(1, firstNrows/generator->getNumESPs());
+            }
+          
+          hbasescan_tdb->setFirstNRows(firstNrows);
+        }
     }
 
   if (keyInfo && getSearchKey() && getSearchKey()->isUnique())
