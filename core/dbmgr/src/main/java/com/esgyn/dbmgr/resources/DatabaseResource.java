@@ -485,6 +485,8 @@ public class DatabaseResource {
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_COLUMNS));
 				pstmt.setString(1, Helper.InternalForm(schemaName));
 				pstmt.setString(2, Helper.InternalForm(objectName));
+				pstmt.setString(3, Helper.InternalForm(schemaName));
+				pstmt.setString(4, Helper.InternalForm(objectName));
 			}
 
 			// TabularResult result =
