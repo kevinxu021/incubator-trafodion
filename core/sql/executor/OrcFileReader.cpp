@@ -32,6 +32,7 @@
 JavaMethodInit* OrcFileReader::JavaMethods_ = NULL;
 jclass OrcFileReader::javaClass_ = 0;
 
+// array is indexed by enum OFR_RetCode
 static const char* const sfrErrorEnumStr[] = 
 {
   "No more data."
@@ -47,6 +48,7 @@ static const char* const sfrErrorEnumStr[] =
  ,"Java exception in close()"
  ,"Error from GetStripeInfo()"
  ,"Java exception in GetColStats()"
+ ,"Java exception in getSumStringLengths()"
  ,"Unknown error returned from ORC interface"
 };
 
@@ -113,6 +115,8 @@ OFR_RetCode OrcFileReader::init()
     JavaMethods_[JM_FETCHROW  ].jm_signature = "()[B";
     JavaMethods_[JM_GETCOLSTATS ].jm_name      = "getColStats";
     JavaMethods_[JM_GETCOLSTATS ].jm_signature = "(I)[Ljava/lang/Object;";
+    JavaMethods_[JM_GETSUMSTRINGLENGTHS ].jm_name = "getSumStringLengths";
+    JavaMethods_[JM_GETSUMSTRINGLENGTHS ].jm_signature = "()J";
     JavaMethods_[JM_CLOSE     ].jm_name      = "close";
     JavaMethods_[JM_CLOSE     ].jm_signature = "()Ljava/lang/String;";
     JavaMethods_[JM_GETSTRIPE_NUMROWS].jm_name      = "getStripeNumRows";
@@ -675,6 +679,35 @@ NAArray<HbaseStr> *OrcFileReader::getColStats(NAHeap *heap, int colNum)
      return NULL;
   else
      return colStats;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// 
+//////////////////////////////////////////////////////////////////////////////
+  OFR_RetCode    OrcFileReader::getSumStringLengths(Int64& result)
+{
+  result = 0;  // initialize output
+
+  QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER,
+		LL_DEBUG,
+		"OrcFileReader::getSumStringLengths() called.");
+  if (javaObj_ == NULL) {
+    // Maybe there was an initialization error.
+    return OFR_ERROR_GETSUMSTRINGLENGTHS_EXCEPTION;
+  }
+
+  tsRecentJMFromJNI = JavaMethods_[JM_GETSUMSTRINGLENGTHS].jm_full_name;
+  result = jenv_->CallLongMethod(javaObj_,
+                                 JavaMethods_[JM_GETSUMSTRINGLENGTHS].methodID);
+  
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HDFS_ORC_FILE_READER, __FILE__, __LINE__);
+    return OFR_ERROR_GETSUMSTRINGLENGTHS_EXCEPTION;
+  }
+
+  return OFR_OK;
 }
 
 //////////////////////////////////////////////////////////////////////////////
