@@ -149,6 +149,7 @@ define([
 			loginView.doLogout();
 		}
 		window.location.hash = '/login';
+		
 		$.each(viewCollection, function(i, v){
 			if(v.doCleanup){
 				v.doCleanup();
@@ -156,6 +157,26 @@ define([
 			v = null;
 		});
 		viewCollection = [];
+		
+		dashboardView = null;
+		workbenchView = null;
+		dcsServerView = null;
+		loginView = null;
+		schemasView = null;
+		schemaDetailView = null;
+		schemaObjectsView = null;
+		schemaObjectDetailView = null;
+		historicalWorkloadsView = null;
+		historicalWorkloadDetailView = null;
+		activeWorkloadsView = null;
+		activeQueryDetailView = null;
+		queryPlanView = null;
+		logsView = null;
+		createLibraryView = null;
+		alterLibraryView = null;
+		alertsSummaryView = null;
+		alertDetailView = null;
+		aboutView = null;
 		currentView = null;
 	};
 

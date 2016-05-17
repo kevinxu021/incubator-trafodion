@@ -155,7 +155,12 @@ define([
 			$(CONTROL_APPLY_BUTTON).on('click', this.controlApplyClicked);
 			$(OPTIONS_BTN).on('click', this.openFilterDialog);
 
-			
+			resultsDataTable = null;
+			isPaused = false;
+			resultsAfterPause = false;
+			lastExecuteResult = null;
+			lastExplainResult = null;
+			lastRawError = null;
 			$(EXPLAIN_TREE).hide();
 			$(ERROR_TEXT).hide();
 			$(TOOLTIP_DIALOG).on('show.bs.modal', function () {
