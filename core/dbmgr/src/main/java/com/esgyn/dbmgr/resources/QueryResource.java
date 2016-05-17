@@ -142,6 +142,9 @@ public class QueryResource {
 					while (rs.next()) {
 						sb.append(rs.getString(1) + System.getProperty("line.separator"));
 					}
+					if (sb.length() == 0) {
+						sb.append("The statement completed successfully.");
+					}
 					Object[] output = new Object[] { sb.toString() };
 					tResult.resultArray.add(output);
 				}
@@ -164,6 +167,10 @@ public class QueryResource {
 		} catch (Exception e) {
 			_LOG.error("Failed to execute query : " + e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());
+		}
+		catch (OutOfMemoryError ex) {
+			_LOG.error("Failed to execute query : " + ex.getMessage());
+			throw new EsgynDBMgrException(ex.getMessage());
 		}
 		return tResult;
 	}
