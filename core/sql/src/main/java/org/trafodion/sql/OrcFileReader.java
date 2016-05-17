@@ -1011,7 +1011,7 @@ public class OrcFileReader
 		break;
 	    case OrcProto.Type.Kind.STRING_VALUE:
 		String lv_string = ((WritableStringObjectInspector) m_foi).getPrimitiveJavaObject(lv_field_val);
-		p_row_bb.putInt(lv_string.length());
+		p_row_bb.putInt(lv_string.getBytes().length);
 		p_row_bb.put(lv_string.getBytes());
                 //                System.out.println("lv_string = " + lv_string);
 		break;
