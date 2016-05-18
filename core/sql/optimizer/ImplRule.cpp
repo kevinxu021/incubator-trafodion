@@ -2137,7 +2137,8 @@ NABoolean HbaseDeleteRule::topMatch(RelExpr * relExpr, Context *context)
 
   // if this delete was a 'first N' delete, then it needs to be
   // run as a cursor select...delete where select returns N rows.
-  if (del->wasFirstN())
+  if ((del->wasFirstN()) ||
+      (del->isNoRollback()))
     return FALSE;
 
   // Check for required physical properties that require an enforcer

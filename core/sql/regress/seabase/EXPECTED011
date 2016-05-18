@@ -7,7 +7,7 @@
 >>invoke T011T1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T011T1
--- Definition current  Thu May 12 20:00:28 2016
+-- Definition current  Wed May 18 22:10:22 2016
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -143,7 +143,7 @@ A            B
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... NOT NAMED
-PLAN_ID .................. 212329843229157559
+PLAN_ID .................. 212330369423643442
 ROWS_OUT ................. 7
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t011t1 where a >= 3 and a < 5;
@@ -182,7 +182,7 @@ DESCRIPTION
   SCHEMA ................. TRAFODION.SCH
   QUERY_CACHE ............ 0
   GENERATE_EXPLAIN ....... ON
-  ObjectUIDs ............. 6989684332443580269
+  ObjectUIDs ............. 5361633593332765403
   select_list ............ TRAFODION.SCH.T011T1.A, TRAFODION.SCH.T011T1.B
 
 
@@ -1255,7 +1255,7 @@ METRIC_TEXT_TABLE
 >>invoke trafodion."_REPOS_".metric_query_table;
 
 -- Definition of Trafodion table TRAFODION."_REPOS_".METRIC_QUERY_TABLE
--- Definition current  Thu May 12 20:01:37 2016
+-- Definition current  Wed May 18 22:11:25 2016
 
   (
     INSTANCE_ID                      INT UNSIGNED NO DEFAULT NOT NULL NOT
@@ -1440,7 +1440,7 @@ METRIC_TEXT_TABLE
 >>-- get qid for the prepared stmt
 >>get qid for statement explstmt;
 
-MXID11000028800212329843204661002000000000206U3333300_2248_EXPLSTMT
+MXID11000025908212330369387540002000000000206U3333300_2161_EXPLSTMT
 
 --- SQL operation complete.
 >>
@@ -1492,7 +1492,7 @@ SEQ_NUM      OPERATOR
 --- SQL command prepared.
 >>get qid for statement explstmt2;
 
-MXID11000028800212329843204661002000000000206U3333300_2259_EXPLSTMT2
+MXID11000025908212330369387540002000000000206U3333300_2172_EXPLSTMT2
 
 --- SQL operation complete.
 >>set qid MXID123456 for explstmt2;
@@ -2128,7 +2128,7 @@ CREATE TABLE TRAFODION.SCH.T011T8N
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212329843343202862
+PLAN_ID .................. 212330369539958324
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ insert into t011t8s values (1);
@@ -2171,7 +2171,7 @@ DESCRIPTION
   READONLY_CURSOR ........ TRUE
   SHOWCONTROL_SHOW_ALL ... OFF
   GENERATE_EXPLAIN ....... ON
-  ObjectUIDs ............. 6989684332443591096, 6989684332443591238
+  ObjectUIDs ............. 5361633593332776223, 5361633593332776426
 
 
 NESTED_JOIN ===============================  SEQ_NO 3        CHILDREN 1, 2
@@ -2229,7 +2229,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212329843344428454
+PLAN_ID .................. 212330369541449303
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ insert into t011t8a values (1);
@@ -2272,7 +2272,7 @@ DESCRIPTION
   READONLY_CURSOR ........ TRUE
   SHOWCONTROL_SHOW_ALL ... OFF
   GENERATE_EXPLAIN ....... ON
-  ObjectUIDs ............. 6989684332443591331, 6989684332443591474
+  ObjectUIDs ............. 5361633593332776533, 5361633593332776733
 
 
 NESTED_JOIN ===============================  SEQ_NO 3        CHILDREN 1, 2
@@ -2430,8 +2430,10 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ---- ---- ---- --------------------  --------  --------------------  ---------
 
-1    .    2    root                  o                               1.00E+002
-.    .    1    trafodion_delete                T011T8                1.00E+002
+3    .    4    root                                                  1.00E+002
+1    2    3    tuple_flow                                            1.00E+002
+.    .    2    trafodion_vsbb_delet            T011T8                1.00E+000
+.    .    1    trafodion_scan                  T011T8                1.00E+002
 
 --- SQL operation complete.
 >>delete with no rollback from t011t8;
@@ -2593,9 +2595,9 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 A            B          
 -----------  -----------
 
-          5            5
           1            1
           4            4
+          5            5
 
 --- 3 row(s) selected.
 >>execute s;
@@ -2658,9 +2660,9 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 A            B          
 -----------  -----------
 
-          5            5
           1            1
           4            4
+          5            5
 
 --- 3 row(s) selected.
 >>execute s;
