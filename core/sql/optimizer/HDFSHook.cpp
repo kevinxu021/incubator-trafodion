@@ -202,7 +202,8 @@ void HHDFSStatsBase::subtract(const HHDFSStatsBase *o)
 {
   numBlocks_ -= o->numBlocks_;
   numFiles_ -= o->numFiles_; 
-  totalRows_-= o->totalRows_; 
+  totalRows_-= o->totalRows_;
+  totalStringLengths_ -= o->totalStringLengths_;
   totalSize_ -= o->totalSize_;
   sampledBytes_ -= o->sampledBytes_;
   sampledRows_ -= o->sampledRows_;
