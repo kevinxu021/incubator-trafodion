@@ -290,6 +290,7 @@ define([
 						xtimemultiplier: 1000,
 						ylabels: ["IO Waits"],
 						yunit: "",
+						yLabelFormat: common.fortmat2Decimals,
 						spinner:"#iowaits-spinner",
 						graphcontainer:"iowaits-chart",
 						errorcontainer:"#iowaits-error-text"
@@ -324,6 +325,7 @@ define([
 						xtimemultiplier: 1,
 						ylabels: ["GC Time"],
 						yunit: "msec",
+						yLabelFormat: common.fortmat2Decimals,
 						spinner:"#jvmgctime-spinner",
 						graphcontainer:"jvmgctime-chart",
 						errorcontainer:"#jvmgctime-error-text"
