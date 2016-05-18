@@ -36,7 +36,6 @@ function majorErrorFound {
       echo
       echo "******************************************" 
       cat $ERROR_LOG
-      cat /etc/trafodion/trafodion_config
       echo
       echo
       echo "******************************************" 
@@ -955,7 +954,6 @@ if [[ ! -z $install_features_path ]]; then
       fi           
    fi
    source $install_features_path
-   cat $install_features_path
 
    sudo chmod 777 $TRAF_CONFIG
    echo "export CDH_5_3_HDP_2_2_SUPPORT=\"$CDH_5_3_HDP_2_2_SUPPORT\"" >> $TRAF_CONFIG
