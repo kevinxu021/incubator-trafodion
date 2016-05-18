@@ -57,7 +57,7 @@ if [ -z "$DCSTEST_TAR" ]; then
 fi
 
 if [ -z "$CLIENT_TAR" ]; then
-    CLIENT_TAR=$(ls $TRAF_TARS/esgynDB_clients-* 2>/dev/null)
+    CLIENT_TAR=$(ls $TRAF_TARS/*clients* 2>/dev/null)
 fi
 
 if [ -z "$DBMGR_BLD" ]; then
