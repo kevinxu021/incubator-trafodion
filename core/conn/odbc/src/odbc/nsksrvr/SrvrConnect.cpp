@@ -140,6 +140,13 @@ int interval_max=1;
 int limit_count=0;
 int limit_max=-1;
 
+string serverProcessId;
+string serverProcessName;
+string serverHost;
+string serverPort;
+string appName;
+string userName;
+time_t connectedTimestamp; //timestamp when ZK updated server state to CONNECTED
 //===========================profile cqds================================================
 string execProfileCqdList(list<char*> *pList);
 string sla;
@@ -1905,6 +1912,7 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 	long UTF8ErrorTextLen;
 
 	DBUserAuth *userSession = DBUserAuth::GetInstance();
+	int crID = userSession->getUserID();
 
 	TmpstrCat[0]='\0';
 	TmpstrSch[0]='\0';
@@ -1918,6 +1926,7 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 	srvrGlobal->ApplicationName[sizeof(srvrGlobal->ApplicationName) -1] = '\0';
 	strcpy(srvrGlobal->QSRoleName, inContext->userRole);
 	strcpy(srvrGlobal->QSUserName, userDesc->userName != NULL ? userDesc->userName: "");
+	userName = string(userDesc->userName != NULL ? userDesc->userName: "");
 
 	char tmpsrvrSessionId[SESSION_ID_LEN];
 	getSessionId(tmpsrvrSessionId);
@@ -2147,13 +2156,23 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 */
 			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #4
 			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #5
+			else
+				serverProcessId = string(tkn);
 			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #6
+			else
+				serverProcessName = string(tkn);
 			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #7
+			else
+				serverHost = string(tkn);
 			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #8
+			else
+				serverPort = string(tkn);
 			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #9
 			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #10
 			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #11
 			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #12
+			else
+				appName = string(tkn);
 			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #13
 			else
 				sla = string(tkn);
@@ -3855,7 +3874,7 @@ TNULL:
 
 	// Modified below code for replacing the expensive USER_GETINFO_() call with
 	// PROCESS_GETINFO() call for better performance.
-	int crID;
+	// int crID;
 
 	crID = userSession->getUserID();
 	userSession->getDBUserName(srvrGlobal->QSDBUserName, sizeof(srvrGlobal->QSDBUserName));
@@ -7996,6 +8015,20 @@ odbc_SQLSrvr_ExecDirect_ame_(
 							}
 						}
 						//
+						// check if command format is INFO SESSION
+						// -- Added for manageability requirement.
+						//
+						else if (isInfoSession(sqlString, stmtLabel, error))
+						{
+							if (error != 0)
+							{
+								returnCode = SQL_ERROR;
+								sprintf(errorBuffer, "Operation Failed");
+								GETMXCSWARNINGORERROR(-1, "S1008", errorBuffer, &sqlWarningOrErrorLength, sqlWarningOrError);
+								goto cfgerrexit;
+							}
+						}
+						//
 						// check if command format is INFO OBJECT
 						// -- Added for manageability requirement.
 						//
@@ -8733,13 +8766,6 @@ void flushCollectors()
 {
 }
 
-
-
-
-
-
-
-
 static bool strincmp(char* in, char* out, short ilen)
 {
 	short i = 0;
@@ -8845,7 +8871,87 @@ bool isInfoSystem(char*& sqlString, const IDL_char *stmtLabel, short& error)
 
 	return true;
 }
+bool checkSyntaxInfoSession(char* sqlString)
+{
+	char* in = sqlString;
 
+	while (*in != '\0' && isspace(*in)) in++;   // Skip the leading blanks
+
+	if (strincmp(in,"INFO",4) == false)
+		return false;
+	in += 4;
+	if (*in == '\0' || false == isspace(*in))
+		return false;
+
+	while (*in != '\0' && isspace(*in)) in++;   // Skip the leading blanks
+
+	if (strincmp(in,"SESSION",7) == false)
+		return false;
+	in += 7;
+	if (*in != '\0' && *in != ';' && false == isspace(*in))
+		return false;
+
+	return true;
+}
+bool isInfoSession(char*& sqlString, const IDL_char *stmtLabel, short& error)
+{
+   if (false == checkSyntaxInfoSession(sqlString))
+      return false;
+
+   error = 0;
+   static char buffer[4000];
+   char* in = sqlString;
+   SRVR_STMT_HDL *pSrvrStmt = NULL;
+   char outstr[200];
+   struct tm *tmp;
+   const char* format="%x - %I:%M%p";
+
+   tmp = localtime(&connectedTimestamp);
+   if (strftime(outstr, sizeof(outstr), format, tmp) == 0) {
+        outstr[0]=0;
+    }
+   char pattern[] = "SELECT [first 1]"
+                    "'%s' as \"SESSION_ID\","
+                    "'%s' as \"SERVER_PROCESS_NAME\","
+                    "'%s' as \"SERVER_PROCESS_ID\","
+                    "'%s' as \"SERVER_HOST\","
+                    "'%s' as \"SERVER_PORT\","
+                    "'%s' as \"MAPPED_PROFILE\","
+                    "'%s' as \"MAPPED_SLA\","
+           	   	    "'%s' as \"CONNECT_TIME\","
+                    "'%s' as \"USER_NAME\","
+           	   	   	"'%s' as \"ROLE_NAME\","
+		   	   	    "'%s' as \"APP_NAME\""
+		    "FROM (values(1)) X(A);";
+
+   sprintf (buffer, pattern,
+	    srvrGlobal->sessionId,
+		serverProcessName.c_str(),
+		serverProcessId.c_str(),
+		serverHost.c_str(),
+        serverPort.c_str(),
+        profile.c_str(),
+        sla.c_str(),
+        outstr,
+		srvrGlobal->QSUserName,
+		srvrGlobal->QSRuleName,
+		appName.c_str());
+
+	if (stmtLabel != NULL && stmtLabel[0] != 0)
+		pSrvrStmt = SRVR::getSrvrStmt(stmtLabel, TRUE);
+
+	if (pSrvrStmt == NULL)
+	{
+		error = 1;
+		return true;
+	}
+
+	pSrvrStmt->m_bSkipWouldLikeToExecute = true;
+
+	sqlString = buffer;
+
+	return true;
+}
 bool checkSyntaxInfoObject(char* sqlString, short &idx)
 {
 	char* in = sqlString;
@@ -9298,6 +9404,8 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 				   << profile
 				   << ":"
 				   << lastUpdate
+				   << ":"
+				   << userName
 				   << ":";
 
 			}
@@ -9323,6 +9431,8 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 				   << profile
 				   << ":"
 				   << lastUpdate
+				   << ":"
+				   << userName
 				   << ":";
 
 			}
@@ -9337,7 +9447,19 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 				goto bailout;
 			}
 			else
+			{
+				Stat stat;
 				srvrGlobal->dcsCurrState = CONNECTED;
+				rc == zoo_exists(zh, dcsRegisteredNode.c_str(), false, &stat);
+	            if (rc == ZOK )
+	            {
+	                connectedTimestamp = stat.mtime/1000;
+	            }
+	            else
+	            {
+	            	connectedTimestamp =  time(NULL);
+	            }
+			}
 		}
 		else
 		{
@@ -9369,6 +9491,8 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 			   << profile
 			   << ":"
 			   << lastUpdate
+			   << ":"
+			   << userName
 			   << ":";
 
 			string data(ss.str());
@@ -9417,6 +9541,8 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 			   << profile
 			   << ":"
 			   << lastUpdate
+			   << ":"
+			   << userName
 			   << ":";
 
 			string data(ss.str());
@@ -9476,6 +9602,8 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 				   << profile
 				   << ":"
 				   << lastUpdate
+				   << ":"
+				   << userName
 				   << ":";
 
 			string data(ss.str());
@@ -9526,6 +9654,8 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 			   << profile
 			   << ":"
 			   << lastUpdate
+			   << ":"
+			   << userName
 			   << ":";
 
 			string data(ss.str());
