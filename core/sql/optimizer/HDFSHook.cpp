@@ -189,7 +189,8 @@ void HHDFSStatsBase::add(const HHDFSStatsBase *o)
 {
   numBlocks_ += o->numBlocks_;
   numFiles_ += o->numFiles_; 
-  totalRows_ += o->totalRows_; 
+  totalRows_ += o->totalRows_;
+  totalStringLengths_ += o->totalStringLengths_; 
   totalSize_ += o->totalSize_;
   if (o->modificationTS_ > modificationTS_)
     modificationTS_ = o->modificationTS_ ;
@@ -201,7 +202,8 @@ void HHDFSStatsBase::subtract(const HHDFSStatsBase *o)
 {
   numBlocks_ -= o->numBlocks_;
   numFiles_ -= o->numFiles_; 
-  totalRows_-= o->totalRows_; 
+  totalRows_-= o->totalRows_;
+  totalStringLengths_ -= o->totalStringLengths_;
   totalSize_ -= o->totalSize_;
   sampledBytes_ -= o->sampledBytes_;
   sampledRows_ -= o->sampledRows_;
@@ -1709,6 +1711,7 @@ void HHDFSORCFileStats::populate(hdfsFS fs,
    Lng32 rc = orci->open((char*)(getFileName().data()));
    if (rc) {
      diags.recordError(NAString("ORC interface open() failed"));
+     delete orci;
      return;
    }
 
@@ -1724,6 +1727,8 @@ void HHDFSORCFileStats::populate(hdfsFS fs,
 
    if (rc) {
      diags.recordError(NAString("ORC interface getColStats() failed"));
+     orci->close(); // ignore any error here
+     delete orci;
      return;
    }
 
@@ -1732,11 +1737,23 @@ void HHDFSORCFileStats::populate(hdfsFS fs,
    HbaseStr *hbaseStr = &colStats->at(0);
    ex_assert(hbaseStr->len <= sizeof(totalRows_), "Insufficient length");
    memcpy(&totalRows_, hbaseStr->val, hbaseStr->len);
-   deleteNAArray((NAHeap *)heap_, colStats); 
+   deleteNAArray((NAHeap *)heap_, colStats);
+
+   // get sum of the lengths of the strings
+   Int64 sum = 0;
+   rc = orci->getSumStringLengths(sum /* out */);
+   if (rc) {
+     diags.recordError(NAString("ORC interface getSumStringLengths() failed"));
+     orci->close(); // ignore any error here
+     delete orci;
+     return;
+   }
+   totalStringLengths_ = sum;
+
    rc = orci->close();
    if (rc) {
      diags.recordError(NAString("ORC interface close() failed"));
-     return;
+     // fall through to delete orci and to return
    }
 
    delete orci;
