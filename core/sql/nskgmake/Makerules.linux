@@ -138,7 +138,7 @@ COMPRESSION_INC=-I/usr/include
 COMPRESSION_LIB=-llzo2
 
 # for now, include these libs (copied to our local lib dir) everywhere
-GLOBAL_SYS_LIBS := -L $(LOC_JVMLIBS) $(LIBHDFS_LIB) $(THRIFT_LIB) $(LIBCURL_LIB) $(LOG4CXX_LIB) $(COMPRESSION_LIB)
+GLOBAL_SYS_LIBS := -L $(LOC_JVMLIBS) $(LIBHDFS_LIB) $(LIBCURL_LIB) $(LOG4CXX_LIB) $(COMPRESSION_LIB)
 
 # EXECUTABLES defines the executables that are built for release and debug
 # builds.  Any flavor-specific targets can be added later in this makefile.
@@ -429,8 +429,6 @@ copytoolslibs:
 	mkdir -p $(LIBROOT)
 	# these must be found
 	cp -Pf $(LOG4CXX_LIB_DIR)/$(LOG4CXX_SO)* $(LIBROOT)
-	cp -Pf $(THRIFT_LIB_DIR)/$(THRIFT_SO)* $(LIBROOT)
-	cp -Pf $(THRIFT_LIB_DIR)/libthrift.so $(LIBROOT)
 	# if these are not found, then...
 	-cp -Pf $(HADOOP_BLD_LIB)/$(LIBHDFS_SO)* $(LIBROOT)
 	-cp -Pf $(HADOOP_BLD_LIB)/$(LIBHADOOP_SO)* $(LIBROOT)

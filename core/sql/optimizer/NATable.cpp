@@ -4890,8 +4890,19 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
       Int64 estimatedRecordLength = 0;
 
       if ( isORC ) {
-         estimatedRecordLength = colArray.getTotalStorageSize();
+         // We cannot use colArray.getTotalStorageSize() for estimating row length,
+         // since we make worst-case assumptions about string column sizes. 
+         // (Typically, we assume VARCHAR(31999), which grossly overestimates.)
+         // Instead we use the total storage size for non-string columns, then
+         // use the average string length as computed from the ORC file statistics.
          estimatedRC = hiveHDFSTableStats->getTotalRows();
+         Int64 totalStringLengths = hiveHDFSTableStats->getTotalStringLengths();
+         Int64 nonStringsPart = colArray.getTotalStorageSizeForNonChars();
+         if (estimatedRC > 0)
+           estimatedRecordLength = nonStringsPart + (totalStringLengths / estimatedRC);
+         else
+           // we think the table is empty so there are no strings! avoid divide by zero
+           estimatedRecordLength = nonStringsPart;
       } else if ( !sd_desc->isTrulyText() ) {
          //
          // Poor man's estimation by assuming the record length in hive is the 

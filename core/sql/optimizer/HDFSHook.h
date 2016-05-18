@@ -120,6 +120,7 @@ private:
   NAString errMsg_;
 };
 
+
 class HHDFSStatsBase : public NABasicObject
 {
   friend class OsimHHDFSStatsBase;
@@ -127,6 +128,7 @@ public:
   HHDFSStatsBase(HHDFSTableStats *table) : numBlocks_(0),
                                            numFiles_(0),
                                            totalRows_(-1),
+                                           totalStringLengths_(0),
                                            totalSize_(0),
                                            modificationTS_(0),
                                            sampledBytes_(0),
@@ -140,6 +142,7 @@ public:
   Int64 getNumFiles() const { return numFiles_; }
   Int64 getNumBlocks() const { return numBlocks_; }
   Int64 getTotalRows() const { return totalRows_; }
+  Int64 getTotalStringLengths() { return totalStringLengths_; }
   Int64 getSampledBytes() const { return sampledBytes_; }
   Int64 getSampledRows() const { return sampledRows_; }
   time_t getModificationTS() const { return modificationTS_; }
@@ -156,6 +159,7 @@ protected:
   Int64 numBlocks_;
   Int64 numFiles_;
   Int64 totalRows_;  // for ORC files
+  Int64 totalStringLengths_;  // for ORC files
   Int64 totalSize_;
   time_t modificationTS_; // last modification time of this object (file, partition/directory, bucket or table)
   Int64 sampledBytes_;
@@ -295,8 +299,8 @@ protected:
 
   NABoolean splitsAllowed() const {return TRUE;}
   
-protected:
-  
+protected: 
+ 
   // per stripe info
   LIST(Int64) numOfRows_;
   LIST(Int64) offsets_;
