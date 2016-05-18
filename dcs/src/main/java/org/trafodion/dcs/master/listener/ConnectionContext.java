@@ -187,13 +187,18 @@ public class ConnectionContext {
 	 *          processName     5
 	 *          ipAddress       6
 	 *          port            7
+	 *          ===================================
 	 *          computerName    8
 	 *          clientSocket    9
-	 *          windowText      10
+	 *          clientPort      10
+	 *          windowText      11
 	 *          ====================================
-	 *          sla             11
-	 *          profile         12
-	 *          profileTimestamp 13
+	 *          sla             12
+	 *          profile         13
+	 *          profileTimestamp 14
+	 *          userName        15
+	 *          
+	 *          
 	 */
 
     public  void setAvailableServers(HashMap<String, String> availableServers){
@@ -213,7 +218,11 @@ public class ConnectionContext {
                 String[] sValue = value.split(":");
                 System.out.println("value :" + value);
                 System.out.println("sValue.length :" + sValue.length);
-                System.out.println("sValue :" + sValue.toString());
+                int i=0;
+                for(String v: sValue){
+                    System.out.println("v[" + i + "] :" + v);
+                    i++;
+                }
                 LinkedHashMap<String,Object> attr = new LinkedHashMap<String,Object>();
                 attr.put(Constants.HOST_NAME, hostName);
                 attr.put(Constants.INSTANCE, instance);
@@ -226,14 +235,16 @@ public class ConnectionContext {
                 if(sValue.length == 8){
                     idleServers.put(key, attr);
                 }
-                else {
+                else if(sValue.length == 16) {
                     attr.put(Constants.COMPUTER_NAME, sValue[8]);
                     attr.put(Constants.CLIENT_SOCKET, sValue[9]);
+                    attr.put(Constants.CLIENT_PORT, sValue[10]);
                     attr.put(Constants.WINDOW_TEXT, sValue[11]);
                     attr.put(Constants.MAPPED_SLA, sValue[12]);
                     attr.put(Constants.MAPPED_PROFILE, sValue[13]);
                     attr.put(Constants.MAPPED_PROFILE_TIMESTAMP, Long.parseLong(sValue[14]));
-                    if(sValue[11].equals(sla)){
+                    attr.put (Constants.USER_NAME, sValue[15]);
+                    if(sValue[12].equals(sla) && sValue[15].equals(user.userName)){
                         reusedSlaServers.put(key, attr);
                     }
                     else {

@@ -206,16 +206,20 @@ public class DefinedMapping  {
         Set<String> mappingsKeys = mappingsMap.keySet();
         
         boolean bFound = false;
+        boolean bNotEqual = false;
         for(String mappingsKey : mappingsKeys){
             System.out.println("mappingsKey :" + mappingsKey);
-            boolean bNotEqual = false;
+            bNotEqual = false;
             LinkedHashMap<String,String> mapp = mappingsMap.get(mappingsKey);
             Set<String> mappKeys = mapp.keySet();
             for(String mappKey : mappKeys){
                 String value = mapp.get(mappKey);
 
                 if (value == null || value.length()==0)continue;
-                if (mappKey.equals(Constants.IS_ACTIVE) && value.equals("no")) break;
+                if (mappKey.equals(Constants.IS_ACTIVE) && value.equals("no")){
+                    bNotEqual = true;
+                    break;
+                }
                 attribute = "";
                 bNotEqual = false;
                 switch(mappKey){

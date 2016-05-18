@@ -133,15 +133,15 @@ class ConnectReply {
             LinkedHashMap<String, LinkedHashMap<String,Object>> reusedSlaServers = cc.getReusedSlaServers();
             LinkedHashMap<String, LinkedHashMap<String,Object>> reusedOtherServers = cc.getReusedOtherServers();
             LinkedHashMap<String, LinkedHashMap<String,Object>> idleServers = cc.getIdleServers();
-            if(reusedOtherServers.size() > 0){
-                server = reusedOtherServers.keySet().iterator().next();
-                attributes = reusedOtherServers.get(server);
+            if(reusedSlaServers.size() > 0){
+                server = reusedSlaServers.keySet().iterator().next();
+                attributes = reusedSlaServers.get(server);
             } else if(idleServers.size() > 0){
                 server = idleServers.keySet().iterator().next();
                 attributes = idleServers.get(server);
-            } else if(reusedSlaServers.size() > 0){
-                server = reusedSlaServers.keySet().iterator().next();
-                attributes = reusedSlaServers.get(server);
+            } else if(reusedOtherServers.size() > 0){
+                server = reusedOtherServers.keySet().iterator().next();
+                attributes = reusedOtherServers.get(server);
             } else {
                 throw new IOException("No Available Servers - idle and reused size is 0");
             }
@@ -172,19 +172,19 @@ class ConnectReply {
             if(LOG.isDebugEnabled())
                 LOG.debug(clientSocketAddress + ": " + "dialogueId: " + dialogueId);
             data = Bytes.toBytes(String.format("CONNECTING:%d:%d:%d:%d:%s:%s:%d:%s:%s:%s:%s:%s:%d:",
-                    timestamp,
-                    dialogueId, 
-                    serverNodeId,
-                    serverProcessId,
-                    serverProcessName,
-                    serverIpAddress,
-                    serverPort,
-                    cc.computerName, 
-                    clientSocketAddress, 
-                    cc.windowText,
-                    cc.getSla(),
-                    cc.getProfile(),
-                    cc.getLastUpdate()
+                    timestamp,              //1
+                    dialogueId,             //2 
+                    serverNodeId,           //3
+                    serverProcessId,        //4
+                    serverProcessName,      //5
+                    serverIpAddress,        //6
+                    serverPort,             //7
+                    cc.computerName,        //8 
+                    clientSocketAddress,    //10,11 
+                    cc.windowText,          //12
+                    cc.getSla(),            //13
+                    cc.getProfile(),        //14
+                    cc.getLastUpdate()      //15
                     ));
             nodeRegisteredPath = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED + "/" + server;
             zkc.setData(nodeRegisteredPath, data, -1);
