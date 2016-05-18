@@ -4954,7 +4954,7 @@ Lng32 HSGlobalsClass::validateIUSWhereClause()
   Lng32 retcode = 0;
   ULng32 savedParserFlags = Get_SqlParser_Flags(0xFFFFFFFF);
 
-  Set_SqlParser_Flags(PARSING_IUS_WHERE_CLAUSE);
+  Set_SqlParser_Flags(PARSING_IUS_WHERE_CLAUSE); // ORs this bit into the flags
 
   NAString query = "select count(*) from ";
   query.append(getTableName(strrchr(user_table->data(), '.')+1, nameSpace));
@@ -4993,7 +4993,7 @@ Lng32 HSGlobalsClass::validateIUSWhereClause()
     }
 
   // Restore parser flags to prior settings.
-  Set_SqlParser_Flags (savedParserFlags);
+  Assign_SqlParser_Flags (savedParserFlags);
 
   return retcode;
 }
