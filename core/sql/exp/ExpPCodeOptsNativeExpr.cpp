@@ -5736,6 +5736,11 @@ NABoolean PCodeCfg::jitProcessPredicate(PCodeInst* comp,
 
 void PCodeCfg::layoutNativeCode()
 {
+#if __PPC64__ == 1
+    NExTempsList_ = NULL ;
+    expr_->setEvalPtr( (ex_expr::evalPtrType)( (CollIndex) 0 ) );//Ensure NULL!
+    return ;
+#endif
   static pthread_mutex_t Our_LLVM_mutex = PTHREAD_MUTEX_INITIALIZER;
 
   // List of signal numbers for which LLVM establishes its own signal handlers

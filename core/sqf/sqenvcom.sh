@@ -54,8 +54,8 @@ export TRAFODION_ENABLE_AUTHENTICATION=NO
 export SQ_IC=${SQ_IC:-TCP}
 export MPI_IC_ORDER=$SQ_IC
 
-ARCH=`arch`
-if [ "${ARCH:1:3}" == "ppc" ]; then
+export ARCH=`arch`
+if [ "${ARCH:0:3}" == "ppc" ]; then
     export JRE_LIB_DIR=${ARCH}
 else
     export JRE_LIB_DIR="amd64"
@@ -156,7 +156,11 @@ export HIVE_DEP_VER_APACHE=1.1.0
 export HBASE_TRX_ID_CDH=hbase-trx-cdh5_4
 export HBASE_TRX_ID_APACHE=hbase-trx-apache1_0_2
 export HBASE_TRX_ID_HDP=hbase-trx-hdp2_3
-export THRIFT_DEP_VER=0.9.0
+if [ "${ARCH:0:3}" == "ppc" ]; then
+    export THRIFT_DEP_VER=0.9.1
+else
+    export THRIFT_DEP_VER=0.9.0
+fi
 export HIVE_DEP_VER=1.1.0
 export HADOOP_DEP_VER=2.6.0
 
