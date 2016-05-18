@@ -556,11 +556,11 @@ public class OrcFileReader
     //     min value
     //     max value
     //     sum value (for numeric datatypes)
-    public ByteArrayList getColStats(int colNum) throws IOException 
+    public Object[] getColStats(int colNum) throws IOException 
      {
 	if (logger.isTraceEnabled()) logger.trace("Enter getColStats");
 
-        ByteArrayList retColStats = new ByteArrayList();
+        ArrayList<byte[]> retColStats = new ArrayList();
 
         // total number of vals (includes null and dups)
         long numVals = m_reader.getNumberOfRows();
@@ -574,7 +574,7 @@ public class OrcFileReader
         if (colNum == -1)
             {
                 //                System.out.println("count = " + numVals);
-                return retColStats;
+                return retColStats.toArray();
             }
 
         ColumnStatistics columnStatistics = m_reader.getStatistics()[colNum];
@@ -722,7 +722,7 @@ public class OrcFileReader
                 break;
             }
 
-	return retColStats;
+	return retColStats.toArray();
  
      }
  

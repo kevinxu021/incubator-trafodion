@@ -112,7 +112,7 @@ OFR_RetCode OrcFileReader::init()
     JavaMethods_[JM_FETCHROW  ].jm_name      = "fetchNextRow";
     JavaMethods_[JM_FETCHROW  ].jm_signature = "()[B";
     JavaMethods_[JM_GETCOLSTATS ].jm_name      = "getColStats";
-    JavaMethods_[JM_GETCOLSTATS ].jm_signature = "(I)Lorg/trafodion/sql/ByteArrayList;";
+    JavaMethods_[JM_GETCOLSTATS ].jm_signature = "(I)[Ljava/lang/Object;";
     JavaMethods_[JM_CLOSE     ].jm_name      = "close";
     JavaMethods_[JM_CLOSE     ].jm_signature = "()Ljava/lang/String;";
     JavaMethods_[JM_GETSTRIPE_NUMROWS].jm_name      = "getStripeNumRows";
@@ -637,7 +637,7 @@ OFR_RetCode OrcFileReader::close()
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
-ByteArrayList* OrcFileReader::getColStats(int colNum)
+NAArray<HbaseStr> *OrcFileReader::getColStats(NAHeap *heap, int colNum)
 {
   QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER,
 		LL_DEBUG,
@@ -654,8 +654,8 @@ ByteArrayList* OrcFileReader::getColStats(int colNum)
 
   jint      ji_colNum = colNum;
 
-    //  tsRecentJMFromJNI = JavaMethods_[JM_GETCOLSTATS].jm_full_name;
-  jobject jByteArrayList = jenv_->CallObjectMethod
+  tsRecentJMFromJNI = JavaMethods_[JM_GETCOLSTATS].jm_full_name;
+  jobject j_colStats = jenv_->CallObjectMethod
     (javaObj_,
      JavaMethods_[JM_GETCOLSTATS].methodID,
      ji_colNum);
@@ -668,22 +668,13 @@ ByteArrayList* OrcFileReader::getColStats(int colNum)
     return NULL;
   }
 
-  ByteArrayList* colStats = NULL;
-
-  if (jByteArrayList != NULL)
-    {
-      colStats = new (heap_) ByteArrayList(heap_, jByteArrayList);
-      jenv_->DeleteLocalRef(jByteArrayList);
-      if (colStats->init() != BAL_OK)
-        {
-          NADELETE(colStats, ByteArrayList, heap_);
-          jenv_->PopLocalFrame(NULL);
-          return NULL;
-        }
-    }
-
+  NAArray<HbaseStr> *colStats = NULL;
+  jint retcode = convertByteArrayObjectArrayToNAArray(heap, j_colStats, &colStats);
   jenv_->PopLocalFrame(NULL);
-  return colStats;
+  if (retcode == 0)
+     return NULL;
+  else
+     return colStats;
 }
 
 //////////////////////////////////////////////////////////////////////////////

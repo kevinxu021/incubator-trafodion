@@ -556,7 +556,7 @@ protected:
   ComTdbOrcFastAggr::OrcAggrType aggrType_;
   Lng32 colNum_;
 
-  ByteArrayList * bal_;
+  NAArray<HbaseStr> *colStats_;
 };
 
 #define RANGE_DELIMITER '\002'

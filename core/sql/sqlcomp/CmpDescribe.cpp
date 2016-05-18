@@ -4557,10 +4557,10 @@ static short CmpDescribeTableHDFSCache(const CorrName  &dtName, char *&outbuf, U
     //Call Java method to get hdfs cache information for this table.
     CmpSeabaseDDL cmpSBD(STMTHEAP);
     ExpHbaseInterface * ehi = cmpSBD.allocEHI();
-    ByteArrayList* rows = ehi->showTablesHDFSCache(tableList);
+    NAArray<HbaseStr> * rows = ehi->showTablesHDFSCache(tableList);
     if(rows == NULL)
         return -1;
-    int rowNum = rows->getSize();
+    int rowNum = rows->entries();
     Space space;
     if(rowNum > 1) 
     {
@@ -4575,8 +4575,10 @@ static short CmpDescribeTableHDFSCache(const CorrName  &dtName, char *&outbuf, U
         int columnWidths[COLNUM];
         int headerlen = 0; 
         //extract max width of each field
-        std::string * lastRow = rows->get(rowNum-1);
-        NAString nsRow(lastRow->c_str(), heap);
+        HbaseStr *hbaseStr ;
+        hbaseStr = &rows->at(rowNum-1);
+        //std::string * lastRow = rows->get(rowNum-1);
+        NAString nsRow(hbaseStr->val, hbaseStr->len, heap);
         NAList<NAString> fields(heap);
         nsRow.split('|', fields);
         //initialize width of each column.
@@ -4601,8 +4603,10 @@ static short CmpDescribeTableHDFSCache(const CorrName  &dtName, char *&outbuf, U
         for(int i = 0; i < rowNum - 1; i++)
         {
             line.fill(0, ' ', line.length());
-            std::string * oneRow = rows->get(i);
-            NAString nsRow(oneRow->c_str(), heap);
+            HbaseStr *hbaseStr;
+            hbaseStr = &rows->at(i); 
+            //std::string * oneRow = rows->get(i);
+            NAString nsRow(hbaseStr->val, hbaseStr->len, heap);
             NAList<NAString> fields(heap);
             nsRow.split('|', fields);
             CMPASSERT(fields.entries() == 9);
@@ -4697,10 +4701,10 @@ static short CmpDescribeSchemaHDFSCache(const NAString  & schemaText, char *&out
     ExpHbaseInterface * ehi = cmpSBD.allocEHI();
     if (ehi == NULL) 
         return -1; 
-    ByteArrayList* rows = ehi->showTablesHDFSCache(tableList);
+    NAArray<HbaseStr> *rows = ehi->showTablesHDFSCache(tableList);
     if(rows == NULL)
         return -1;
-    int rowNum = rows->getSize();
+    int rowNum = rows->entries();
     Space space;
     if(rowNum > 1) 
     {
@@ -4715,8 +4719,9 @@ static short CmpDescribeSchemaHDFSCache(const NAString  & schemaText, char *&out
         int columnWidths[COLNUM];
         int headerlen = 0; 
         //extract max width of each field
-        std::string * lastRow = rows->get(rowNum-1);
-        NAString nsRow(lastRow->c_str(), heap);
+        HbaseStr *hbaseStr = &rows->at(rowNum-1);
+        //std::string * lastRow = rows->get(rowNum-1);
+        NAString nsRow(hbaseStr->val, hbaseStr->len, heap);
         NAList<NAString> fields(heap);
         nsRow.split('|', fields);
         //initialize width of each column.
@@ -4740,8 +4745,9 @@ static short CmpDescribeSchemaHDFSCache(const NAString  & schemaText, char *&out
         for(int i = 0; i < rowNum - 1; i++)
         {
             line.fill(0, ' ', line.length());
-            std::string * oneRow = rows->get(i);
-            NAString nsRow(oneRow->c_str(), heap);
+            HbaseStr *hbaseStr = &rows->at(i);
+            //std::string * oneRow = rows->get(i);
+            NAString nsRow(hbaseStr->val, hbaseStr->len, heap);
             NAList<NAString> fields(heap);
             nsRow.split('|', fields);
             CMPASSERT(fields.entries() == 9);

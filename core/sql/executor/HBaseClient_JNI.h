@@ -36,10 +36,13 @@
 #include "NAMemory.h"
 #include "org_trafodion_sql_HTableClient.h"
 
+using namespace apache::hadoop::hbase::thrift;
+namespace {
+  typedef std::vector<Text> TextVec;
+}
+
 // forward declare
 class ExHbaseAccessStats;
-
-#include "ByteArrayList.h"
 
 class ContextCli;
 
@@ -75,7 +78,7 @@ public :
 
 typedef enum {
   HTC_OK     = JOI_OK
- ,HTC_FIRST  = BAL_LAST
+ ,HTC_FIRST  = JOI_LAST
  ,HTC_DONE   = HTC_FIRST
  ,HTC_DONE_RESULT = 1000
  ,HTC_DONE_DATA
@@ -99,8 +102,6 @@ typedef enum {
  ,HTC_ERROR_EXISTS_EXCEPTION
  ,HTC_ERROR_COPROC_AGGR_PARAM
  ,HTC_ERROR_COPROC_AGGR_EXCEPTION
- ,HTC_ERROR_COPROC_AGGR_GET_RESULT_PARAM
- ,HTC_ERROR_COPROC_AGGR_GET_RESULT_EXCEPTION
  ,HTC_ERROR_GRANT_PARAM
  ,HTC_ERROR_GRANT_EXCEPTION
  ,HTC_ERROR_REVOKE_PARAM
@@ -176,7 +177,9 @@ public:
   
   HTC_RetCode init();
   
-  HTC_RetCode startScan(Int64 transID, const Text& startRowID, const Text& stopRowID, const LIST(HbaseStr) & cols, Int64 timestamp, bool cacheBlocks, bool smallScanner, Lng32 numCacheRows,
+  HTC_RetCode startScan(Int64 transID, const Text& startRowID, const Text& stopRowID, 
+           const LIST(HbaseStr) & cols, Int64 timestamp, bool cacheBlocks, 
+           bool smallScanner, Lng32 numCacheRows,
                         NABoolean preFetch,
 			const LIST(NAString) *inColNamesToFilter, 
 			const LIST(NAString) *inCompareOpList,
@@ -411,6 +414,7 @@ typedef enum {
  ,HBC_ERROR_REMOVEHDFSCACHE_EXCEPTION
  ,HBC_ERROR_SHOWHDFSCACHE_EXCEPTION
  ,HBC_ERROR_POOL_NOT_EXIST_EXCEPTION
+ ,HBC_ERROR_LISTALL
  ,HBC_ERROR_GETKEYS
  ,HBC_ERROR_REGION_STATS
  ,HBC_LAST
@@ -535,7 +539,7 @@ public:
                                 const char * hbaseAuths,
                                 HTableClient_JNI **outHtc);
   
-  ByteArrayList* showTablesHDFSCache(const TextVec& tables);
+  NAArray<HbaseStr> *showTablesHDFSCache(NAHeap *heap, const TextVec& tables);
 
   HBC_RetCode addTablesToHDFSCache(const TextVec& tables, const char* poolName);
   HBC_RetCode removeTablesFromHDFSCache(const TextVec& tables, const char* poolName);

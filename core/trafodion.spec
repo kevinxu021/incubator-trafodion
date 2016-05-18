@@ -54,6 +54,7 @@ Requires: keyutils-libs
 Requires: libcom_err
 Requires: libgcc
 Requires: libxml2
+Requires: lzo
 Requires: ncurses
 Requires: openssl
 Requires: pam
