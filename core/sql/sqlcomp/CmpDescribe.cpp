@@ -2331,7 +2331,7 @@ short CmpDescribeHiveTable (
     {
       NAColumn * nac = naTable->getNAColumnArray()[i];
 
-      if(nac->isHivePartColumn())
+      if(nac->isHivePartColumn() && type != 1)
           continue;
 
       if (!nac->isHiveVirtualColumn() || describeVirtCols)
