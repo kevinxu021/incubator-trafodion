@@ -645,11 +645,18 @@ short FirstN::codeGen(Generator * generator)
                                          firstNValLen, &firstNRowsExpr,
                                          NULL, ExpTupleDesc::SHORT_FORMAT);
     }
-  
+
+  Int64 firstNrows = getFirstNRows();
+  if ((firstNrows > 0) &&
+      (generator->getNumESPs() > 1))
+    {
+      firstNrows = MAXOF(1, firstNrows/generator->getNumESPs());
+    }
+
   ComTdbFirstN * firstN_tdb
     = new(space) ComTdbFirstN(
                               child_tdb,
-                              getFirstNRows(),
+                              firstNrows,
                               firstNRowsExpr,
                               work_cri_desc,
                               given_desc,

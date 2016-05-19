@@ -2745,6 +2745,10 @@ enum DefaultConstants
   // specified in a regular CREATE VIEW (not a create MV) statement.
   ALLOW_ORDER_BY_IN_CREATE_VIEW,
 
+  // if set to ON, then ORDER BY could be
+  // specified in a subquery
+  ALLOW_ORDER_BY_IN_SUBQUERIES,
+
   GEN_EIDR_STATS_REPLY_INTERVAL,
 
   EXE_LOG_RETRY_IPC,
@@ -3764,6 +3768,10 @@ enum DefaultConstants
 
   USTAT_MAX_CHAR_DATASIZE_FOR_IS,
 
+  // allow firstN specification in IUD.
+  // Currently only Delete is supported.
+  ALLOW_FIRSTN_IN_IUD,
+
   // If the next two are 'ON' we use the HBase costing code; if they
   // are 'OFF' we use a stub cost of 1 for Updates and Deletes to
   // Trafodion or HBase tables instead. We'll remove these once the
@@ -3860,6 +3868,18 @@ enum DefaultConstants
   HIVE_SCAN_SPECIAL_MODE,
   HIVE_HDFS_STATS_MAX_SAMPLE_FILES,
   HIVE_HDFS_STATS_SAMPLE_LOB_INTFC,
+
+  // ON: to read number of rows from each ORC data file
+  // OFF: skip the reading and fake a row count of 100 per ORC data file
+  ORC_READ_NUM_ROWS,
+  
+  //Amount of time transactional and non transactional queries 
+  //loop around when online backup lock is activated. During this
+  //time queries at HtableClient.java and commit work loop until
+  //online backup lock gets unlocked. After this threshold, queries
+  //return error.
+  ONLINE_BACKUP_TIMEOUT,
+  
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!
   __NUM_DEFAULT_ATTRIBUTES

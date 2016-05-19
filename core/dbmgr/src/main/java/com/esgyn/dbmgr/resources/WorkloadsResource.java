@@ -7,7 +7,6 @@
 package com.esgyn.dbmgr.resources;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -214,7 +213,7 @@ public class WorkloadsResource {
 					maxRows, predicate);
 			_LOG.debug(queryText);
 
-			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
+			TabularResult result = QueryResource.executeSQLQuery(soc.getUsername(), soc.getPassword(), queryText);
 			return result;
 		} catch (Exception ex) {
 			_LOG.error("Failed to fetch list of workloads : " + ex.getMessage());
@@ -245,8 +244,7 @@ public class WorkloadsResource {
 		String url = ConfigurationResource.getInstance().getJdbcUrl();
 
 		try {
-			// connection = DriverManager.getConnection(url, soc.getUsername(),
-			// soc.getPassword());
+
 			connection = JdbcHelper.getInstance().getAdminConnection();
 
 			stmt = connection
@@ -357,12 +355,8 @@ public class WorkloadsResource {
 		Statement stmt;
 		ResultSet rs = null;
 
-		String url = ConfigurationResource.getInstance().getJdbcUrl();
-
 		try {
-			// connection = DriverManager.getConnection(url, soc.getUsername(),
-			// soc.getPassword());
-			connection = JdbcHelper.getInstance().getAdminConnection();
+			connection = JdbcHelper.getInstance().getConnection(soc.getUsername(), soc.getPassword());
 			stmt = connection.createStatement();
 			rs = stmt.executeQuery(sqlText);
 			while (rs.next()) {
@@ -578,7 +572,7 @@ public class WorkloadsResource {
 		String url = ConfigurationResource.getInstance().getJdbcUrl();
 
 		try {
-			connection = DriverManager.getConnection(url, soc.getUsername(), soc.getPassword());
+			connection = JdbcHelper.getInstance().getConnection(soc.getUsername(), soc.getPassword());
 			stmt = connection.createStatement();
 			_LOG.debug(sqlText);
 			stmt.execute(sqlText);

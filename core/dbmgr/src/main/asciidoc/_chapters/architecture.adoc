@@ -20,16 +20,15 @@
 
 The EsgynDB Manager is a web management console to monitor and manage an EsgynDB instance.
 
-* DB Manager runs as an embedded jetty webserver. No additional packages to install.
-* Communication with EsgynDB core is through JDBC and HTTP requests.
-* Webserver code is 100% Java.
+* DB Manager runs as an embedded jetty webserver.
 * The web client layer uses HTML5/JavaScript/CSS.
-* Client to DB Manager webserver communication uses HTTPS encryption.
+* The web client to DB Manager webserver communication uses HTTPS encryption.
+* Communication with EsgynDB core is through JDBC and HTTP requests.
 * Uses JDBC Authentication.
-* EsgynDB Manager has been tested with Chrome, IE11, Firefox and Microsoft Edge browsers.
 * DB Manager uses OpenTSDB to store time-series metrics. The system health and performance metrics as well the health and performance of EsgynDB services are periodically collected as time-series data and published into OpenTSDB.
 * TCollector provides several scripts to measure system health and performance and also an extensible infrastructure to launch scripts at pre-defined intervals. The metrics are published into OpenTSDB.
 * DB Manager provides real-time alerting using the Bosun alerting and notification engine.
+* EsgynDB Manager has been tested with Chrome, IE11, Firefox and Microsoft Edge browsers.
 
 [[img-rest]]
 image::architecture.png[caption="Figure 1: ", title="EsgynDB Manager Architecture", width="700", height="700"]

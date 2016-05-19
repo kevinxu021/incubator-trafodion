@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2016 Esgyn Corporation
+//(C) Copyright 2015-2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -46,6 +46,7 @@ define([
 	QUERY_RESULT_CONTAINER = '#query-result-container',
 	ERROR_TEXT = '#query-error-text',
 	SCALAR_RESULT_CONTAINER = '#scalar-result-container',
+	SCALAR_RESULT = '#scalar-result',
 	EXPLAIN_BTN = '#explainQuery',
 	EXECUTE_BTN = '#executeQuery',
 	OPTIONS_BTN = '#setControlStmts',
@@ -56,7 +57,7 @@ define([
 	var _this = null;
 	var queryTextEditor = null,
 	controlStmtEditor = null,
-	scalarResultEditor = null,
+	//scalarResultEditor = null,
 	resultsDataTable = null,
 	isPaused = false,
 	resultsAfterPause = false,
@@ -154,7 +155,12 @@ define([
 			$(CONTROL_APPLY_BUTTON).on('click', this.controlApplyClicked);
 			$(OPTIONS_BTN).on('click', this.openFilterDialog);
 
-			
+			resultsDataTable = null;
+			isPaused = false;
+			resultsAfterPause = false;
+			lastExecuteResult = null;
+			lastExplainResult = null;
+			lastRawError = null;
 			$(EXPLAIN_TREE).hide();
 			$(ERROR_TEXT).hide();
 			$(TOOLTIP_DIALOG).on('show.bs.modal', function () {
@@ -220,7 +226,7 @@ define([
 			$(controlStmtEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"300px"});
 
 			
-			scalarResultEditor = CodeMirror.fromTextArea(document.getElementById("scalar-result"), {
+			/*scalarResultEditor = CodeMirror.fromTextArea(document.getElementById("scalar-result"), {
 				mode: 'text/x-esgyndb',
 				indentWithTabs: true,
 				smartIndent: true,
@@ -235,7 +241,7 @@ define([
 					scalarResultEditor.setSize($(this).width(), $(this).height());
 				}
 			});
-			$(scalarResultEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"300px"});
+			$(scalarResultEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"300px"});*/
 			
 			$(CONTROL_DIALOG).on('hide.bs.modal', function(e){
 				if(controlStmts && controlStmts.length > 0){
@@ -255,6 +261,8 @@ define([
 
 				}
 			});
+			
+			_this.clearAll();
 			serverHandler.on(serverHandler.WRKBNCH_EXECUTE_SUCCESS, this.displayResults);
 			serverHandler.on(serverHandler.WRKBNCH_EXECUTE_ERROR, this.showErrorMessage);
 			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
@@ -355,11 +363,7 @@ define([
 			else
 				$(CONTROL_STMTS_TEXT).val();
 			
-			if(scalar-result-container){
-				scalar-result-container.setValue("");
-			}else{
-				$(SCALAR_RESULT_CONTAINER).text("");
-			}
+			$(SCALAR_RESULT).text("");
 
 			if(resultsDataTable  != null){
 				try{
@@ -449,8 +453,8 @@ define([
 			var keys = result.columnNames;
 			if(result.isScalarResult != null && result.isScalarResult == true){
 				$(SCALAR_RESULT_CONTAINER).show();
-				//$(SCALAR_RESULT_CONTAINER).text();
-				scalarResultEditor.setValue(result.resultArray[0][0]);
+				$(SCALAR_RESULT).text(result.resultArray[0][0]);
+				//scalarResultEditor.setValue(result.resultArray[0][0]);
 			}
 			else{
 				$(QUERY_RESULT_CONTAINER).show();        	

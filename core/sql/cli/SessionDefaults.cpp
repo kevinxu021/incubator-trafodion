@@ -95,6 +95,7 @@ static const SessionDefaults::SessionDefaultMap sessionDefaultMap[] =
   SDEntry(SessionDefaults::MAX_POLLING_INTERVAL,     MAX_POLLING_INTERVAL,       SessionDefaults::SDT_BINARY_SIGNED,  FALSE,   TRUE, TRUE, TRUE),
   SDEntry(SessionDefaults::MXCMP_PRIORITY,           MXCMP_PRIORITY,             SessionDefaults::SDT_BINARY_SIGNED,  FALSE,   TRUE,  TRUE,  TRUE),
   SDEntry(SessionDefaults::MXCMP_PRIORITY_DELTA,     MXCMP_PRIORITY_DELTA,       SessionDefaults::SDT_BINARY_SIGNED,  FALSE,   TRUE,  TRUE,  TRUE),
+  SDEntry(SessionDefaults::ONLINE_BACKUP_TIMEOUT,    ONLINE_BACKUP_TIMEOUT,      SessionDefaults::SDT_BINARY_SIGNED,  TRUE,    TRUE,  TRUE,  TRUE),
   SDEntry(SessionDefaults::PARENT_QID,               PARENT_QID,                 SessionDefaults::SDT_ASCII,          FALSE,   FALSE, TRUE,  FALSE),
   SDEntry(SessionDefaults::PARENT_QID_SYSTEM,        PARENT_QID_SYSTEM,          SessionDefaults::SDT_ASCII,          FALSE,   FALSE, TRUE,  FALSE),
   SDEntry(SessionDefaults::PARSER_FLAGS,             PARSER_FLAGS,               SessionDefaults::SDT_BINARY_SIGNED,  FALSE,   FALSE, TRUE,  FALSE),
@@ -234,6 +235,7 @@ SessionDefaults::SessionDefaults(CollHeap * heap)
   setCancelEscalationMxosrvrInterval(120);
   setCancelEscalationSaveabend(FALSE);
   setModeSeabase(FALSE);
+  setOnlineBackupTimeout(60);
 }
   
 SessionDefaults::~SessionDefaults()
@@ -398,7 +400,13 @@ void SessionDefaults::setSessionDefaultAttributeValue
 	setEspIdleTimeout(defaultValueAsLong);
       }
     break;
-
+    
+    case ONLINE_BACKUP_TIMEOUT:
+    {
+  setOnlineBackupTimeout(defaultValueAsLong);
+    }
+    break;
+  
     case ESP_INACTIVE_TIMEOUT:
       {
 	setEspInactiveTimeout(defaultValueAsLong);

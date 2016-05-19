@@ -25,7 +25,8 @@ define([
 	DDL_SPINNER = '#ddl-spinner',
 	PRIVILEGES_SPINNER = '#privileges-spinner',
 	USAGES_SPINNER = '#usages-spinner',
-	INDEXES_SPINNER = '#indexes-spinner';			
+	INDEXES_SPINNER = '#indexes-spinner',	
+	DROP_LIBRARY_SPINNER = '#drop-library-spinner';
 	var objColumnsDataTable = null,
 	regionsDataTable = null,
 	statisticsTable = null,
@@ -35,7 +36,8 @@ define([
 
 	var _this = null;
 	var ddlTextEditor = null;
-
+	var isAjaxCompleted=true;
+	
 	var BREAD_CRUMB = '#database-crumb';
 	var OBJECT_DETAILS_CONTAINER = '#object-details-container',
 	OBJECT_NAME_CONTAINER = '#db-object-name',
@@ -75,6 +77,7 @@ define([
 	USAGES_BTN = '#usages-btn',
 	UPDATE_LIBRARY_CONTAINER = '#update-library-div',
 	UPDATE_LIBRARY_BUTTON = '#update-library-btn',
+	DROP_LIBRARY_BUTTON = '#drop-library-btn',
 	STATISTICS_BTN = '#statistics-btn',
 	REFRESH_ACTION = '#refreshAction';
 
@@ -93,7 +96,7 @@ define([
 			routeArgs = args;
 			prevRouteArgs = args;
 			pageStatus = {};
-
+			this.redirectFlag=false;
 			schemaName = routeArgs.schema;
 			objectAttributes = sessionStorage.getItem(routeArgs.name);
 			if(objectAttributes != null){
@@ -101,6 +104,7 @@ define([
 				objectAttributes = JSON.parse(objectAttributes);
 			}
 			$(OBJECT_DETAILS_CONTAINER).hide();
+			$(DROP_LIBRARY_SPINNER).css('visibility', 'hidden');
 
 			if(CodeMirror.mimeModes["text/x-esgyndb"] == null){
 				common.defineEsgynSQLMime(CodeMirror);
@@ -130,7 +134,8 @@ define([
 
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			$(UPDATE_LIBRARY_BUTTON).on('click', this.updateLibrary);
-
+			$(DROP_LIBRARY_BUTTON).on('click',this.dropLibrary);
+			common.on(common.LIBRARY_ALTERED_EVENT, this.libraryAlteredEvent);
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
 			dbHandler.on(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
@@ -147,17 +152,20 @@ define([
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.fetchIndexesError);
 			dbHandler.on(dbHandler.FETCH_USAGE_SUCCESS, this.displayUsages);
 			dbHandler.on(dbHandler.FETCH_USAGE_ERROR, this.fetchUsagesError);
+			dbHandler.on(dbHandler.DROP_OBJECT_SUCCESS, this.dropObjectSuccess);
+			dbHandler.on(dbHandler.DROP_OBJECT_ERROR, this.dropObjectError);
 			_this.processRequest();
 
 		},
 		doResume: function(args){
 			routeArgs = args;
-
+			this.redirectFlag=false;
 			$(DDL_CONTAINER).hide();
 			$(COLUMNS_CONTAINER).hide();
 
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			$(UPDATE_LIBRARY_BUTTON).on('click', this.updateLibrary);
+			$(DROP_LIBRARY_BUTTON).on('click',this.dropLibrary);
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
@@ -186,6 +194,11 @@ define([
 					objectAttributes = JSON.parse(objectAttributes);
 				}
 				_this.doReset();
+			}else{
+				if(this.isAjaxCompleted=true){
+					$(DROP_LIBRARY_BUTTON).prop('disabled',false);
+					$(DROP_LIBRARY_SPINNER).css('visibility', 'hidden');
+				}
 			}	
 
 			prevRouteArgs = args;
@@ -193,9 +206,10 @@ define([
 			_this.processRequest();
 		},
 		doPause: function(){
+			this.redirectFlag=true;
 			$(REFRESH_ACTION).off('click', this.doRefresh);
 			$(UPDATE_LIBRARY_BUTTON).off('click', this.updateLibrary);
-
+			$(DROP_LIBRARY_BUTTON).off('click',this.dropLibrary);
 			dbHandler.off(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.off(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
 			dbHandler.off(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
@@ -212,7 +226,6 @@ define([
 			dbHandler.off(dbHandler.FETCH_OBJECT_LIST_ERROR, this.fetchIndexesError);
 			dbHandler.off(dbHandler.FETCH_USAGE_SUCCESS, this.displayUsages);
 			dbHandler.off(dbHandler.FETCH_USAGE_ERROR, this.fetchUsagesError);
-
 			$('a[data-toggle="pill"]').off('shown.bs.tab', this.selectFeature);
 		},
 		doReset: function(){
@@ -257,6 +270,7 @@ define([
 				}
 			}
 			pageStatus = {};
+			objectAttributes = null;
 			$(ATTRIBUTES_CONTAINER).empty();
 			$(ATTRIBUTES_ERROR_CONTAINER).text("");
 			$(COLUMNS_CONTAINER).empty();
@@ -271,7 +285,8 @@ define([
 			$(USAGES_ERROR_CONTAINER).text("");
 			$(INDEXES_CONTAINER).empty();
 			$(INDEXES_ERROR_CONTAINER).text("");
-			
+			$(DROP_LIBRARY_BUTTON).prop('disabled',false);
+			$(DROP_LIBRARY_SPINNER).css('visibility', 'hidden');
 			pageStatus.ddlFetched == false
 			if(ddlTextEditor){
 				ddlTextEditor.setValue("");
@@ -279,7 +294,14 @@ define([
 				ddlTextEditor.refresh();
 			}			
 		},
-
+		libraryAlteredEvent: function(args) {
+			 if(routeArgs.type == 'library'){
+				if(common.ExternalDisplayName(args.schemaName) == common.ExternalDisplayName(routeArgs.schema) && 
+						common.ExternalDisplayName(args.libName) == common.ExternalDisplayName(routeArgs.name)){
+					_this.doReset();
+				}				 
+			 }
+		},
 		getParentObjectName: function(){
 			var parentObjectName = null;
 			if(objectAttributes != null){
@@ -319,7 +341,14 @@ define([
 		updateLibrary: function(){
 			var codeFileName = _this.getObjectAttribute('Code File Name');
 			sessionStorage.setItem(routeArgs.name, JSON.stringify({file: codeFileName}));	
-			window.location.hash = '/tools/createlibrary?schema='+common.ExternalDisplayName(routeArgs.schema)+'&library='+common.ExternalDisplayName(routeArgs.name);
+			window.location.hash = '/tools/alterlibrary?schema='+common.ExternalDisplayName(routeArgs.schema)+'&library='+common.ExternalDisplayName(routeArgs.name);
+		},
+		dropLibrary: function(){
+			$(DROP_LIBRARY_SPINNER).css('visibility', 'visible');
+			$(DROP_LIBRARY_BUTTON).prop('disabled',true);
+			
+			_this.isAjaxCompleted=false;
+			dbHandler.dropObject(common.ExternalDisplayName(routeArgs.schema), routeArgs.type, common.ExternalDisplayName(routeArgs.name));
 		},
 		selectFeature: function(e){
 			$(OBJECT_DETAILS_CONTAINER).show();
@@ -487,9 +516,9 @@ define([
 					bCrumbsArray.push({name: 'Procedures', link: '#/database/objects?type=procedures&schema='+routeArgs.schema});
 					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.name), link: ''});
 					break;
-				case 'udf': 
+				case 'function': 
 					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
-					bCrumbsArray.push({name: 'User Defined Functions', link: '#/database/objects?type=udfs&schema='+routeArgs.schema});
+					bCrumbsArray.push({name: 'Functions', link: '#/database/objects?type=functions&schema='+routeArgs.schema});
 					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.name), link: ''});
 					break;
 
@@ -560,7 +589,7 @@ define([
 					$(INDEXES_BTN).hide();				
 					break;
 				case 'procedure': 
-				case 'udf': 
+				case 'function': 
 					schemaName = routeArgs.schema;
 					$(ATTRIBUTES_BTN).show();
 					$(ATTRIBUTES_SELECTOR).tab('show');
@@ -599,6 +628,8 @@ define([
 			if(objectAttributes == null){
 				$(ATTRIBUTES_CONTAINER).empty();
 				$(ATTRIBUTES_SPINNER).show();
+				$(UPDATE_LIBRARY_BUTTON).hide();
+				$(DROP_LIBRARY_BUTTON).hide();
 				dbHandler.fetchAttributes(routeArgs.type, routeArgs.name, routeArgs.schema);
 			}else{
 				_this.displayAttributes();
@@ -659,6 +690,8 @@ define([
 		},
 		displayAttributes: function(data) {
 			$(ATTRIBUTES_SPINNER).hide();
+			$(UPDATE_LIBRARY_BUTTON).show();
+			$(DROP_LIBRARY_BUTTON).show();
 			if(data != null){
 				objectAttributes = data;
 			}
@@ -683,9 +716,9 @@ define([
 						}else {
 							$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + value +  '</td>');
 						}
-					}else if((routeArgs.type == 'procedure' || routeArgs.type == 'udf') && property == 'UsageSchemaName'){
+					}else if((routeArgs.type == 'procedure' || routeArgs.type == 'function') && property == 'UsageSchemaName'){
 						continue;
-					}else if((routeArgs.type == 'procedure' || routeArgs.type == 'udf') && property == 'Library Name'){
+					}else if((routeArgs.type == 'procedure' || routeArgs.type == 'function') && property == 'Library Name'){
 						var libSch = _this.getUsageSchemaName();
 						libSch = (libSch != null && libSch.length > 0) ? libSch : routeArgs.schema;
 						var link =	'<a href="#/database/objdetail?type=library&name=' + value + '&schema=' +  libSch           				 
@@ -943,7 +976,7 @@ define([
 					}
 				}
 				var aoColumnDefs = [];
-				if(routeArgs.type == 'library' || routeArgs.type == 'procedure' || routeArgs.type == 'udf'){
+				if(routeArgs.type == 'library' || routeArgs.type == 'procedure' || routeArgs.type == 'function'){
 					aoColumnDefs.push({
 						"aTargets": [ 2 ],
 						"mData": 2,
@@ -962,7 +995,7 @@ define([
 									if(udrType == 'Procedure' || udrType == 'Library'){
 										linkType = udrType.toLowerCase();
 									}else{
-										linkType = 'udf';
+										linkType = 'function';
 									}
 									var rowcontent = '<a href="#/database/objdetail?type='+linkType+'&name=' + data ;
 									if(udrSchema != null && udrSchema.length > 0){
@@ -1338,7 +1371,46 @@ define([
 					$(STATISTICS_ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
 				}
 			}
-		},  
+		},
+		dropObjectSuccess: function(result){
+			_this.isAjaxCompleted=true;
+			$(DROP_LIBRARY_BUTTON).prop('disabled',false);
+			$(DROP_LIBRARY_SPINNER).css('visibility', 'hidden');
+
+			var msgPrefix = "dropped";
+			var msg= 'Library '+ common.ExternalForm(result.schemaName) + "." + common.ExternalForm(result.objectName) + ' was ' + msgPrefix + ' successfully';
+			var msgObj={msg: msg,tag:"success",url:null,shortMsg:'Library was ' + msgPrefix + ' successfully.'};
+			if(_this.redirectFlag==false){
+				_this.popupNotificationMessage(null,msgObj);
+				if(bCrumbsArray && bCrumbsArray.length > 1){
+					var crumb = bCrumbsArray[bCrumbsArray.length-2];
+					if(crumb.link){
+						window.location.hash = crumb.link;
+					}
+				}
+			}else{
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+			}
+			var args = {};
+			args.schemaName = result.schemaName;
+			args.libName = result.objectName;
+			common.fire(common.LIBRARY_DROPPED_EVENT, args);
+		},
+		dropObjectError: function(jqXHR){
+			_this.isAjaxCompleted=true;
+			$(DROP_LIBRARY_BUTTON).prop('disabled',false);
+			$(DROP_LIBRARY_SPINNER).css('visibility', 'hidden');
+			var errorIndex = jqXHR.responseText.lastIndexOf("*** ERROR");
+			var errorString = jqXHR.responseText.substring(errorIndex);
+			var msgPrefix = "Failed to drop library ";
+			var msg= msgPrefix + common.ExternalForm(jqXHR.schemaName) + "." + common.ExternalForm(jqXHR.objectName)+ " : " + errorString;
+			var msgObj={msg:msg,tag:"danger",url:null,shortMsg:msgPrefix};
+			if(_this.redirectFlag==false){
+				_this.popupNotificationMessage(null,msgObj);
+			}else{
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+			}
+		}
 	});
 
 

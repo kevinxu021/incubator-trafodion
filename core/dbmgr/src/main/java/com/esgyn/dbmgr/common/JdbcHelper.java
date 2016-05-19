@@ -3,6 +3,7 @@ package com.esgyn.dbmgr.common;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,10 +15,12 @@ public class JdbcHelper {
 	private static final Logger _LOG = LoggerFactory.getLogger(JdbcHelper.class);
 	private static JdbcHelper jdbcHelper;
 	private static HPT4DataSource dataSource = null;
+	public static final String APPLICATION_NAME = "EsgynDB Manager";
 
 	private JdbcHelper() {
 		ConfigurationResource configResource = ConfigurationResource.getInstance();
 		dataSource = new HPT4DataSource();
+		dataSource.setApplicationName(APPLICATION_NAME);
 		dataSource.setUrl(configResource.getJdbcUrl());
 		dataSource.setMaxStatements(ConfigurationResource.getMaxStatementsCache());
 		dataSource.setMaxPoolSize(ConfigurationResource.getMaxPoolSize());
@@ -45,7 +48,11 @@ public class JdbcHelper {
 	public Connection getConnection(String user, String password) throws SQLException, ClassNotFoundException {
 		String url = ConfigurationResource.getInstance().getJdbcUrl();
 		Class.forName(ConfigurationResource.getInstance().getJdbcDriverClass());
-		return DriverManager.getConnection(url, user, password);
+		Properties connProp = new Properties();
+		connProp.put("user", user);
+		connProp.put("password", password);
+		connProp.put("applicationName", APPLICATION_NAME);
+		return DriverManager.getConnection(url, connProp);
 	}
 
 	public static String EncloseInSingleQuotes(String aLiteralString) {

@@ -594,12 +594,21 @@ private:
   // These are system generated hostvars at this point.
   ValueIdList maxVals_;
 
-  // This list corresponds to the minMaxKeys above.  For each value
-  // added to the minMaxKeys_ list, a correspond NULL_VALUE_ID is
-  // added to this list.  If a scan decides to use a value in the
-  // minMaxKeys_, it sets the corresponding entry in this list to the
-  // valueId from the minMaxKeys list.
-  ValueIdList willUseMinMaxKeys_;
+  // the min/max values above have three boolean indicators associated
+  // with them:
+  // enabled: Is this value available for use by scan nodes right now?
+  //          A value may be disabled because we are above the node that
+  //          produces it or for other reasons.
+  // non-partitioned: This means that we have only a single hash table
+  //          or a replicated hash table in the hash join(s). It means
+  //          that we can use the min/max values in other plan fragments.
+  // used:    This indicates that one or more scan nodes actually
+  //          use a value, so the hash join that entered this value
+  //          must actually produce it at runtime
+  NABitVector minMaxEnabled_;
+  NABitVector minMaxNonPartitioned_;
+  NABitVector minMaxUsed_;
+
   int nCIFNodes_;
 
   // used if an ExeUtilWnrInsert node is added. 
@@ -1615,10 +1624,27 @@ public:
   bool getHalloweenESPonLHS() const { return halloweenESPonLHS_; }
 
   // Accessors to lists used by the HashJoin min/max optimizations.
-  ValueIdList &getMinVals() { return minVals_;}
-  ValueIdList &getMaxVals() { return maxVals_;}
-  ValueIdList &getMinMaxKeys() { return minMaxKeys_;}
-  ValueIdList &getWillUseMinMaxKeys() { return willUseMinMaxKeys_;}
+  ValueId getMinVal(CollIndex i) const { return minVals_[i];}
+  ValueId getMaxVal(CollIndex i) const { return maxVals_[i];}
+  ValueId getMinMaxKey(CollIndex i) const { return minMaxKeys_[i];}
+  const NABitVector &getEnabledMinMaxKeys() const { return minMaxEnabled_; }
+  NABoolean isMinMaxKeyUsed(CollIndex i) const
+                                { return minMaxUsed_.contains(i); }
+  CollIndex getNumMinMaxVals() const { return minMaxKeys_.entries(); }
+
+  // hash joins create, enable/disable and check for usage
+  void addMinMaxVals(const ValueId &col,
+                     const ValueId &minVal,
+                     const ValueId &maxVal,
+                     NABoolean isNonPartitioned);
+  void disableMinMaxKey(CollIndex i) { minMaxEnabled_ -= i; }
+
+  // scans (and possibly other nodes) make use of the keys
+  void setMinMaxKeyToUsed(CollIndex i) { minMaxUsed_ += i; }
+
+  // ESP_EXCHANGE node temporarily disables partitioned keys
+  void disablePartitionedMinMaxKeys(NABitVector &savedState /*OUT*/);
+  void reenablePartitionedMinMaxKeys(const NABitVector &savedState /*IN*/);
 
   void setCurrentEspFragmentPCG(pcgEspFragment* pcgEsp)
   { currentEspFragmentPCG_ = pcgEsp; } ;

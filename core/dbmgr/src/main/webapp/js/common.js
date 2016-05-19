@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2016 Esgyn Corporation
+//(C) Copyright 2015-2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -30,6 +30,9 @@ define(['moment',
 			this.databaseVersion = "";
 			this.databaseEdition = "";
 			this.serverConfigLoaded = false;
+			this.LIBRARY_CREATED_EVENT = 'LIBRARY_CREATED_EVENT';
+			this.LIBRARY_DROPPED_EVENT = 'LIBRARY_DROPPED_EVENT';
+			this.LIBRARY_ALTERED_EVENT = 'LIBRARY_ALTERED_EVENT';
 			this.NOFITY_MESSAGE = 'nofigyMessage';
 			this.MESSAGE_LIST=new Array();
 			this.popupIndex;
@@ -42,7 +45,26 @@ define(['moment',
 			this.DATE_FORMAT_ZONE = this.DATE_FORMAT + ' z';
 
 			this.sqlKeywords = "alter and as asc between by count create cqd delete desc distinct drop from group having in insert into is join like not on or order select set table union update values where ";
-
+			
+			if (!String.prototype.startsWith) {
+				  String.prototype.startsWith = function(searchString, position) {
+				    position = position || 0;
+				    return this.indexOf(searchString, position) === position;
+				  };
+			}
+			
+			if (!String.prototype.endsWith) {
+				  String.prototype.endsWith = function(searchString, position) {
+				      var subjectString = this.toString();
+				      if (typeof position !== 'number' || !isFinite(position) || Math.floor(position) !== position || position > subjectString.length) {
+				        position = subjectString.length;
+				      }
+				      position -= searchString.length;
+				      var lastIndex = subjectString.indexOf(searchString, position);
+				      return lastIndex !== -1 && lastIndex === position;
+				  };
+			}
+			
 			this.storeSessionProperties = function(data){
 				_this.serverTimeZone = data.serverTimeZone;
 				_this.serverUtcOffset = data.serverUTCOffset;
@@ -53,14 +75,8 @@ define(['moment',
 				
 				if(_this.isAdvanced()){
 					$('.dbmgr-adv').show();
-					if(data.enableAlerts != null && data.enableAlerts == false){
-						$('#alerts-feature').hide();
-					}else{
-						$('#alerts-feature').show();
-					}
 				}else{
 					$('.dbmgr-adv').hide();
-					$('#alerts-feature').hide();
 				}
 			};
 
@@ -300,7 +316,7 @@ define(['moment',
 				var diff = end - start;
 				var timeAgo;
 				if(diff < 0){
-				 alert("end date could not be earlier than start date ！");
+				 alert("End date could not be earlier than start date");
 				 }
 				if(diff<minute){
 					timeAgo=(diff/minute).toFixed(0) +' minutes ago';
@@ -352,8 +368,10 @@ define(['moment',
 				if($(REFRESH_INTERVAL).val()!=null){
 					isAutoRefresh=$(REFRESH_INTERVAL).val();
 				}else{
-					if(_this.commonTimeRange.isAutoRefresh!=null){
+					if(_this.commonTimeRange && _this.commonTimeRange.isAutoRefresh!=null){
 						isAutoRefresh=_this.commonTimeRange.isAutoRefresh;
+					}else {
+						isAutoRefresh="";
 					}
 				}
 				switch (selection) {
@@ -362,7 +380,7 @@ define(['moment',
 					break;
 				default:
 					if(isAutoRefresh==""){
-						_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:"0",isAutoRefresh:isAutoRefresh};	
+						_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:selection,isAutoRefresh:isAutoRefresh};	
 					}else{
 						_this.commonTimeRange={startTime:null,endTime:null,timeRangeTag:selection,isAutoRefresh:isAutoRefresh};
 					}

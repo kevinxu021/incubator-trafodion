@@ -204,7 +204,7 @@ public:
   void resetXnState();
 
 private:
-
+  
   // pointer to executor globals. Used to get to the open
   // cursor list. This list is needed to close all open
   // cursors at commit/rollback time.
@@ -253,7 +253,7 @@ private:
   // set to TRUE, if user application ended (committed/aborted/started)
   // an executor started Xn (xnInProgress_ is TRUE).
   // According to ANSI, only a SQL agent that started the XN can
-  // end it.
+  // end it.Int32 ExTransaction::checkAndWaitSnapshotInProgress()
   // Exe will stay in this state until user application 'ends' the
   // transaction by calling SQL commit/rollback.
   NABoolean userEndedExeXn_;

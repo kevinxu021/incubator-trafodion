@@ -6,6 +6,7 @@
 
 package com.esgyn.dbmgr.resources;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -13,11 +14,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -32,6 +34,8 @@ import com.esgyn.dbmgr.common.EsgynDBMgrException;
 import com.esgyn.dbmgr.common.Helper;
 import com.esgyn.dbmgr.common.JdbcHelper;
 import com.esgyn.dbmgr.common.TabularResult;
+import com.esgyn.dbmgr.model.Session;
+import com.esgyn.dbmgr.model.SessionModel;
 import com.esgyn.dbmgr.sql.SqlObjectListResult;
 import com.esgyn.dbmgr.sql.SystemQueryCache;
 import com.fasterxml.jackson.core.JsonFactory;
@@ -159,10 +163,10 @@ public class DatabaseResource {
 				// pstmt.setString(4,
 				// SqlRoutineType.PROCEDURE.getRoutineType());
 				break;
-			case "udfs":
+			case "functions":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_UDFS_IN_SCHEMA),
 						catalogName, schemaName, SqlObjectType.ROUTINE.getObjectType());
-				link = "/database/objdetail?type=udf";
+				link = "/database/objdetail?type=function";
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_UDFS_IN_SCHEMA));
 				pstmt.setString(1, catalogName);
@@ -266,7 +270,7 @@ public class DatabaseResource {
 				pstmt.setString(4, SqlObjectType.LIBRARY.getObjectType());
 				break;
 			case "procedure":
-			case "udf":
+			case "function":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_ROUTINE_ATTRIBUTES),
 						catalogName, schemaName, SqlObjectType.ROUTINE.getObjectType());
 				pstmt = connection
@@ -387,10 +391,8 @@ public class DatabaseResource {
 			case "schema":
 			case "library":
 			case "procedure":
+			case "function":
 				ddlObjectType = objectType.toUpperCase();
-				break;
-			case "udf":
-				ddlObjectType = "FUNCTION";
 				break;
 			case "index":
 				String parentDDLText = getDDLText("table", parentObjectName, schemaName, null, null, null);
@@ -410,9 +412,6 @@ public class DatabaseResource {
 				ansiObjectName = Helper.ExternalForm(schemaName) + "." + Helper.ExternalForm(objectName);
 			}
 
-			// String url = ConfigurationResource.getInstance().getJdbcUrl();
-			// connection = DriverManager.getConnection(url, soc.getUsername(),
-			// soc.getPassword());
 			connection = JdbcHelper.getInstance().getAdminConnection();
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_DDL_TEXT),
 					ddlObjectType, ansiObjectName);
@@ -486,6 +485,8 @@ public class DatabaseResource {
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_COLUMNS));
 				pstmt.setString(1, Helper.InternalForm(schemaName));
 				pstmt.setString(2, Helper.InternalForm(objectName));
+				pstmt.setString(3, Helper.InternalForm(schemaName));
+				pstmt.setString(4, Helper.InternalForm(objectName));
 			}
 
 			// TabularResult result =
@@ -549,7 +550,8 @@ public class DatabaseResource {
 		PreparedStatement pstmt = null;
 		Connection connection = null;
 		try {
-			connection = JdbcHelper.getInstance().getAdminConnection();
+			Session soc = SessionModel.getSession(servletRequest, servletResponse);
+			connection = JdbcHelper.getInstance().getConnection(soc.getUsername(), soc.getPassword());
 			String queryText = String.format(
 					SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_HISTOGRAM_STATISTICS),
 					Helper.ExternalForm(schemaName), objectID);
@@ -593,7 +595,7 @@ public class DatabaseResource {
 					throws EsgynDBMgrException {
 
 		ConfigurationResource.loadEsgynDBSystemProperties();
-		if (!ConfigurationResource.getInstance().isAuthorizationEnabled()) {
+		if (!ConfigurationResource.isAuthorizationEnabled()) {
 			throw new EsgynDBMgrException(
 					"Warning: Authorization feature is not enabled. There are no privileges to display.");
 		}
@@ -663,6 +665,7 @@ public class DatabaseResource {
 		case "view":
 			return getViewUsage(objectType, objectName, objectID, schemaName);
 		case "procedure":
+		case "function":
 			return getFunctionUsage(objectType, objectName, objectID, schemaName);
 		default:
 			throw new EsgynDBMgrException("Usage information is not supported for this object type : " + objectType);
@@ -699,6 +702,78 @@ public class DatabaseResource {
 				}
 			}
 		}
+	}
+
+	@POST
+	@Path("/drop")
+	@Consumes("application/json")
+	@Produces("application/json")
+	public boolean dropObject(ObjectNode obj, @Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+		Connection connection = null;
+		CallableStatement stmt = null;
+
+		String objectType = "";
+		String schemaName = "";
+		String objectName = "";
+		try {
+
+			if (obj.has("objectType")) {
+				objectType = obj.get("objectType").textValue();
+			}
+			if (obj.has("schemaName")) {
+				schemaName = obj.get("schemaName").textValue();
+			}
+			if (obj.has("objectName")) {
+				objectName = obj.get("objectName").textValue();
+			}
+			String ansiObjectName = "";
+
+			if (objectType.equalsIgnoreCase("schema")) {
+				ansiObjectName = Helper.ExternalForm(objectName);
+			} else {
+				ansiObjectName = Helper.ExternalForm(schemaName) + "." + Helper.ExternalForm(objectName);
+			}
+			Session soc = SessionModel.getSession(servletRequest, servletResponse);
+
+			connection = JdbcHelper.getInstance().getConnection(soc.getUsername(), soc.getPassword());
+			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_DDL_TEXT),
+					objectType, ansiObjectName);
+			if (objectType.equalsIgnoreCase("library")) {
+				queryText = SystemQueryCache.getQueryText(SystemQueryCache.SPJ_DROPLIB);
+			}
+			stmt = connection.prepareCall(queryText);
+			stmt.setString(1, new String(ansiObjectName.getBytes(), "UTF-8"));
+			stmt.setString(2, new String("RESTRICT".getBytes(), "UTF-8"));
+
+			_LOG.debug(queryText);
+
+			int rows = stmt.executeUpdate();
+			rows = stmt.getUpdateCount();
+			if (rows > 0) {
+				return true;
+			}
+		} catch (Exception ex) {
+			_LOG.error(String.format("Failed to drop %1$s %2$s %3$s", objectType, objectName, ex.getMessage()));
+			throw new EsgynDBMgrException(ex.getMessage());
+		} finally {
+			try {
+				if (stmt != null) {
+					stmt.close();
+				}
+			} catch (Exception e) {
+
+			}
+			try {
+				if (connection != null) {
+					connection.close();
+				}
+			} catch (Exception e) {
+
+			}
+		}
+		return false;
+
 	}
 
 	private SqlObjectListResult getViewUsage(String objectType, String objectName, String objectID, String schemaName)

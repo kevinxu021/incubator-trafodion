@@ -7,7 +7,7 @@
 >>invoke T011T1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T011T1
--- Definition current  Tue Mar  8 05:49:30 2016
+-- Definition current  Wed May 18 22:10:22 2016
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -143,7 +143,7 @@ A            B
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... NOT NAMED
-PLAN_ID .................. 212324176171390042
+PLAN_ID .................. 212330369423643442
 ROWS_OUT ................. 7
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t011t1 where a >= 3 and a < 5;
@@ -182,7 +182,7 @@ DESCRIPTION
   SCHEMA ................. TRAFODION.SCH
   QUERY_CACHE ............ 0
   GENERATE_EXPLAIN ....... ON
-  ObjectUIDs ............. 7433846178641183029
+  ObjectUIDs ............. 5361633593332765403
   select_list ............ TRAFODION.SCH.T011T1.A, TRAFODION.SCH.T011T1.B
 
 
@@ -1255,7 +1255,7 @@ METRIC_TEXT_TABLE
 >>invoke trafodion."_REPOS_".metric_query_table;
 
 -- Definition of Trafodion table TRAFODION."_REPOS_".METRIC_QUERY_TABLE
--- Definition current  Tue Mar  8 05:51:31 2016
+-- Definition current  Wed May 18 22:11:25 2016
 
   (
     INSTANCE_ID                      INT UNSIGNED NO DEFAULT NOT NULL NOT
@@ -1440,7 +1440,7 @@ METRIC_TEXT_TABLE
 >>-- get qid for the prepared stmt
 >>get qid for statement explstmt;
 
-MXID11000029589212324176152856001000000000206U3333300_1994_EXPLSTMT
+MXID11000025908212330369387540002000000000206U3333300_2161_EXPLSTMT
 
 --- SQL operation complete.
 >>
@@ -1492,7 +1492,7 @@ SEQ_NUM      OPERATOR
 --- SQL command prepared.
 >>get qid for statement explstmt2;
 
-MXID11000029589212324176152856001000000000206U3333300_2005_EXPLSTMT2
+MXID11000025908212330369387540002000000000206U3333300_2172_EXPLSTMT2
 
 --- SQL operation complete.
 >>set qid MXID123456 for explstmt2;
@@ -2057,8 +2057,6 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 
 --- SQL operation complete.
 >>
->>
->>
 >>-- tests for transaction replication options
 >>create table t011t8s(a int) attributes synchronous replication;
 
@@ -2130,7 +2128,7 @@ CREATE TABLE TRAFODION.SCH.T011T8N
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212312811940163743
+PLAN_ID .................. 212330369539958324
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ insert into t011t8s values (1);
@@ -2165,7 +2163,7 @@ DESCRIPTION
   HBASE_ASYNC_DROP_TABLE   OFF
   HBASE_SERIALIZATION .... ON
   HBASE_SMALL_SCANNER .... SYSTEM
-  HBASE_FILTER_PREDS ..... ON
+  HBASE_FILTER_PREDS ..... 2
   TRAF_ALIGNED_ROW_FORMAT  OFF
   TRAF_INDEX_CREATE_OPT    ON
   SCHEMA ................. TRAFODION.SCH
@@ -2173,7 +2171,7 @@ DESCRIPTION
   READONLY_CURSOR ........ TRUE
   SHOWCONTROL_SHOW_ALL ... OFF
   GENERATE_EXPLAIN ....... ON
-  ObjectUIDs ............. 646347225871303060, 646347225871303183
+  ObjectUIDs ............. 5361633593332776223, 5361633593332776426
 
 
 NESTED_JOIN ===============================  SEQ_NO 3        CHILDREN 1, 2
@@ -2231,7 +2229,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212312811941184155
+PLAN_ID .................. 212330369541449303
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ insert into t011t8a values (1);
@@ -2266,7 +2264,7 @@ DESCRIPTION
   HBASE_ASYNC_DROP_TABLE   OFF
   HBASE_SERIALIZATION .... ON
   HBASE_SMALL_SCANNER .... SYSTEM
-  HBASE_FILTER_PREDS ..... ON
+  HBASE_FILTER_PREDS ..... 2
   TRAF_ALIGNED_ROW_FORMAT  OFF
   TRAF_INDEX_CREATE_OPT    ON
   SCHEMA ................. TRAFODION.SCH
@@ -2274,7 +2272,7 @@ DESCRIPTION
   READONLY_CURSOR ........ TRUE
   SHOWCONTROL_SHOW_ALL ... OFF
   GENERATE_EXPLAIN ....... ON
-  ObjectUIDs ............. 646347225871303254, 646347225871303460
+  ObjectUIDs ............. 5361633593332776533, 5361633593332776733
 
 
 NESTED_JOIN ===============================  SEQ_NO 3        CHILDREN 1, 2
@@ -2393,6 +2391,446 @@ CREATE TABLE TRAFODION.SCH.T011T8N
 ;
 
 --- SQL operation complete.
+>>drop table t011t8s cascade;
+
+--- SQL operation complete.
+>>
+>>-- tests for NO ROLLBACK and FIRST N in delete stmts
+>>cqd allow_firstn_in_iud 'ON';
+
+--- SQL operation complete.
+>>create table t011t8 (a int not null primary key, b int not null);
+
+--- SQL operation complete.
+>>create table t011t8s (a int not null primary key, b int not null)
++>  salt using 4 partitions;
+
+--- SQL operation complete.
+>>
+>>insert into t011t8 values (1,1), (2,2), (3,3), (4,4), (5,5);
+
+--- 5 row(s) inserted.
+>>explain options 'f' delete with no rollback [first 2] from t011t8;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+4    .    5    root                                                  1.00E+002
+2    3    4    tuple_flow                                            1.00E+002
+.    .    3    trafodion_vsbb_delet            T011T8                1.00E+000
+1    .    2    firstn                                                1.00E+002
+.    .    1    trafodion_scan                  T011T8                1.00E+002
+
+--- SQL operation complete.
+>>delete with no rollback [first 2] from t011t8;
+
+--- 2 row(s) deleted.
+>>explain options 'f' delete with no rollback from t011t8;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+3    .    4    root                                                  1.00E+002
+1    2    3    tuple_flow                                            1.00E+002
+.    .    2    trafodion_vsbb_delet            T011T8                1.00E+000
+.    .    1    trafodion_scan                  T011T8                1.00E+002
+
+--- SQL operation complete.
+>>delete with no rollback from t011t8;
+
+--- 3 row(s) deleted.
+>>select * from t011t8;
+
+--- 0 row(s) selected.
+>>
+>>insert into t011t8 values (1,1), (2,2), (3,3), (4,4), (5,5);
+
+--- 5 row(s) inserted.
+>>prepare s from delete with no rollback [first 2] from t011t8;
+
+--- SQL command prepared.
+>>explain options 'f' s;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+4    .    5    root                                                  1.00E+002
+2    3    4    tuple_flow                                            1.00E+002
+.    .    3    trafodion_vsbb_delet            T011T8                1.00E+000
+1    .    2    firstn                                                1.00E+002
+.    .    1    trafodion_scan                  T011T8                1.00E+002
+
+--- SQL operation complete.
+>>execute s;
+
+--- 2 row(s) deleted.
+>>select * from t011t8;
+
+A            B          
+-----------  -----------
+
+          3            3
+          4            4
+          5            5
+
+--- 3 row(s) selected.
+>>execute s;
+
+--- 2 row(s) deleted.
+>>select * from t011t8;
+
+A            B          
+-----------  -----------
+
+          5            5
+
+--- 1 row(s) selected.
+>>execute s;
+
+--- 1 row(s) deleted.
+>>select * from t011t8;
+
+--- 0 row(s) selected.
+>>execute s;
+
+--- 0 row(s) deleted.
+>>select * from t011t8;
+
+--- 0 row(s) selected.
+>>
+>>insert into t011t8 values (1,1), (2,2), (3,3), (4,4), (5,5);
+
+--- 5 row(s) inserted.
+>>delete with no rollback from t011t8;
+
+--- 5 row(s) deleted.
+>>
+>>insert into t011t8 values (1,1), (2,2), (3,3), (4,4), (5,5);
+
+--- 5 row(s) inserted.
+>>create index t011t8i1 on t011t8(b);
+
+--- SQL operation complete.
+>>prepare s from delete [first 2] from t011t8;
+
+--- SQL command prepared.
+>>explain options 'f' s;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+6    .    7    root                            x                     1.00E+002
+4    5    6    nested_join                                           1.00E+002
+.    .    5    trafodion_vsbb_delet            T011T8I1              1.00E+000
+2    3    4    nested_join                                           1.00E+002
+.    .    3    trafodion_delete                T011T8                1.00E+000
+1    .    2    firstn                                                1.00E+002
+.    .    1    trafodion_scan                  T011T8                1.00E+002
+
+--- SQL operation complete.
+>>execute s;
+
+--- 2 row(s) deleted.
+>>select * from t011t8;
+
+A            B          
+-----------  -----------
+
+          3            3
+          4            4
+          5            5
+
+--- 3 row(s) selected.
+>>execute s;
+
+--- 2 row(s) deleted.
+>>select * from t011t8;
+
+A            B          
+-----------  -----------
+
+          5            5
+
+--- 1 row(s) selected.
+>>execute s;
+
+--- 1 row(s) deleted.
+>>select * from t011t8;
+
+--- 0 row(s) selected.
+>>execute s;
+
+--- 0 row(s) deleted.
+>>select * from t011t8;
+
+--- 0 row(s) selected.
+>>
+>>insert into t011t8s values (1,1), (2,2), (3,3), (4,4), (5,5);
+
+--- 5 row(s) inserted.
+>>control query shape esp_exchange (cut);
+
+--- SQL operation complete.
+>>prepare s from delete with no rollback [first 2] from t011t8s;
+
+--- SQL command prepared.
+>>explain options 'f' s;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+5    .    6    root                                                  1.00E+002
+4    .    5    esp_exchange                    1:2(hash2)            1.00E+002
+2    3    4    tuple_flow                                            1.00E+002
+.    .    3    trafodion_vsbb_delet            T011T8S               1.00E+000
+1    .    2    firstn                                                1.00E+002
+.    .    1    trafodion_scan                  T011T8S               1.00E+002
+
+--- SQL operation complete.
+>>execute s;
+
+--- 2 row(s) deleted.
+>>select * from t011t8s;
+
+A            B          
+-----------  -----------
+
+          1            1
+          4            4
+          5            5
+
+--- 3 row(s) selected.
+>>execute s;
+
+--- 2 row(s) deleted.
+>>select * from t011t8s;
+
+A            B          
+-----------  -----------
+
+          4            4
+
+--- 1 row(s) selected.
+>>execute s;
+
+--- 1 row(s) deleted.
+>>select * from t011t8s;
+
+--- 0 row(s) selected.
+>>
+>>insert into t011t8s values (1,1), (2,2), (3,3), (4,4), (5,5);
+
+--- 5 row(s) inserted.
+>>delete with no rollback from t011t8s;
+
+--- 5 row(s) deleted.
+>>
+>>create index t011t8si1 on t011t8s(b);
+
+--- SQL operation complete.
+>>insert into t011t8s values (1,1), (2,2), (3,3), (4,4), (5,5);
+
+--- 5 row(s) inserted.
+>>control query shape esp_exchange (cut);
+
+--- SQL operation complete.
+>>prepare s from delete [first 2] from t011t8s;
+
+--- SQL command prepared.
+>>explain options 'f' s;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+7    .    8    root                            x                     1.00E+002
+6    .    7    esp_exchange                    1:2(hash2)            1.00E+002
+4    5    6    nested_join                                           1.00E+002
+.    .    5    trafodion_vsbb_delet            T011T8SI1             1.00E+000
+2    3    4    nested_join                                           1.00E+002
+.    .    3    trafodion_delete                T011T8S               1.00E+000
+1    .    2    firstn                                                1.00E+002
+.    .    1    trafodion_scan                  T011T8S               1.00E+002
+
+--- SQL operation complete.
+>>execute s;
+
+--- 2 row(s) deleted.
+>>select * from t011t8s;
+
+A            B          
+-----------  -----------
+
+          1            1
+          4            4
+          5            5
+
+--- 3 row(s) selected.
+>>execute s;
+
+--- 2 row(s) deleted.
+>>select * from t011t8s;
+
+A            B          
+-----------  -----------
+
+          4            4
+
+--- 1 row(s) selected.
+>>execute s;
+
+--- 1 row(s) deleted.
+>>select * from t011t8s;
+
+--- 0 row(s) selected.
+>>
+>>insert into t011t8s values (1,1), (2,2), (3,3), (4,4), (5,5);
+
+--- 5 row(s) inserted.
+>>control query shape cut;
+
+--- SQL operation complete.
+>>prepare s from delete [first 2] from t011t8s;
+
+--- SQL command prepared.
+>>explain options 'f' s;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+6    .    7    root                            x                     1.00E+002
+4    5    6    nested_join                                           1.00E+002
+.    .    5    trafodion_vsbb_delet            T011T8SI1             1.00E+000
+2    3    4    nested_join                                           1.00E+002
+.    .    3    trafodion_delete                T011T8S               1.00E+000
+1    .    2    firstn                                                1.00E+002
+.    .    1    trafodion_scan                  T011T8S               1.00E+002
+
+--- SQL operation complete.
+>>execute s;
+
+--- 2 row(s) deleted.
+>>select * from t011t8s;
+
+A            B          
+-----------  -----------
+
+          3            3
+          4            4
+          5            5
+
+--- 3 row(s) selected.
+>>execute s;
+
+--- 2 row(s) deleted.
+>>select * from t011t8s;
+
+A            B          
+-----------  -----------
+
+          5            5
+
+--- 1 row(s) selected.
+>>execute s;
+
+--- 1 row(s) deleted.
+>>select * from t011t8s;
+
+--- 0 row(s) selected.
+>>
+>>insert into t011t8s values (1,1), (2,2), (3,3), (4,4), (5,5);
+
+--- 5 row(s) inserted.
+>>select * from t011t8s;
+
+A            B          
+-----------  -----------
+
+          1            1
+          2            2
+          3            3
+          4            4
+          5            5
+
+--- 5 row(s) selected.
+>>-- first 0 should not delete anything
+>>delete [first 0] from t011t8s;
+
+--- 0 row(s) deleted.
+>>select * from t011t8s;
+
+A            B          
+-----------  -----------
+
+          1            1
+          2            2
+          3            3
+          4            4
+          5            5
+
+--- 5 row(s) selected.
+>>
+>>-- with no rollback should delete even if Xn is rolled back
+>>drop index t011t8si1;
+
+--- SQL operation complete.
+>>begin work;
+
+--- SQL operation complete.
+>>delete with no rollback from t011t8s;
+
+--- 5 row(s) deleted.
+>>select * from t011t8s;
+
+--- 0 row(s) selected.
+>>rollback work;
+
+--- SQL operation complete.
+>>select * from t011t8s;
+
+--- 0 row(s) selected.
+>>
+>>-- negative tests
+>>
+>>-- cant do 'no rollback' with indexes.
+>>delete with no rollback from t011t8;
+
+*** ERROR[3232] INSERT, UPDATE, or DELETE of table TRAFODION.SCH.T011T8 with dependent Index : TRAFODION.SCH.T011T8I1 is not allowed when NO ROLLBACK transaction setting is in effect.
+
+*** ERROR[8822] The statement was not prepared.
+
+>>delete with no rollback [first 2] from t011t8;
+
+*** ERROR[3232] INSERT, UPDATE, or DELETE of table TRAFODION.SCH.T011T8 with dependent Index : TRAFODION.SCH.T011T8I1 is not allowed when NO ROLLBACK transaction setting is in effect.
+
+*** ERROR[8822] The statement was not prepared.
+
+>>
+>>-- cannot do first N delete on a view
+>>create view t011t8v as select * from t011t8s;
+
+--- SQL operation complete.
+>>delete [first 2] from t011t8v;
+
+*** ERROR[3242] This statement is not supported. Reason: [FIRST N] not allowed on delete from a view.
+
+*** ERROR[8822] The statement was not prepared.
+
+>>
+>>cqd allow_firstn_in_iud 'OFF';
+
+--- SQL operation complete.
+>>delete [first 2] from t011t8s;
+
+*** ERROR[3242] This statement is not supported. Reason: [FIRST N] not allowed in delete query.
+
+*** ERROR[8822] The statement was not prepared.
+
+>>update [first 2] t011t8s set b = b + 1;
+
+*** ERROR[3242] This statement is not supported. Reason: [FIRST N] not allowed in update query.
+
+*** ERROR[8822] The statement was not prepared.
+
 >>
 >>
 >>
@@ -2444,6 +2882,19 @@ CREATE TABLE TRAFODION.SCH.T011T8N
 >>drop table t011t8n cascade;
 
 --- SQL operation complete.
+>>drop view t011t8v;
+
+*** ERROR[1389] Object TRAFODION.SCH.T011T8V does not exist in Trafodion.
+
+--- SQL operation failed with errors.
+>>drop table t011t8;
+
+--- SQL operation complete.
+>>drop table t011t8s;
+
+*** ERROR[1389] Object TRAFODION.SCH.T011T8S does not exist in Trafodion.
+
+--- SQL operation failed with errors.
 >>
 >>-- delete explain for statement explstmt from repository
 >>set parserflags 131072;

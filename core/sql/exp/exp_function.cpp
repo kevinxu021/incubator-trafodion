@@ -678,13 +678,13 @@ ExFunctionCastType::ExFunctionCastType(OperatorTypeEnum oper_type,
 {
 };
 
-ExFunctionSVariance::ExFunctionSVariance(Attributes **attr, Space *space)
-  : ex_function_clause(ITM_VARIANCE, 4, attr, space)
+ExFunctionSVariance::ExFunctionSVariance(OperatorTypeEnum oper_type, Attributes **attr, Space *space)
+  : ex_function_clause(oper_type, 4, attr, space)
 {
 };
 
-ExFunctionSStddev::ExFunctionSStddev(Attributes **attr, Space *space)
-  : ex_function_clause(ITM_STDDEV, 4, attr, space)
+ExFunctionSStddev::ExFunctionSStddev(OperatorTypeEnum oper_type, Attributes **attr, Space *space)
+  : ex_function_clause(oper_type, 4, attr, space)
 {
   
 };
@@ -5189,12 +5189,19 @@ ex_expr::exp_return_type ExFunctionSVariance::eval(char *op_data[],
 
   avgOfVal = sumOfVal/countOfVal;
 
-  if(countOfVal == 1) {
+  if(countOfVal == 1 && getOperType() == ITM_VARIANCE_SAMP) {
     result = 0.0;
   }
   else {
-    result = (sumOfValSquared - (sumOfVal * avgOfVal)) / (countOfVal - 1);
-
+    switch(getOperType())
+	 {
+	 case ITM_VARIANCE_SAMP:
+	  result = (sumOfValSquared - (sumOfVal * avgOfVal)) / (countOfVal - 1);
+	  break;
+	 case ITM_VARIANCE_POP:
+	  result = (sumOfValSquared - (sumOfVal * avgOfVal)) / (countOfVal);
+	  break;
+	 }
     if(result < 0.0) {
       result = 0.0;
     }
@@ -5233,13 +5240,20 @@ ex_expr::exp_return_type ExFunctionSStddev::eval(char *op_data[],
 
   avgOfVal = sumOfVal/countOfVal;
 
-  if(countOfVal == 1) {
+  if(countOfVal == 1 && getOperType() == ITM_STDDEV_SAMP) {
     result = 0.0;
   }
   else {
     short err = 0;
-    result = (sumOfValSquared - (sumOfVal * avgOfVal)) / (countOfVal - 1);
-
+    switch(getOperType())
+	 {
+	 case ITM_STDDEV_SAMP:
+	  result = (sumOfValSquared - (sumOfVal * avgOfVal)) / (countOfVal - 1);
+	  break;
+	 case ITM_STDDEV_POP:
+	  result = (sumOfValSquared - (sumOfVal * avgOfVal)) / (countOfVal);
+	  break;
+	 }
     if(result < 0.0) {
       result = 0.0;
     } else {

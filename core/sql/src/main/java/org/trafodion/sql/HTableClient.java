@@ -1015,7 +1015,8 @@ public class HTableClient {
 	    } else {
           scanner = table.getScanner(scan,dopParallelScanner);
         }
-        if (logger.isTraceEnabled()) logger.trace("startScan(). After getScanner. Scanner: " + scanner+" dop:"+dopParallelScanner);
+        if (logger.isTraceEnabled()) logger.trace("startScan(). After getScanner. Scanner: " + scanner+ " dop:"+
+        		    dopParallelScanner + "TransID " + transID + " " + useTRexScanner + " " +  getTableName());
 	  }
 	  else
 	  {
@@ -2021,6 +2022,8 @@ public class HTableClient {
               future = null;
           }
 	  if (scanner != null) {
+	  	if (logger.isTraceEnabled()) logger.trace("scanner.close() " + tableName + " " + scanner + " " 
+	  			 + retcode );
 	    scanner.close();
 	    scanner = null;
 	  }

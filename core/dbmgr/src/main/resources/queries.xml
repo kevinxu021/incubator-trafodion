@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- @@@ START COPYRIGHT @@@
  
-     (C) Copyright 2016 Esgyn Corporation
+     (C) Copyright 2015-2016 Esgyn Corporation
  
      @@@ END COPYRIGHT @@@
 -->
@@ -232,20 +232,36 @@
 		<query>
 			<!-- Fetch list of columns for a schema object -->
 			<name>SELECT_OBJECT_COLUMNS</name>
-			<text><![CDATA[SELECT CASE WHEN K.CONSTRAINT_TYPE = 'PRIMARY KEY' THEN 'P' ELSE '' END as PRIMARY_KEY, C.COLUMN_NUMBER, C.COLUMN_NAME, SQL_DATA_TYPE,  
-			    COLUMN_SIZE, COLUMN_PRECISION, COLUMN_SCALE, 
-			    CASE WHEN NULLABLE = 0 THEN 'NOT NULL'
-			        ELSE 'NULL'
-			    END AS NULLABLE, 
-			    CASE CHARACTER_SET
-			        WHEN '_unknown_' THEN ''
-			        ELSE CHARACTER_SET 
-			    END AS CHARACTER_SET, DEFAULT_VALUE
-			    FROM "_MD_".COLUMNS_VIEW C LEFT JOIN "_MD_".KEYS_VIEW K
-			        ON C.SCHEMA_NAME = K.SCHEMA_NAME AND C.TABLE_NAME = K.TABLE_NAME 
-			        AND C.COLUMN_NAME = K.COLUMN_NAME AND K.CONSTRAINT_TYPE = 'PRIMARY KEY'
-				WHERE C.SCHEMA_NAME = ?
-				AND C.TABLE_NAME = ? 
+			<text><![CDATA[SELECT CASE WHEN K.CONSTRAINT_TYPE = 'PRIMARY KEY' THEN 'P' ELSE '' END as PRIMARY_KEY, 
+				C.COLUMN_NUMBER, C.COLUMN_NAME, SQL_DATA_TYPE, COLUMN_SIZE, COLUMN_PRECISION, COLUMN_SCALE, 
+				CASE WHEN NULLABLE = 0 THEN 'NOT NULL'
+				    ELSE 'NULL'
+				END AS NULLABLE, 
+				CASE CHARACTER_SET
+				    WHEN '_unknown_' THEN ''
+				ELSE CHARACTER_SET 
+				    END AS CHARACTER_SET, DEFAULT_VALUE
+				FROM "_MD_".OBJECTS O, "_MD_".COLUMNS C 
+				LEFT JOIN (
+				    SELECT T.TABLE_UID, CAST(CASE WHEN T.CONSTRAINT_TYPE = 'P'
+				        THEN 'PRIMARY KEY' WHEN T.CONSTRAINT_TYPE = 'F' THEN 'FOREIGN KEY' WHEN
+				        T.CONSTRAINT_TYPE = 'U' THEN 'UNIQUE KEY' ELSE ' ' END AS VARCHAR(22))
+				        CONSTRAINT_TYPE, K.COLUMN_NAME, K.COLUMN_NUMBER
+				    FROM TRAFODION."_MD_".OBJECTS O,
+				    TRAFODION."_MD_".TABLE_CONSTRAINTS T,
+				    TRAFODION."_MD_".KEYS K 
+				    WHERE O.SCHEMA_NAME = ?
+				    AND O.OBJECT_NAME = ?
+				    AND O.OBJECT_UID = T.TABLE_UID
+				    AND T.CONSTRAINT_UID = K.OBJECT_UID FOR
+				    READ UNCOMMITTED ACCESS
+				    ) AS  K
+				    ON C.OBJECT_UID = K.TABLE_UID 
+				    AND C.COLUMN_NAME = K.COLUMN_NAME 
+				    AND K.CONSTRAINT_TYPE = 'PRIMARY KEY'
+				WHERE O.SCHEMA_NAME = ?
+				AND O.OBJECT_NAME = ?
+				AND O.OBJECT_UID = C.OBJECT_UID
 				AND C.COLUMN_NAME != '_SALT_'
 				FOR READ UNCOMMITTED ACCESS ORDER BY 2;
 			]]></text>
@@ -768,6 +784,10 @@
 		<query>
 			<name>SPJ_ALTERLIB</name>
 			<text><![CDATA[{call "_LIBMGR_".alterlib(?,?,null,null)}]]></text>
+		</query>
+		<query>
+			<name>SPJ_DROPLIB</name>
+			<text><![CDATA[{call "_LIBMGR_".droplib(?,?)}]]></text>
 		</query>
 		<query>
 			<name>CHECK_SCHEMA</name>

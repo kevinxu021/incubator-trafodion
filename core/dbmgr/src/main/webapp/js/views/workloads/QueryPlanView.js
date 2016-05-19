@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2016 Esgyn Corporation
+//(C) Copyright 2015-2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -102,8 +102,8 @@ define([
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			wHandler.on(wHandler.PLAN_CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
 			wHandler.on(wHandler.PLAN_CANCEL_QUERY_ERROR, this.cancelQueryError);
-			serverHandler.on(serverHandler.WORKLOAD_EXPLAIN_SUCCESS, this.drawExplain);
-			serverHandler.on(serverHandler.WORKLOAD_EXPLAIN_ERROR, this.showErrorMessage);
+			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
+			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 
 			this.fetchExplainPlan();
 
@@ -114,8 +114,8 @@ define([
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			/*wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
 			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);*/
-			serverHandler.on(serverHandler.WORKLOAD_EXPLAIN_SUCCESS, this.drawExplain);
-			serverHandler.on(serverHandler.WORKLOAD_EXPLAIN_ERROR, this.showErrorMessage);
+			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
+			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 			if(queryID == null || queryID != args){
 				this.processArgs(args);
 				this.fetchExplainPlan();
@@ -127,8 +127,8 @@ define([
 			$(QCANCEL_MENU).off('click', this.cancelQuery);
 			/*wHandler.off(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
 			wHandler.off(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);*/
-			serverHandler.off(serverHandler.WORKLOAD_EXPLAIN_SUCCESS, this.drawExplain);
-			serverHandler.off(serverHandler.WORKLOAD_EXPLAIN_ERROR, this.showErrorMessage);
+			serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
+			serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 		},
 		showLoading: function(){
 			$(LOADING_SELECTOR).show();
