@@ -2366,7 +2366,7 @@ public class TransactionManager {
           if (transactionState.getRegionsToIgnore().contains(location)) {
               continue;
           }
-          //try {
+          try {
             loopCount++;
             final int participantNum = loopCount;
             final byte[] regionName = location.getRegionInfo().getRegionName();
@@ -2390,8 +2390,8 @@ public class TransactionManager {
                             + loopCount + "Transaction: ["
                             + transactionState.getTransactionId() + "], region: ["
                             + location.getRegionInfo().getRegionNameAsString() + "]. Ignoring. " + e);
-          }
 */
+          }
             /*
             } catch (UnknownTransactionException e) {
         LOG.error("exception in abort: " + e);
