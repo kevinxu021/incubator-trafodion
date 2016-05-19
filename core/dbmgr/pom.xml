@@ -141,8 +141,8 @@
 			<version>${jackson-version}</version>
 		</dependency>
 		<dependency>
-			<groupId>org.trafodion.jdbc.t4.T4Driver</groupId>
-			<artifactId>t4driver</artifactId>
+			<groupId>org.trafodion.jdbc.t4</groupId>
+			<artifactId>jdbcT4</artifactId>
 			<version>${traf-jdbc-version}</version>
 		</dependency>
 		<dependency>
