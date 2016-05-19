@@ -43,4 +43,4 @@ LICENSE-clients:
 	cat Apache lic-clients-bin > $@
 
 clean:
-	rm LICENSE*
+	rm -rf LICENSE*
