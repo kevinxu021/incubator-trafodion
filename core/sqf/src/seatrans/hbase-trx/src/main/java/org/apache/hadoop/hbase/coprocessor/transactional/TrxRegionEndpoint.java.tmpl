@@ -443,7 +443,8 @@ CoprocessorService, Coprocessor {
   public static final String trxkeyEPCPinstance = "EPCPinstance";
   // TBD Maybe we should just use HashMap to improve the performance, ConcurrentHashMap could be too strict
   static ConcurrentHashMap<String, Object> transactionsEPCPMap;
-  STRConfig pSTRConfig;
+  STRConfig pSTRConfig = null;
+  int pSTR_ClusterId = -1;
   // boolean skip = true;
   
   // PIT Mutation Capturer
@@ -2980,10 +2981,12 @@ CoprocessorService, Coprocessor {
       org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.RecoveryRequestResponse.Builder recoveryResponseBuilder = RecoveryRequestResponse.newBuilder();
 
       try {
-          pSTRConfig = STRConfig.getInstance(config);
-     } catch (Exception xe) {
-             LOG.error("An ERROR occurred while getting the STR Configuration");
-     }
+         pSTRConfig = STRConfig.getInstance(this.config);
+         pSTR_ClusterId = pSTRConfig.getMyClusterIdInt();
+      } catch (Exception xe) {
+            LOG.error("An ERROR occurred while getting the STR Configuration");
+            pSTR_ClusterId = 0; // set it to 0
+      }
 
       List<Long> indoubtTransactions = new ArrayList<Long>();
       if (LOG.isTraceEnabled()) LOG.trace("recoveryRequest Trafodion Recovery: region " + regionInfo.getEncodedName() + " receives recovery request from TM " + tmId  + " with region state " + regionState);
@@ -2997,8 +3000,8 @@ CoprocessorService, Coprocessor {
                           int nodeid = (int) TransactionState.getNodeId(tid);
 
                           boolean add = false;
-                          if ((clusterid == 0 || (clusterid == pSTRConfig.getMyClusterIdInt())) && nodeid == tmId) add = true; // match local TM
-                          else if (((clusterid != pSTRConfig.getMyClusterIdInt()) && clusterid != 0) && tmId == -2) add = true; // for any peer
+                          if ((clusterid == 0 || (clusterid == pSTR_ClusterId)) && nodeid == tmId) add = true; // match local TM
+                          else if (((clusterid != pSTR_ClusterId) && clusterid != 0) && tmId == -2) add = true; // for any peer
                         
                           if (add) {
                               indoubtTransactions.add(tid);
@@ -4005,7 +4008,7 @@ CoprocessorService, Coprocessor {
   }
 
   public void choreThreadDetectStaleTransactionBranch() {
-
+      
       List<Integer> staleBranchforTMId = new ArrayList<Integer>();
       List<TrxTransactionState> commitPendingCopy = new ArrayList<TrxTransactionState>(commitPendingTransactions);
       Map<Long, List<WALEdit>> indoubtTransactionsMap = new TreeMap<Long, List<WALEdit>>(indoubtTransactionsById);
@@ -4020,33 +4023,49 @@ CoprocessorService, Coprocessor {
 
       byte [] lv_byte_region_info = regionInfo.toByteArray();
       String lv_encoded = regionInfo.getEncodedName();
+      
+      try {
+         pSTRConfig = STRConfig.getInstance(this.config);
+         pSTR_ClusterId = pSTRConfig.getMyClusterIdInt();
+      } catch (Exception xe) {
+            LOG.error("An ERROR occurred while getting the STR Configuration");
+            pSTR_ClusterId = 0; // set it to 0
+      }
 
-      long transactionId;
+      long transactionId = 0;
       if ((indoubtTransactionsById != null) && (indoubtTransactionsById.size() > 0) && (this.regionState != REGION_STATE_START)) {
          for (Entry<Long, List<WALEdit>> entry : indoubtTransactionsMap.entrySet()) {
+	    try {
                transactionId = entry.getKey();
                if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor:choreThreadDetectStaleTransactionBranch: indoubt branch Txn id "
                        + transactionId + " region info bytes " + new String(lv_byte_region_info));
                clusterid = (int) TransactionState.getClusterId(transactionId);
                tmid = (int) TransactionState.getNodeId(transactionId);
-               LOG.info("Traf Reco Thread detect stale branch tid " + transactionId + " cluster id " + clusterid + " node " + tmid + " PSTRConfig " + pSTRConfig.getMyClusterId());
-               if ((clusterid != pSTRConfig.getMyClusterIdInt()) && clusterid != 0) tmid = -2; // for any peer
+               LOG.warn("Traf Reco Thread detect stale branch tid " + transactionId + " cluster id " + clusterid + " node " + tmid + " PSTRConfig " + pSTR_ClusterId);
+               if ((clusterid != pSTR_ClusterId) && clusterid != 0) tmid = -2; // for any peer
                if (!staleBranchforTMId.contains(tmid)) {staleBranchforTMId.add(tmid);}
-         }
+            } catch (Exception xe1) {
+               LOG.warn("An exception when chore thread detects a stale in-doubt reinstated transaction " + transactionId + " skip ... ");
+	    } // catch
+         } // for loop
       }
       else { // region has started
          for (TrxTransactionState commitPendingTS : commitPendingCopy) {
-            if (commitPendingTS.getCPEpoch() < (controlPointEpoch.get() - 1)) {
-               transactionId = commitPendingTS.getTransactionId();
-               if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor:choreThreadDetectStaleTransactionBranch: stale branch Txn id "
-                  + transactionId + " region info bytes " + new String(lv_byte_region_info));
-               clusterid = (int) TransactionState.getClusterId(transactionId);
-               tmid = (int) TransactionState.getNodeId(transactionId);
-               LOG.info("Traf Reco Thread detect stale branch tid " + transactionId + " cluster id " + clusterid + " node " + tmid + " PSTRConfig " + pSTRConfig.getMyClusterId());
-               if ((clusterid != pSTRConfig.getMyClusterIdInt()) && clusterid != 0) tmid = -2; // for any peer
-               if (!staleBranchforTMId.contains(tmid)) {staleBranchforTMId.add(tmid);}
-            }
-         }
+	    try {
+              if (commitPendingTS.getCPEpoch() < (controlPointEpoch.get() - 1)) {
+                 transactionId = commitPendingTS.getTransactionId();
+                  if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor:choreThreadDetectStaleTransactionBranch: stale branch Txn id "
+                     + transactionId + " region info bytes " + new String(lv_byte_region_info));
+                  clusterid = (int) TransactionState.getClusterId(transactionId);
+                  tmid = (int) TransactionState.getNodeId(transactionId);
+                  LOG.warn("Traf Reco Thread detect stale branch tid " + transactionId + " cluster id " + clusterid + " node " + tmid + " PSTRConfig " + pSTR_ClusterId);
+                  if ((clusterid != pSTR_ClusterId) && clusterid != 0) tmid = -2; // for any peer
+                  if (!staleBranchforTMId.contains(tmid)) {staleBranchforTMId.add(tmid);}
+               }
+	    } catch (Exception xe1) {
+               LOG.warn("An exception when chore thread detects a stale in-doubt normal transaction " + transactionId + " skip ... ");
+	    } // catch
+         } // loop
       }
 
       if (!staleBranchforTMId.isEmpty()) {
@@ -4562,13 +4581,20 @@ CoprocessorService, Coprocessor {
 
     if (LOG.isDebugEnabled()) LOG.debug("commit(tstate) -- EXIT TrxTransactionState: " + 
 					state.toString());
+    try {
+         pSTRConfig = STRConfig.getInstance(this.config);
+         pSTR_ClusterId = pSTRConfig.getMyClusterIdInt();
+    } catch (Exception xe) {
+            LOG.error("An ERROR occurred while getting the STR Configuration");
+            pSTR_ClusterId = 0; // set it to 0
+    }
 
     if (state.isReinstated()) {
       synchronized(indoubtTransactionsById) {
         indoubtTransactionsById.remove(state.getTransactionId());
         int clusterid = (int) TransactionState.getClusterId(transactionId);
         int tmid = (int) TransactionState.getNodeId(transactionId);
-        if ((clusterid != pSTRConfig.getMyClusterIdInt()) && (clusterid != 0)) tmid = -2; // for any peer
+        if ((clusterid != pSTR_ClusterId) && (clusterid != 0)) tmid = -2; // for any peer
         int count = 0;
         if (indoubtTransactionsCountByTmid.containsKey(tmid)) {
           count =  (int) indoubtTransactionsCountByTmid.get(tmid) - 1;
@@ -5931,7 +5957,7 @@ CoprocessorService, Coprocessor {
         indoubtTransactionsById.remove(state.getTransactionId());
         int clusterid = (int) TransactionState.getClusterId(transactionId);
         int tmid = (int) TransactionState.getNodeId(transactionId);
-        if ((clusterid != pSTRConfig.getMyClusterIdInt()) && (clusterid != 0)) tmid = -2; // for any peer
+        if ((clusterid != pSTR_ClusterId) && (clusterid != 0)) tmid = -2; // for any peer
         int count = 0;
 
         // indoubtTransactionsCountByTmid protected by 

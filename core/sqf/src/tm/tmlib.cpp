@@ -983,7 +983,7 @@ short ENDTRANSACTION()
        }
        lv_error =  lp_trans->end();
     }while ((lv_error == FETMLOCKED) && (lv_retries++ < 60));
-    
+  
     TMlibTrace(("TMLIB_TRACE : ENDTRANSACTION EXIT: txid: %d, retcode: %d\n", lp_trans->getTransid()->get_seq_num(), lv_error), 1);
 
      // cleanup for legacy API

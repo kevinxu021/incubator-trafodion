@@ -110,6 +110,8 @@ public:
   void processKillServersReq();
   void suspendActivateSchedulers();
   void processSecInvReq();
+  void processSnapshotLockReq();
+  void processSnapshotUnLockReq();
 private:
 
   SscpGlobals *sscpGlobals_;

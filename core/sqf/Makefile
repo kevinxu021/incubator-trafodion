@@ -259,7 +259,7 @@ genverhdr: buildinfo
                                         -branch "${PV_BRANCH}" \
                                         -date "${PV_DATE}"
 
-PKG_PROD = trafodion
+PKG_PROD = esgynDB
 PKG_PHX = phoenix
 PKG_DCS = dcs
 
@@ -272,7 +272,7 @@ endif
 PKG_BIN ?= "${PKG_PROD}.bin"
 
 # set this when we want to build individual feature specific packages (for adv/ent etc.)
-PKG_TAR ?= "../../${DISTRIBUTION_DIR}/${PKG_PROD}_${PKG_FEATURE}_$(PKG_TYPE).tgz"
+PKG_TAR ?= "../../${DISTRIBUTION_DIR}/${PKG_PROD}_${PKG_FEATURE}_$(PKG_TYPE).tar.gz"
 PKG_TAR_UN = "${PKG_PROD}_${SQ_BUILD_TYPE}.tar"
 SRC_PKG_BIN ?= "../../${DISTRIBUTION_DIR}/${PKG_PROD}-src.bin"
 SRC_PKG_TAR ?= "../../${DISTRIBUTION_DIR}/${PKG_PROD}-src.tgz"
@@ -284,6 +284,8 @@ PKG_BIN_OBJS ?= export/bin$(SQ_MBTYPE) export/include export/lib export/lib$(SQ_
 PKG_BIN_OBJS += trafci
 PKG_BIN_OBJS += export/limited-support-tools
 PKG_BIN_OBJS += LICENSE NOTICE LICENSE_Esgyn
+PKG_BIN_OBJS += rest-${TRAFODION_VER} dcs-${TRAFODION_VER}
+PKG_BIN_OBJS += dbmgr-${TRAFODION_VER} mgblty
 
 PKG_BIN_DIRS ?= sql export
 PKG_BIN_DIRS += trafci
@@ -348,8 +350,23 @@ LICENSE_Esgyn: ../../licenses/Esgyn
 ../../licenses/LICENSE-server:
 	cd $(@D) && $(MAKE) $(@F)
 
-NOTICE: ../../NOTICE
+NOTICE: ../../licenses/NOTICE-server
 	cp -f $? $@
+
+../../licenses/NOTICE-server:
+	cd $(@D) && $(MAKE) $(@F)
+
+rest-${TRAFODION_VER}:
+	ln -s ../rest/target/$@/$@ $@
+
+dcs-${TRAFODION_VER}:
+	ln -s ../../dcs/target/$@/$@ $@
+
+dbmgr-${TRAFODION_VER}:
+	ln -s ../dbmgr/target/$@/$@ $@
+
+mgblty:
+	ln -s ../../$@ $@
 
 tmp/sqenv.sh:
 	@if [ ! -d tmp ]; then mkdir tmp; fi
@@ -363,7 +380,7 @@ pkglist-files: pkglist-symlinks
 	find -L $(PKG_BIN_OBJS) -type d -o -type f | grep -v -xf pkglist-symlinks > $@
 
 # simple symlinks that point to filename (does not start with . or /)
-pkglist-symlinks: LICENSE NOTICE LICENSE_Esgyn
+pkglist-symlinks: LICENSE NOTICE LICENSE_Esgyn rest-${TRAFODION_VER} dcs-${TRAFODION_VER} dbmgr-${TRAFODION_VER} mgblty
 	find $(PKG_BIN_OBJS) -lname '[^./]*' > $@
 
 #	Targets to tar/gzip the self installer

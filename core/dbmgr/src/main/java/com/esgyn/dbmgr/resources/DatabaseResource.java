@@ -6,6 +6,7 @@
 
 package com.esgyn.dbmgr.resources;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -13,11 +14,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -29,8 +31,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.esgyn.dbmgr.common.EsgynDBMgrException;
+import com.esgyn.dbmgr.common.Helper;
 import com.esgyn.dbmgr.common.JdbcHelper;
 import com.esgyn.dbmgr.common.TabularResult;
+import com.esgyn.dbmgr.model.Session;
+import com.esgyn.dbmgr.model.SessionModel;
 import com.esgyn.dbmgr.sql.SqlObjectListResult;
 import com.esgyn.dbmgr.sql.SystemQueryCache;
 import com.fasterxml.jackson.core.JsonFactory;
@@ -100,13 +105,13 @@ public class DatabaseResource {
 				break;
 			case "tables":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_TABLES_IN_SCHEMA),
-						ExternalForm(schemaName));
+						Helper.ExternalForm(schemaName));
 				link = "/database/objdetail?type=table";
 				pstmt = connection.prepareStatement(
 						String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_TABLES_IN_SCHEMA),
-								ExternalForm(schemaName)));
+								Helper.ExternalForm(schemaName)));
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, InternalForm(schemaName));
+				pstmt.setString(2, Helper.InternalForm(schemaName));
 				break;
 			case "indexes":
 				link = "/database/objdetail?type=index";
@@ -116,15 +121,15 @@ public class DatabaseResource {
 					pstmt = connection
 							.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_INDEXES_ON_OBJECT));
 					pstmt.setString(1, catalogName);
-					pstmt.setString(2, InternalForm(schemaName));
-					pstmt.setString(3, InternalForm(parentObjectName));
+					pstmt.setString(2, Helper.InternalForm(schemaName));
+					pstmt.setString(3, Helper.InternalForm(parentObjectName));
 				} else {
 					queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_INDEXES_IN_SCHEMA),
 							catalogName, schemaName);
 					pstmt = connection
 							.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_INDEXES_IN_SCHEMA));
 					pstmt.setString(1, catalogName);
-					pstmt.setString(2, InternalForm(schemaName));
+					pstmt.setString(2, Helper.InternalForm(schemaName));
 				}
 				break;
 			case "views":
@@ -134,7 +139,7 @@ public class DatabaseResource {
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_VIEWS_IN_SCHEMA));
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, InternalForm(schemaName));
+				pstmt.setString(2, Helper.InternalForm(schemaName));
 				break;
 			case "libraries":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LIBRARIES_IN_SCHEMA),
@@ -143,7 +148,7 @@ public class DatabaseResource {
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LIBRARIES_IN_SCHEMA));
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, InternalForm(schemaName));
+				pstmt.setString(2, Helper.InternalForm(schemaName));
 				pstmt.setString(3, SqlObjectType.LIBRARY.getObjectType());
 				break;
 			case "procedures":
@@ -153,19 +158,19 @@ public class DatabaseResource {
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_PROCDURES_IN_SCHEMA));
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, InternalForm(schemaName));
+				pstmt.setString(2, Helper.InternalForm(schemaName));
 				pstmt.setString(3, SqlObjectType.ROUTINE.getObjectType());
 				// pstmt.setString(4,
 				// SqlRoutineType.PROCEDURE.getRoutineType());
 				break;
-			case "udfs":
+			case "functions":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_UDFS_IN_SCHEMA),
 						catalogName, schemaName, SqlObjectType.ROUTINE.getObjectType());
-				link = "/database/objdetail?type=udf";
+				link = "/database/objdetail?type=function";
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_UDFS_IN_SCHEMA));
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, InternalForm(schemaName));
+				pstmt.setString(2, Helper.InternalForm(schemaName));
 				pstmt.setString(3, SqlObjectType.ROUTINE.getObjectType());
 				// pstmt.setString(4,
 				// SqlRoutineType.PROCEDURE.getRoutineType());
@@ -224,17 +229,17 @@ public class DatabaseResource {
 				queryText = SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_ATTRIBUTES);
 				pstmt = connection.prepareStatement(queryText);
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, InternalForm(objectName));
+				pstmt.setString(2, Helper.InternalForm(objectName));
 				break;
 			case "table":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_TABLE_ATTRIBUTES),
-						InternalForm(schemaName));
+						Helper.InternalForm(schemaName));
 				pstmt = connection.prepareStatement(
 						String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_TABLE_ATTRIBUTES),
-								ExternalForm(schemaName)));
+								Helper.ExternalForm(schemaName)));
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, InternalForm(schemaName));
-				pstmt.setString(3, InternalForm(objectName));
+				pstmt.setString(2, Helper.InternalForm(schemaName));
+				pstmt.setString(3, Helper.InternalForm(objectName));
 				break;
 			case "index":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_INDEX_ATTRIBUTES),
@@ -242,8 +247,8 @@ public class DatabaseResource {
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_INDEX_ATTRIBUTES));
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, InternalForm(schemaName));
-				pstmt.setString(3, InternalForm(objectName));
+				pstmt.setString(2, Helper.InternalForm(schemaName));
+				pstmt.setString(3, Helper.InternalForm(objectName));
 				break;
 			case "view":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_VIEW_ATTRIBUTES),
@@ -251,8 +256,8 @@ public class DatabaseResource {
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_VIEW_ATTRIBUTES));
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, InternalForm(schemaName));
-				pstmt.setString(3, InternalForm(objectName));
+				pstmt.setString(2, Helper.InternalForm(schemaName));
+				pstmt.setString(3, Helper.InternalForm(objectName));
 				break;
 			case "library":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LIBRARY_ATTRIBUTES),
@@ -260,19 +265,19 @@ public class DatabaseResource {
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LIBRARY_ATTRIBUTES));
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, InternalForm(schemaName));
-				pstmt.setString(3, InternalForm(objectName));
+				pstmt.setString(2, Helper.InternalForm(schemaName));
+				pstmt.setString(3, Helper.InternalForm(objectName));
 				pstmt.setString(4, SqlObjectType.LIBRARY.getObjectType());
 				break;
 			case "procedure":
-			case "udf":
+			case "function":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_ROUTINE_ATTRIBUTES),
 						catalogName, schemaName, SqlObjectType.ROUTINE.getObjectType());
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_ROUTINE_ATTRIBUTES));
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, InternalForm(schemaName));
-				pstmt.setString(3, InternalForm(objectName));
+				pstmt.setString(2, Helper.InternalForm(schemaName));
+				pstmt.setString(3, Helper.InternalForm(objectName));
 				pstmt.setString(4, SqlObjectType.ROUTINE.getObjectType());
 				// pstmt.setString(5,
 				// SqlRoutineType.PROCEDURE.getRoutineType());
@@ -328,10 +333,10 @@ public class DatabaseResource {
 		try {
 			connection = JdbcHelper.getInstance().getAdminConnection();
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_ATTRIBUTES),
-					catalogName, InternalForm(schemaName));
+					catalogName, Helper.InternalForm(schemaName));
 			pstmt = connection.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_ATTRIBUTES));
 			pstmt.setString(1, catalogName);
-			pstmt.setString(2, InternalForm(schemaName));
+			pstmt.setString(2, Helper.InternalForm(schemaName));
 
 			_LOG.debug(queryText);
 
@@ -386,10 +391,8 @@ public class DatabaseResource {
 			case "schema":
 			case "library":
 			case "procedure":
+			case "function":
 				ddlObjectType = objectType.toUpperCase();
-				break;
-			case "udf":
-				ddlObjectType = "FUNCTION";
 				break;
 			case "index":
 				String parentDDLText = getDDLText("table", parentObjectName, schemaName, null, null, null);
@@ -404,14 +407,11 @@ public class DatabaseResource {
 			}
 
 			if (objectType.equalsIgnoreCase("schema")) {
-				ansiObjectName = ExternalForm(objectName);
+				ansiObjectName = Helper.ExternalForm(objectName);
 			} else {
-				ansiObjectName = ExternalForm(schemaName) + "." + ExternalForm(objectName);
+				ansiObjectName = Helper.ExternalForm(schemaName) + "." + Helper.ExternalForm(objectName);
 			}
 
-			// String url = ConfigurationResource.getInstance().getJdbcUrl();
-			// connection = DriverManager.getConnection(url, soc.getUsername(),
-			// soc.getPassword());
 			connection = JdbcHelper.getInstance().getAdminConnection();
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_DDL_TEXT),
 					ddlObjectType, ansiObjectName);
@@ -473,18 +473,20 @@ public class DatabaseResource {
 			connection = JdbcHelper.getInstance().getAdminConnection();
 			if (objectType.toLowerCase().equals("view")) {
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_VIEW_COLUMNS),
-						InternalForm(schemaName), InternalForm(objectName));
+						Helper.InternalForm(schemaName), Helper.InternalForm(objectName));
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_VIEW_COLUMNS));
-				pstmt.setString(1, InternalForm(schemaName));
-				pstmt.setString(2, InternalForm(objectName));
+				pstmt.setString(1, Helper.InternalForm(schemaName));
+				pstmt.setString(2, Helper.InternalForm(objectName));
 			} else {
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_COLUMNS),
-						InternalForm(schemaName), InternalForm(objectName));
+						Helper.InternalForm(schemaName), Helper.InternalForm(objectName));
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_COLUMNS));
-				pstmt.setString(1, InternalForm(schemaName));
-				pstmt.setString(2, InternalForm(objectName));
+				pstmt.setString(1, Helper.InternalForm(schemaName));
+				pstmt.setString(2, Helper.InternalForm(objectName));
+				pstmt.setString(3, Helper.InternalForm(schemaName));
+				pstmt.setString(4, Helper.InternalForm(objectName));
 			}
 
 			// TabularResult result =
@@ -522,7 +524,7 @@ public class DatabaseResource {
 			@Context HttpServletRequest servletRequest, @Context HttpServletResponse servletResponse)
 					throws EsgynDBMgrException {
 		try {
-			String ansiObjectName = ExternalForm(schemaName) + "." + ExternalForm(objectName);
+			String ansiObjectName = Helper.ExternalForm(schemaName) + "." + Helper.ExternalForm(objectName);
 			String indexQualifier = objectType.toLowerCase().equals("index") ? objectType : "";
 
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_REGIONS),
@@ -551,13 +553,13 @@ public class DatabaseResource {
 			connection = JdbcHelper.getInstance().getAdminConnection();
 			String queryText = String.format(
 					SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_HISTOGRAM_STATISTICS),
-					ExternalForm(schemaName), objectID);
+					Helper.ExternalForm(schemaName), objectID);
 			_LOG.debug(queryText);
 			pstmt = connection.prepareStatement(
 					String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_HISTOGRAM_STATISTICS),
-							ExternalForm(schemaName)));
-			pstmt.setString(1, InternalForm(schemaName));
-			pstmt.setString(2, InternalForm(objectName));
+							Helper.ExternalForm(schemaName)));
+			pstmt.setString(1, Helper.InternalForm(schemaName));
+			pstmt.setString(2, Helper.InternalForm(objectName));
 			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
 			return sqlResult;
@@ -592,7 +594,7 @@ public class DatabaseResource {
 					throws EsgynDBMgrException {
 
 		ConfigurationResource.loadEsgynDBSystemProperties();
-		if (!ConfigurationResource.getInstance().isAuthorizationEnabled()) {
+		if (!ConfigurationResource.isAuthorizationEnabled()) {
 			throw new EsgynDBMgrException(
 					"Warning: Authorization feature is not enabled. There are no privileges to display.");
 		}
@@ -608,8 +610,8 @@ public class DatabaseResource {
 			}
 			pstmt = connection.prepareStatement(queryText);
 			// pstmt.setLong(1, objectIDLong);
-			pstmt.setString(1, InternalForm(schemaName));
-			pstmt.setString(2, InternalForm(objectName));
+			pstmt.setString(1, Helper.InternalForm(schemaName));
+			pstmt.setString(2, Helper.InternalForm(objectName));
 
 			_LOG.debug(queryText);
 			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
@@ -662,6 +664,7 @@ public class DatabaseResource {
 		case "view":
 			return getViewUsage(objectType, objectName, objectID, schemaName);
 		case "procedure":
+		case "function":
 			return getFunctionUsage(objectType, objectName, objectID, schemaName);
 		default:
 			throw new EsgynDBMgrException("Usage information is not supported for this object type : " + objectType);
@@ -675,7 +678,7 @@ public class DatabaseResource {
 		try {
 			connection = JdbcHelper.getInstance().getAdminConnection();
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.GET_TABLE_USAGE),
-					ExternalForm(schemaName) + "." + ExternalForm(objectName));
+					Helper.ExternalForm(schemaName) + "." + Helper.ExternalForm(objectName));
 			pstmt = connection.prepareStatement(queryText);
 			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
@@ -700,6 +703,78 @@ public class DatabaseResource {
 		}
 	}
 
+	@POST
+	@Path("/drop")
+	@Consumes("application/json")
+	@Produces("application/json")
+	public boolean dropObject(ObjectNode obj, @Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+		Connection connection = null;
+		CallableStatement stmt = null;
+
+		String objectType = "";
+		String schemaName = "";
+		String objectName = "";
+		try {
+
+			if (obj.has("objectType")) {
+				objectType = obj.get("objectType").textValue();
+			}
+			if (obj.has("schemaName")) {
+				schemaName = obj.get("schemaName").textValue();
+			}
+			if (obj.has("objectName")) {
+				objectName = obj.get("objectName").textValue();
+			}
+			String ansiObjectName = "";
+
+			if (objectType.equalsIgnoreCase("schema")) {
+				ansiObjectName = Helper.ExternalForm(objectName);
+			} else {
+				ansiObjectName = Helper.ExternalForm(schemaName) + "." + Helper.ExternalForm(objectName);
+			}
+			Session soc = SessionModel.getSession(servletRequest, servletResponse);
+
+			connection = JdbcHelper.getInstance().getConnection(soc.getUsername(), soc.getPassword());
+			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_DDL_TEXT),
+					objectType, ansiObjectName);
+			if (objectType.equalsIgnoreCase("library")) {
+				queryText = SystemQueryCache.getQueryText(SystemQueryCache.SPJ_DROPLIB);
+			}
+			stmt = connection.prepareCall(queryText);
+			stmt.setString(1, new String(ansiObjectName.getBytes(), "UTF-8"));
+			stmt.setString(2, new String("RESTRICT".getBytes(), "UTF-8"));
+
+			_LOG.debug(queryText);
+
+			int rows = stmt.executeUpdate();
+			rows = stmt.getUpdateCount();
+			if (rows > 0) {
+				return true;
+			}
+		} catch (Exception ex) {
+			_LOG.error(String.format("Failed to drop %1$s %2$s %3$s", objectType, objectName, ex.getMessage()));
+			throw new EsgynDBMgrException(ex.getMessage());
+		} finally {
+			try {
+				if (stmt != null) {
+					stmt.close();
+				}
+			} catch (Exception e) {
+
+			}
+			try {
+				if (connection != null) {
+					connection.close();
+				}
+			} catch (Exception e) {
+
+			}
+		}
+		return false;
+
+	}
+
 	private SqlObjectListResult getViewUsage(String objectType, String objectName, String objectID, String schemaName)
 			throws EsgynDBMgrException {
 		PreparedStatement pstmt = null;
@@ -707,7 +782,7 @@ public class DatabaseResource {
 		try {
 			connection = JdbcHelper.getInstance().getAdminConnection();
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.GET_VIEW_USAGE),
-					ExternalForm(schemaName) + "." + ExternalForm(objectName));
+					Helper.ExternalForm(schemaName) + "." + Helper.ExternalForm(objectName));
 			pstmt = connection.prepareStatement(queryText);
 			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
@@ -740,11 +815,11 @@ public class DatabaseResource {
 
 			connection = JdbcHelper.getInstance().getAdminConnection();
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LIBRARY_USAGE),
-					InternalForm(schemaName), InternalForm(objectName));
+					Helper.InternalForm(schemaName), Helper.InternalForm(objectName));
 			pstmt = connection.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LIBRARY_USAGE));
 			pstmt.setString(1, catalogName);
-			pstmt.setString(2, InternalForm(schemaName));
-			pstmt.setString(3, InternalForm(objectName));
+			pstmt.setString(2, Helper.InternalForm(schemaName));
+			pstmt.setString(3, Helper.InternalForm(objectName));
 			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
 
@@ -807,35 +882,7 @@ public class DatabaseResource {
 
 
 
-	public static String ExternalForm(String internalName) {
-		String name = internalName.trim();
 
-		// May be empty?
-		if (name.length() == 0) {
-			return "";
-		}
-
-		// If it contains specials, it needs to be delimited.
-		if (!name.startsWith("_") && Pattern.matches("^[A-Z0-9_]+$", name)) {
-			// No specials, it's itself
-			return name;
-		}
-
-		name = name.replace("\"", "\"\"");
-
-		// It has specials; delimit it.
-		return "\"" + name + "\"";
-
-	}
-
-	public static String InternalForm(String externalName) {
-		int nameLength = externalName.length();
-
-		if ((nameLength > 1) && (externalName.startsWith("\"")) && (externalName.endsWith("\""))) {
-			return externalName.substring(1, nameLength - 2);
-		}
-		return externalName;
-	}
 
 	public static String FindChildDDL(String parentDDLText, String childName, String[] patterns) {
 		for (String pattern : patterns) {

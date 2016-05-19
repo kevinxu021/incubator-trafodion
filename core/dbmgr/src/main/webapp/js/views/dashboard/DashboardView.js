@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2016 Esgyn Corporation
+//(C) Copyright 2015-2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -137,6 +137,8 @@ define([
 			$('#nodes-error-text').hide();
 			if(common.commonTimeRange!=null&&common.commonTimeRange.isAutoRefresh!=null){
 				refreshTimer.setRefreshInterval(common.commonTimeRange.isAutoRefresh);
+			}else{
+				refreshTimer.setRefreshInterval(1);
 			}
 			$(window).on('resize', this.onResize);
 			refreshTimer.resume();

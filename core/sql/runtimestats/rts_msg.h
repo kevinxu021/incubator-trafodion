@@ -73,6 +73,8 @@ const Int32 CurrSuspendQueryReplyVersionNumber = 100;
 const Int32 CurrActivateQueryReqVersionNumber = 100;
 const Int32 CurrActivateQueryReplyVersionNumber = 100;
 const Int32 CurrSecurityInvalidKeyVersionNumber = 100;
+const Int32 CurrSnapshotLockVersionNumber = 100;
+const Int32 CurrSnapshotUnLockVersionNumber = 100;
 
 //
 // An enumeration of all IPC objects for RTS Servers.
@@ -107,6 +109,8 @@ enum RtsMessageObjType
   CANCEL_QUERY_KILL_SERVERS_REQ,        // 9019
   CANCEL_QUERY_KILL_SERVERS_REPLY,      // 9020 
   SECURITY_INVALID_KEY_REQ,             // 9021
+  SNAPSHOT_LOCK_REQ,                    // 9022
+  SNAPSHOT_UNLOCK_REQ,                  // 9023
 
   // Object Types
   RTS_QUERY_ID = IPC_MSG_RTS_FIRST + 500, // 9500
@@ -1195,6 +1199,63 @@ private:
 
 };
 
+//This message is sent from the CLI's ContextCli::SnapshotLockRequest
+//to MXSSMP.  It is also sent from MXSSMP to MXSSCP.
+class SnapshotLockRequest: public RtsMessageObj
+{
+public:
+  SnapshotLockRequest(NAMemory *heap)
+   : RtsMessageObj(SNAPSHOT_LOCK_REQ, 
+           CurrSnapshotLockVersionNumber, heap)
+  {
+  }
+
+  virtual ~SnapshotLockRequest(){};
+  
+  IpcMessageObjSize packedLength() { return baseClassPackedLength();}
+  
+  IpcMessageObjSize packObjIntoMessage(IpcMessageBufferPtr buffer)
+    { return packBaseClassIntoMessage(buffer);}
+  
+  void unpackObj(IpcMessageObjType objType,
+    IpcMessageObjVersion objVersion,
+    NABoolean sameEndianness,
+    IpcMessageObjSize objSize,
+    IpcConstMessageBufferPtr buffer)
+  { unpackBaseClass(buffer);}
+  
+private:
+  
+};
+
+//This message is sent from the CLI's ContextCli::SnapshotLockRequest
+//to MXSSMP.  It is also sent from MXSSMP to MXSSCP.
+class SnapshotUnLockRequest: public RtsMessageObj
+{
+public:
+  SnapshotUnLockRequest(NAMemory *heap)
+   : RtsMessageObj(SNAPSHOT_UNLOCK_REQ, 
+       CurrSnapshotUnLockVersionNumber, heap)
+  {
+  }
+ 
+  virtual ~SnapshotUnLockRequest(){};
+  
+  IpcMessageObjSize packedLength() { return baseClassPackedLength();}
+  
+  IpcMessageObjSize packObjIntoMessage(IpcMessageBufferPtr buffer)
+    { return packBaseClassIntoMessage(buffer);}
+  
+  void unpackObj(IpcMessageObjType objType,
+    IpcMessageObjVersion objVersion,
+    NABoolean sameEndianness,
+    IpcMessageObjSize objSize,
+    IpcConstMessageBufferPtr buffer)
+    { unpackBaseClass(buffer);}
+
+private:
+
+};
 #endif // __EID
 #endif // _RTS_EXE_IPC_H_
 

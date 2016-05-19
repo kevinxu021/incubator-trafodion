@@ -56,6 +56,7 @@ class NodeMapIterator;
 class HHDFSTableStats;
 class HHDFSListPartitionStats;
 class OsimHHDFSStatsBase;
+class OptimizerSimulator;
 
 typedef CollIndex HostId;
 typedef Int64 BucketNum;
@@ -64,6 +65,7 @@ typedef Int64 Offset;
 
 class HHDFSMasterHostList : public NABasicObject
 {
+friend class OptimizerSimulator;
 public:
   HHDFSMasterHostList(NAMemory *heap) {}
   ~HHDFSMasterHostList();
@@ -74,13 +76,14 @@ public:
   // get host name from host number
   static const char * getHostName(HostId hostNum);
 
-  static CollIndex entries()                 { return getHosts()->entries(); }
-  static CollIndex getNumSQNodes()                     { return numSQNodes_; }
+  static CollIndex entries();
+  static CollIndex getNumSQNodes();
   static void resetNumSQNodes() { numSQNodes_ = 0; }
   static void resethasVirtualSQNodes() { hasVirtualSQNodes_ = FALSE; }
-  static CollIndex getNumNonSQNodes() { return getHosts()->entries()-numSQNodes_; }
+
+  static CollIndex getNumNonSQNodes();
   static NABoolean usesRemoteHDFS()         { return getNumNonSQNodes() > 0; }
-  static NABoolean hasVirtualSQNodes()          { return hasVirtualSQNodes_; }
+  static NABoolean hasVirtualSQNodes();
 
   static const CollIndex InvalidHostId = NULL_COLL_INDEX;
 
@@ -212,7 +215,8 @@ public:
 
   // Assign all blocks in this to the entry (ESP). The ESP will access
   // all the blocks.
-  virtual void assignToESPsRepN(HiveNodeMapEntry*& entry);
+  virtual void assignToESPsRepN(HiveNodeMapEntry*& entry,
+                                const HHDFSListPartitionStats* p);
   
   virtual OsimHHDFSStatsBase* osimSnapShot();
 
@@ -273,7 +277,8 @@ public:
   
   virtual OsimHHDFSStatsBase* osimSnapShot();
 
-  
+  static void resetTotalAccumulatedRows() 
+   { totalAccumulatedRows_ = 0; totalAccumulatedTotalSize_ = 0; }
 
 protected:
   // Assign all stripes in this to ESPs, considering locality
@@ -300,6 +305,9 @@ protected:
   LIST(Int64) numOfRows_;
   LIST(Int64) offsets_;
   LIST(Int64) totalBytes_;
+
+  static THREAD_P Int64 totalAccumulatedRows_;
+  static THREAD_P Int64 totalAccumulatedTotalSize_;
 };
 
 class HHDFSBucketStats : public HHDFSStatsBase
@@ -351,7 +359,6 @@ public:
     bucketStatsList_(heap),
     partIndex_(-1),
     defaultBucketIdx_(-1),
-    doEstimation_(FALSE),
     recordTerminator_(0)
     {}
   ~HHDFSListPartitionStats();
@@ -372,8 +379,9 @@ public:
                 const char *partitionKeyValues,
                 Int32 numOfBuckets, 
                 HHDFSDiags &diags,
-                NABoolean doEstimation, char recordTerminator, 
-                NABoolean isORC);
+                NABoolean canDoEstimation, char recordTerminator, 
+                NABoolean isORC,
+                Int32& filesEstimated);
   NABoolean validateAndRefresh(hdfsFS fs, HHDFSDiags &diags, NABoolean refresh, 
                                NABoolean isORC);
   Int32 determineBucketNum(const char *fileName);
@@ -398,7 +406,6 @@ private:
   // array of buckets in this partition (index is bucket #)
   ARRAY(HHDFSBucketStats *) bucketStatsList_;
 
-  NABoolean doEstimation_;
   char recordTerminator_;
   
   NAMemory *heap_;
@@ -453,7 +460,8 @@ public:
                         Int32 numOfBuckets, 
                         NABoolean doEstimation,
                         char recordTerminator,
-                        NABoolean isORC);
+                        NABoolean isORC, 
+                        Int32& filesEstimated);
 
   void setPortOverride(Int32 portOverride)         { hdfsPortOverride_ = portOverride; }
 

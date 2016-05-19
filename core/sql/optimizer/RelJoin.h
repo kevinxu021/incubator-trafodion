@@ -1537,7 +1537,6 @@ class HashJoin : public Join
 public:
 
   // constructor
-// warning elimination (removed "inline")
   HashJoin(RelExpr *leftChild,
                   RelExpr *rightChild,
                   OperatorTypeEnum otype = REL_HASH_JOIN,
@@ -1548,10 +1547,10 @@ public:
     isOrderedCrossProduct_(FALSE), returnRightOrdered_(FALSE),
     isNotInSubqTransform_(FALSE),
     requireOneBroadcast_(FALSE),
+    startMinMaxIndex_(0), endMinMaxIndex_(0),
     innerAccessOnePartition_(FALSE)
     {}
 
-// warning elimination (removed "inline")
   HashJoin(RelExpr *leftChild,
                   RelExpr *rightChild,
                   CollHeap *oHeap = CmpCommon::statementHeap())
@@ -1560,12 +1559,12 @@ public:
     isOrderedCrossProduct_(FALSE), returnRightOrdered_(FALSE),
     isNotInSubqTransform_(FALSE),
     requireOneBroadcast_(FALSE),
+    startMinMaxIndex_(0), endMinMaxIndex_(0),
     innerAccessOnePartition_(FALSE)
     {}
 
 
   // virtual destructor
-// warning elimination (removed "inline")
   virtual ~HashJoin() { }
 
   // Special method added to check for ordered cross product called by
@@ -1755,10 +1754,10 @@ public:
   // values which are candidates for min/max optimization.
   // Each join is responsible for a subset of those candidates.
   // These indexes define the subset for this join.
-  inline const CollIndex getStartMinMaxIndex() { return startMinMaxIndex_; }
+  inline CollIndex getStartMinMaxIndex() const { return startMinMaxIndex_; }
   inline void setStartMinMaxIndex(CollIndex i) { startMinMaxIndex_ = i; }
 
-  inline const CollIndex getEndMinMaxIndex() { return endMinMaxIndex_; }
+  inline CollIndex getEndMinMaxIndex() const { return endMinMaxIndex_; }
   inline void setEndMinMaxIndex(CollIndex i) { endMinMaxIndex_ = i; }
 
   NABoolean getInnerAccessOnePartition() const

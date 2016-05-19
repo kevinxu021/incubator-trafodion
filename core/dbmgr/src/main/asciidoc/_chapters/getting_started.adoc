@@ -44,12 +44,12 @@ DB Manager allows the user to monitor the health and status of EsgynDB services 
 ** Create Library tool to easily deploy code files and create library
 * Logs
 ** View EsgynDB logs via logs TMUDF
-* DCS Servers
-** View connected and available DCS Servers
+* Connectivity
+** View connected and available connectivity servers
 * Query Workbench
 ** Execute ad-hoc queries
 ** Generate visual and textual explain plans
 ** Apply CQDs to change execute plans
-* Alerts ( * only in EsgynDB Enterprise Advanced Edition)
+* Alerts (* only in EsgynDB Enterprise Advanced Edition)
 ** View Alert notifications
 ** Acknowledge and update alerts

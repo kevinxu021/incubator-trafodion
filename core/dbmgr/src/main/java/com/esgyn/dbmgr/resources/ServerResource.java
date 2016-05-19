@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
+import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
@@ -32,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import com.esgyn.dbmgr.common.EsgynDBMgrException;
 import com.esgyn.dbmgr.common.Helper;
+import com.esgyn.dbmgr.common.JdbcHelper;
 import com.esgyn.dbmgr.common.TabularResult;
 import com.esgyn.dbmgr.model.Session;
 import com.esgyn.dbmgr.model.SessionModel;
@@ -81,7 +83,6 @@ public class ServerResource {
 			objNode.put("serverTimeZone", ConfigurationResource.getServerTimeZone());
 			objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
 			objNode.put("dcsMasterInfoUri", configResource.getDcsMasterInfoUri());
-			objNode.put("enableAlerts", configResource.isAlertsEnabled());
 
 			Session content = new Session(usr, pwd, new DateTime(DateTimeZone.UTC));
 			SessionModel.putSessionObject(key, content);
@@ -90,7 +91,6 @@ public class ServerResource {
 			objNode.put("user", usr);
 			objNode.put("errorMessage", resultMessage);
 			objNode.put("sessionTimeoutMinutes", configResource.getSessionTimeoutMinutes());
-			objNode.put("enableAlerts", configResource.isAlertsEnabled());
 		}
 		return objNode;
 	}
@@ -103,7 +103,11 @@ public class ServerResource {
 			ConfigurationResource server = ConfigurationResource.getInstance();
 			String url = server.getJdbcUrl();
 			Class.forName(server.getJdbcDriverClass());
-			connection = DriverManager.getConnection(url, usr, pwd);
+			Properties connProp = new Properties();
+			connProp.put("user", usr);
+			connProp.put("password", pwd);
+			connProp.put("applicationName", JdbcHelper.APPLICATION_NAME);
+			connection = DriverManager.getConnection(url, connProp);
 		} catch (Exception e) {
 			_LOG.error(e.getMessage());
 			resultMessage = e.getMessage();
@@ -144,7 +148,6 @@ public class ServerResource {
 		objNode.put("serverTimeZone", ConfigurationResource.getServerTimeZone());
 		objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
 		objNode.put("dcsMasterInfoUri", server.getDcsMasterInfoUri());
-		objNode.put("enableAlerts", server.isAlertsEnabled());
 
 		objNode.put("databaseVersion", ConfigurationResource.getDatabaseVersion());
 		objNode.put("databaseEdition", ConfigurationResource.getDatabaseEdition());

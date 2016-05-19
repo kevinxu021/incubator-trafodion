@@ -1465,6 +1465,15 @@ short ExExeUtilHBaseBulkLoadTcb::work()
           break;
         }
       }
+      
+      //Just before load complete, check if online backup lock
+      //is in effect.
+      if(checkAndWaitSnapshotInProgress())
+      {
+        step_ = LOAD_END_ERROR_;
+        break;
+      }  
+      
       //complete load query
       char * clQuery =
           new(getMyHeap()) char[strlen("LOAD COMPLETE FOR TABLE  ; ") +

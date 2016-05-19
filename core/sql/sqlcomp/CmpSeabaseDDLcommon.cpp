@@ -74,6 +74,7 @@
 #include "CmpSeabaseDDLroutine.h"
 #include "hdfs.h"
 #include "StmtDDLAlterTableHDFSCache.h"
+#include "StmtDDLAlterLibrary.h"
 
 void cleanupLOBDataDescFiles(const char*, int, const char *);
 
@@ -7739,7 +7740,6 @@ void  CmpSeabaseDDL::alterSeabaseSequence(StmtDDLCreateSequence  * alterSequence
 
   return;
 }
-
 void  CmpSeabaseDDL::dropSeabaseSequence(StmtDDLDropSequence  * dropSequenceNode,
                                          NAString &currCatName, NAString &currSchName)
 {
@@ -8795,6 +8795,10 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
   {
       restore(ddlExpr, &cliInterface);
   }
+  else if (ddlExpr->unlockTraf())
+  {
+    unlockAll();
+  }
   else
     {
       CMPASSERT(ddlNode);
@@ -9153,6 +9157,15 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
             ddlNode->castToStmtDDLNode()->castToStmtDDLDropLibrary();
           
           dropSeabaseLibrary(dropLibraryParseNode, currCatName, currSchName);
+        }
+      else if (ddlNode->getOperatorType() == DDL_ALTER_LIBRARY)
+        {
+          // create seabase library
+          StmtDDLAlterLibrary * alterLibraryParseNode =
+            ddlNode->castToStmtDDLNode()->castToStmtDDLAlterLibrary();
+          
+          alterSeabaseLibrary(alterLibraryParseNode, currCatName, 
+                              currSchName);
         }
       else if (ddlNode->getOperatorType() == DDL_CREATE_ROUTINE)
         {

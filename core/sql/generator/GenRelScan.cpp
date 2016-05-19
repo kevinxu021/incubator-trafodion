@@ -3546,6 +3546,11 @@ short HbaseAccess::codeGen(Generator * generator)
       if (getTableDesc()->getNATable()->isEnabledForDDLQI())
         generator->objectUids().insert(
           getTableDesc()->getNATable()->objectUid().get_value());
+
+      if (getFirstNRows() > 0)
+        {
+          GenAssert(getFirstNRows() > 0, "first N rows must not be set.");
+        }
     }
  
   if (keyInfo && searchKey() && searchKey()->isUnique())
