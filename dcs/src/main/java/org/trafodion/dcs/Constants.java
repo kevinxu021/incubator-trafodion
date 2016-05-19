@@ -654,6 +654,7 @@ public static final String DEFAULT_DCS_SERVER_USER_PROGRAM_STATISTICS_OPENTSDB_E
     public static final String PORT = "port";
     public static final String COMPUTER_NAME = "computerName";
     public static final String CLIENT_SOCKET = "clientSocket";
+    public static final String CLIENT_PORT = "clientPort";
     public static final String WINDOW_TEXT = "windowText";
     public static final String MAPPED_SLA = "sla";
     public static final String MAPPED_PROFILE = "profile";
