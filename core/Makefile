@@ -27,7 +27,10 @@
 include macros.gmk
 
 # Make Targets
-.PHONY: all dbsecurity foundation $(MPI_TARGET) ndcs ci jdbc_jar jdbc_type2_jar sqroot $(SEAMONSTER_TARGET) verhdr dcs rest odb dbmgr
+.PHONY: all dbsecurity foundation $(MPI_TARGET) ndcs ci jdbc_jar jdbc_type2_jar sqroot $(SEAMONSTER_TARGET) verhdr dcs rest odb
+ifneq ($(ARCH),ppc64le)
+.PHONY: dbmgr
+endif
 .PHONY: package package-all pkg-product pkg-sql-regress pkg-phx-tests pkg-dcs-tests check-copyrights
 
 ################
@@ -35,7 +38,10 @@ include macros.gmk
 # Server-side only
 
 # Default target (all components)
-all: $(MPI_TARGET) dbsecurity foundation jdbc_jar $(SEAMONSTER_TARGET) ndcs ci jdbc_type2_jar dcs rest odb dbmgr lib_mgmt
+all: $(MPI_TARGET) dbsecurity foundation jdbc_jar $(SEAMONSTER_TARGET) ndcs ci jdbc_type2_jar dcs rest odb lib_mgmt
+ifneq ($(ARCH),ppc64le)
+all: dbmgr
+endif
 
 package: pkg-product pkg-client 
 
@@ -75,7 +81,9 @@ dcs: jdbc_jar jdbc_type2_jar
 
 ndcs: jdbc_jar foundation
 	cd conn/odbc/src/odbc && $(MAKE) ndcs        2>&1 | sed -e "s/$$/	##(NDCS)/";exit $${PIPESTATUS[0]}
+ifneq ($(ARCH),ppc64le)
 	cd conn/odbc/src/odbc && $(MAKE) bldlnx_drvr 2>&1 | sed -e "s/$$/	##(NDCS)/";exit $${PIPESTATUS[0]}
+endif
 
 ci: trafci
 trafci: jdbc_jar
