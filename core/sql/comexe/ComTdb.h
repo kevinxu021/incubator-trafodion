@@ -321,6 +321,7 @@ public:
     ex_ORC_AGGR    = 151,
     ex_DDL_WITH_STATUS = 152,
     ex_GET_QID = 153,
+    ex_BACKUP_RESTORE = 154,
     ex_LAST = 9999              // not used
   };
 

@@ -601,6 +601,8 @@ public:
   NABoolean isMin();
   NABoolean isMax();
 
+  NABoolean isMinOrMax() { return isMin() || isMax(); };
+
   //  whether this is a NULL constant 
   NABoolean isNullConstant() { return isNull(); };
 

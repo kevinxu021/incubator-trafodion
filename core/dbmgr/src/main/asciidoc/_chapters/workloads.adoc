@@ -1,0 +1,96 @@
+////
+<!--
+/**
+  *(C) Copyright 2015-2016 Esgyn Corporation
+  *
+  * Confidential computer software. Valid license from Esgyn required for
+  * possession, use or copying. Consistent with FAR 12.211 and 12.212,
+  * Commercial Computer Software, Computer Software Documentation, and
+  * Technical Data for Commercial Items are licensed to the U.S. Government
+  * under vendor's standard commercial license.
+  *
+  */
+-->
+////
+[[workloads]]
+== Workloads
+:doctype: book
+:numbered:
+:toc: left
+:icons: font
+:experimental:
+
+This chapter describes how to monitor Active workloads (queries) and analyze historical workloads.
+These workloads include all EsgynDB queries including both user and system queries.
+
+=== Active Workloads
+The active workloads page displays the list of active EsgynDB queries. This includes queries that are currently executing and queries that completed within the last 30 seconds. The information is obtained from the EsgynDB Runtime Manageability Service.
+
+The list of queries is displayed as a tabular output with the following information:
+
+*Time*::
+The time when the information was fetched
+*Last Activity Seconds*::
+A positive number shows how long the query has been active and is still executing. A negative number shows how long since the query completed execution. Queries remain in RMS memory for 30 seconds after completion.
+*Query ID*::
+The unique identifier for the query.
+*Execution State*::
+The current state of the query. Valid values are OPEN, EXECUTING, DEALLOCATED or COMPLETED.
+*Query Text*::
+The SQL statement of the query.
+
+You can click on the Query ID hyper-link to drill-down into the details of that specific query.
+
+The page by default refreshes every 30 seconds and displays the current active queries. Use the *Action +++->+++ Refresh* menu to manually refresh the list of active queries.
+
+=== Active Query Details
+The active query details page displays a summary of the runtime metrics as well the operator level statistics for the selected query. The metrics are obtained from the EsgynDB Runtime Manageability Service.
+
+The metrics that have changed since the last refresh for this query, are highlighted in blue color, so you can observe how the query is progressing. For example, if the operator CPU time is increasing, you know the operator and the query is progressing. If the CPU time for the operator does not increase, it indicates that operator is waiting for some other resource.
+
+The page is set to auto-refresh every 30 seconds by default. You can also use the *Action +++->+++ Refresh* menu to refresh the page and reload the latest metrics for the query.
+
+Click on the *Explain* button to view the explain plan for this query.
+
+Use the *Action +++->+++ Cancel* menu to cancel the executing query.
+
+=== Historical Workloads
+
+You can use the historical workloads page to view queries that have run for longer than configured threshold (default 60 seconds).
+
+The threshold is defined by the *dcs.server.user.program.statistics.limit.time* property in dcs-site.xml. If this property is not explicitly set, then the default value of 60 seconds applies.
+
+Queries that exceed this run threshold are recorded in the EsgynDB manageability repository tables in the "\_REPOS_" schema. The historical workloads page fetches the query summary from the *"\_REPOS_".METRIC_QUERY_TABLE*.
+
+By default, the page displays the queries that either started or completed in the last 1 hour or is still executing. You can use the *Filters* option to change your search parameters. In the filter dialog, you can specify different time range or use additional filters like specific application names or user names or queries that match a particular query text. All the filter predicates are applied using *AND* operator, meaning that only queries that match all the filter predicates are returned.
+
+Use the *Action +++->+++ Refresh* action option to refresh the page.
+
+You can click on the Query ID hyper-link to drill-down into the details of a particular query.
+
+=== Historical Query Detail
+The historical query details page displays the details for the selected query. The details are grouped together as summary, connection metrics, compile time metrics and run time metrics. The compile metrics includes estimates from the compiler. The runtime metrics are the actuals reported by the Runtime Manageability Service. You can compare the compile time metrics to the run time metrics and analyze the query behavior.
+
+Click on the *Explain* button to view the explain plan for this query.
+
+Use the *Action +++->+++ Cancel* menu to cancel the query, if the query is a long running query and is still executing.
+
+=== Query Plan
+The Query Plan page displays the Query ID, the query text, a visual explain plan and a textual explain plan.
+
+For a query that is currently active, the textual plan may not show initially. If the query ran longer than a minute, then the textual plan is obtained from the repository and displayed.
+
+The tables used by the query are displayed with hyper-links. This links will navigate you to the Database area where you can see the tables like the histogram stats on the table.
+
+Use the *Action +++->+++ Refresh* menu to refresh the page and reload the visual and textual plans.
+
+If you click on a specific node in the explain tree, you will see the metrics for that specific operator in a pop-up dialog.
+
+You can use the *Action +++->+++ Cancel* menu to cancel the query if the query is still executing.
+
+=== Cancel Query
+You can invoke the cancel action from the Active Workload Detail, Historical Workload Detail and Query Plan pages.
+
+If the query is in EXECUTING state, a cancel request will be submitted to EsgynDB engine. If the user has the necessary SQL privileges to cancel the query, the engine would schedule a cancel of the query.
+
+The cancel is done asynchronously. If you are in the same page, you'll see a success or failure message once the action completes. If you moved away from that page and navigated to a different page, then the results are shown via the notifications panel. See <<Notifications Panel, Notifications Panel>> for details.

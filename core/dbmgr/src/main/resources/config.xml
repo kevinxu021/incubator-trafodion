@@ -16,12 +16,12 @@
 	<entry key="jdbcDriverClass">org.trafodion.jdbc.t4.T4Driver</entry>
 	
 	<!--  Minimum number of connections for jdbc connection pool -->
-	<entry key="minPoolSize">2</entry>
+	<entry key="minPoolSize">1</entry>
 	
 	<!--  Max number of connections for jdbc connection pool -->
 	<entry key="maxPoolSize">8</entry>
 	
-	<!--  Max number of statements for jdbc statemt caching -->
+	<!--  Max number of statements for jdbc statement caching -->
 	<entry key="maxStatementsCache">100</entry>
 	
 	<!-- The Trafodion REST Server URI -->
@@ -60,9 +60,6 @@
 	<!-- The openTSDB HTTP URI-->
 	<entry key="openTSDBUri">10.1.30.80:5242</entry>
 
-	<!-- Enable/disable alerts feature -->
-	<entry key="enableAlerts">true</entry>
-	
 	<!-- The Alerts HTTP URI-->
 	<entry key="alertsUri">10.1.30.80:8070</entry>
 	

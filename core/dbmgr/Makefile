@@ -31,8 +31,6 @@ all: dbmgr
 dbmgr:ambari-view package-tools LICENSE_Esgyn
 	bower install --config.cwd=src/main/webapp --config.interactive=false
 	$(MAVEN) install -DskipTests -P prod
-	-mkdir -p ../../${DISTRIBUTION_DIR}
-	mv target/$(DBMGR_TARNAME) ../../${DISTRIBUTION_DIR}
 
 ambari-view:  
 	$(MAVEN) install -f plugins/ambari-view/pom.xml
@@ -45,7 +43,6 @@ install-tools:
 	cd $(MY_SQROOT)/sql/scripts && install_mgblty 
 
 package-tools: install-tools
-	-mkdir -p ../../${DISTRIBUTION_DIR}
 	${CP} -r scripts/bosun/* $(MY_SQROOT)/../../mgblty/bosun
 	${CP} -r scripts/tcollector/* $(MY_SQROOT)/../../mgblty/tcollector
 	${CP} -r scripts/opentsdb/bin/tsd.sh $(MY_SQROOT)/../../mgblty/opentsdb/bin
@@ -55,7 +52,6 @@ package-tools: install-tools
 	${CP} -r scripts/opentsdb/bin/registerMetrics.py $(MY_SQROOT)/../../mgblty/opentsdb/tools
 	${CP} -r scripts/opentsdb/bin/opentsdb.conf $(MY_SQROOT)/../../mgblty/opentsdb/etc/opentsdb
 	${CP} -r scripts/opentsdb/bin/logback.xml $(MY_SQROOT)/../../mgblty/opentsdb/etc/opentsdb
-	tar chzf ../../${DISTRIBUTION_DIR}/$(MGBLTY_TOOLS_TARNAME) ../../mgblty 
 
 clean:
 	$(MAVEN) clean -P prod

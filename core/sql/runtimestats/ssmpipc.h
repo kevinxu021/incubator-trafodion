@@ -239,6 +239,8 @@ public:
   void actOnSuspendQueryReq(IpcConnection *connection);
   void actOnActivateQueryReq(IpcConnection *connection);
   void actOnSecInvalidKeyReq(IpcConnection *connection);
+  void actOnSnapshotLockReq(IpcConnection *connection);
+  void actOnSnapshotUnLockReq(IpcConnection *connection);
   void getProcessStats(short reqType,
                        short subReqType,
                        pid_t pid);
@@ -351,7 +353,10 @@ public:
   inline short getDetailLevel() { return detailLevel_; }
   inline void setUsedToSendCbMsgs() { completionProcessing_ = CB; }
   inline void setUsedToSendSikMsgs() { completionProcessing_ = SIK; }
+  inline void setUsedToSendSlMsgs() { completionProcessing_ = SL; }
+  inline void setUsedToSendSulMsgs() { completionProcessing_ = SUL; }
   void replySik();
+  void replySL();
   inline short getSubReqType() { return subReqType_; }
   inline void setSubReqType(short subReqType) { subReqType_ = subReqType; }
 private:
@@ -367,7 +372,7 @@ private:
   short numSqlProcs_;
   short numCpus_;
   StmtStats *stmtStats_;
-  enum { STATS, CB, SIK } completionProcessing_;
+  enum { STATS, CB, SIK, SL, SUL } completionProcessing_;
   short detailLevel_;
   short subReqType_;
 };

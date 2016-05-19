@@ -122,6 +122,8 @@ class ExpORCinterface : public NABasicObject
 
   Lng32 getColStats(Lng32 colNum, NAArray<HbaseStr> **colStats);
 
+  Lng32 getSumStringLengths(Int64 & result);
+
   char * getErrorText(Lng32 errEnum);
 
   Lng32 getStripeInfo(LIST(Int64)& numOfRowsInStripe,

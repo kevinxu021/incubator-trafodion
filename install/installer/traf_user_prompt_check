@@ -30,10 +30,17 @@ export TRAF_CONFIG="/etc/trafodion/trafodion_config"
 
 function checkDBAdminUser {
 
-if [ -z $DB_ADMIN_USER ]; then
-   echo "***ERROR: DB_ADMIN_USER variable not set in config file."
-   echo "***ERROR: DB_ADMIN_PASSWORD variable will need to be set as well."
-   exit -1
+if [[ "$LDAP_SECURITY" == "Y" ]]; then
+   if [ -z $DB_ADMIN_NAME ]; then
+      echo "***ERROR: DB_ADMIN_NAME variable not set in config file."
+      echo "***ERROR: DB_ADMIN_PASSWORD variable will need to be set as well."
+      exit -1
+   fi
+
+  if [[ "$DB_ADMIN_NAME" == "$DB_ROOT_NAME" ]]; then
+    echo "***ERROR: DB admin LDAP user cannot be the same as the DB root LDAP user."
+    exit -1
+  fi
 
 fi
 
@@ -41,10 +48,11 @@ fi
 
 function checkDBAdminPass {
 
-if [ -z $DB_ADMIN_PASSWORD ]; then
-   echo "***ERROR: DB_ADMIN_PASSWORD variable not set in config file."
-   exit -1
-
+if [[ "$LDAP_SECURITY" == "Y" ]]; then
+   if [ -z $DB_ADMIN_PASSWORD ]; then
+      echo "***ERROR: DB_ADMIN_PASSWORD variable not set in config file."
+      exit -1
+   fi
 fi
 
 }

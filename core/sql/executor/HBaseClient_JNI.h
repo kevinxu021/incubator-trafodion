@@ -843,7 +843,8 @@ public:
 	// Must be called.
 	BRC_RetCode init();
 	BRC_RetCode createSnapshot(const TextVec& tables, const char* backuptag);
-	BRC_RetCode restoreSnapshots(const char* backuptag);
+	BRC_RetCode restoreSnapshots(const char* backuptag, NABoolean timestamp = FALSE);
+	NAArray<HbaseStr>* listAllBackups(NAHeap *heap);
 	virtual char* getErrorText(BRC_RetCode errEnum);
 
 
@@ -855,6 +856,7 @@ private:
 		 JM_CTOR = 0
 		,JM_CREATE_SNAPSHOT
 		,JM_RESTORE_SNAPSHOTS
+		,JM_LIST_ALL_BACKUPS
 		,JM_GET_ERROR
 		,JM_LAST
 	};

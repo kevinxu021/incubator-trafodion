@@ -12273,7 +12273,9 @@ RelExpr * GenericUpdate::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
     result->preconditionTree_ = preconditionTree_->copyTree(outHeap)->castToItemExpr();
   result->setPrecondition(precondition_);
   result->exprsInDerivedClasses_ = exprsInDerivedClasses_;
-  
+
+  result->flags_ = flags_;
+
   return RelExpr::copyTopNode(result, outHeap);
 }
 
@@ -12850,7 +12852,7 @@ Delete::Delete(const CorrName &name, TableDesc *tabId, OperatorTypeEnum otype,
 	       ConstStringList * csl,
 	       CollHeap *oHeap)
   : GenericUpdate(name,tabId,otype,child,newRecExpr,currOfCursorName,oHeap),
-    isFastDelete_(FALSE),
+    isFastDelete_(FALSE), wasFirstN_(FALSE),
     csl_(csl),estRowsAccessed_(0)
 {
   setCacheableNode(CmpMain::BIND);
@@ -12881,6 +12883,7 @@ RelExpr * Delete::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
     result = (Delete *) derivedNode;
 
   result->isFastDelete_       = isFastDelete_;
+  result->wasFirstN_          = wasFirstN_;
   result->csl() = csl();
   result->setEstRowsAccessed(getEstRowsAccessed());
 

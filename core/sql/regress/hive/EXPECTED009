@@ -1,7 +1,7 @@
 >>obey TEST009(set_up);
 >>prepare get_hv_schemas from
 +>select schema_name from "_MD_".objects
-+>where schema_name like '_HV_%' and object_type = 'PS';
++>where schema_name in ('_HV_HIVE_', '_HV_SCH_T009_') and object_type = 'PS';
 
 --- SQL command prepared.
 >>
@@ -44,7 +44,7 @@ _HV_HIVE_
 >>-- Verify tables were created
 >>showddl trafodion."_HV_HIVE_".customer;
 
-CREATE EXTERNAL TABLE CUSTOMER
+CREATE EXTERNAL TABLE HIVE.HIVE.CUSTOMER
   (
     C_CUSTOMER_SK                    INT DEFAULT NULL
   , C_CUSTOMER_ID                    VARCHAR(31999 BYTES) CHARACTER SET UTF8
@@ -80,7 +80,7 @@ CREATE EXTERNAL TABLE CUSTOMER
 --- SQL operation complete.
 >>showddl trafodion."_HV_HIVE_".item;
 
-CREATE EXTERNAL TABLE ITEM
+CREATE EXTERNAL TABLE HIVE.HIVE.ITEM
   (
     I_ITEM_SK                        INT DEFAULT NULL
   , I_ITEM_ID                        VARCHAR(31999 BYTES) CHARACTER SET UTF8
@@ -123,7 +123,7 @@ CREATE EXTERNAL TABLE ITEM
 --- SQL operation complete.
 >>showddl trafodion."_HV_HIVE_".promotion;
 
-CREATE EXTERNAL TABLE PROMOTION
+CREATE EXTERNAL TABLE HIVE.HIVE.PROMOTION
   (
     P_PROMO_SK                       INT DEFAULT NULL
   , P_PROMO_ID                       VARCHAR(31999 BYTES) CHARACTER SET UTF8
@@ -182,7 +182,7 @@ _HV_SCH_T009_
 --- 2 row(s) selected.
 >>showddl trafodion."_HV_SCH_T009_".t009t1;
 
-CREATE EXTERNAL TABLE T009T1
+CREATE EXTERNAL TABLE HIVE.SCH_T009.T009T1
   (
     A                                INT DEFAULT NULL
   , B                                INT DEFAULT NULL
@@ -194,7 +194,7 @@ CREATE EXTERNAL TABLE T009T1
 --- SQL operation complete.
 >>showddl trafodion."_HV_SCH_T009_".t009t2;
 
-CREATE EXTERNAL TABLE T009T2
+CREATE EXTERNAL TABLE HIVE.SCH_T009.T009T2
   (
     A                                INT DEFAULT NULL
   , B                                INT DEFAULT NULL
@@ -470,7 +470,7 @@ ROW_ID      CATALOG_NAME                                                        
 >>invoke hive.sch_t009.t009t1;
 
 -- Definition of hive table T009T1
--- Definition current  Sun Apr 24 22:23:44 2016
+-- Definition current  Thu May 12 18:45:22 2016
 
   (
     A                                INT
@@ -483,7 +483,7 @@ ROW_ID      CATALOG_NAME                                                        
 --- SQL operation complete.
 >>showddl trafodion."_HV_SCH_T009_".t009t1;
 
-CREATE EXTERNAL TABLE T009T1
+CREATE EXTERNAL TABLE HIVE.SCH_T009.T009T1
   (
     A                                INT DEFAULT NULL
   , B                                INT DEFAULT NULL
@@ -545,7 +545,7 @@ _HB__CELL__
 >>invoke trafodion."_HB__ROW__"."baseball";
 
 -- Definition of Trafodion external table TRAFODION."_HB__ROW__"."baseball"
--- Definition current  Sun Apr 24 22:23:48 2016
+-- Definition current  Thu May 12 18:45:27 2016
 
   (
     ROW_ID                           VARCHAR(100) CHARACTER SET ISO88591
@@ -558,7 +558,7 @@ _HB__CELL__
 >>invoke trafodion."_HB__CELL__"."baseball";
 
 -- Definition of Trafodion external table TRAFODION."_HB__CELL__"."baseball"
--- Definition current  Sun Apr 24 22:23:49 2016
+-- Definition current  Thu May 12 18:45:28 2016
 
   (
     ROW_ID                           VARCHAR(100) CHARACTER SET ISO88591
@@ -576,14 +576,14 @@ _HB__CELL__
 --- SQL operation complete.
 >>showddl trafodion."_HB__ROW__"."baseball";
 
-CREATE EXTERNAL TABLE baseball
+CREATE EXTERNAL TABLE HBASE."_ROW_"."baseball"
   FOR HBASE."_ROW_"."baseball"
 ;
 
 --- SQL operation complete.
 >>showddl trafodion."_HB__CELL__"."baseball";
 
-CREATE EXTERNAL TABLE baseball
+CREATE EXTERNAL TABLE HBASE."_CELL_"."baseball"
   FOR HBASE."_CELL_"."baseball"
 ;
 

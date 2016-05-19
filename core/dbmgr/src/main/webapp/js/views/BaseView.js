@@ -1,6 +1,6 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2016 Esgyn Corporation
+// (C) Copyright 2015-2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
@@ -148,8 +148,8 @@ define([
 			common.off(common.NOFITY_MESSAGE, this.collectNewNotifyMessage);
 		},
 		flashBackground:function(){
-			$("#notifyMenu>a").attr("style","background-color:yellow");
-			setTimeout(function(){$("#notifyMenu>a").attr("style","background-color:transparent");},500);
+			//$("#notifyMenu>a").attr("style","background-color:yellow");
+			//setTimeout(function(){$("#notifyMenu>a").attr("style","background-color:transparent");},500);
 		},
 		refreshTimeDiff:function(){
 			var current = new Date();

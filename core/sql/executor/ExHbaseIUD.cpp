@@ -2331,6 +2331,13 @@ ExWorkProcRetcode ExHbaseUMDtrafUniqueTaskTcb::work(short &rc)
 
 	    tcb_->matches_++;
 
+           if ((tcb_->hbaseAccessTdb().getFirstNRows() > 0) &&
+                (tcb_->matches_ == tcb_->hbaseAccessTdb().getFirstNRows()))
+              {
+		step_ = GET_CLOSE;
+                break;
+              }
+ 
 	    step_ = GET_NEXT_ROWID;
 	  }
 	  break;
@@ -2867,6 +2874,8 @@ ExWorkProcRetcode ExHbaseUMDtrafSubsetTaskTcb::work(short &rc)
 
 
 	    step_ = SCAN_OPEN;
+
+            tcb_->currRowidIdx_ = 0;
 	  }
 	  break;
 
@@ -3173,7 +3182,7 @@ ExWorkProcRetcode ExHbaseUMDtrafSubsetTaskTcb::work(short &rc)
 	      tcb_->getHbaseAccessStats()->incUsedRows();
 
 	    tcb_->currRowidIdx_++;
-	    
+
 	    if (tcb_->hbaseAccessTdb().returnRow())
 	      {
 		step_ = RETURN_ROW;
@@ -3181,6 +3190,14 @@ ExWorkProcRetcode ExHbaseUMDtrafSubsetTaskTcb::work(short &rc)
 	      }
 
 	    tcb_->matches_++;
+
+            if ((tcb_->hbaseAccessTdb().getFirstNRows() > 0) &&
+                (tcb_->matches_ == tcb_->hbaseAccessTdb().getFirstNRows()))
+              {
+		step_ = SCAN_CLOSE;
+                
+                break;
+              }
 
 	    step_ = NEXT_ROW;
 	  }
@@ -3206,6 +3223,14 @@ ExWorkProcRetcode ExHbaseUMDtrafSubsetTaskTcb::work(short &rc)
 		step_ = SCAN_CLOSE;
 		break;
 	      }
+
+            if ((tcb_->hbaseAccessTdb().getFirstNRows() > 0) &&
+                (tcb_->currRowidIdx_ >= tcb_->hbaseAccessTdb().getFirstNRows()))
+              {
+		step_ = SCAN_CLOSE;
+                
+                break;
+              }
 
 	    step_ = NEXT_ROW;
 	  }
@@ -3339,8 +3364,10 @@ ExWorkProcRetcode ExHbaseUMDnativeSubsetTaskTcb::work(short &rc)
 
 	     tcb_->setupListOfColNames(tcb_->hbaseAccessTdb().listOfFetchedColNames(),
 				       tcb_->columns_);
+
+	     tcb_->currRowidIdx_ = 0;
 	     
-	    step_ = SCAN_OPEN;
+             step_ = SCAN_OPEN;
 	  }
 	  break;
 

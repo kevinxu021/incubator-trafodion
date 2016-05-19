@@ -118,6 +118,7 @@ public:
     MAX_POLLING_INTERVAL,
     MXCMP_PRIORITY,
     MXCMP_PRIORITY_DELTA,
+    ONLINE_BACKUP_TIMEOUT,
     PARENT_QID,
     PARENT_QID_SYSTEM,
     PARSER_FLAGS,
@@ -302,6 +303,13 @@ public:
 
     updateDefaultsValueString(ESP_IDLE_TIMEOUT, espIdleTimeout_);
   }
+  
+  void setOnlineBackupTimeout(Lng32 onlineBackupTimeout)
+  {
+    onlineBackupTimeout_ = onlineBackupTimeout;
+
+    updateDefaultsValueString(ONLINE_BACKUP_TIMEOUT, onlineBackupTimeout_);
+  }
 
   void setEspInactiveTimeout(Lng32 espInactiveTimeout)
   {
@@ -470,6 +478,7 @@ public:
   Lng32 getEspAssignTimeWindow(){ return espAssignTimeWindow_; }
   Lng32 getEspStopIdleTimeout() { return espStopIdleTimeout_; }
   Lng32 getEspIdleTimeout() { return espIdleTimeout_; }
+  Lng32 getOnlineBackupTimeout() { return onlineBackupTimeout_; }
   Lng32 getEspInactiveTimeout() { return espInactiveTimeout_; }
   Lng32 getEspReleaseWorkTimeout() { return espReleaseWorkTimeout_; }
   Lng32 getMaxPollingInterval() { return maxPollingInterval_; }
@@ -779,6 +788,7 @@ private:
   NABoolean modeSeabase_;
   Lng32 jniDebugPort_;     // port to attache JNI debugger, <=0 to disable
   Lng32 jniDebugTimeout_;  // timeout (msec) to wait for debugger to attach
+  Lng32 onlineBackupTimeout_; // timeout to wait/retry until SQL unlock during online backup.
 };
 
 

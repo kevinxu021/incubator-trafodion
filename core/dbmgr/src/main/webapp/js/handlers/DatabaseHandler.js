@@ -30,6 +30,8 @@ define(['handlers/EventDispatcher'],
 				this.FETCH_STATISTICS_ERROR = 'FETCH_STATISTICS_ERROR';
 				this.FETCH_USAGE_SUCCESS = 'FETCH_USAGE_SUCCESS';
 				this.FETCH_USAGE_ERROR = 'FETCH_USAGE_ERROR';
+				this.DROP_OBJECT_SUCCESS = 'DROP_OBJECT_SUCCESS';
+				this.DROP_OBJECT_ERROR = 'DROP_OBJECT_ERROR';
 				
 				this.sessionTimeout = function() {
 					window.location.hash = '/stimeout';
@@ -289,6 +291,43 @@ define(['handlers/EventDispatcher'],
 					});
 				};
 
+				this.dropObject = function (schemaName, objectType, objectName) {
+					var xhr = xhrs["dropObject"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					
+					var uri = '/resources/db/drop';
+					var params = {};
+					params.objectType = objectType;
+					params.objectName = objectName;
+					params.schemaName = schemaName;
+					
+					xhrs["dropObject"] = $.ajax({
+						cache: false,
+						url: uri,
+						type:'POST',
+						dataType:"json",
+						data: JSON.stringify(params),
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success: function(data){
+							var result = {};
+							result.schemaName = schemaName;
+							result.objectName = objectName;
+							dispatcher.fire(_this.DROP_OBJECT_SUCCESS, result);
+						},
+						error:function(jqXHR, res, error){
+							jqXHR.schemaName = schemaName;
+							jqXHR.objectName = objectName;
+							dispatcher.fire(_this.DROP_OBJECT_ERROR, jqXHR, res, error);
+						}
+					});
+				};
+				
 				this.fetchStatistics = function (objectType, objectName, objectID, schemaName) {
 					var xhr = xhrs["fetchStatistics"];
 					if(xhr && xhr.readyState !=4){

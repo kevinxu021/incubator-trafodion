@@ -135,7 +135,7 @@ Int32 ComUser::getSessionUser(void)
                                NULL, 0, NULL);
 
   assert(rc >= 0);
-  assert(dbUserID >= SUPER_USER);
+  assert(dbUserID >= MIN_USERID);
 
   return dbUserID;
 }

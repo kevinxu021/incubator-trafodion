@@ -117,44 +117,52 @@ fi
 }
 
 function unTarPackage {
-echo "***INFO: Un taring DBM Setup Package"
-echo
-
-tar -xf $DBM_SETUP_PACKAGE
-sudo chmod -R 777 mgblty
-
-if [[ "$node_count" -eq "1" ]]; then
-   cp -r mgblty $HOME
+if [[ "$ONE_TAR_INSTALL" == "Y" ]]; then
+    sudo chmod -R 777 $SQ_ROOT/mgblty
 else
-   $TRAF_PDCP -r mgblty $HOME
-fi
+    echo "***INFO: Un taring DBM Setup Package"
+    echo
 
-$TRAF_PDSH sudo cp -r $HOME/mgblty $SQ_ROOT
-$TRAF_PDSH sudo chown -R $TRAF_USER.trafodion $SQ_ROOT/mgblty
-$TRAF_PDSH sudo chmod -R 777 $SQ_ROOT/mgblty
+    tar -xf $DBM_SETUP_PACKAGE
+    sudo chmod -R 777 mgblty
+
+    if [[ "$node_count" -eq "1" ]]; then
+       cp -r mgblty $HOME
+    else
+       $TRAF_PDCP -r mgblty $HOME
+    fi
+
+    $TRAF_PDSH sudo cp -r $HOME/mgblty $SQ_ROOT
+    $TRAF_PDSH sudo chown -R $TRAF_USER.trafodion $SQ_ROOT/mgblty
+    $TRAF_PDSH sudo chmod -R 777 $SQ_ROOT/mgblty
+fi
 }
 
 function unTarDMPackage {
 
-tar -xf $DBM_PACKAGE
-
-dbmgr_dir_temp=$(sudo ls | grep --max-count=1 "dbmgr")
-dbmgr_dir=${dbmgr_dir_temp%".tar.gz"}
-
-sudo chmod -R 777 $dbmgr_dir
-
-if [[ "$node_count" -eq "1" ]]; then
-   cp -r $dbmgr_dir $HOME
+if [[ "$ONE_TAR_INSTALL" == "Y" ]]; then
+   dbmgr_dir=$(sudo ls $SQ_ROOT | grep --max-count=1 "dbmgr")
+   DBMGR_INSTALL_DIR=$SQ_ROOT/$dbmgr_dir
+   sudo chmod -R 777 $DBMGR_INSTALL_DIR
 else
-   $TRAF_PDCP -r $dbmgr_dir $HOME
+    tar -xf $DBM_PACKAGE
+
+    dbmgr_dir_temp=$(sudo ls | grep --max-count=1 "dbmgr")
+    dbmgr_dir=${dbmgr_dir_temp%".tar.gz"}
+
+    sudo chmod -R 777 $dbmgr_dir
+
+    if [[ "$node_count" -eq "1" ]]; then
+       cp -r $dbmgr_dir $HOME
+    else
+       $TRAF_PDCP -r $dbmgr_dir $HOME
+    fi
+
+    $TRAF_PDSH sudo cp -r $HOME/$dbmgr_dir $SQ_ROOT
+    $TRAF_PDSH sudo chown -R $TRAF_USER.trafodion $SQ_ROOT/$dbmgr_dir
+    $TRAF_PDSH sudo chmod -R 777 $SQ_ROOT/$dbmgr_dir
+    DBMGR_INSTALL_DIR="$SQ_ROOT/$dbmgr_dir"
 fi
-
-$TRAF_PDSH sudo cp -r $HOME/$dbmgr_dir $SQ_ROOT
-$TRAF_PDSH sudo chown -R $TRAF_USER.trafodion $SQ_ROOT/$dbmgr_dir
-$TRAF_PDSH sudo chmod -R 777 $SQ_ROOT/$dbmgr_dir
-
-
-DBMGR_INSTALL_DIR="$SQ_ROOT/$dbmgr_dir"
 
 sudo chmod 777 $TRAF_CONFIG
 sed -i '/DBMGR_INSTALL_DIR\=/d' $TRAF_CONFIG
@@ -227,7 +235,7 @@ sudo su $TRAF_USER --command "echo 'source /etc/trafodion/trafodion_config' | ca
 
 sudo su $TRAF_USER --command "chmod 777 $CREATE_TABLE"
 
-sudo su $TRAF_USER --command "$TRAF_PDSH $CREATE_TABLE"
+sudo su $TRAF_USER --command "$CREATE_TABLE"
 
 if [[ $? -ne "0" ]]; then
    echo "***ERROR: Unable to create openTSDB Tables"
@@ -303,15 +311,11 @@ if [[ ! -z $openPort ]]; then
    fi
    newPort="tsd.network.port = $port"
    sudo sed -i -e "s/tsd.network.port = 5242/$newPort/g" $OPENTSDB_CONFIG
-   if [[ $node_count -ne "1" ]]; then
-      sudo su $TRAF_USER --command "$TRAF_PDCP $OPENTSDB_CONFIG $OPENTSDB_CONFIG"
-   fi
+
 
    newPort="tsdbHost = $DCS_MASTER_HOST:$port"
    sudo sed -i -e "s/tsdbHost = localhost:5242/$newPort/g" $BOSUN_CONFIG
-   if [[ $node_count -ne "1" ]]; then
-      sudo su $TRAF_USER --command "$TRAF_PDCP $BOSUN_CONFIG $BOSUN_CONFIG" 
-   fi
+
    TSD_PORT="$port"
 fi
 
@@ -384,17 +388,12 @@ if [[ $HADOOP_TYPE == "hortonworks" ]]; then
    sudo sed -i -e "s#$oldHbaseRoot#$hbaseRoot#g" $OPENTSDB_CONFIG
 fi
 
-if [[ $node_count -ne "1" ]]; then
-   sudo su $TRAF_USER --command "$TRAF_PDCP $OPENTSDB_CONFIG $OPENTSDB_CONFIG"
-fi
 
 }
 
 function editStartStop {
 
 START_STOP="$SQ_ROOT/mgblty/tcollector/startstop"
-TRAF_CANARY="$SQ_ROOT/mgblty/tcollector/collectors/300/trafcanqry.py"
-UPD_ORPHAN_QRY="$SQ_ROOT/mgblty/tcollector/collectors/1800/upd_orphan_qry.py"
 HBASE_COLLECTOR="$SQ_ROOT/mgblty/tcollector/collectors/0/hbase_master.py"
 REGIONSERVER_COLLECTOR="$SQ_ROOT/mgblty/tcollector/collectors/0/hbase_regionserver.py"
 defaultHBaseInfoPort="60010"
@@ -405,21 +404,12 @@ echo "***INFO: Editing TCollector startstop script with TSD_HOST and TSD_PORT"
 
 TSD_PORT_STR="TSD_PORT=$TSD_PORT"
 
-for node in $NODE_LIST
-do
-   
-   ssh -q -n $node sudo sed -i -e "s/TSD_PORT=5242/$TSD_PORT_STR/g" $START_STOP
 
-   ssh -q -n $node sudo sed -i -e "s@DCS_MASTER_HOST:DCS_PORT@$DCS_MASTER_HOST:$DCS_PORT@" $TRAF_CANARY
-  
-   ssh -q -n $node sudo sed -i -e "s@DCS_MASTER_HOST:DCS_PORT@$DCS_MASTER_HOST:$DCS_PORT@" $UPD_ORPHAN_QRY
+sudo sed -i -e "s/TSD_PORT=5242/$TSD_PORT_STR/g" $START_STOP
 
-   ssh -q -n $node sudo sed -i -e "s#$defaultHBaseInfoPort#$HBASE_MASTER_INFO_PORT#g" $HBASE_COLLECTOR
+sudo sed -i -e "s#$defaultHBaseInfoPort#$HBASE_MASTER_INFO_PORT#g" $HBASE_COLLECTOR
      
-   ssh -q -n $node sudo sed -i -e "s#$defaultRegionServerInfoPort#$REGIONSERVER_INFO_PORT#g" $REGIONSERVER_COLLECTOR
-
-
-done
+sudo sed -i -e "s#$defaultRegionServerInfoPort#$REGIONSERVER_INFO_PORT#g" $REGIONSERVER_COLLECTOR
 
 }
 
@@ -469,12 +459,8 @@ DBMGR_KEYSTORE="$DBMGR_INSTALL_DIR/etc/dbmgr.keystore"
 
 echo "***INFO: Configuring DB Manager"
 
-sudo su $TRAF_USER --login --command "$DBMGR_INSTALL_DIR/bin/configure.py --httpport $DM_HTTP_PORT --httpsport $DM_HTTPS_PORT --dcshost $DCS_MASTER_HOST --dcsport $DCS_PORT --password dbmgr23400 --dcsinfoport $DCS_INFO_PORT --resthost $DCS_MASTER_HOST --restport $REST_PORT --tsdhost $DCS_MASTER_HOST --tsdport $TSD_PORT --bosunhost $DCS_MASTER_HOST --bosunport $HTTP_PORT --timezone $TIME_ZONE --adminuser $DB_ADMIN_USER --adminpassword $DB_ADMIN_PASSWORD"
+sudo su $TRAF_USER --login --command "$DBMGR_INSTALL_DIR/bin/configure.py --httpport $DM_HTTP_PORT --httpsport $DM_HTTPS_PORT --dcshost $DCS_MASTER_HOST --dcsport $DCS_PORT --password dbmgr23400 --dcsinfoport $DCS_INFO_PORT --resthost $DCS_MASTER_HOST --restport $REST_PORT --tsdhost $DCS_MASTER_HOST --tsdport $TSD_PORT --bosunhost $DCS_MASTER_HOST --bosunport $HTTP_PORT --timezone $TIME_ZONE --adminuser $DB_ADMIN_NAME --adminpassword $DB_ADMIN_PASSWORD"
 
-if [[ $node_count -ne "1" ]]; then
-   sudo su $TRAF_USER --command "$TRAF_PDCP $DBMGR_CONFIG $DBMGR_CONFIG"
-   sudo su $TRAF_USER --command "$TRAF_PDCP $DBMGR_KEYSTORE $DBMGR_KEYSTORE"
-fi
 
 }
 
@@ -486,8 +472,8 @@ sudo su $TRAF_USER --command "echo -e \"export MGBLTY_INSTALL_DIR=$MGBLTY_INSTAL
 sudo su $TRAF_USER --command "mv $SQ_ROOT/sqenvcom.temp $SQ_ROOT/sqenvcom.sh"
 sudo su $TRAF_USER --command "$TRAF_PDCP $SQ_ROOT/sqenvcom.sh $SQ_ROOT/sqenvcom.sh"
 
-$TRAF_PDSH sudo chmod -R 755 $MGBLTY_INSTALL_DIR
-$TRAF_PDSH sudo chmod -R 755 $DBMGR_INSTALL_DIR
+sudo chmod -R 755 $MGBLTY_INSTALL_DIR
+sudo chmod -R 755 $DBMGR_INSTALL_DIR
 
 }
 

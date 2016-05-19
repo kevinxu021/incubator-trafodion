@@ -402,7 +402,7 @@ A            (EXPR)       (EXPR)
 >>
 >>select stddev((select max(t2.a),max(t2.b) from t2 where t1.a=t2.b)) from t1;
 
-*** ERROR[4079] The operands of function STDDEV must be numeric.
+*** ERROR[4079] The operands of function STDDEV_SAMP must be numeric.
 
 *** ERROR[8822] The statement was not prepared.
 
@@ -711,7 +711,7 @@ hello  Neo
 >>-- Should fail
 >>select stddev((select a,b from t1), 2) from t1;
 
-*** ERROR[4077] Function STDDEV accepts only one or two operands.
+*** ERROR[4077] Function STDDEV_SAMP accepts only one or two operands.
 
 *** ERROR[8822] The statement was not prepared.
 
@@ -719,7 +719,7 @@ hello  Neo
 >>-- Should fail
 >>select stddev(swap2(a,b), 2)  from t1;
 
-*** ERROR[4077] Function STDDEV accepts only one or two operands.
+*** ERROR[4077] Function STDDEV_SAMP accepts only one or two operands.
 
 *** ERROR[8822] The statement was not prepared.
 
@@ -727,7 +727,7 @@ hello  Neo
 >>-- Should fail
 >>select stddev(2,(select a,b from t1)) from t1;
 
-*** ERROR[4077] Function STDDEV accepts only one or two operands.
+*** ERROR[4077] Function STDDEV_SAMP accepts only one or two operands.
 
 *** ERROR[8822] The statement was not prepared.
 
@@ -735,7 +735,7 @@ hello  Neo
 >>-- Should fail
 >>select stddev(2,swap2(a,b))  from t1;
 
-*** ERROR[4077] Function STDDEV accepts only one or two operands.
+*** ERROR[4077] Function STDDEV_SAMP accepts only one or two operands.
 
 *** ERROR[8822] The statement was not prepared.
 

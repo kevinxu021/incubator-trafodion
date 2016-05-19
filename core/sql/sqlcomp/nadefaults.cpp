@@ -78,7 +78,7 @@
 
 #include "seabed/ms.h"
 #include "seabed/fs.h"
-
+#include "CompException.h"
 
 #define   NADHEAP		 CTXTHEAP
 #define   ERRWARN(msg)		 ToErrorOrWarning(msg, errOrWarn)
@@ -370,6 +370,8 @@ SDDkwd__(ALLOW_AUDIT_ATTRIBUTE_CHANGE,	       "FALSE"), // Used to control if ro
 
 SDDkwd__(ALLOW_DP2_ROW_SAMPLING,               "SYSTEM"),
 
+ DDkwd__(ALLOW_FIRSTN_IN_IUD,	               "TRUE"),
+
  DDkwd__(ALLOW_FIRSTN_IN_SUBQUERIES,	       "FALSE"),
 
  // ON/OFF flag to invoke ghost objects from non-licensed process (non-super.super user) who can not use parserflags
@@ -417,6 +419,10 @@ SDDkwd__(ALLOW_DP2_ROW_SAMPLING,               "SYSTEM"),
   // if set to ON, then ORDER BY could be
   // specified in a regular CREATE VIEW (not a create MV) statement.
   DDkwd__(ALLOW_ORDER_BY_IN_CREATE_VIEW,	"ON"),
+
+  // if set to ON, then ORDER BY could be
+  // specified in a subquery
+  DDkwd__(ALLOW_ORDER_BY_IN_SUBQUERIES,	        "OFF"),
 
   // rand() function in sql is disabled unless this CQD is turned on
   DDkwd__(ALLOW_RAND_FUNCTION,			"OFF"),
@@ -1970,7 +1976,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DD_____(HIVE_FILE_NAME,     "/hive/tpcds/customer/customer.dat" ),
   DD_____(HIVE_HDFS_STATS_LOG_FILE,             ""),
   DDint__(HIVE_HDFS_STATS_MAX_SAMPLE_FILES,     "10"),
-  DDkwd__(HIVE_HDFS_STATS_SAMPLE_LOB_INTFC,     "OFF"),
+  DDkwd__(HIVE_HDFS_STATS_SAMPLE_LOB_INTFC,     "ON"),
   DDint__(HIVE_LIB_HDFS_PORT_OVERRIDE,          "-1"),
   DDint__(HIVE_LOCALITY_BALANCE_LEVEL,          "3"),
   DDui___(HIVE_MAX_ESPS,                        "9999"),
@@ -2696,7 +2702,7 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
 
   DDkwd__(OLT_QUERY_OPT,			"ON"),
   DDkwd__(OLT_QUERY_OPT_LEAN,			"OFF"),
-
+  DDint__(ONLINE_BACKUP_TIMEOUT,                 "30"),
   // -----------------------------------------------------------------------
   // Optimizer pruning heuristics.
   // -----------------------------------------------------------------------
@@ -2763,8 +2769,9 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
 
   DDkwd__(ORC_AGGR_PUSHDOWN,                    "ON"),
   DDkwd__(ORC_COLUMNS_PUSHDOWN,                 "ON"),
-  DDkwd__(ORC_NJS,                              "ON"),
+  DDkwd__(ORC_NJS,                              "OFF"),
   DDkwd__(ORC_PRED_PUSHDOWN,                    "ON"),
+  DDkwd__(ORC_READ_NUM_ROWS,                    "ON"),
   DDkwd__(ORC_READ_STRIPE_INFO,                 "OFF"),
   DDkwd__(ORC_VECTORIZED_SCAN,                  "ON"),
 
@@ -4272,8 +4279,14 @@ void NADefaults::updateSystemParameters(NABoolean reInit)
   //  Extract SMP node number and cluster number where this arkcmp is running.
   short nodeNum = 0;
   Int32   clusterNum = 0;
-  OSIM_getNodeAndClusterNumbers(nodeNum, clusterNum);
-
+  try {
+        OSIM_getNodeAndClusterNumbers(nodeNum, clusterNum);
+  }
+  catch(OsimLogException & e)
+  {
+        OSIM_errorMessage(e.getErrMessage());
+        return;
+  }
   // First (but only if NSK-LITE Services exist),
   // write system parameters (attributes DEF_*) into DefaultDefaults,
   // then copy DefaultDefaults into CurrentDefaults.
