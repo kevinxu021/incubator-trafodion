@@ -70,7 +70,6 @@ public :
   NAHeap *heap_;
 };
 
-
 // ===========================================================================
 // ===== The HTableClient class implements access to the Java 
 // ===== HTableClient class.
@@ -416,6 +415,7 @@ typedef enum {
  ,HBC_ERROR_POOL_NOT_EXIST_EXCEPTION
  ,HBC_ERROR_LISTALL
  ,HBC_ERROR_GETKEYS
+ ,HBC_ERROR_LISTALL
  ,HBC_ERROR_REGION_STATS
  ,HBC_LAST
 } HBC_RetCode;

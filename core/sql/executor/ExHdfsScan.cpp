@@ -490,7 +490,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 		    {
 		      ComDiagsArea * diagsArea = NULL;
 		      ExRaiseSqlError(getHeap(), &diagsArea, 
-				      (ExeErrorCode)8434, 
+				      (ExeErrorCode)8435, 
 				      NULL, NULL, NULL, NULL, 
 				      compressionWA_->getText(), NULL);
     		      pentry_down->setDiagsArea(diagsArea);

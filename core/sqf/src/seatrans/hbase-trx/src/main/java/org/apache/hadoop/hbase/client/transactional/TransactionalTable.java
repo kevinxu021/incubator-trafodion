@@ -185,12 +185,6 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
       super(tableName, pv_connection, threadPool);
     }
 
-    public void resetConnection() throws IOException {
-        if (LOG.isDebugEnabled()) LOG.debug("Resetting connection for " + this.getTableDescriptor().getTableName());
-        HConnection conn = this.getConnection();
-        conn = HConnectionManager.createConnection(this.getConfiguration());
-    }
-
     private void addLocation(final TransactionState transactionState, HRegionLocation location) {
       if (LOG.isTraceEnabled()) LOG.trace("addLocation ENTRY");
       if (transactionState.addRegion(location)){
@@ -271,20 +265,8 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
           }
         } while (retryCount < TransactionalTable.retries && retry == true);
       } catch (Throwable e) {
-        e.printStackTrace();    
-        throw new IOException("ERROR while calling coprocessor");
-      }            
-      //Collection<GetTransactionalResponse> results = result.values();
-      // Should only be one result, if more than one. Can't handle.
-      // Need to test whether '!=' or '>' is correct
-      //if (LOG.isTraceEnabled()) LOG.trace("Results count: " + results.size());
-      //if(results.size() != 1)
-      //  throw new IOException("Incorrect number of results from coprocessor call");      
-      //GetTransactionalResponse[] resultArray = new GetTransactionalResponse[results.size()];    		  
-      //results.toArray(resultArray);            
-      //if(resultArray.length == 0) 
-    	//  throw new IOException("Problem with calling coprocessor, no regions returned result");
-      
+        throw new IOException("ERROR while calling coprocessor", e);
+      } 
       if(result == null)
         throw new IOException(retryErrMsg);
       else if(result.hasException())
@@ -359,14 +341,9 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
               retryCount++;
             }
           } while (retryCount < TransactionalTable.retries && retry == true);
-        } catch (ServiceException e) {
-          e.printStackTrace();
-          throw new IOException();
         } catch (Throwable t) {
-          t.printStackTrace();
-          throw new IOException();
+          throw new IOException("ERROR while calling coprocessor",t);
         } 
-
         if(result == null)
           throw new IOException(retryErrMsg);
         else if(result.hasException())
@@ -448,8 +425,7 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
 
       } while(retryCount < TransactionalTable.retries && retry == true);
     } catch (Throwable e) {
-      e.printStackTrace();
-      throw new IOException("ERROR while calling coprocessor");
+      throw new IOException("ERROR while calling coprocessor", e);
     }    
     if(result == null)
       throw new IOException(retryErrMsg);
@@ -550,8 +526,7 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
           }
         } while (retryCount < TransactionalTable.retries && retry == true);
       } catch (Throwable e) {
-        e.printStackTrace();
-        throw new IOException("ERROR while calling coprocessor");
+        throw new IOException("ERROR while calling coprocessor",e);
       }
       if(result == null)
         throw new IOException(retryErrMsg);
@@ -643,10 +618,7 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
           }
         } while (retryCount < TransactionalTable.retries && retry == true);
       } catch (Throwable e) {        
-          StringWriter sw = new StringWriter();
-          PrintWriter pw = new PrintWriter(sw);
-          e.printStackTrace(pw);
-        throw new IOException("ERROR while calling coprocessor " + sw.toString());       
+        throw new IOException("ERROR while calling coprocessor ",e);       
       }
 
       if(result == null)
@@ -755,8 +727,7 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
  	        } while (retryCount < TransactionalTable.retries && retry == true);
  	        
  	      } catch (Throwable e) {
- 	        e.printStackTrace();
-	        throw new IOException("ERROR while calling coprocessor");
+	        throw new IOException("ERROR while calling coprocessor", e);
  	      }
 
              if(result == null)
@@ -862,8 +833,7 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
           }
         } while (retryCount < TransactionalTable.retries && retry == true);
       } catch (Throwable e) {
-        e.printStackTrace();
-        throw new IOException("ERROR while calling coprocessor");
+        throw new IOException("ERROR while calling coprocessor",e);
       }
       if(result == null)
         throw new IOException(retryErrMsg);

@@ -27,7 +27,6 @@
 #include "HBaseClient_JNI.h"
 #include "QRLogger.h"
 #include "pthread.h"
-                                   
 //
 // ===========================================================================
 // ===== Class HBaseClient_JNI
@@ -104,6 +103,7 @@ static const char* const hbcErrorEnumStr[] =
  ,"Pool does not exist."
  ,"Preparing parameters for listAll()."
  ,"Preparing parameters for getKeys()."
+ ,"Preparing parameters for listAll()."
  ,"Preparing parameters for getRegionStats()."
 };
 
@@ -1279,7 +1279,7 @@ NAArray<HbaseStr>* HBaseClient_JNI::listAll(NAHeap *heap, const char* pattern)
   jstring js_pattern = jenv_->NewStringUTF(pattern);
   if (js_pattern == NULL) 
   {
-    GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_DROP_PARAM));
+    GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_LISTALL));
     jenv_->PopLocalFrame(NULL);
     return NULL;
   }
@@ -4090,6 +4090,7 @@ NAArray<HbaseStr>* HBaseClient_JNI::getKeys(Int32 funcIndex, NAHeap *heap, const
     return NULL;
   }
   jboolean j_useTRex = useTRex;
+  tsRecentJMFromJNI = JavaMethods_[funcIndex].jm_full_name;
   jarray j_keyArray=
      (jarray)jenv_->CallObjectMethod(javaObj_, JavaMethods_[funcIndex].methodID, js_tblName, j_useTRex);
 
