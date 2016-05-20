@@ -8611,7 +8611,7 @@ bool isInfoSystem(char*& sqlString, const IDL_char *stmtLabel, short& error)
    char* in = sqlString;
    SRVR_STMT_HDL *pSrvrStmt = NULL;
    char *databaseVersion;
- 
+  
    databaseVersion = getenv("TRAFODION_VER");
 
    // get Timezone and GMT offset
@@ -8624,12 +8624,12 @@ bool isInfoSystem(char*& sqlString, const IDL_char *stmtLabel, short& error)
    bool authorizationEnabled = false;
    bool authorizationReady = false;
    bool auditingEnabled = false;
-
+ 
    Int32 rc = SQL_EXEC_GetAuthState(authenticationEnabled,
-                           authorizationEnabled,
-                           authorizationReady,
-                           auditingEnabled);
-    
+                            authorizationEnabled,
+                            authorizationReady,
+                            auditingEnabled);
+
    char pattern[] = "SELECT [first 1]"
                     "current_timestamp as \"CURRENT_TIME\","
                     "'%s' as \"NDCS_VERSION\","
@@ -8639,7 +8639,7 @@ bool isInfoSystem(char*& sqlString, const IDL_char *stmtLabel, short& error)
                     "'%s' as \"DATABASE_EDITION\","
                     "'%s' as \"AUTHENTICATION_ENABLED\","
                     "'%s' as \"AUTHORIZATION_ENABLED\""
-		    "FROM (values(1)) X(A);";
+	            "FROM (values(1)) X(A);";
 
    sprintf (buffer, pattern,
 	    ndcs_vers_str(),

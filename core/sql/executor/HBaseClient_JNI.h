@@ -70,7 +70,6 @@ public :
   NAHeap *heap_;
 };
 
-
 // ===========================================================================
 // ===== The HTableClient class implements access to the Java 
 // ===== HTableClient class.

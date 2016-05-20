@@ -11522,7 +11522,7 @@ desc_struct* assembleDescs(NAArray<HbaseStr >* keyArray, populateFuncT func, NAM
       len = keyArray->at(i).len;
       if ( len > 0 ) { 
          buf = new (heap) char[len];
-         memcpy(buf, keyArray->at(i).val, len);
+         memcpy(buf, keyArray->at(i).val, len); 
       } else
          buf = NULL;
 

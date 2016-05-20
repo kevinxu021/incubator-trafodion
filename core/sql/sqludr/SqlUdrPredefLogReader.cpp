@@ -535,12 +535,10 @@ void ReadCppEventsUDFInterface::processData(UDRInvocationInfo &info,
         continue;
 
       throw UDRException(
-                         38002,
-                         "Error %d on opening directory %s",
-                         (int) errno, logDirName.data());
-    }
-
-    
+			 38002,
+			 "Error %d on opening directory %s",
+			 (int) errno, logDirName.data());
+    } 
     cFile = fopen(confFileName.data(), "r");
     if (cFile)
     {

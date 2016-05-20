@@ -2226,9 +2226,9 @@ RelExpr * RelRoot::preCodeGen(Generator * generator,
 	{
 	  ValueId val_id = compExpr()[i];
 	  ItemExpr * expr = val_id.getItemExpr();
-	  if ((val_id.getType().isLob()) &&
+	  if ((val_id.getType().isLob()))/* &&
 	      ((expr->getOperatorType() == ITM_BASECOLUMN) ||
-	       (expr->getOperatorType() == ITM_INDEXCOLUMN)))
+              (expr->getOperatorType() == ITM_INDEXCOLUMN)))*/
 	    {
 	      LOBconvertHandle * lc = new(generator->wHeap())
 		LOBconvertHandle(val_id.getItemExpr(), LOBoper::STRING_);
@@ -2242,10 +2242,12 @@ RelExpr * RelRoot::preCodeGen(Generator * generator,
 	      ColumnDesc  *cd = (*cdl)[i];
 	      
 	      NAColumn * col = cd->getValueId().getNAColumn(TRUE);
-	      lc->lobNum() = col->lobNum();
-	      lc->lobStorageType() = col->lobStorageType();
-	      lc->lobStorageLocation() = col->lobStorageLocation();
-	      
+              if (col)
+                {
+                  lc->lobNum() = col->lobNum();
+                  lc->lobStorageType() = col->lobStorageType();
+                  lc->lobStorageLocation() = col->lobStorageLocation();
+                }
 	      cd->setValueId(lc->getValueId());
 
 	      rd->changeNATypeForUserColumnList(i, &lc->getValueId().getType());
@@ -12058,19 +12060,6 @@ short HbaseAccess::extractHbaseFilterPreds(Generator * generator,
        preds.advance(vid))
     {
       ItemExpr * ie = vid.getItemExpr();
-
-      // if it is AND operation, recurse through left and right children
-      if (ie->getOperatorType() == ITM_AND)
-        {
-          ValueIdSet leftPreds;
-          ValueIdSet rightPreds;
-          leftPreds += ie->child(0)->castToItemExpr()->getValueId();
-          rightPreds += ie->child(1)->castToItemExpr()->getValueId();
-          extractHbaseFilterPreds(generator, leftPreds, newExePreds);
-          extractHbaseFilterPreds(generator, rightPreds, newExePreds);
-          continue; 
-        }
-      
       ValueId colVID;
       ValueId valueVID;
       NABoolean removeFromOrigList = FALSE;

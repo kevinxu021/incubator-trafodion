@@ -2333,24 +2333,21 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 
 	private void displayVersionInfo(boolean srvrErrMsg) throws IOException {
 		String platformVersion = sessObj.getSutVersion();
-		String mxoSrvrVersion = sessObj.getNdcsVersion();
+		String mxoSrvrVersion  = sessObj.getNdcsVersion();
                 String databaseVersion = sessObj.getDatabaseVersion();
                 String databaseEdition = sessObj.getDatabaseEdition();
 
-		if (databaseVersion != null && databaseEdition != null) {
-		    handleOutput("Database Version            : Release ", databaseVersion);
-		    handleOutput("Database Edition            :", databaseEdition, false);
-		} else {
-		    handleOutput("Database Version            :", this.infoNotAvailable, false);
-		    handleOutput("Database Edition            :", this.infoNotAvailable, false);
-                }                
-		handleOutput("JDBC Type 4 Driver Build ID :", JDBCVproc.getVproc(), false);
-		handleOutput("Command Interface Build ID  :", Vproc.getVproc(), false);
-
+		if (databaseVersion != null &&  databaseEdition != null) {
+                    handleOutput("Database Version            : Release ", databaseVersion);
+                    handleOutput("Database Edition            :", databaseEdition,false);
+                } else {
+                    handleOutput("Database Version            :", this.infoNotAvailable, false);
+                    handleOutput("Database Edition            :", this.infoNotAvailable, false);
+                }
+                handleOutput("JDBC Type 4 Driver Build ID :", JDBCVproc.getVproc(), false);
+                handleOutput("Command Interface Build ID  :", Vproc.getVproc(), false);
+               
 		writer.writeEndTags(sessObj);
-
-		if ((srvrErrMsg) && (sessObj.getT4verNum() >= 2.2))
-			sessionError('E', SessionError.SERVER_PRODUCT_ERR);
 	}
 
 	private void handleConnect() throws IOException, UserInterruption {
@@ -2494,8 +2491,8 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 					// Uncomment this line if you need to reset role to DEFAULT;
 					// TempSessionRole is set using SET CONNECTIOPT command
 					// sessObj.setTempSessionRole("");
-
 					//writer.writeln();
+
 			                writer.writeln("Connected to " + sessObj.getDatabaseEdition());
 
 					sessObj.setQryEndTime();
