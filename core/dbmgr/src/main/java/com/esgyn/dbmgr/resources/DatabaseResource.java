@@ -550,7 +550,8 @@ public class DatabaseResource {
 		PreparedStatement pstmt = null;
 		Connection connection = null;
 		try {
-			connection = JdbcHelper.getInstance().getAdminConnection();
+			Session soc = SessionModel.getSession(servletRequest, servletResponse);
+			connection = JdbcHelper.getInstance().getConnection(soc.getUsername(), soc.getPassword());
 			String queryText = String.format(
 					SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_HISTOGRAM_STATISTICS),
 					Helper.ExternalForm(schemaName), objectID);

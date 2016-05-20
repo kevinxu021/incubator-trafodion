@@ -59,7 +59,6 @@ define([
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
 			common.on(common.LIBRARY_CREATED_EVENT, this.libraryCreatedEvent);
 			common.on(common.LIBRARY_ALTERED_EVENT, this.libraryAlteredEvent);
-			common.on(common.LIBRARY_ALTERED_EVENT, this.libraryAlteredEvent);
 			common.on(common.LIBRARY_DROPPED_EVENT, this.libraryDroppedEvent);
 
 			_this.processRequest();
