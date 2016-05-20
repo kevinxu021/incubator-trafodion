@@ -285,7 +285,9 @@ PKG_BIN_OBJS += trafci
 PKG_BIN_OBJS += export/limited-support-tools
 PKG_BIN_OBJS += LICENSE NOTICE LICENSE_Esgyn
 PKG_BIN_OBJS += rest-${TRAFODION_VER} dcs-${TRAFODION_VER}
+ifneq ($(ARCH),ppc64le)
 PKG_BIN_OBJS += dbmgr-${TRAFODION_VER} mgblty
+endif
 
 PKG_BIN_DIRS ?= sql export
 PKG_BIN_DIRS += trafci
@@ -380,7 +382,11 @@ pkglist-files: pkglist-symlinks
 	find -L $(PKG_BIN_OBJS) -type d -o -type f | grep -v -xf pkglist-symlinks > $@
 
 # simple symlinks that point to filename (does not start with . or /)
-pkglist-symlinks: LICENSE NOTICE LICENSE_Esgyn rest-${TRAFODION_VER} dcs-${TRAFODION_VER} dbmgr-${TRAFODION_VER} mgblty
+pkglist-symlinks: LICENSE NOTICE LICENSE_Esgyn rest-${TRAFODION_VER} dcs-${TRAFODION_VER}
+ifneq ($(ARCH),ppc64le)
+pkglist-symlinks: dbmgr-${TRAFODION_VER} mgblty
+endif
+
 	find $(PKG_BIN_OBJS) -lname '[^./]*' > $@
 
 #	Targets to tar/gzip the self installer
