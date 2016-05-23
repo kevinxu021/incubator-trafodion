@@ -28,7 +28,7 @@ define([
 
 		template:  _.template(LoginT),
 
-		el: $('#wrapper'),
+		el: $('#content-wrapper'),
 
 		child: null,
 
@@ -67,7 +67,7 @@ define([
 					}
 				}
 			});
-			
+			$('#content-wrapper').css('padding-top','0px');
 			sessionHandler.on(sessionHandler.LOGIN_SUCCESS, this.loginSuccess);
 			sessionHandler.on(sessionHandler.LOGIN_ERROR, this.showErrorMessage);
 			$(LOGIN_BUTTON).on('click', this.loginClick);
@@ -155,6 +155,10 @@ define([
 			}
 		},
 		doLogout: function(){
+			$('#sidebar-wrapper').hide();
+			$('#content-wrapper').removeClass('col-md-10').addClass('col-md-12');
+			$.cookie('offcanvas', 'hide');
+			
 			var param = {username : session.getUser()};
 			$(ERROR_TEXT).text("");
 			common.resetSessionProperties();

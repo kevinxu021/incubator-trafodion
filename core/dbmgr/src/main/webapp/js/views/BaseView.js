@@ -1,8 +1,8 @@
-// @@@ START COPYRIGHT @@@
-//
-// (C) Copyright 2015-2016 Esgyn Corporation
-//
-// @@@ END COPYRIGHT @@@
+//@@@ START COPYRIGHT @@@
+
+//(C) Copyright 2015-2016 Esgyn Corporation
+
+//@@@ END COPYRIGHT @@@
 
 define([
         'jquery',
@@ -14,31 +14,31 @@ define([
         'jqueryui'
         ], function ($, _, Backbone, common, serverHandler) {
 	'use strict';
-    var _this = null;
-    var __this=null;
+	var _this = null;
+	var __this=null;
 	var BaseView = Backbone.View.extend({
 
-		el: $('#wrapper'),
+		el: $('#content-wrapper'),
 
 		initialized: false,
-		
+
 		TASK_MENU:'#notify',
 
 		pageWrapper: null,
-		
+
 		pageIdentifier:null,
-		
+
 		currentURL:null,
-		
+
 		redirectFlag:null,
 		/*initialize: function () {
 
 		},*/
-    	refreshTimer: (function() {
+		refreshTimer: (function() {
 			var _interval;
 			var _intervalId;
 			var _refreshTimer = {};
-			
+
 			_refreshTimer.set = function(newInterval) {
 				if(newInterval){
 					if(typeof newInterval === 'string'){
@@ -49,7 +49,7 @@ define([
 					}else{
 						_interval = newInterval * 60 * 1000;
 					}
-					
+
 					if(_interval != 0){
 						_refreshTimer.start();
 					}else{
@@ -60,38 +60,38 @@ define([
 				}
 
 			};
-			
+
 			_refreshTimer.get = function() {
 				return _interval;
 			};
-			
+
 			_refreshTimer.beep = function() {
 				// console.log("========beep==========");
 				if(_this.onTimerBeeped){
 					_this.onTimerBeeped();
 				}
 			};
-			
+
 			_refreshTimer.start = function() {
 				_refreshTimer.stop();
 				if (_interval) {
 					_intervalId = window.setInterval(_refreshTimer.beep, _interval);
 				}
 			};
-			
+
 			_refreshTimer.stop = function() {
 				if (_intervalId) {
 					window.clearInterval(_intervalId);
 				}
 			};
-			
+
 			return _refreshTimer;
 		}()),
-		
+
 		initialize: function(options) { 
 			_.bindAll(this, 'beforeRender', 'render', 'afterRender'); 
 			_this = this; 
-			
+
 			this.render = _.wrap(this.render, function(render, args) { 
 				_this.beforeRender(); 
 				render(args); 
@@ -118,7 +118,7 @@ define([
 			}
 			return this;        	
 		},
-		
+
 		afterRender: function() { 
 		},
 
@@ -129,19 +129,65 @@ define([
 				this.doInit(args);
 				this.currentURL=window.location.hash;
 			}
-			$('#notifyMenu').on('shown.bs.dropdown', function(){
+			if ($.cookie('offcanvas') == 'hide') {
+				$('#content-wrapper').addClass('no-transition');
+				$('#sidebar-wrapper').hide();
+				$('#sidebar-wrapper').css('right', -($('#sidebar-wrapper').outerWidth() + 10));
+				$('#content-wrapper').removeClass('col-md-10').addClass('col-md-12');
+			}
+			else if ($.cookie('offcanvas') == 'show') {
+				$('#sidebar-wrapper').show(500).animate({ right: 0 });
+				//  $('#sidebar-wrapper').show();
+				$('#content-wrapper').removeClass('no-transition');
+				$('#content-wrapper').removeClass('col-md-12').addClass('col-md-10');
+			}
+
+			$('#content-wrapper').css('padding-top','60px');
+			$('#notifyMenu').on('click', this.hideOrDisplaySideBar);
+
+			/*$('#notifyMenu').on('shown.bs.dropdown', function(){
 				$('#notification-btn').find('.dbmgr-notify-icon').remove();
-			});
+			});*/
 		},
-		
+		hideOrDisplaySideBar: function(args){
+			$('#content-wrapper').removeClass('no-transition');
+			if ($('#sidebar-wrapper').is(':visible') && $('#content-wrapper').hasClass('col-md-10')) {
+				// Slide out
+				$('#sidebar-wrapper').animate({
+					right: -($('#sidebar-wrapper').outerWidth() + 10)
+				}, function () {
+					$('#sidebar-wrapper').hide(1000);
+				});
+				$('#content-wrapper').removeClass('col-md-10').addClass('col-md-12');
+				$.cookie('offcanvas', 'hide');
+			}
+			else {
+				// Slide in
+				$('#sidebar-wrapper').show(500).animate({ right: 0 });
+				$('#content-wrapper').removeClass('col-md-12').addClass('col-md-10');
+				$.cookie('offcanvas', 'show');
+			}
+			if($('#content-wrapper').hasClass('col-md-12') && $('#sidebar-wrapper').is(':hidden')) {
+				$('#sidebar-wrapper').animate({
+					right: 0
+				}, function () {
+					$('#sidebar-wrapper').show(1000);
+				});
+				//  $('#sidebar-wrapper').show();
+				$('#content-wrapper').removeClass('no-transition');
+				$('#content-wrapper').removeClass('col-md-12').addClass('col-md-10');
+			}			
+		},
 		resume: function(args){
 			if(this.doResume){
 				this.doResume(args);
 				this.currentURL=window.location.hash;
 			}
 			common.on(common.NOFITY_MESSAGE, this.collectNewNotifyMessage);
+			$('#notifyMenu').on('click', this.hideOrDisplaySideBar);
 		},
 		pause: function() {
+			$('#notifyMenu').off('click', this.hideOrDisplaySideBar);
 			if(this.doPause){
 				this.doPause();
 			}
@@ -164,7 +210,7 @@ define([
 			if(notifyIndicator.length == 0){
 				$('#notification-btn').append('<i class="dbmgr-notify-icon fa fa-exclamation-circle fa-stack-1x" style="color:yellow"></i>');
 			}
-			
+
 			common.MESSAGE_COUNT++;
 			var currentTime=new Date();
 			var interval=setInterval(__this.flashBackground,1000);
@@ -195,9 +241,9 @@ define([
 
 			//Compute the hash string on the url.
 			var hs = common.hashString(obj.url ? obj.url : "");
-			
+
 			if(obj.lastMessageOnly && obj.lastMessageOnly == true){
-				
+
 				//delete all other earlier messages that match obj.url
 				$.each(common.MESSAGE_LIST, function (index , value){
 					if(obj.url == value.url){
@@ -205,7 +251,7 @@ define([
 						common.MESSAGE_COUNT --;
 					}
 				});
-				
+
 				//Delete the older messages from the UI, by matching the hash string
 				var itemList = $('#notifyMenu>ul>li');
 				if(itemList.length > 0){
@@ -220,8 +266,8 @@ define([
 					}
 				}
 			}
-			
-			$("#notifyMenu>ul").prepend('<li hashstr="'+hs+'"><a class="active"><div class="notifyDetail"><i class="fa '+ alertClass + ' fa-fw"></i><i style="padding-left:2px">'+ obj.shortMsg.substr(0,35)+'</i> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span><button type="button" aria-hidden="true" class="pull-right close" data-notify="dismiss" style="color: black;">×</button></div></a></li><li class="divider"></li>');
+
+			$("#notifyMenu>ul").prepend('<li hashstr="'+hs+'"><a class="active"><div class="notifyDetail"><i class="fa '+ alertClass + ' fa-fw"></i><i style="padding-left:2px">'+ obj.shortMsg.substr(0,35)+'</i> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span><button type="button" aria-hidden="true" class="pull-right close" data-notify="dismiss" style="color: black;">Ãƒâ€”</button></div></a></li><li class="divider"></li>');
 
 			common.MESSAGE_LIST.splice(0,0,{msg:obj.msg,tag:obj.tag,url:obj.url,time:currentTime});
 			common.hideNotifications=$("#notifyMenu>ul>li[id!='allNotification']:gt(7)");
@@ -340,7 +386,7 @@ define([
 				this.pageWrapper = childElement.detach();
 
 		},
-		
+
 		reset: function(){
 			if(this.doReset){
 				this.doReset();
