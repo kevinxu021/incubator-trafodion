@@ -2153,9 +2153,9 @@ pthread_mutex_t BackupRestoreClient_JNI::javaMethodsInitMutex_ = PTHREAD_MUTEX_I
 static const char* const brcErrorEnumStr[] = ///need to update content
 {
     "preparing parameters for init."
-   ,"java exception in init."
-   ,"java exception in cleanup."
-   ,"preparing parameters for init_brc()."
+   ,"Create Snapshot Exception."
+   ,"Restore Snapshot Exception."
+   ,"Exception in init_brc()."
    ,"java exception in init_brc()."
 };
 BRC_RetCode BackupRestoreClient_JNI::init()

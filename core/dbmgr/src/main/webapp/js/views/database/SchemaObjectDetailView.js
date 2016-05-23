@@ -286,7 +286,7 @@ define([
 			$(INDEXES_CONTAINER).empty();
 			$(INDEXES_ERROR_CONTAINER).text("");
 			$(DROP_LIBRARY_BUTTON).prop('disabled',false);
-			
+			$(DROP_LIBRARY_SPINNER).css('visibility', 'hidden');
 			pageStatus.ddlFetched == false
 			if(ddlTextEditor){
 				ddlTextEditor.setValue("");
@@ -296,7 +296,8 @@ define([
 		},
 		libraryAlteredEvent: function(args) {
 			 if(routeArgs.type == 'library'){
-				if(args.schemaName == routeArgs.schema && args.libName == routeArgs.name){
+				if(common.ExternalDisplayName(args.schemaName) == common.ExternalDisplayName(routeArgs.schema) && 
+						common.ExternalDisplayName(args.libName) == common.ExternalDisplayName(routeArgs.name)){
 					_this.doReset();
 				}				 
 			 }

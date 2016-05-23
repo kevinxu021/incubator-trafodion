@@ -3971,15 +3971,36 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
     }
   else if(backup())
   {
-	  isHbase_ = TRUE;
+     if ((NOT IsAdvancedLevel()))
+     {
+       *CmpCommon::diags() << DgSqlCode(-4222)
+                           << DgString0("Backup");
+       bindWA->setErrStatus();
+       return this;
+     }
+     isHbase_ = TRUE;
   }
   else if(restore())
   {
-      isHbase_ = TRUE;
+    if ((NOT IsAdvancedLevel()))
+     {
+       *CmpCommon::diags() << DgSqlCode(-4222)
+                           << DgString0("Restore");
+       bindWA->setErrStatus();
+       return this;
+     }
+     isHbase_ = TRUE;
   }
   else if(unlockTraf())
   {
-      isHbase_ = TRUE;
+    if ((NOT IsAdvancedLevel()))
+     {
+       *CmpCommon::diags() << DgSqlCode(-4222)
+                           << DgString0("UnLock");
+       bindWA->setErrStatus();
+       return this;
+     }
+     isHbase_ = TRUE;
   }
   else if (purgedataHbase_)
   {
