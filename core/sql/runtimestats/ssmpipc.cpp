@@ -1207,6 +1207,12 @@ void SsmpNewIncomingConnectionStream::actOnReceive(IpcConnection *connection)
   case SECURITY_INVALID_KEY_REQ:
     actOnSecInvalidKeyReq(connection);
     break;
+  case SNAPSHOT_LOCK_REQ:
+    actOnSnapshotLockReq(connection);
+    break;
+  case SNAPSHOT_UNLOCK_REQ:
+    actOnSnapshotUnLockReq(connection);
+    break;
   default:
     ex_assert(FALSE,"Invalid request from client");
   }
@@ -1669,6 +1675,66 @@ void SsmpNewIncomingConnectionStream::actOnSecInvalidKeyReq(
   sikReq->decrRefCount();
   sscpMsgStream->send(FALSE);
 
+  // Reply to client when the msgs to mxsscp have all completed.  The reply
+  // is made from the sscpMsgStream's callback.
+}
+
+void SsmpNewIncomingConnectionStream::actOnSnapshotLockReq(
+                                      IpcConnection *connection)
+{
+  IpcMessageObjVersion msgVer = getNextObjVersion();
+  ex_assert(msgVer <= CurrSnapshotLockVersionNumber,
+            "Up-rev message received.");
+
+  SnapshotLockRequest *slReq = new (getHeap())
+                        SnapshotLockRequest(getHeap());
+  *this >> *slReq;
+  setHandle(slReq->getHandle());
+  ex_assert( !moreObjects(),
+  "Unexpected objects following SnapshotLockRequest");
+  clearAllObjects();
+  
+  // Forward request to all mxsscps.
+  ssmpGlobals_->allocateServers();
+  SscpClientMsgStream *sscpMsgStream = new (heap_)
+  SscpClientMsgStream(heap_, getIpcEnv(), ssmpGlobals_, this);
+  sscpMsgStream->setUsedToSendSlMsgs();
+  ssmpGlobals_->addRecipients(sscpMsgStream);
+  sscpMsgStream->clearAllObjects();
+  *sscpMsgStream << *slReq;
+  slReq->decrRefCount();
+  sscpMsgStream->send(FALSE);
+
+  // Reply to client when the msgs to mxsscp have all completed.  The reply
+  // is made from the sscpMsgStream's callback.
+}
+
+void SsmpNewIncomingConnectionStream::actOnSnapshotUnLockReq(
+    IpcConnection *connection)
+{
+  IpcMessageObjVersion msgVer = getNextObjVersion();
+  ex_assert(msgVer <= CurrSnapshotUnLockVersionNumber,
+  "Up-rev message received.");
+  
+  SnapshotUnLockRequest *sulReq = new (getHeap())
+  SnapshotUnLockRequest(getHeap());
+  *this >> *sulReq;
+  setHandle(sulReq->getHandle());
+  ex_assert( !moreObjects(),
+    "Unexpected objects following SnapshotUnLockRequest");
+  clearAllObjects();
+  
+  // Forward request to all mxsscps.
+  ssmpGlobals_->allocateServers();
+  SscpClientMsgStream *sscpMsgStream = new (heap_)
+  SscpClientMsgStream(heap_, getIpcEnv(), ssmpGlobals_, this);
+  sscpMsgStream->setUsedToSendSulMsgs();
+  ssmpGlobals_->addRecipients(sscpMsgStream);
+  sscpMsgStream->clearAllObjects();
+  *sscpMsgStream << *sulReq;
+  sulReq->decrRefCount();
+  sscpMsgStream->send(FALSE);
+  
   // Reply to client when the msgs to mxsscp have all completed.  The reply
   // is made from the sscpMsgStream's callback.
 }
@@ -2369,6 +2435,18 @@ void SscpClientMsgStream::actOnReceiveAllComplete()
           replySik();
           break;
         }
+        case SL:
+        {
+          // Snapshot Lock.
+          replySL();
+          break;
+        }
+        case SUL:
+        {
+          // Snapshot Unlock.
+          replySL();
+          break;
+        }
         default:
         {
           ex_assert(FALSE, "Unknown completionProcessing_ flag.");
@@ -2382,6 +2460,25 @@ void SscpClientMsgStream::actOnReceiveAllComplete()
 }
 
 void SscpClientMsgStream::replySik()
+{
+  RmsGenericReply *reply = new(getHeap())
+    RmsGenericReply(getHeap());
+
+  *ssmpStream_ << *reply;
+
+  if (ssmpStream_->getSscpDiagsArea())
+  {
+    // Pass errors from communication w/ SSCPs back to the
+    // client.
+    *ssmpStream_ << *(ssmpStream_->getSscpDiagsArea());
+    ssmpStream_->clearSscpDiagsArea();
+  }
+
+  ssmpStream_->send(FALSE);
+  reply->decrRefCount();
+}
+
+void SscpClientMsgStream::replySL()
 {
   RmsGenericReply *reply = new(getHeap())
     RmsGenericReply(getHeap());

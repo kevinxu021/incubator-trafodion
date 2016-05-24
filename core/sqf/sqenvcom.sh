@@ -33,7 +33,7 @@
 export TRAFODION_VER_PROD="EsgynDB Enterprise"
 # Trafodion version (also update file ../sql/common/copyright.h)
 export TRAFODION_VER_MAJOR=2
-export TRAFODION_VER_MINOR=1
+export TRAFODION_VER_MINOR=2
 export TRAFODION_VER_UPDATE=0
 export TRAFODION_VER="${TRAFODION_VER_MAJOR}.${TRAFODION_VER_MINOR}.${TRAFODION_VER_UPDATE}"
 
@@ -53,6 +53,13 @@ export TRAFODION_ENABLE_AUTHENTICATION=NO
 # IBV for infiniband, TCP for tcp
 export SQ_IC=${SQ_IC:-TCP}
 export MPI_IC_ORDER=$SQ_IC
+
+export ARCH=`arch`
+if [ "${ARCH:0:3}" == "ppc" ]; then
+    export JRE_LIB_DIR=${ARCH}
+else
+    export JRE_LIB_DIR="amd64"
+fi
 
 # use sock
 #export SQ_TRANS_SOCK=1
@@ -111,8 +118,8 @@ fi
 REQ_JDK_VER="1.7.0_67"
 if [[ -z "$JAVA_HOME" && -d "${TOOLSDIR}/jdk${REQ_JDK_VER}" ]]; then
   export JAVA_HOME="${TOOLSDIR}/jdk${REQ_JDK_VER}"
-elif [[ -z "$JAVA_HOME" && -d /usr/lib/jvm/java-1.7.0-openjdk.x86_64/ ]]; then
-  export JAVA_HOME="/usr/lib/jvm/java-1.7.0-openjdk.x86_64"
+elif [[ -z "$JAVA_HOME" && -d /usr/lib/jvm/java-1.7.0-openjdk.${ARCH}/ ]]; then
+  export JAVA_HOME="/usr/lib/jvm/java-1.7.0-openjdk.${ARCH}"
 elif [[ -z "$JAVA_HOME" ]]; then
   echo "Please set JAVA_HOME to version jdk${REQ_JDK_VER}"
 fi
@@ -149,7 +156,11 @@ export HIVE_DEP_VER_APACHE=1.1.0
 export HBASE_TRX_ID_CDH=hbase-trx-cdh5_4
 export HBASE_TRX_ID_APACHE=hbase-trx-apache1_0_2
 export HBASE_TRX_ID_HDP=hbase-trx-hdp2_3
-export THRIFT_DEP_VER=0.9.0
+if [ "${ARCH:0:3}" == "ppc" ]; then
+    export THRIFT_DEP_VER=0.9.1
+else
+    export THRIFT_DEP_VER=0.9.0
+fi
 export HIVE_DEP_VER=1.1.0
 export HADOOP_DEP_VER=2.6.0
 
@@ -163,6 +174,7 @@ export HBASE_TRX_JAR=${HBASE_TRX_ID_CDH}-${TRAFODION_VER}.jar
 export DTM_COMMON_JAR=trafodion-dtm-${TRAFODION_VER}.jar
 export SQL_JAR=trafodion-sql-${TRAFODION_VER}.jar
 export UTIL_JAR=trafodion-utility-${TRAFODION_VER}.jar
+export JDBCT4_JAR=jdbcT4-${TRAFODION_VER}.jar
 
 HBVER=""
 if [[ "$HBASE_DISTRO" = "HDP" ]]; then
@@ -254,7 +266,7 @@ unset USE_HADOOP_1
 
 # ---+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 if [[ "$SQ_MTYPE" == 64 ]]; then
-  export LOC_JVMLIBS=$JAVA_HOME/jre/lib/amd64/server
+  export LOC_JVMLIBS=$JAVA_HOME/jre/lib/${JRE_LIB_DIR}/server
 else
   export LOC_JVMLIBS=$JAVA_HOME/jre/lib/i386/server
 fi
@@ -851,7 +863,7 @@ SQ_CLASSPATH=${SQ_CLASSPATH}:\
 $MY_SQROOT/export/lib/${DTM_COMMON_JAR}:\
 $MY_SQROOT/export/lib/${SQL_JAR}:\
 $MY_SQROOT/export/lib/${UTIL_JAR}:\
-$MY_SQROOT/export/lib/jdbcT4.jar:\
+$MY_SQROOT/export/lib/${JDBCT4_JAR}:\
 $MY_SQROOT/export/lib/jdbcT2.jar
 
 

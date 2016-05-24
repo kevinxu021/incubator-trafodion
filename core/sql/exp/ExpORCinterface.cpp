@@ -22,6 +22,7 @@
 **********************************************************************/
 
 #include "ExpORCinterface.h"
+#include "ex_ex.h"
 
 ExpORCinterface* ExpORCinterface::newInstance(CollHeap* heap,
                                               const char* server,
@@ -45,7 +46,8 @@ ExpORCinterface::ExpORCinterface(CollHeap * heap,
     server_[0] = 0;
 
   ofr_ = new(heap) OrcFileReader((NAHeap*)heap);
-  ofr_->init(); 
+  if (ofr_->init() != OFR_OK) 
+     ex_assert(false, "OrcFileReader::init method failed"); 
   port_ = port;
 }
 
@@ -155,15 +157,21 @@ Lng32 ExpORCinterface::scanClose()
   return close();
 }
 
-Lng32 ExpORCinterface::getColStats(Lng32 colNum, ByteArrayList* &bal)
+Lng32 ExpORCinterface::getColStats(Lng32 colNum, NAArray<HbaseStr> **colStats)
 {
-  bal = NULL;
+  NAArray<HbaseStr> *retColStats = NULL;
 
-  bal = ofr_->getColStats(colNum);
-  if (bal == NULL)
-   return -OFR_UNKNOWN_ERROR;
- 
+  retColStats = ofr_->getColStats(heap_, colNum);
+  if (retColStats == NULL)
+     return -OFR_UNKNOWN_ERROR;
+  else
+     *colStats = retColStats; 
   return 0;
+}
+
+Lng32 ExpORCinterface::getSumStringLengths(Int64 & result)
+{
+  return ofr_->getSumStringLengths(result);
 }
 
 char * ExpORCinterface::getErrorText(Lng32 errEnum)

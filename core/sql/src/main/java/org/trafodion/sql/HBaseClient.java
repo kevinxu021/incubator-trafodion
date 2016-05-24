@@ -531,7 +531,6 @@ public class HBaseClient {
             metaColDesc.setInMemory(true);
             desc.addFamily(metaColDesc);
             HBaseAdmin admin = new HBaseAdmin(config);
-            try {
                if (beginEndKeys != null && beginEndKeys.length > 0)
                {
                   byte[][] keys = new byte[beginEndKeys.length][];
@@ -553,12 +552,6 @@ public class HBaseClient {
                      admin.createTable(desc);
                   }
                }
-            }
-            catch (IOException e)
-            {
-               if (logger.isDebugEnabled()) logger.debug("HbaseClient.createk : createTable error" + e);
-               throw e;
-            }
             admin.close();
         return true;
     }
@@ -566,15 +559,9 @@ public class HBaseClient {
     public boolean registerTruncateOnAbort(String tblName, long transID)
         throws MasterNotRunningException, IOException {
 
-        try {
            if(transID != 0) {
               table.truncateTableOnAbort(tblName, transID);
            }
-        }
-        catch (IOException e) {
-           if (logger.isDebugEnabled()) logger.debug("HbaseClient.registerTruncateOnAbort error" + e);
-           throw e;
-        }
         return true;
     }
 
@@ -648,7 +635,6 @@ public class HBaseClient {
                 setDescriptors(tableOptions,htblDesc /*out*/,colDesc /*out*/, defaultVersionsValue);
         }
 
-        try {
             if (transID != 0) {
                 // Transactional alter support
                 table.alter(tblName, tableOptions, transID);
@@ -668,12 +654,6 @@ public class HBaseClient {
                 }
                 admin.close();
             }
-        }
-        catch (IOException e) {
-            if (logger.isDebugEnabled()) logger.debug("HbaseClient.drop  error" + e);
-            throw e;
-        }
-
         cleanupCache(tblName);
         return true;
     }
@@ -682,26 +662,20 @@ public class HBaseClient {
              throws MasterNotRunningException, IOException {
         if (logger.isDebugEnabled()) logger.debug("HBaseClient.drop(" + tblName + ") called.");
         HBaseAdmin admin = new HBaseAdmin(config);
-        //			admin.disableTableAsync(tblName);
-
         try {
            if(transID != 0) {
               table.dropTable(tblName, transID);
            }
            else {
-               if (! admin.isTableEnabled(tblName))
-                   admin.enableTable(tblName);
-              admin.disableTable(tblName);
+               if (admin.isTableEnabled(tblName))
+                   admin.disableTable(tblName);
               admin.deleteTable(tblName);
-              admin.close();
            }
+           cleanupCache(tblName);
+        } finally {
+           admin.close();
         }
-        catch (IOException e) {
-           if (logger.isDebugEnabled()) logger.debug("HbaseClient.drop  error" + e);
-           throw e;
-        }
-
-        return cleanupCache(tblName);
+        return true;
     }
 
     public boolean dropAll(String pattern, long transID) 
@@ -713,6 +687,7 @@ public class HBaseClient {
 	    if (htdl == null) // no tables match the given pattern.
 		return true;
 
+            IOException ioExc = null;  
 	    for (HTableDescriptor htd : htdl) {
 		String tblName = htd.getNameAsString();
 
@@ -720,7 +695,6 @@ public class HBaseClient {
                 int idx = tblName.indexOf("TRAFODION._DTM_");
                 if (idx == 0)
                     continue;
-
                 try {
                     if(transID != 0) {
                         //                        System.out.println("tblName " + tblName);
@@ -736,33 +710,37 @@ public class HBaseClient {
                 }
                 
                 catch (IOException e) {
+                    if (ioExc == null) {
+                        ioExc = new IOException("Not all tables are dropped, For details get suppressed exceptions");
+                        ioExc.addSuppressed(e);
+                     }
+                     else 
+                        ioExc.addSuppressed(e);
                     if (logger.isDebugEnabled()) logger.debug("HbaseClient.dropAll  error" + e);
-                    throw e;
                 }
-                
                 cleanupCache(tblName);
             }
 
             admin.close();
-            //            return cleanup();
+            if (ioExc != null)
+                throw ioExc;
             return true;
     }
 
-    public ByteArrayList listAll(String pattern) 
+    public byte[][] listAll(String pattern) 
              throws MasterNotRunningException, IOException {
             if (logger.isDebugEnabled()) logger.debug("HBaseClient.listAll(" + pattern + ") called.");
             HBaseAdmin admin = new HBaseAdmin(config);
 
-            ByteArrayList hbaseTables = new ByteArrayList();
-
 	    HTableDescriptor[] htdl = 
                 (pattern.isEmpty() ? admin.listTables() : admin.listTables(pattern));
-
+            byte[][] hbaseTables = new byte[htdl.length][];
+            int i=0;
 	    for (HTableDescriptor htd : htdl) {
 		String tblName = htd.getNameAsString();
 
                 byte[] b = tblName.getBytes();
-                hbaseTables.add(b);
+                hbaseTables[i++] = b;
 	    }
  	    
             admin.close();
@@ -772,20 +750,21 @@ public class HBaseClient {
     }
 
 
-    public ByteArrayList getRegionStats(String tableName) 
+    public byte[][]  getRegionStats(String tableName) 
              throws MasterNotRunningException, IOException {
             if (logger.isDebugEnabled()) logger.debug("HBaseClient.getRegionStats(" + tableName + ") called.");
 
             HBaseAdmin admin = new HBaseAdmin(config);
             HTable htbl = new HTable(config, tableName);
-            ByteArrayList regionInfo = new ByteArrayList();
             HRegionInfo hregInfo = null;
-
+            byte[][] regionInfo = null;
             try {
                 TrafRegionStats rsc = new TrafRegionStats(htbl, admin);
                 
                 NavigableMap<HRegionInfo, ServerName> locations
                     = htbl.getRegionLocations();
+                regionInfo = new byte[locations.size()][]; 
+                int i = 0; 
  
                 for (Map.Entry<HRegionInfo, ServerName> entry: 
                          locations.entrySet()) {
@@ -814,7 +793,7 @@ public class HBaseClient {
                     oneRegion += String.valueOf(readRequestsCount) + "|";
                     oneRegion += String.valueOf(writeRequestsCount) + "|";
                     
-                    regionInfo.add(oneRegion.getBytes());
+                    regionInfo[i++] = oneRegion.getBytes();
 
                 }
 
@@ -1505,17 +1484,8 @@ public class HBaseClient {
   {
     if (logger.isDebugEnabled()) logger.debug("HBaseClient.getHBulkLoadClient() called.");
     HBulkLoadClient hblc = null;
-    try 
-    {
-       hblc = new HBulkLoadClient( config);
-    
-    if (hblc == null)
-      throw new IOException ("hbkc is null");
-    }
-    catch (IOException e)
-    {
-      return null;
-    }
+
+    hblc = new HBulkLoadClient( config);
     
     return hblc;
     
@@ -1581,21 +1551,14 @@ public class HBaseClient {
     admin = null;
     return latestsnpName;
   }
-  public boolean cleanSnpScanTmpLocation(String pathStr) throws Exception
+  public boolean cleanSnpScanTmpLocation(String pathStr) throws IOException
   {
     if (logger.isDebugEnabled()) logger.debug("HbaseClient.cleanSnpScanTmpLocation() - start - Path: " + pathStr);
-    try 
-    {
+
       Path delPath = new Path(pathStr );
       delPath = delPath.makeQualified(delPath.toUri(), null);
       FileSystem fs = FileSystem.get(delPath.toUri(),config);
       fs.delete(delPath, true);
-    }
-    catch (IOException e)
-    {
-      if (logger.isDebugEnabled()) logger.debug("HbaseClient.cleanSnpScanTmpLocation() --exception:" + e);
-      throw e;
-    }
     
     return true;
   }
@@ -1826,7 +1789,7 @@ public class HBaseClient {
     return true;
   }
 
-  public long incrCounter(String tabName, String rowId, String famName, String qualName, long incrVal) throws Exception
+  public long incrCounter(String tabName, String rowId, String famName, String qualName, long incrVal) throws IOException
   {
     if (logger.isDebugEnabled()) logger.debug("HBaseClient.incrCounter() - start");
 
@@ -1835,9 +1798,27 @@ public class HBaseClient {
     myHTable.close();
     return count;
   }
+ 
+  public byte[][] getStartKeys(String tblName, boolean useTRex) throws IOException 
+  {
+    byte[][] startKeys;
+    HTableClient htc = getHTableClient(0, tblName, useTRex, false);
+    startKeys = htc.getStartKeys();
+    releaseHTableClient(htc);
+    return startKeys;
+  }
+
+  public byte[][] getEndKeys(String tblName, boolean useTRex) throws IOException 
+  {
+    byte[][] endKeys;
+    HTableClient htc = getHTableClient(0, tblName, useTRex, false);
+    endKeys = htc.getEndKeys();
+    releaseHTableClient(htc);
+    return endKeys;
+  }
 
   //add directive path to a hdfs cache pool, a table may composed of multiple directives.
-  public void addDirectiveToHDFSCache(DistributedFileSystem dfs, String directivePath, String poolName) throws Exception
+  public void addDirectiveToHDFSCache(DistributedFileSystem dfs, String directivePath, String poolName) throws IOException
   {
      CacheDirectiveInfo directive = new CacheDirectiveInfo.Builder().
                                         setPath(new Path(directivePath)).
@@ -1849,7 +1830,7 @@ public class HBaseClient {
   }
   
   //remove a directive from a hdfs cache pool, return number of directives removed.
-  public int removeDirectiveFromHDFSCache(DistributedFileSystem dfs, String directivePath, String poolName) throws Exception
+  public int removeDirectiveFromHDFSCache(DistributedFileSystem dfs, String directivePath, String poolName) throws IOException
   {
      int directiveCounter = 0;
      CacheDirectiveInfo directive = new CacheDirectiveInfo.Builder().
@@ -1879,7 +1860,7 @@ public class HBaseClient {
   //outPathsInPool should be allocated by caller.
   boolean getPathsFromPool(DistributedFileSystem dfs, String poolName, 
                                                                   Set<String> outPathsInPool //out,all paths in a pool 
-                                                                  ) throws Exception
+                                                                  ) throws IOException
   {
        RemoteIterator<CachePoolEntry> poolIter = dfs.listCachePools();
        boolean isPoolExist = false;
@@ -1910,7 +1891,7 @@ public class HBaseClient {
   //find all directives belonging to a table and add them to hdfs cache pool.
   //same directives are not added twice.
   //return -1 if pool doesn't exist
-  public int addTablesToHDFSCache(Object[] qualifiedTableNames, String poolName) throws Exception
+  public int addTablesToHDFSCache(Object[] qualifiedTableNames, String poolName) throws IOException
   {
       Set<String> cachedDirectives = new TreeSet<String>();
       FileSystem fs = FileSystem.get(config);
@@ -1941,7 +1922,7 @@ public class HBaseClient {
   }
   //remove all directives belonging to a table in hdfs cache pool
   //return -1 if pool doesn't exist
-  public int removeTablesFromHDFSCache(Object[] qualifiedTableNames, String poolName) throws Exception
+  public int removeTablesFromHDFSCache(Object[] qualifiedTableNames, String poolName) throws IOException
   {
       Set<String> cachedDirectives = new TreeSet<String>();
       Set<String> poolNames = new TreeSet<String>();
@@ -1957,8 +1938,8 @@ public class HBaseClient {
       }
       else if(getPathsFromPool((DistributedFileSystem)fs, poolName, cachedDirectives)) {
           poolNames.add(poolName);
-     }
-     else
+      }
+      else
          return -1;
 
       if(poolNames.size()==0)
@@ -1986,13 +1967,14 @@ public class HBaseClient {
       return 0;
   }
   
-  public ByteArrayList showTablesHDFSCache(Object[] qualifiedTableNames) throws Exception
+  public byte[][] showTablesHDFSCache(Object[] qualifiedTableNames) throws IOException
   {
     FileSystem fs = FileSystem.get(config);
-    ByteArrayList Rows = new ByteArrayList();
+    byte[][] rows = null;
     int COLNUM = 9;
     int [] colWidth = new int[COLNUM] ;
     for(int i = 0; i < COLNUM; i++) colWidth[i] = 0;
+    int j = 0;
 	
     for (int i = 0 ; i < qualifiedTableNames.length; i++) {
     	String hbaseTableName = (String)qualifiedTableNames[i];
@@ -2000,7 +1982,9 @@ public class HBaseClient {
     	Path tableDir = FSUtils.getTableDir(FSUtils.getRootDir(config), table.getName());
     	
     	NavigableMap<HRegionInfo, ServerName> locations = table.getRegionLocations();
-    	
+ 
+        rows = new byte[locations.size()+1][]; 
+           	
     	for (Map.Entry<HRegionInfo, ServerName> entry: locations.entrySet()) {
     		FileStatus[] fds = FSUtils.listStatus(fs, new Path(tableDir, (entry.getKey()).getEncodedName()), 
     									new FSUtils.FamilyDirFilter(fs));
@@ -2034,7 +2018,7 @@ public class HBaseClient {
     				oneRow += String.valueOf(stats.getBytesCached()) + "|";
     				oneRow += String.valueOf(stats.getFilesNeeded()) + "|";
     				oneRow += String.valueOf(stats.getFilesCached());
-    				Rows.add(oneRow.getBytes());	
+    				rows[j++] = oneRow.getBytes();	
 			        colWidth[0]=cdInfo.getId().toString().length() > colWidth[0]?cdInfo.getId().toString().length():colWidth[0];
 				colWidth[1]=cdInfo.getPool().length() > colWidth[1]?cdInfo.getPool().length():colWidth[1];
 			        colWidth[2]=cdInfo.getReplication().toString().length() > colWidth[2]?cdInfo.getReplication().toString().length():colWidth[2];
@@ -2053,9 +2037,9 @@ public class HBaseClient {
     for(int i = 0; i < COLNUM; i++) { 
         widthInfo += String.valueOf(colWidth[i]) + "|"; 
     }
-    Rows.add(widthInfo.getBytes());
+    rows[j] = widthInfo.getBytes();
 
-    return Rows;
+    return rows;
   }
 }
     

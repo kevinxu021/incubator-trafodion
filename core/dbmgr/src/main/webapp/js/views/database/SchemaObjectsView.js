@@ -58,6 +58,7 @@ define([
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayObjectList);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
 			common.on(common.LIBRARY_CREATED_EVENT, this.libraryCreatedEvent);
+			common.on(common.LIBRARY_ALTERED_EVENT, this.libraryAlteredEvent);
 			common.on(common.LIBRARY_DROPPED_EVENT, this.libraryDroppedEvent);
 
 			_this.processRequest();
@@ -109,17 +110,21 @@ define([
 			$(ERROR_CONTAINER).hide();
 		},
 		libraryCreatedEvent: function(){
-			if(!isPaused && routeArgs.type == 'libraries'){
-				_this.doRefresh();
-			}else{
-				_this.refreshLibraries = true;
-			}
+			_this.reloadLibraries();
+		},
+		libraryAlteredEvent: function() {
+			_this.reloadLibraries();			
 		},
 		libraryDroppedEvent: function(){
-			if(!isPaused && routeArgs.type == 'libraries'){
-				_this.doRefresh();
-			}else{
-				_this.refreshLibraries = true;
+			_this.reloadLibraries();
+		},
+		reloadLibraries: function(){
+			if(routeArgs.type == 'libraries'){
+				if(!isPaused){
+					_this.doRefresh();
+				}else{
+					_this.refreshLibraries = true;
+				}
 			}
 		},
 		createLibrary: function(){

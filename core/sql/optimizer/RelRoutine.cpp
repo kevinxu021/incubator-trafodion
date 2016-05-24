@@ -68,6 +68,7 @@
 #include "ElemDDLColDefArray.h"
 #include "CmpSeabaseDDL.h"
 #include "UdfDllInteraction.h"
+#include "ComUser.h"
 
 
 // -----------------------------------------------------------------------
@@ -1140,6 +1141,21 @@ NARoutine * PredefinedTableMappingFunction::getRoutineMetadata(
   result->setFile(libraryFileName);
   result->setExternalPath(libraryPath);
 
+  if ( CmpCommon::context()->isAuthorizationEnabled() )
+  { 
+    if (ComUser::isRootUserID() || ComUser::getCurrentUser() == ADMIN_USER_ID)
+    {
+      PrivMgrUserPrivs *privInfo = new(bindWA->wHeap()) PrivMgrUserPrivs;
+      privInfo->setOwnerDefaultPrivs();
+      result->setPrivInfo(privInfo);
+    }
+    else
+      // predefined table mapping functions are not defined in the metadata
+      // therefore, there is no way to attach privileges.
+      // TBD - need to fix this to allow users other than DB__ROOT and
+      // DB__ADMIN to run these functions
+      result->setPrivInfo(NULL);
+  } 
   return result;
 }
 

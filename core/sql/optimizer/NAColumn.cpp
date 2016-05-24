@@ -862,6 +862,19 @@ Int32 NAColumnArray::getTotalStorageSize() const
   return total;
 }
 
+Int32 NAColumnArray::getTotalStorageSizeForNonChars() const
+{
+  Int32 total = 0;
+  for (CollIndex i=0;i<entries();i++)
+    {
+       const NAType * type = at(i)->getType();
+       if (type->getTypeQualifier() != NA_CHARACTER_TYPE)
+         total += type->getNominalSize();
+    }
+
+  return total;
+}
+
 
 Int32 NAColumnArray::getColumnPosition(NAColumn& nc) const
 {

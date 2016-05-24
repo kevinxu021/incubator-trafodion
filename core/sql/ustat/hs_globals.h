@@ -1157,6 +1157,7 @@ struct HSColGroupStruct : public NABasicObject
                                                    /* are used by its neighbors. Used to compute group weight */
 
     NABoolean allKeysInsertedIntoCBF;
+    Int32            backwardWarningCount;          // for UERR_UNEXPECTED_BACKWARDS_DATA warnings
 
     #ifdef _TEST_ALLOC_FAILURE
     // Stuff used to test memory allocation failures.
@@ -1338,6 +1339,10 @@ class HSGlobalsClass : public NABasicObject
 public:
     // parser errors
     enum { ERROR_NONE = 0, ERROR_SYNTAX, ERROR_SEMANTICS};
+
+    // Set CQDs controlling min/max HBase cache size to minimize risk of
+    // scanner timeout.
+    static NABoolean setHBaseCacheSize(double sampleRatio);
 
     // Static fns for determining minimum table sizes for sampling, and for
     // using lowest sampling rate, under default sampling protocol.

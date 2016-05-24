@@ -30,7 +30,6 @@
 <link type="text/css" href="css/dbmgr.css" rel="stylesheet" />
 
 </head>
-
 <body>
 	<nav class="navbar navbar-default navbar-static-top" role="navigation"
 		style="margin-bottom: 0">
@@ -48,62 +47,64 @@
 		</div>
 	</nav>
 	<!--<div id="content-container">-->
-	<div id="wrapper">
-		<div class="row">
-			<div class="col-md-4 col-md-offset-4">
-				<div class="login-panel panel panel-default"
-					style="margin-bottom: 150px; margin-left: auto; margin-right: auto; margin-top: 100px; width: 400px;">
-					<div class="panel-heading">
-						<header id="title-header">
-							<h1 style="text-align: center; font-size: 24px;">Login</h1>
-						</header>
-					</div>
-					<div class="panel-body">
-						<form id="login-form" role="form" onsubmit="return false">
-							<fieldset>
-								<div class="form-group">
-									<label for="username"><i
-										class="glyphicon glyphicon-user"></i> Username</label> 
-									<input
-										name="username" id="username" class="form-control"
-										style="height: 40px; font-size: 18px"
-										autofocus>
-								</div>
-								<div class="form-group">
-									<label for="password"><i
-										class="glyphicon glyphicon-lock"></i> Password</label> 
-									<input
-										name="password" id="password" class="form-control"
-										type="password" value=""
-										style="height: 40px; font-size: 18px">
-								</div>
-								<!-- Change this to a button or input when using this as a form -->
-								<button id="loginBtn" class="btn btn-success btn-block"
-									style="font-weight: bold">Login</button>
-							</fieldset>
-							<label id="login-error-text" style="color: red; font-weight: 500; display: none"></label>
-							<div id="loadingImg">Authenticating the user... <img src="img/ajax-loader.gif" style="padding-top: 5px;" /></div>
-						</form>
-					</div>
-				</div>
+	<div id="content-wrapper">
+            <div class="row">
+                <div class="col-md-4 col-md-offset-4">
+                    <div class="login-panel panel panel-default"
+                        style="margin-bottom: 150px; margin-left: auto; margin-right: auto; margin-top: 30px; width: 400px;">
+                        <div class="panel-heading">
+                            <header id="title-header">
+                                <h1 style="text-align: center; font-size: 24px;">Login</h1>
+                            </header>
+                        </div>
+                        <div class="panel-body">
+                            <form id="login-form" role="form" onsubmit="return false">
+                                <fieldset>
+                                    <div class="form-group">
+                                        <label for="username"><i
+                                            class="glyphicon glyphicon-user"></i> Username</label> 
+                                        <input
+                                            name="username" id="username" class="form-control"
+                                            style="height: 40px; font-size: 18px"
+                                            autofocus>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="password"><i
+                                            class="glyphicon glyphicon-lock"></i> Password</label> 
+                                        <input
+                                            name="password" id="password" class="form-control"
+                                            type="password" value=""
+                                            style="height: 40px; font-size: 18px">
+                                    </div>
+                                    <!-- Change this to a button or input when using this as a form -->
+                                    <button id="loginBtn" class="btn btn-success btn-block"
+                                        style="font-weight: bold">Login</button>
+                                </fieldset>
+                                <label id="login-error-text" style="color: red; font-weight: 500; display: none"></label>
+                                <div id="loadingImg">Authenticating the user... <img src="img/ajax-loader.gif" style="padding-top: 5px;" /></div>
+                            </form>
+                        </div>
+
+                </div>
+            </div>        
+        </div>
+		<footer class="footer"
+			style="margin-top:40px;position:relative;width:100%; height: 60px;">
+			<div class="container">
+				<a title="EsgynDB Manager" href="/" class="dbmgr-login-footer">EsgynDB
+					Manager</a>
+				<p class="text-muted" style="text-align: center; margin: 0 auto -1em;">
+					&copy Copyright 2016 Esgyn Corporation <br> &copy Copyright 2016
+					上海易鲸捷信息技术有限公司
+				</p>
 			</div>
-		</div>
+		</footer>        
 	</div>
 	<!--</div>-->
 
 	<script data-main="js/main" src="bower_components/requirejs/require.js"></script>
 
 </body>
-<footer class="footer"
-	style="margin-top:40px;position:relative;width:100%; height: 60px;">
-	<div class="container">
-		<a title="EsgynDB Manager" href="/" class="dbmgr-login-footer">EsgynDB
-			Manager</a>
-		<p class="text-muted" style="text-align: center; margin: 0 auto -1em;">
-			&copy Copyright 2016 Esgyn Corporation <br> &copy Copyright 2016
-			上海易鲸捷信息技术有限公司
-		</p>
-	</div>
-</footer>
+
 
 </html>

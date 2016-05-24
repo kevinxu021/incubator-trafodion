@@ -1303,14 +1303,14 @@ Lng32 ExExeUtilGetMetadataInfoTcb::setupPrivilegesTypeForUserQuery()
 
     // Process table of schema privileges for current catalog
     sprintf(queryBuf_, setupSchemaPrivsForUserQuery,
-            cat_name, extCatName.data(), extCatName.data(), user_name, *cat_uid);
+            cat_name, extCatName.data(), extCatName.data(), user_name, (long long int) *cat_uid);
 
     cliRC = cliInterface.executeImmediate(queryBuf_);
     if (cliRC < 0) return cliRC;
 
     // Process table of table privileges for current catalog
     sprintf(queryBuf_, setupTablePrivsForUserQuery,
-            cat_name, extCatName.data(), extCatName.data(), user_name, *cat_uid);
+            cat_name, extCatName.data(), extCatName.data(), user_name, (long long int) *cat_uid);
 
     cliRC = cliInterface.executeImmediate(queryBuf_);
     if (cliRC < 0) return cliRC;
@@ -1459,7 +1459,7 @@ Lng32 ExExeUtilGetMetadataInfoTcb::setupObjectTypeForUserQuery()
     Int64 * cat_uid = (Int64 *)ptr;
 
     sprintf(queryBuf_, setupObjsForUserQuery,
-            cat_name, extCatName.data(),*cat_uid, user_name, obj_type, predStr);
+            cat_name, extCatName.data(),(long long int) *cat_uid, user_name, obj_type, predStr);
 
     cliRC = cliInterface.executeImmediate(queryBuf_);
     if (cliRC < 0) return cliRC;
@@ -2999,7 +2999,7 @@ ExExeUtilGetHbaseObjectsTcb::ExExeUtilGetHbaseObjectsTcb(
   outBuf_ = new(getGlobals()->getDefaultHeap())
     char[ComMAX_3_PART_EXTERNAL_UTF8_NAME_LEN_IN_BYTES+6+1];
 
-  bal_ = NULL;
+  hbaseTables_ = NULL;
 }
 
 ExExeUtilGetHbaseObjectsTcb::~ExExeUtilGetHbaseObjectsTcb()
@@ -3059,8 +3059,8 @@ short ExExeUtilGetHbaseObjectsTcb::work()
 
         case SETUP_HBASE_QUERY_:
           {
-            bal_ = ehi_->listAll("");
-            if (! bal_)
+            hbaseTables_ = ehi_->listAll("");
+            if (! hbaseTables_)
               {
                 step_ = HANDLE_ERROR_;
                 break;
@@ -3074,19 +3074,19 @@ short ExExeUtilGetHbaseObjectsTcb::work()
 
         case PROCESS_NEXT_ROW_:
           {
-            if (currIndex_ == bal_->getSize())
+            if (currIndex_ == hbaseTables_->entries())
               {
                 step_ = DONE_;
                 break;
               }
 
-            Int32 len = 0;
-            BAL_RetCode brc = bal_->getEntry(currIndex_, hbaseNameBuf_, 
-                                             ComMAX_3_PART_EXTERNAL_UTF8_NAME_LEN_IN_BYTES+6, 
-                                             len);
-            hbaseName_ = hbaseNameBuf_; 
-            hbaseName_[len] = 0;
-            
+            HbaseStr *hbaseName = &hbaseTables_->at(currIndex_);
+            if (hbaseName->len > ComMAX_3_PART_EXTERNAL_UTF8_NAME_LEN_IN_BYTES+6)
+                hbaseName->len = ComMAX_3_PART_EXTERNAL_UTF8_NAME_LEN_IN_BYTES+6; 
+            strncpy(hbaseNameBuf_, hbaseName->val, hbaseName->len);
+            hbaseNameBuf_[hbaseName->len] = 0;
+            hbaseName_ = hbaseNameBuf_;
+
             Lng32 numParts = 0;
             char *parts[4];
             LateNameInfo::extractParts(hbaseName_, outBuf_, numParts, parts, FALSE);
@@ -3189,6 +3189,10 @@ short ExExeUtilGetHbaseObjectsTcb::work()
 
 	case DONE_:
 	  {
+            if (hbaseTables_ != NULL) {
+               deleteNAArray(getHeap(), hbaseTables_);
+               hbaseTables_ = NULL;
+            }
 	    retcode = handleDone();
 	    if (retcode == 1)
 	      return WORK_OK;
@@ -5658,11 +5662,13 @@ short ExExeUtilRegionStatsTcb::populateStats
   
   char regionInfoBuf[5000];
   Int32 len = 0;
-  char * regionInfo = regionInfoBuf;
-  BAL_RetCode brc = regionInfoList_->getEntry
-    (currIndex, regionInfoBuf, 5000, len);
-  regionInfo[len] = 0;
-  
+  char *regionInfo = regionInfoBuf;
+  char *val = regionInfoList_->at(currIndex).val;
+  len = regionInfoList_->at(currIndex).len; 
+  if (len >= sizeof(regionInfoBuf))
+     len = sizeof(regionInfoBuf)-1;
+  strncpy(regionInfoBuf, val, len);
+  regionInfoBuf[len] = '\0';
   stats_->numStores                = 0;
   stats_->numStoreFiles            = 0;
   stats_->storeFileUncompSize      = 0;
@@ -5776,7 +5782,7 @@ short ExExeUtilRegionStatsTcb::work()
 
 	case POPULATE_STATS_BUF_:
 	  {
-            if (currIndex_ == regionInfoList_->getSize())
+            if (currIndex_ == regionInfoList_->entries())
               {
                 step_ = DONE_;
                 break;
@@ -5819,6 +5825,10 @@ short ExExeUtilRegionStatsTcb::work()
 	
 	case DONE_:
 	  {
+            if (regionInfoList_ != NULL) {
+               deleteNAArray(getHeap(), regionInfoList_);
+               regionInfoList_ = NULL;
+            }
 	    retcode = handleDone();
 	    if (retcode == 1)
 	      return WORK_OK;
@@ -5911,7 +5921,7 @@ short ExExeUtilRegionStatsFormatTcb::computeTotals()
 
   str_pad(statsTotals_->regionName, sizeof(statsTotals_->regionName), ' ');
 
-  for (Int32 currIndex = 0; currIndex < regionInfoList_->getSize(); currIndex++)
+  for (Int32 currIndex = 0; currIndex < regionInfoList_->entries(); currIndex++)
     {
       if (populateStats(currIndex))
         return -1;
@@ -6070,7 +6080,7 @@ short ExExeUtilRegionStatsFormatTcb::work()
 	    if (moveRowToUpQueue(buf, strlen(buf), &rc))
 	      return rc;
 
-            str_sprintf(buf, "  NumRegions:              %d", regionInfoList_->getSize());
+            str_sprintf(buf, "  NumRegions:              %d", regionInfoList_->entries());
 	    if (moveRowToUpQueue(buf, strlen(buf), &rc))
 	      return rc;
 
@@ -6116,7 +6126,7 @@ short ExExeUtilRegionStatsFormatTcb::work()
           {
 
             if ((getDLStdb().summaryOnly()) ||
-                (regionInfoList_->getSize() == 0))
+                (regionInfoList_->entries() == 0))
               {
                 step_ = DONE_;
                 break;
@@ -6162,7 +6172,7 @@ short ExExeUtilRegionStatsFormatTcb::work()
 
 	case POPULATE_STATS_BUF_:
 	  {
-            if (currIndex_ == regionInfoList_->getSize())
+            if (currIndex_ == regionInfoList_->entries())
               {
                 step_ = DONE_;
                 break;
@@ -6265,6 +6275,10 @@ short ExExeUtilRegionStatsFormatTcb::work()
 	
 	case DONE_:
 	  {
+            if (regionInfoList_ != NULL) {
+               deleteNAArray(getHeap(), regionInfoList_);
+               regionInfoList_ = NULL;
+            }
 	    retcode = handleDone();
 	    if (retcode == 1)
 	      return WORK_OK;

@@ -37,10 +37,117 @@
 #include "CmpSeabaseDDLincludes.h"
 #include "RelExeUtil.h"
 #include "Globals.h"
+#include "Context.h"
 #include "SqlStats.h"
 #include "fs/feerrors.h"
 #include "dtm/tm.h"
 
+
+short CmpSeabaseDDL::lockSQL()
+{
+  CliGlobals *cliGlobals = GetCliGlobals();
+  if (cliGlobals->getStatsGlobals() == NULL)
+  {
+    *CmpCommon::diags() << DgSqlCode(-CAT_INTERNAL_EXCEPTION_ERROR);
+    return -1;
+  }
+  
+  ExSsmpManager *ssmpManager = cliGlobals->currContext()->getSsmpManager();
+  if (ssmpManager == NULL)
+  {
+    *CmpCommon::diags() << DgSqlCode(-CAT_INTERNAL_EXCEPTION_ERROR);
+    return -1;
+  }
+  
+  ComDiagsArea *tempDiagsArea = CmpCommon::diags();
+  tempDiagsArea->clear();
+  
+  IpcServer *ssmpServer = ssmpManager->getSsmpServer(
+                            cliGlobals->myNodeName(), 
+                            cliGlobals->myCpu(), tempDiagsArea);
+  if (ssmpServer == NULL)
+  {
+    *CmpCommon::diags() << DgSqlCode(-CAT_INTERNAL_EXCEPTION_ERROR);
+    return -1;
+  }
+  
+  SsmpClientMsgStream *ssmpMsgStream  = new (cliGlobals->getIpcHeap())
+   SsmpClientMsgStream((NAHeap *)cliGlobals->getIpcHeap(), 
+                       ssmpManager, tempDiagsArea);
+  
+  ssmpMsgStream->addRecipient(ssmpServer->getControlConnection());
+  
+  SnapshotLockRequest *slMsg = 
+  new (cliGlobals->getIpcHeap()) SnapshotLockRequest(
+                                 cliGlobals->getIpcHeap());
+  
+  *ssmpMsgStream << *slMsg;
+  
+  // Call send with no timeout.  
+  ssmpMsgStream->send(); 
+  
+  // I/O is now complete.  
+  slMsg->decrRefCount();
+  
+  cliGlobals->getEnvironment()->deleteCompletedMessages();
+  ssmpManager->cleanupDeletedSsmpServers();
+  return 0;
+
+}
+
+short CmpSeabaseDDL::unlockSQL()
+{
+  CliGlobals *cliGlobals = GetCliGlobals();
+  if (cliGlobals->getStatsGlobals() == NULL)
+  {
+    *CmpCommon::diags() << DgSqlCode(-CAT_INTERNAL_EXCEPTION_ERROR);
+    return -1;
+  }
+  
+  ExSsmpManager *ssmpManager = cliGlobals->currContext()->getSsmpManager();
+  if (ssmpManager == NULL)
+  {
+    *CmpCommon::diags() << DgSqlCode(-CAT_INTERNAL_EXCEPTION_ERROR);
+    return -1;
+  }
+  
+  ComDiagsArea *tempDiagsArea = CmpCommon::diags();
+  tempDiagsArea->clear();
+  
+  IpcServer *ssmpServer = ssmpManager->getSsmpServer(
+                            cliGlobals->myNodeName(), 
+                            cliGlobals->myCpu(), tempDiagsArea);
+  if (ssmpServer == NULL)
+  {
+    *CmpCommon::diags() << DgSqlCode(-CAT_INTERNAL_EXCEPTION_ERROR);
+    return -1;
+  }
+  
+  SsmpClientMsgStream *ssmpMsgStream  = new (cliGlobals->getIpcHeap())
+   SsmpClientMsgStream((NAHeap *)cliGlobals->getIpcHeap(), 
+                       ssmpManager, tempDiagsArea);
+  
+  ssmpMsgStream->addRecipient(ssmpServer->getControlConnection());
+  
+  SnapshotUnLockRequest *sulMsg = 
+  new (cliGlobals->getIpcHeap()) SnapshotUnLockRequest(
+                                 cliGlobals->getIpcHeap());
+  
+  *ssmpMsgStream << *sulMsg;
+  
+  // Call send with no timeout.  
+  ssmpMsgStream->send(); 
+  
+  // I/O is now complete.  
+  sulMsg->decrRefCount();
+  
+  cliGlobals->getEnvironment()->deleteCompletedMessages();
+  ssmpManager->cleanupDeletedSsmpServers();
+  return 0;
+
+}
+
+/*
 short CmpSeabaseDDL::lockSQL()
 {
 	StatsGlobals *statsGlobals = GetCliGlobals()->getStatsGlobals();
@@ -88,7 +195,7 @@ short CmpSeabaseDDL::unlockSQL()
 	
 	return 0;
 }
-
+*/
 NABoolean CmpSeabaseDDL::isSQLLocked()
 {
 	StatsGlobals *statsGlobals = GetCliGlobals()->getStatsGlobals();
@@ -144,8 +251,7 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
 	short rc;
 	Lng32 retcode;
 	
-	
-	if(isSQLLocked())
+  if(isSQLLocked())
 	{
 		*CmpCommon::diags() << DgSqlCode(-CAT_BACKUP_IN_PROGRESS);
         return -1;

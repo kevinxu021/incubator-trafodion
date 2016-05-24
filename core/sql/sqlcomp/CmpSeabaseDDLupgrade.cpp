@@ -572,6 +572,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
                     strcpy(expProdStr, "Enterprise ");
                   else
                     strcpy(expProdStr, "Apache ");
+
 		  str_sprintf(msgBuf, "  Software Version: %s%Ld.%Ld.%Ld",
                               expProdStr,
 			      expSWMajorVersion, expSWMinorVersion, expSWUpdVersion);

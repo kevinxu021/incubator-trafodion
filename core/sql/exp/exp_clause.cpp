@@ -346,11 +346,17 @@ ex_clause::ex_clause(clause_type type,
 	case ITM_SESSION_USER:
 	  setClassID(FUNC_ANSI_USER_ID);
 	  break;
-	case ITM_VARIANCE:
-	  setClassID(FUNC_VARIANCE_ID);
+	case ITM_STDDEV_SAMP:
+	  setClassID(FUNC_STDDEV_SAMP_ID);
 	  break;
-	case ITM_STDDEV:
-	  setClassID(FUNC_STDDEV_ID);
+	case ITM_STDDEV_POP:
+	  setClassID(FUNC_STDDEV_POP_ID);
+	  break;
+	case ITM_VARIANCE_SAMP:
+	  setClassID(FUNC_VARIANCE_SAMP_ID);
+	  break;
+	case ITM_VARIANCE_POP:
+	  setClassID(FUNC_VARIANCE_POP_ID);
 	  break;
 	case ITM_RAISE_ERROR:
 	  setClassID(FUNC_RAISE_ERROR_ID);
@@ -812,12 +818,18 @@ NA_EIDPROC char *ex_clause::findVTblPtr(short classID)
     case ex_clause::FUNC_ANSI_USER_ID:
       GetVTblPtr(vtblPtr, ex_function_ansi_user);
       break;
-    case ex_clause::FUNC_VARIANCE_ID:
+	case ex_clause::FUNC_VARIANCE_SAMP_ID:
       GetVTblPtr(vtblPtr, ExFunctionSVariance);
-      break;
-    case ex_clause::FUNC_STDDEV_ID:
+	  break;
+	case ex_clause::FUNC_VARIANCE_POP_ID:
+      GetVTblPtr(vtblPtr, ExFunctionSVariance);
+	  break;
+	case ex_clause::FUNC_STDDEV_SAMP_ID:
       GetVTblPtr(vtblPtr, ExFunctionSStddev);
-      break;
+	  break;
+	case ex_clause::FUNC_STDDEV_POP_ID:
+      GetVTblPtr(vtblPtr, ExFunctionSStddev);
+	  break;
     case ex_clause::FUNC_RAISE_ERROR_ID:
       GetVTblPtr(vtblPtr, ExpRaiseErrorFunction);
       break;
@@ -1128,8 +1140,10 @@ NA_EIDPROC const char * getOperTypeEnumAsString(Int16 /*OperatorTypeEnum*/ ote)
     case ITM_SUM: return "ITM_SUM";
     case ITM_COUNT: return "ITM_COUNT";
     case ITM_COUNT_NONULL: return "ITM_COUNT_NONULL";
-    case ITM_STDDEV: return "ITM_STDDEV";
-    case ITM_VARIANCE: return "ITM_VARIANCE";
+	case ITM_STDDEV_SAMP: return "ITM_STDDEV_SAMP";
+	case ITM_STDDEV_POP: return "ITM_STDDEV_POP";
+	case ITM_VARIANCE_SAMP: return "ITM_VARIANCE_SAMP";
+	case ITM_VARIANCE_POP: return "ITM_VARIANCE_POP";
     case ITM_BASECOL: return "ITM_BASECOL";
 
     case ITM_ONE_ROW: return "ITM_ONE_ROW";
@@ -1649,7 +1663,8 @@ ex_conv_clause::ex_conv_clause(OperatorTypeEnum oper_type,
 			       Space * space,
 			       short num_operands, NABoolean checkTruncErr,
                                NABoolean reverseDataErrorConversionFlag,
-                               NABoolean noStringTruncWarnings)
+                               NABoolean noStringTruncWarnings,
+                               NABoolean convertToNullWhenErrorFlag)
      : ex_clause (ex_clause::CONV_TYPE, oper_type, num_operands, attr, space),
        case_index(CONV_UNKNOWN),
        lastVOAoffset_(0),
@@ -1671,6 +1686,9 @@ ex_conv_clause::ex_conv_clause(OperatorTypeEnum oper_type,
 
   if (noStringTruncWarnings)
     setNoTruncationWarningsFlag();
+  
+  if (convertToNullWhenErrorFlag)
+    flags_ |= CONV_TO_NULL_WHEN_ERROR;
 
   set_case_index(); 
 }
@@ -2041,6 +2059,18 @@ void ExFunctionHbaseVersion::displayContents(Space * space, const char * /*displ
   space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
 
   str_sprintf(buf, "    colIndex_ = %d", colIndex_);
+  space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+
+  ex_clause::displayContents(space, (const char *)NULL, clauseNum, constsArea);
+}
+
+void ex_function_dateformat::displayContents(Space * space, const char * /*displayStr*/, Int32 clauseNum, char * constsArea)
+{
+  char buf[100];
+  str_sprintf(buf, "  Clause #%d: ex_function_dateformat", clauseNum);
+  space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+
+  str_sprintf(buf, "    dateformat_ = %d", dateformat_);
   space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
 
   ex_clause::displayContents(space, (const char *)NULL, clauseNum, constsArea);

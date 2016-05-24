@@ -40,6 +40,7 @@
 #include "ExpCompressionWA.h"
 
 #define HIVE_MODE_DOSFORMAT    1
+#define HIVE_MODE_CONV_ERROR_TO_NULL 2
 
 // -----------------------------------------------------------------------
 // Classes defined in this file
@@ -555,7 +556,7 @@ protected:
   ComTdbOrcFastAggr::OrcAggrType aggrType_;
   Lng32 colNum_;
 
-  ByteArrayList * bal_;
+  NAArray<HbaseStr> *colStats_;
 };
 
 #define RANGE_DELIMITER '\002'

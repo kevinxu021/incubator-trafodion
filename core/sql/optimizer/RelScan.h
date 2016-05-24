@@ -51,6 +51,7 @@
 #include "HbaseSearchSpec.h"
 #include "OptHints.h"
 #include "orcPushdownPredInfo.h"
+#include "ExpHbaseDefs.h"
 #include <vector>
 
 // -----------------------------------------------------------------------
@@ -87,7 +88,6 @@ class QRDescGenerator;
 class RangeSpecRef;
 
 class MVMatch;
-class ByteArrayList;
 class ComCompressionInfo;
 
 
@@ -851,12 +851,12 @@ public:
   virtual short codeGen(Generator*);
 
   // process min max keys
-  virtual void processMinMaxKeys(Generator* generator, 
+  virtual NABoolean processMinMaxKeys(Generator* generator, 
                                  ValueIdSet& pulledNewInputs,
                                  ValueIdSet& availableValues,
-                                 NABoolean updateSearchKeyOnly,
-                                 NABoolean filterOutMinMax 
+                                 NABoolean updateSearchKeyOnly
                                 );
+
   void processMinMaxKeysForPartitionCols(
        Generator* generator, 
        ValueIdSet& pulledNewInputs,
@@ -1048,11 +1048,8 @@ public:
 
   OrcPushdownPredInfoList &orcListOfPPI() { return orcListOfPPI_;}
 
-  void convertKeyPredsToRangePreds(const ValueIdSet& beginKeyAsEQ,
-                                   const ValueIdSet& endKeyAsEQ,  
-                                   CollHeap* heap,
-                                   ValueIdSet& beginKeyAsRange, 
-                                   ValueIdSet& endKeyAsRange);
+  void convertBeginKeyKeyToPredicatesForORC(ValueIdSet& preds, CollHeap* heap);
+  void convertKeyToPredicate(ValueIdList& key, OperatorTypeEnum op, ValueIdSet& preds, CollHeap* heap);
 
 private:
 
@@ -1311,7 +1308,7 @@ public:
   static desc_struct *createVirtualTableDesc(const char * name,
 					     NABoolean isRW = FALSE,
 					     NABoolean isCW = FALSE, 
-                                             ByteArrayList* hbaseKeys = NULL);
+                                             NAArray<HbaseStr> * hbaseKeys = NULL);
 
   static desc_struct *createVirtualTableDesc(const char * name,
 					     NAList<char*> &colNameList,
@@ -1391,7 +1388,7 @@ public:
 				       ItemExpr *&castValue,
                                        NABoolean isOrc = FALSE,
                                        NABoolean srcIsInt32Varchar = FALSE);
-  
+
   static int createAsciiColAndCastExpr2(Generator * generator,
 				       ItemExpr * colNode,
 				       const NAType &givenType,

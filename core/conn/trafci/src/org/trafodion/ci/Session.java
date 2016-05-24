@@ -1843,13 +1843,14 @@ static {
   	         if (rs!=null && rs.next()) {
 	             {
 	                ndcsVersion = rs.getString(2);
-                        if (ndcsVersion != null){
-                            ndcsVersion = ndcsVersion.substring(ndcsVersion.indexOf("Version"));
-                            sutVersion = ndcsVersion.substring(ndcsVersion.indexOf("Release"),ndcsVersion.indexOf("("));
-                            String platformVersion = sutVersion.substring(8);
-                        }
-                        databaseVersion=rs.getString(5);
-                        databaseEdition=rs.getString(6);
+	                if (ndcsVersion != null){
+	                     ndcsVersion = ndcsVersion.substring(ndcsVersion.indexOf("Version"));
+	                     sutVersion = ndcsVersion.substring(ndcsVersion.indexOf("Release"),ndcsVersion.indexOf("("));
+	                     String platformVersion = sutVersion.substring(8);
+	                }
+                        databaseVersion = rs.getString(5);
+                        databaseEdition = rs.getString(6);
+
 	             }
 	             if (this.debugOn) {
 	                System.out.println("ndcs version:: " + ndcsVersion);
@@ -1895,11 +1896,13 @@ static {
 	public void setServerType(String serverType) {
 		this.serverType = serverType;
 	}
+
 	public String getDatabaseVersion() {
 		return databaseVersion;
 	}
+
 	public String getDatabaseEdition() {
-		return databaseEdition;
+ 		return databaseEdition;
 	}
 }
 

@@ -54,7 +54,6 @@ class ExSqlComp;
 class ExProcessStats;
 
 class ExpHbaseInterface;
-class ByteArrayList;
 
 //class FILE_STREAM;
 #include "ComAnsiNamePart.h"
@@ -64,7 +63,7 @@ class ByteArrayList;
 #include "ExExeUtilCli.h"
 #include "ExpLOBstats.h"
 #include "hiveHook.h"
-
+#include "ExpHbaseDefs.h"
 
 #include "SequenceFileReader.h"
 
@@ -1008,7 +1007,8 @@ class ExExeUtilCleanupVolatileTablesTcb : public ExExeUtilVolatileTablesTcb
   static short dropVolatileSchema(ContextCli * currContext,
                                   char * schemaName,
                                   CollHeap * heap,
-                                  ex_globals *globals = NULL);
+                                  ex_globals *globals = NULL,
+                                  ComDiagsArea * diagsArea = NULL);
   static short dropVolatileTables(ContextCli * currContext, CollHeap * heap);
 
  private:
@@ -1031,6 +1031,7 @@ class ExExeUtilCleanupVolatileTablesTcb : public ExExeUtilVolatileTablesTcb
   Queue * schemaNamesList_;
 
   NABoolean someSchemasCouldNotBeDropped_;
+  char errorSchemas_[1010];
 
   char * schemaQuery_;
 };
@@ -2550,7 +2551,7 @@ public:
 
  private:
   ExpHbaseInterface * ehi_;
-  ByteArrayList * bal_;
+  NAArray<HbaseStr> *hbaseTables_;
   Int32 currIndex_;
 
   NAString extTableName_;
@@ -3807,7 +3808,7 @@ protected:
   ComTdbRegionStatsVirtTableColumnStruct* stats_;  
 
   ExpHbaseInterface * ehi_;
-  ByteArrayList * regionInfoList_;
+  NAArray<HbaseStr> *regionInfoList_;
 
   Int32 currIndex_;
 

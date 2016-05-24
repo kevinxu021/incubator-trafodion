@@ -120,6 +120,7 @@ Int64 atoInt64(const char* src)
 
 void convertInt64ToAscii(const Int64 &src, char* tgt)
 {
+#if 0
   Int64 temp = src;  // (src >= 0) ? src : - src;
   char buffer[21];
   char *s = &buffer[21];
@@ -134,6 +135,8 @@ void convertInt64ToAscii(const Int64 &src, char* tgt)
   if (src < 0)
     *--s = '-';
   strcpy(tgt, s);
+#endif
+  sprintf(tgt, "%ld", src);
 }
 
 void convertInt64ToUInt32Array(const Int64 &src, UInt32 *tgt)

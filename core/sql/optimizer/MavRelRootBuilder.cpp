@@ -119,8 +119,10 @@ void MavRelRootBuilder::init()
 	  break;
 
 	case ITM_AVG:
-	case ITM_STDDEV:
-	case ITM_VARIANCE:
+	case ITM_STDDEV_SAMP:
+	case ITM_STDDEV_POP:
+	case ITM_VARIANCE_SAMP:
+	case ITM_VARIANCE_POP:
 	  // Use the SYS_CALC COUNT and SUM columns, done in phase3.
 	  otherCols_.insert(currentCol);
 	  break;
@@ -307,8 +309,10 @@ void MavRelRootBuilder::fixDeltaColumns(RelExpr   *mvSelectTree,
 
 	case ITM_AVG:
 	case ITM_DIVIDE:
-	case ITM_VARIANCE:
-	case ITM_STDDEV:
+	case ITM_VARIANCE_SAMP:
+	case ITM_VARIANCE_POP:
+	case ITM_STDDEV_SAMP:
+	case ITM_STDDEV_POP:
 	  // Remove these expressions from the select list.
 	  selectListExpr = NULL;
 	  break;
@@ -441,8 +445,10 @@ RelRoot *MavRelRootBuilder::buildRootForDelta(RelExpr *topNode)
 	  BiArith(ITM_DIVIDE, sumDepCol, countDepCol);
 	break;
 
-      case ITM_STDDEV:
-      case ITM_VARIANCE:
+	  case ITM_STDDEV_SAMP:
+	  case ITM_STDDEV_POP:
+	  case ITM_VARIANCE_SAMP:
+	  case ITM_VARIANCE_POP:
 	sum2DepCol = buildDepColExpr(emptyCorrName, currentMavColumn->getDepCol3());
 
 	newColExpr = new(heap_)

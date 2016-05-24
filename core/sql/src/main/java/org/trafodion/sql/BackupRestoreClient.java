@@ -28,6 +28,7 @@ import org.apache.hadoop.hbase.regionserver.transactional.IdTmId;
 import org.apache.hadoop.hbase.client.transactional.SnapshotMeta;
 import org.apache.hadoop.hbase.client.transactional.SnapshotMetaRecord;
 import org.apache.hadoop.hbase.client.transactional.SnapshotMetaStartRecord;
+import org.apache.hadoop.hbase.client.transactional.RMInterface;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
@@ -35,6 +36,7 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.snapshot.SnapshotCreationException;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -117,30 +119,43 @@ public class BackupRestoreClient
     }
 
     public boolean restoreSnapshots(String backuptag, boolean ts) throws Exception {
-        if (logger.isDebugEnabled())
-            logger.debug("BackupRestoreClient.restoreSnapshots Enter");
-
-        HBaseAdmin admin = new HBaseAdmin(config);
-        ArrayList<SnapshotMetaRecord> snapshotList;
-
-        if(!ts){
-          snapshotList = getBackedupSnapshotList(backuptag);
-        }else {
-          snapshotList = getBackedupSnapshotList(Long.valueOf(backuptag));
+        
+        if(ts)
+        {
+          restoreToTimeStamp(backuptag);
         }
-        // For each table, in the list restore snapshot
-        for (SnapshotMetaRecord s : snapshotList) {
-          String hbaseTableName = s.getTableName();
-          String snapshotName =  s.getSnapshotPath();
+        else
+        {
+          HBaseAdmin admin = new HBaseAdmin(config);
+          ArrayList<SnapshotMetaRecord> snapshotList;
+
+          snapshotList = getBackedupSnapshotList(backuptag);
+        
+          // For each table, in the list restore snapshot
+          for (SnapshotMetaRecord s : snapshotList) {
+            String hbaseTableName = s.getTableName();
+            String snapshotName =  s.getSnapshotPath();
   
-          if (logger.isDebugEnabled())
+            if (logger.isDebugEnabled())
               logger.debug("BackupRestoreClient Restore Snapshot Name :"
                       + snapshotName);
   
-          admin.restoreSnapshot(snapshotName);
+            admin.restoreSnapshot(snapshotName);
+          }
+          admin.close();
         }
-        admin.close();
         return true;
+    }
+    
+    public void restoreToTimeStamp(String timestamp) throws Exception {
+      //System.out.println("restoreToTimeStamp :" + timestamp );
+      int timeout = 1000;
+      boolean cb = false;
+      IdTm cli = new IdTm(cb);
+      IdTmId idtmid = new IdTmId();
+      cli.strToId(timeout, idtmid, timestamp);
+      //System.out.println("idtmid :" + idtmid.val + " Timestamp : " + timestamp );
+      RMInterface.replayEngineStart(idtmid.val);
     }
 
     static public long getIdTmVal() throws Exception {
@@ -199,11 +214,16 @@ public class BackupRestoreClient
         snapshotStartList = sm.listSnapshotStartRecords();
         byte[][] backupList = new byte[snapshotStartList.size()][];
         int i =0;
+        byte [] asciiTime = new byte[45];
+        int timeout = 1000;
+        boolean cb = false;
+        IdTm cli = new IdTm(cb);
         for (SnapshotMetaStartRecord s : snapshotStartList) {
           String userTag = s.getUserTag();
-          String completionTime = String.valueOf(s.getCompletionTime());
-          String concatStringFullRow = userTag + " " + completionTime;
-          //System.out.println(concatStringFullRow);
+          long key = s.getCompletionTime();
+          cli.idToStr(timeout, key, asciiTime);
+          String timeStamp = Bytes.toString(asciiTime);
+          String concatStringFullRow = userTag + "    " + timeStamp;
           byte [] b = concatStringFullRow.getBytes();
           backupList[i++] = b;
         }

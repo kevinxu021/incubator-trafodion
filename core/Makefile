@@ -27,7 +27,10 @@
 include macros.gmk
 
 # Make Targets
-.PHONY: all dbsecurity foundation $(MPI_TARGET) ndcs ci jdbc_jar jdbc_type2_jar sqroot $(SEAMONSTER_TARGET) verhdr dcs rest odb dbmgr
+.PHONY: all dbsecurity foundation $(MPI_TARGET) ndcs ci jdbc_jar jdbc_type2_jar sqroot $(SEAMONSTER_TARGET) verhdr dcs rest odb
+ifneq ($(ARCH),ppc64le)
+.PHONY: dbmgr
+endif
 .PHONY: package package-all pkg-product pkg-sql-regress pkg-phx-tests pkg-dcs-tests check-copyrights
 
 ################
@@ -35,7 +38,10 @@ include macros.gmk
 # Server-side only
 
 # Default target (all components)
-all: $(MPI_TARGET) dbsecurity foundation jdbc_jar $(SEAMONSTER_TARGET) ndcs ci jdbc_type2_jar dcs rest odb dbmgr lib_mgmt
+all: $(MPI_TARGET) dbsecurity foundation jdbc_jar $(SEAMONSTER_TARGET) ndcs ci jdbc_type2_jar dcs rest odb lib_mgmt
+ifneq ($(ARCH),ppc64le)
+all: dbmgr
+endif
 
 package: pkg-product pkg-client 
 
@@ -68,17 +74,16 @@ foundation: sqroot dbsecurity $(MPI_TARGET) $(SEAMONSTER_TARGET)
 	cd sqf && $(MAKE) all
 
 jdbc_jar: verhdr
-	cd conn/jdbc_type4 && $(ANT) deploy 2>&1 | sed -e "s/$$/	##(JDBCT4)/";exit $${PIPESTATUS[0]}
-	$(MAVEN) install:install-file -Dfile=conn/jdbc_type4/lib/jdbcT4.jar \
-	    -DgroupId=org.trafodion.jdbc.t4.T4Driver -DartifactId=t4driver -Dversion="$$TRAFODION_VER" \
-	    -Dpackaging=jar -DgeneratePom=true | sed -e "s/$$/        ##(JDBCT4)/";exit $${PIPESTATUS[0]}
+	cd conn/jdbcT4 && $(MAKE) 2>&1 && $(MAVEN) install | sed -e "s/$$/	##(JDBCT4)/";exit $${PIPESTATUS[0]}
 
 dcs: jdbc_jar jdbc_type2_jar
 	cd ../dcs && $(MAKE) 2>&1 | sed -e "s/$$/  ##(DCS)/" ; exit $${PIPESTATUS[0]}
 
 ndcs: jdbc_jar foundation
 	cd conn/odbc/src/odbc && $(MAKE) ndcs        2>&1 | sed -e "s/$$/	##(NDCS)/";exit $${PIPESTATUS[0]}
+ifneq ($(ARCH),ppc64le)
 	cd conn/odbc/src/odbc && $(MAKE) bldlnx_drvr 2>&1 | sed -e "s/$$/	##(NDCS)/";exit $${PIPESTATUS[0]}
+endif
 
 ci: trafci
 trafci: jdbc_jar
@@ -112,13 +117,14 @@ clean: sqroot
 	cd sqf &&			$(MAKE) clean
 	cd conn/odbc/src/odbc &&	$(MAKE) clean
 	cd conn/trafci        &&	$(ANT) clean
-	cd conn/jdbc_type4    &&	$(ANT) clean
+	cd conn/jdbcT4        &&	$(MAKE) clean
 	cd conn &&			$(MAKE) clean
 	cd conn/jdbc_type2 &&		$(ANT) clean && $(MAKE) clean
 	cd rest &&			$(MAKE) clean
 	cd conn/odb &&			$(MAKE) clean
 	cd ../dcs &&			$(MAKE) clean 
 	cd dbmgr &&			$(MAKE) clean 
+	cd sql/lib_mgmt &&		$(MAKE) clean
 	$(RM) -r ../${DISTRIBUTION_DIR}
 
 cleanall: sqroot eclipseclean cleantests
@@ -127,18 +133,19 @@ cleanall: sqroot eclipseclean cleantests
 	cd sqf &&			$(MAKE) cleanall
 	cd conn/odbc/src/odbc &&	$(MAKE) cleanall
 	cd conn/trafci        &&	$(ANT) clean
-	cd conn/jdbc_type4    &&	$(ANT) clean
+	cd conn/jdbcT4        &&	$(MAKE) clean
 	cd conn &&			$(MAKE) clean
 	cd conn/jdbc_type2 &&	        $(ANT) clean && $(MAKE) clean
 	cd rest &&			$(MAKE) clean
 	cd conn/odb &&			$(MAKE) clean
 	cd ../dcs &&			$(MAKE) clean
 	cd dbmgr &&			$(MAKE) cleanall
+	cd sql/lib_mgmt &&		$(MAKE) cleanall
 	$(RM) -r ../${DISTRIBUTION_DIR}
 
 package-all: rpmbuild pkg-client pkg-sql-regress pkg-phx-tests pkg-dcs-tests
 
-pkg-product: all  
+pkg-product: all dcs rest 
 	cd sqf && $(MAKE) package 2>&1 | sed -e "s/$$/	##(Package)/";exit $${PIPESTATUS[0]}
 
 pkg-client: ci ndcs odb
@@ -149,7 +156,7 @@ pkg-sql-regress: all
 	cd sqf && $(MAKE) package-regress 2>&1 | sed -e "s/$$/	##(Package sql regress)/";exit $${PIPESTATUS[0]}
 
 # Package Phoenix test
-pkg-phx-tests: all
+pkg-phx-tests: all 
 	cd sqf && $(MAKE) package-phx 2>&1 | sed -e "s/$$/	##(Package phoenix)/";exit $${PIPESTATUS[0]}
 
 # Package dcs tests
@@ -162,6 +169,7 @@ version:
 # Check that Environment variables are set correctly and
 # create links and files needed as prerequisite for the build
 sqroot:
+	@echo "ARCH=$(ARCH)"
 	./bldenvchk.sh;
 	cd sqf && $(MAKE) setupdir 2>&1 | sed -e "s/$$/	##(setupdir)/";exit $${PIPESTATUS[0]}
 
@@ -175,18 +183,18 @@ check-copyrights:
 
 ##############
 # RPM defines
-PKG_PROD=trafodion_adv
+PKG_PROD=esgynDB_adv
 
 ifeq ($(SQ_BUILD_TYPE),release)
   RELEASE ?= 1
-  SERVERTAR="$(PKG_PROD)_server-$(TRAFODION_VER).tgz"
+  SERVERTAR="$(PKG_PROD)_server-$(TRAFODION_VER).tar.gz"
 else
   RELEASE ?= devel
-  SERVERTAR="$(PKG_PROD)_server-$(TRAFODION_VER)-debug.tgz"
+  SERVERTAR="$(PKG_PROD)_server-$(TRAFODION_VER)-debug.tar.gz"
 endif
 
 ifeq ($(SQ_MTYPE),64)
-  ARCH=x86_64
+  ARCH=$(shell arch)
 else
   ARCH=i686
 endif
@@ -207,11 +215,7 @@ rpmpackage: pkg-product
 	mkdir -p $(BUILDDIR)
 	mkdir -p $(BUILDROOTDIR)
 	mkdir -p $(SRPMDIR)
-	ln -L ../distribution/$(SERVERTAR) $(SOURCEDIR)/$(PKG_PROD)_server-$(TRAFODION_VER).tgz
-	ln -L ../distribution/rest-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
-	ln -L ../distribution/dcs-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
-	ln -L ../distribution/mgblty-tools-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
-	ln -L ../distribution/dbmgr-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
+	ln -L ../distribution/$(SERVERTAR) $(SOURCEDIR)/$(PKG_PROD)_server-$(TRAFODION_VER).tar.gz
 
 rpmbuild: rpmpackage
 	rpmbuild -vv -bb \
@@ -226,7 +230,6 @@ rpmbuild: rpmpackage
                         --define "_topdir $(RPMROOT)" \
                         $(SPECFILE)
 	mv $(RPMROOT)/RPMS/$(ARCH)/$(PKG_PROD)*.rpm ../distribution/
-	mv $(RPMROOT)/RPMS/$(ARCH)/esgynDB-manager*.rpm ../distribution/
 
 
 eclipse: rest/.project dcs/.project sql/.project sqf/src/seatrans/hbase-trx/.project .project

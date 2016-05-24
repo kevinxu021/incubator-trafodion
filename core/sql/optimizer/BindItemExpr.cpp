@@ -4181,9 +4181,9 @@ ItemExpr * DateFormat::bindNode(BindWA * bindWA)
               if (frmt_ == ExpDatetime::DATETIME_FORMAT_DEFAULT)
                 frmt_ = ExpDatetime::DATETIME_FORMAT_TS3;// YYYY-MM-DD HH24:MI:SS
               else if (frmt_ == ExpDatetime::DATETIME_FORMAT_USA)
-                frmt_ = ExpDatetime::DATETIME_FORMAT_TS7;// MM/DD/YYYY HH24:MI:SS
-              else
-                frmt_ = ExpDatetime::DATETIME_FORMAT_TS2;// DD.MM.YYYY:HH24:MI:SS
+                frmt_ = ExpDatetime::DATETIME_FORMAT_TS7;// MM/DD/YYYY HH24:MI:SS AM|PM
+              else if (frmt_ == ExpDatetime::DATETIME_FORMAT_EUROPEAN)
+                frmt_ = ExpDatetime::DATETIME_FORMAT_TS10;// DD.MM.YYYY HH24:MI:SS
             }
         }
 
@@ -4939,7 +4939,8 @@ ItemExpr *Aggregate::bindNode(BindWA *bindWA)
 
   CMPASSERT(NOT context->colRefInAgg());
   CMPASSERT(NOT context->outerColRefInAgg() ||
-	    origOpType() == ITM_STDDEV || origOpType() == ITM_VARIANCE);
+		origOpType() == ITM_STDDEV_SAMP || origOpType() == ITM_VARIANCE_SAMP ||
+		origOpType() == ITM_STDDEV_POP || origOpType() == ITM_VARIANCE_POP);
 
   if (checkForSQLnullChild(bindWA, this, FALSE, FUNCTION_)) return this;
 
@@ -5049,7 +5050,8 @@ ItemExpr *Aggregate::bindNode(BindWA *bindWA)
          break;
     }
   }
-  if (getOperatorType() == ITM_STDDEV || getOperatorType() == ITM_VARIANCE)
+  if (getOperatorType() == ITM_STDDEV_SAMP || getOperatorType() == ITM_VARIANCE_SAMP ||
+	  getOperatorType() == ITM_STDDEV_POP || getOperatorType() == ITM_VARIANCE_POP)
   {
     if (childDegree < 1 || childDegree > 2 )
     {
@@ -5096,7 +5098,8 @@ ItemExpr *Aggregate::bindNode(BindWA *bindWA)
   // STDDEV or VARIANCE.  The important thing is that returning now preserves
   // the BindContext, in particular outerColRefInAgg() and (outer)aggScope.
   //
-  if (getOperatorType() == ITM_STDDEV || getOperatorType() == ITM_VARIANCE)
+  if (getOperatorType() == ITM_STDDEV_SAMP || getOperatorType() == ITM_VARIANCE_SAMP ||
+	  getOperatorType() == ITM_STDDEV_POP || getOperatorType() == ITM_VARIANCE_POP)
     return getValueId().getItemExpr();
 
   // If second or subsequent part of any other decomposed aggregate like AVG,

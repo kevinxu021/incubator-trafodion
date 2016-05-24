@@ -134,7 +134,7 @@ class ExpHbaseInterface : public NABasicObject
   virtual Lng32 dropAll(const char * pattern, NABoolean async, NABoolean noXn) = 0;
 
   // retrieve all objects from hbase that match the pattern
-  virtual ByteArrayList* listAll(const char * pattern) = 0;
+  virtual NAArray<HbaseStr> *listAll(const char * pattern) = 0;
 
   // make a copy of srcTblName as tgtTblName
   // if force is true, remove target before copying.
@@ -390,8 +390,8 @@ class ExpHbaseInterface : public NABasicObject
 		      const Text& tblName,
 		      const std::vector<Text> & actionCodes) = 0;
 
-  virtual ByteArrayList* getRegionBeginKeys(const char*) = 0;
-  virtual ByteArrayList* getRegionEndKeys(const char*) = 0;
+  virtual NAArray<HbaseStr>* getRegionBeginKeys(const char*) = 0;
+  virtual NAArray<HbaseStr>* getRegionEndKeys(const char*) = 0;
 
   virtual Lng32 estimateRowCount(HbaseStr& tblName,
                                  Int32 partialRowSize,
@@ -410,13 +410,13 @@ class ExpHbaseInterface : public NABasicObject
                                    Int32 partns,
                                    ARRAY(const char *)& nodeNames) = 0;
  
-  virtual ByteArrayList* showTablesHDFSCache(const std::vector<Text>& tables) = 0;
+  virtual NAArray<HbaseStr> * showTablesHDFSCache(const std::vector<Text>& tables) = 0;
 
   virtual Lng32 addTablesToHDFSCache(const std::vector<Text>& tables, const char* poolName) = 0;
   virtual Lng32 removeTablesFromHDFSCache(const std::vector<Text>& tables, const char* poolName) = 0;
   // get regions and size
-  virtual ByteArrayList* getRegionStats(const HbaseStr& tblName) = 0;
-  
+  virtual NAArray<HbaseStr> *getRegionStats(const HbaseStr& tblName) = 0;
+
 protected:
   enum 
     {
@@ -479,7 +479,7 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
   virtual Lng32 drop(HbaseStr &tblName, NABoolean async, NABoolean noXn);
   virtual Lng32 dropAll(const char * pattern, NABoolean async, NABoolean noXn);
 
-  virtual ByteArrayList* listAll(const char * pattern);
+  virtual NAArray<HbaseStr>* listAll(const char * pattern);
 
   // make a copy of srcTblName as tgtTblName
   // if force is true, remove target before copying.
@@ -726,9 +726,8 @@ virtual Lng32 initHFileParams(HbaseStr &tblName,
 		      const Text& tblName,
   		      const std::vector<Text> & actionCodes);
 
-
-  virtual ByteArrayList* getRegionBeginKeys(const char*);
-  virtual ByteArrayList* getRegionEndKeys(const char*);
+  virtual NAArray<HbaseStr>* getRegionBeginKeys(const char*);
+  virtual NAArray<HbaseStr>* getRegionEndKeys(const char*);
 
   virtual Lng32 estimateRowCount(HbaseStr& tblName,
                                  Int32 partialRowSize,
@@ -747,12 +746,12 @@ virtual Lng32 initHFileParams(HbaseStr &tblName,
                                    Int32 partns,
                                    ARRAY(const char *)& nodeNames) ;
 
-  virtual ByteArrayList* showTablesHDFSCache(const std::vector<Text>& tables);
+  virtual NAArray<HbaseStr> * showTablesHDFSCache(const std::vector<Text>& tables);
   
   virtual Lng32 addTablesToHDFSCache(const std::vector<Text> & tables, const char* poolName);
   virtual Lng32 removeTablesFromHDFSCache(const std::vector<Text> & tables, const char* poolName);
+  virtual NAArray<HbaseStr>* getRegionStats(const HbaseStr& tblName);
 
-  virtual ByteArrayList* getRegionStats(const HbaseStr& tblName);
   
 private:
   bool  useTRex_;

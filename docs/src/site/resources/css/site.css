@@ -34,6 +34,11 @@
         font-size: 30px;
 }
 
+.logo-right {
+    position: absolute;
+    right: 200px;
+}
+
 .color-highlight {
 	color: red;
 }

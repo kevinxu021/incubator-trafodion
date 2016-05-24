@@ -78,7 +78,7 @@
 
 #include "seabed/ms.h"
 #include "seabed/fs.h"
-
+#include "CompException.h"
 
 #define   NADHEAP		 CTXTHEAP
 #define   ERRWARN(msg)		 ToErrorOrWarning(msg, errOrWarn)
@@ -370,6 +370,8 @@ SDDkwd__(ALLOW_AUDIT_ATTRIBUTE_CHANGE,	       "FALSE"), // Used to control if ro
 
 SDDkwd__(ALLOW_DP2_ROW_SAMPLING,               "SYSTEM"),
 
+ DDkwd__(ALLOW_FIRSTN_IN_IUD,	               "TRUE"),
+
  DDkwd__(ALLOW_FIRSTN_IN_SUBQUERIES,	       "FALSE"),
 
  // ON/OFF flag to invoke ghost objects from non-licensed process (non-super.super user) who can not use parserflags
@@ -417,6 +419,10 @@ SDDkwd__(ALLOW_DP2_ROW_SAMPLING,               "SYSTEM"),
   // if set to ON, then ORDER BY could be
   // specified in a regular CREATE VIEW (not a create MV) statement.
   DDkwd__(ALLOW_ORDER_BY_IN_CREATE_VIEW,	"ON"),
+
+  // if set to ON, then ORDER BY could be
+  // specified in a subquery
+  DDkwd__(ALLOW_ORDER_BY_IN_SUBQUERIES,	        "OFF"),
 
   // rand() function in sql is disabled unless this CQD is turned on
   DDkwd__(ALLOW_RAND_FUNCTION,			"OFF"),
@@ -1987,6 +1993,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDkwd__(HIVE_PARTITION_ELIMINATION_RT,        "ON"),
   DDint__(HIVE_SCAN_SPECIAL_MODE,                "0"),
   DDkwd__(HIVE_SORT_HDFS_HOSTS,                 "ON"),
+  DDkwd__(HIVE_TREAT_EMPTY_STRING_AS_NULL,      "OFF"),
   DDkwd__(HIVE_USE_EXT_TABLE_ATTRS,             "OFF"),
   DD_____(HIVE_USE_FAKE_SQ_NODE_NAMES,          "" ),
   DDkwd__(HIVE_USE_FAKE_TABLE_DESC,             "OFF"),
@@ -2764,6 +2771,7 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   DDkwd__(ORC_COLUMNS_PUSHDOWN,                 "ON"),
   DDkwd__(ORC_NJS,                              "OFF"),
   DDkwd__(ORC_PRED_PUSHDOWN,                    "ON"),
+  DDkwd__(ORC_READ_NUM_ROWS,                    "ON"),
   DDkwd__(ORC_READ_STRIPE_INFO,                 "OFF"),
   DDkwd__(ORC_VECTORIZED_SCAN,                  "ON"),
 
@@ -3212,7 +3220,7 @@ SDDflt0_(QUERY_CACHE_SELECTIVITY_TOLERANCE,       "0"),
   DDkwd__(SHOW_MEMO_STATS,		"OFF"),
 
   DDkwd__(SIMILARITY_CHECK,			"ON "),
-  DDkwd__(SIMPLE_COST_MODEL,                    "ON"),
+ DDkwd__(SIMPLE_COST_MODEL,                    "ON"),
 
  XDDkwd__(SKEW_EXPLAIN,                         "ON"),
  XDDflt__(SKEW_ROWCOUNT_THRESHOLD,              "1000000"), // Column row count
@@ -3600,7 +3608,7 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDflt0_(USTAT_MIN_CHAR_UEC_FOR_IS,            "0.2"),  // minimum UEC for char type to use internal sort
   DDflt0_(USTAT_MIN_DEC_BIN_UEC_FOR_IS,         "0.0"),  // minimum UEC for binary types to use internal sort
 
-  DDflt0_(USTAT_MIN_ESTIMATE_FOR_ROWCOUNT,      "10000000"),
+ DDflt0_(USTAT_MIN_ESTIMATE_FOR_ROWCOUNT,      "10000000"),
   DDui1__(USTAT_MIN_ROWCOUNT_FOR_CTS_SAMPLE,    "10000"),
  XDDui1__(USTAT_MIN_ROWCOUNT_FOR_LOW_SAMPLE,    "1000000"),
  XDDui1__(USTAT_MIN_ROWCOUNT_FOR_SAMPLE,        "10000"),
@@ -3785,12 +3793,15 @@ const char *NADefaults::getCurrentDefaultsAttrNameAndValue(
 // -----------------------------------------------------------------------
 void NADefaults::initCurrentDefaultsWithDefaultDefaults()
 {
+  deleteMe();
+
   const size_t numAttrs = numDefaultAttributes();
+  if (numAttrs != sizeof(defaultDefaults) / sizeof(DefaultDefault))
+    return;
+
   CMPASSERT_STRING
     (numAttrs == sizeof(defaultDefaults) / sizeof(DefaultDefault),
      "Check sqlcomp/DefaultConstants.h for a gap in enum DefaultConstants or sqlcomp/nadefaults.cpp for duplicate entries in array defaultDefaults[].");
-
-  deleteMe();
 
   SqlParser_NADefaults_Glob =
   SqlParser_NADefaults_ = new NADHEAP SqlParser_NADefaults();
@@ -3830,6 +3841,7 @@ void NADefaults::initCurrentDefaultsWithDefaultDefaults()
   // for each entry of the (alphabetically sorted) default defaults
   // table, enter the default default into the current default table
   // which is sorted by enum values
+  NAString prevAttrName;
   for (i = 0; i < numAttrs; i++)
     {
       // the enum must be less than the max (if this assert fails
@@ -3862,6 +3874,15 @@ void NADefaults::initCurrentDefaultsWithDefaultDefaults()
 
       // set up our backlink which maps [enum] to its defaultDefaults entry
       defDefIx_[defaultDefaults[i].attrEnum] = i;
+
+      // attrs must be in ascending sorted order. If not, error out.
+      if (prevAttrName > defaultDefaults[i].attrName)
+        {
+          SqlParser_NADefaults_ = NULL;
+
+          return;
+        }
+      prevAttrName = defaultDefaults[i].attrName;
 
       // LCOV_EXCL_START
       // for debugging only
@@ -4258,8 +4279,14 @@ void NADefaults::updateSystemParameters(NABoolean reInit)
   //  Extract SMP node number and cluster number where this arkcmp is running.
   short nodeNum = 0;
   Int32   clusterNum = 0;
-  OSIM_getNodeAndClusterNumbers(nodeNum, clusterNum);
-
+  try {
+        OSIM_getNodeAndClusterNumbers(nodeNum, clusterNum);
+  }
+  catch(OsimLogException & e)
+  {
+        OSIM_errorMessage(e.getErrMessage());
+        return;
+  }
   // First (but only if NSK-LITE Services exist),
   // write system parameters (attributes DEF_*) into DefaultDefaults,
   // then copy DefaultDefaults into CurrentDefaults.

@@ -135,7 +135,7 @@ define([
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			$(UPDATE_LIBRARY_BUTTON).on('click', this.updateLibrary);
 			$(DROP_LIBRARY_BUTTON).on('click',this.dropLibrary);
-			
+			common.on(common.LIBRARY_ALTERED_EVENT, this.libraryAlteredEvent);
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
 			dbHandler.on(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
@@ -196,6 +196,7 @@ define([
 				_this.doReset();
 			}else{
 				if(this.isAjaxCompleted=true){
+					$(DROP_LIBRARY_BUTTON).prop('disabled',false);
 					$(DROP_LIBRARY_SPINNER).css('visibility', 'hidden');
 				}
 			}	
@@ -269,6 +270,7 @@ define([
 				}
 			}
 			pageStatus = {};
+			objectAttributes = null;
 			$(ATTRIBUTES_CONTAINER).empty();
 			$(ATTRIBUTES_ERROR_CONTAINER).text("");
 			$(COLUMNS_CONTAINER).empty();
@@ -284,7 +286,7 @@ define([
 			$(INDEXES_CONTAINER).empty();
 			$(INDEXES_ERROR_CONTAINER).text("");
 			$(DROP_LIBRARY_BUTTON).prop('disabled',false);
-			
+			$(DROP_LIBRARY_SPINNER).css('visibility', 'hidden');
 			pageStatus.ddlFetched == false
 			if(ddlTextEditor){
 				ddlTextEditor.setValue("");
@@ -292,7 +294,14 @@ define([
 				ddlTextEditor.refresh();
 			}			
 		},
-
+		libraryAlteredEvent: function(args) {
+			 if(routeArgs.type == 'library'){
+				if(common.ExternalDisplayName(args.schemaName) == common.ExternalDisplayName(routeArgs.schema) && 
+						common.ExternalDisplayName(args.libName) == common.ExternalDisplayName(routeArgs.name)){
+					_this.doReset();
+				}				 
+			 }
+		},
 		getParentObjectName: function(){
 			var parentObjectName = null;
 			if(objectAttributes != null){
@@ -332,7 +341,7 @@ define([
 		updateLibrary: function(){
 			var codeFileName = _this.getObjectAttribute('Code File Name');
 			sessionStorage.setItem(routeArgs.name, JSON.stringify({file: codeFileName}));	
-			window.location.hash = '/tools/createlibrary?schema='+common.ExternalDisplayName(routeArgs.schema)+'&library='+common.ExternalDisplayName(routeArgs.name);
+			window.location.hash = '/tools/alterlibrary?schema='+common.ExternalDisplayName(routeArgs.schema)+'&library='+common.ExternalDisplayName(routeArgs.name);
 		},
 		dropLibrary: function(){
 			$(DROP_LIBRARY_SPINNER).css('visibility', 'visible');
@@ -1382,7 +1391,10 @@ define([
 			}else{
 				common.fire(common.NOFITY_MESSAGE,msgObj);
 			}
-			common.fire(common.LIBRARY_DROPPED_EVENT, '');
+			var args = {};
+			args.schemaName = result.schemaName;
+			args.libName = result.objectName;
+			common.fire(common.LIBRARY_DROPPED_EVENT, args);
 		},
 		dropObjectError: function(jqXHR){
 			_this.isAjaxCompleted=true;

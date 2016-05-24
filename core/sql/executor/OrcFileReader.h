@@ -33,7 +33,10 @@
 #include "ExpHbaseDefs.h"
 #include "NAMemory.h"
 
-#include "ByteArrayList.h"
+using namespace apache::hadoop::hbase::thrift;
+namespace {
+  typedef std::vector<Text> TextVec;
+}
 
 // ===========================================================================
 // ===== The OrcFileReader class implements access to th Java 
@@ -55,6 +58,7 @@ typedef enum {
  ,OFR_ERROR_CLOSE_EXCEPTION     // Java exception in close()
  ,OFR_ERROR_GETSTRIPEINFO_EXCEPTION 
  ,OFR_ERROR_GETCOLSTATS_EXCEPTION 
+ ,OFR_ERROR_GETSUMSTRINGLENGTHS_EXCEPTION
  ,OFR_UNKNOWN_ERROR
  ,OFR_LAST
 } OFR_RetCode;
@@ -137,7 +141,10 @@ public:
 
   OFR_RetCode    fetchRowsIntoBuffer(Int64 stopOffset, char* buffer, Int64 buffSize, Int64& bytesRead, char rowDelimiter);
   
-  ByteArrayList* getColStats(int colNum);
+  NAArray<HbaseStr> *getColStats(NAHeap *heap, int colNum);
+
+  // Get the sum of the lengths of the strings across all string columns
+  OFR_RetCode    OrcFileReader::getSumStringLengths(Int64& result);
 
   virtual char*  getErrorText(OFR_RetCode errEnum);
 
@@ -175,6 +182,7 @@ private:
     JM_FETCHBLOCK_VECTOR,
     JM_FETCHROW,
     JM_GETCOLSTATS,
+    JM_GETSUMSTRINGLENGTHS,
     JM_CLOSE,
     JM_GETSTRIPE_OFFSETS,
     JM_GETSTRIPE_LENGTHS,

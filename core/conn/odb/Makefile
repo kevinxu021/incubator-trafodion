@@ -33,6 +33,7 @@ CFLAGS_LNX = -rdynamic -pipe -pthread \
 			 -Wno-missing-field-initializers -Wformat=2 \
 			 -Wunused -Wpragmas -Wstack-protector -Wcast-qual \
 			 -Wl,-allow-shlib-undefined \
+			 -Xlinker --copy-dt-needed-entries \
 			 -std=c99 -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED
 LDFLAGS_LNX = -Wl,--hash-style=both -Wl,--wrap=memcpy
 
@@ -48,17 +49,22 @@ INCPATH_64luo = -I/use/include \
 		-I$(JAVA_HOME)/include/linux \
 		-I$(MY_SQROOT)/export/include
 
-LIBS_64luo = -lodbc -lodbcinst -lz -ldl
+LIBS_64luo = -lodbc -lodbcinst -lz -ldl -lpthread
 EXEC_64luo = odb64luo
 ODBBLD_64luo = "\"linux, amd64, gcc generic m64, uodbc, mreadline, dynamic gzip, dynamic libhdfs, dynamic libxml2\""
 vpath %.c src
 
 generic: odb64luo
 
+MTUNE_GENERIC=
+ifneq ($(ARCH),ppc64le)
+MTUNE_GENERIC = "-mtune=generic"
+endif
+
 ifeq ($(SQ_BUILD_TYPE),debug)
-CFLAGS_LNX += -m64 -O2 -mtune=generic -fno-strict-aliasing -g
+CFLAGS_LNX += -m64 $(MTUNE_GENERIC) -O2 -fno-strict-aliasing -g
 else
-CFLAGS_LNX += -m64 -O2 -mtune=generic -fno-strict-aliasing -s
+CFLAGS_LNX += -m64 $(MTUNE_GENERIC) -O2 -fno-strict-aliasing -s
 endif
 
 profile: CFLAGS_LNX += -DODB_PROFILE
@@ -66,7 +72,7 @@ profile: LIBS_64luo += -lrt
 profile: generic 
 
 odb64luo: odb64luo.o mreadline.o memcpy_wrapper.o versodb.o
-	gcc -m64 -O2 -mtune=generic  -DODBC64 -DHDFS -DXML $(LDFLAGS_LNX) \
+	gcc -m64 -O2 $(MTUNE_GENERIC)  -DODBC64 -DHDFS -DXML $(LDFLAGS_LNX) \
 		-o $(EXEC_64luo) bin/memcpy_wrapper.o bin/odb64luo.o bin/mreadline.o bin/versodb.o \
 		-D ODBBLD=$(ODBBLD_64luo) $(LIBPATH_64luo) $(INCPATH_64luo) $(LIBS_64luo) -o bin/odb64luo
 	tar -czf ../clients/odb64_linux.tar.gz bin/odb64luo README
@@ -91,7 +97,7 @@ memcpy_wrapper.o: memcpy_wrapper.c bin
 	gcc $(CFLAGS_LNX) -c src/memcpy_wrapper.c -o bin/memcpy_wrapper.o
 
 versodb.o: versodb.c bin
-	gcc -m64 -O2 -mtune=generic -g -c src/versodb.c $(INCPATH_64luo) -o bin/versodb.o
+	gcc -m64 -O2 $(MTUNE_GENERIC) -g -c src/versodb.c $(INCPATH_64luo) -o bin/versodb.o
 
 clean: 
 	rm -f bin/*.o bin/odb64luo

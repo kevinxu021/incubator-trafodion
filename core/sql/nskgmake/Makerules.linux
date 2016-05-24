@@ -108,7 +108,7 @@ UDIS86_INC_ROOT :=$(UDIS86)/include
 JVMROOT=$(JAVA_HOME)
 JVMJNIINC=$(JVMROOT)/include
 ifdef M64
-LOC_JVMLIBS=$(JVMROOT)/jre/lib/amd64/server
+LOC_JVMLIBS=$(JVMROOT)/jre/lib/$(JRE_LIB_DIR)/server
 else
 LOC_JVMLIBS=$(JVMROOT)/jre/lib/i386/server
 endif
@@ -138,7 +138,7 @@ COMPRESSION_INC=-I/usr/include
 COMPRESSION_LIB=-llzo2
 
 # for now, include these libs (copied to our local lib dir) everywhere
-GLOBAL_SYS_LIBS := -L $(LOC_JVMLIBS) $(LIBHDFS_LIB) $(THRIFT_LIB) $(LIBCURL_LIB) $(LOG4CXX_LIB) $(COMPRESSION_LIB)
+GLOBAL_SYS_LIBS := -L $(LOC_JVMLIBS) $(LIBHDFS_LIB) $(LIBCURL_LIB) $(LOG4CXX_LIB) $(COMPRESSION_LIB)
 
 # EXECUTABLES defines the executables that are built for release and debug
 # builds.  Any flavor-specific targets can be added later in this makefile.
@@ -244,6 +244,8 @@ endif
 
 # -short-wchar: Have the compiler treat wchar_t as a 2-byte character. 
 SYS_CXXFLAGS += -fshort-wchar -std=c++0x
+SYS_CXXFLAGS += -Xlinker --copy-dt-needed-entries
+SYS_CXXFLAGS += -fpermissive -w
 SYS_CXXFLAGS += -fcheck-new
 CFLAGS += -fshort-wchar
 
@@ -260,8 +262,12 @@ CFLAGS += -fshort-wchar
   #                          same time.
   #   -g3                  : Highest level of debugging
   #   -ggdb                : Use native debugging format with gdb extensions.
-  SYS_CXXFLAGS += -fno-strict-aliasing -msse2 -mfpmath=sse -g3 -ggdb
-  CFLAGS += -fno-strict-aliasing -msse2 -mfpmath=sse -g3 -ggdb
+  SYS_CXXFLAGS += -fno-strict-aliasing -g3 -ggdb
+  CFLAGS += -fno-strict-aliasing -g3 -ggdb
+ifeq ($(ARCH),x86_64)
+  SYS_CXXFLAGS += -msse2 -mfpmath=sse
+  CFLAGS += -msse2 -mfpmath=sse
+endif
 
 # Some more definitions are added when building for a 64-bit target.
 # We get a lot of warnings about unknown pragmas that we don't really care about.
@@ -423,8 +429,6 @@ copytoolslibs:
 	mkdir -p $(LIBROOT)
 	# these must be found
 	cp -Pf $(LOG4CXX_LIB_DIR)/$(LOG4CXX_SO)* $(LIBROOT)
-	cp -Pf $(THRIFT_LIB_DIR)/$(THRIFT_SO)* $(LIBROOT)
-	cp -Pf $(THRIFT_LIB_DIR)/libthrift.so $(LIBROOT)
 	# if these are not found, then...
 	-cp -Pf $(HADOOP_BLD_LIB)/$(LIBHDFS_SO)* $(LIBROOT)
 	-cp -Pf $(HADOOP_BLD_LIB)/$(LIBHADOOP_SO)* $(LIBROOT)

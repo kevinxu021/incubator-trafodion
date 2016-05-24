@@ -13,7 +13,6 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 	'use strict';
 
 	var _this = null;
-	var PAGE_MODE = "NORMAL"; 
 	var LIB_FORM = "#create-library-form";
 	var SCHEMA_NAME = "#schema_name";
 	var LIBRARY_NAME = "#library_name";
@@ -23,7 +22,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 	var CREATE_BTN = "#create_btn";
 	var CLEAR_BTN = "#clear_btn";
 	var OVERWRITE_CHECKBOX = "#overwrite";
-	var LOADING = "#loading-spinner";
+	var LOADING = "#create-loading-spinner";
 	var PAGE_HEADER = "#create-library-page-header";
 	var FILE = null;
 	var CHUNKS = [];
@@ -108,6 +107,8 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			}, "* Library name contains special characters. It needs be enclosed within double quotes.");
 		},
 		doResume : function(args) {
+			$(CREATE_BTN).on('click', this.uploadFile);
+			$(CLEAR_BTN).on('click', this.cleanField);
 			$(FILE_SELECT).on('click', this.fileDialogOpened);
 			this.currentURL = window.location.hash;
 			_args = args;
@@ -120,6 +121,8 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			}
 		},
 		doPause : function() {
+			$(CREATE_BTN).off('click', this.uploadFile);
+			$(CLEAR_BTN).off('click', this.cleanField);
 			$(FILE_SELECT).off('click', this.fileDialogOpened);
 			this.redirectFlag=true;
 		},
@@ -129,48 +132,23 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 		processArgs: function(){
 			if( _args.schema != undefined){
 				$(SCHEMA_NAME).val( _args.schema);
-				$(LIBRARY_NAME).val("");
-				$(FILE_NAME).val("");
-			}
-			if(_args.library != undefined){
-				$(LIBRARY_NAME).val(_args.library);
-				$(LIBRARY_NAME).prop('disabled', true);
-				$(SCHEMA_NAME).prop('disabled', true);
-				$(PAGE_HEADER).text("Alter Library");
-				$(CREATE_BTN).prop('value','Alter');
-				$(OVERWRITE_CHECKBOX).prop('disabled', true);
-				$(OVERWRITE_CHECKBOX).prop('checked' ,true);
-				var libParams = sessionStorage.getItem(_args.library);
-				sessionStorage.removeItem(_args.library);
-				/*
-				if(libParams != undefined){
-					libParams = JSON.parse(libParams);
-					if(libParams.file){
-						$(FILE_NAME).val(libParams.file);
-					}
+				if(_this.currentSchemaName != _args.schema){
+					_this.currentSchemaName= _args.schema;
+					$(FILE_NAME).val("");
 				}
-				*/
-				PAGE_MODE = "UPDATE";
-			}else{
-				$(SCHEMA_NAME).prop('disabled', false);
-				$(LIBRARY_NAME).prop('disabled', false);
-				$(PAGE_HEADER).text("Create Library");
-				$(CREATE_BTN).prop('value','Create');
-				$(OVERWRITE_CHECKBOX).prop('disabled', false);
-				$(OVERWRITE_CHECKBOX).prop('checked', false);
-				PAGE_MODE = "CREATE";
-				$(FILE_SELECT).on('change', this.onFileSelected);
-				$(SCHEMA_NAME).val("");
-				$(LIBRARY_NAME).val("");
 			}
+
+			$(SCHEMA_NAME).prop('disabled', false);
+			$(LIBRARY_NAME).prop('disabled', false);
+			$(OVERWRITE_CHECKBOX).prop('disabled', false);
+			$(OVERWRITE_CHECKBOX).prop('checked', false);
+			$(FILE_SELECT).on('change', this.onFileSelected);
 		},
 		
 		cleanField:function(){
 			_this.processArgs();
-			if(PAGE_MODE != "UPDATE"){
-				$(SCHEMA_NAME).val("");
-				$(LIBRARY_NAME).val("");
-			}
+			$(SCHEMA_NAME).val("");
+			$(LIBRARY_NAME).val("");
 			$(FILE_NAME).val("");
 			$(FILE_SELECT).val("");
 			$(LIBRARY_ERROR).hide();
@@ -240,13 +218,13 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			}else{
 				_this.executeUploadChunk(OVERWRITE_FLAG, true, false);
 			}
-			
+		
 		},
 		
 		executeUploadChunk : function(oflag, sflag, eflag, uflag){
 			_this.isAjaxCompleted=false;
 			var data = CHUNKS[UPLOAD_INDEX];
-			var uflag = (PAGE_MODE == 'UPDATE');
+			var uflag = false;
 			tHandler.createLibrary(data.chunk, data.fileName, data.filePart, data.fileSize, common.ExternalForm(data.schemaName), common.ExternalForm(data.libraryName), oflag, sflag, eflag, uflag);
 			UPLOAD_INDEX++;
 		}, 
@@ -256,10 +234,10 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			$(CREATE_BTN).prop('disabled', false);
 			$(FILE_NAME).val(FILE.name);
 		},
-		createLibrarySuccess : function(){
+		createLibrarySuccess : function(data){
 			_this.isAjaxCompleted=true;
-			var msgPrefix = (PAGE_MODE == 'UPDATE' ? "altered" : "created");
-			var msg= 'Library '+ common.ExternalForm(_this.currentSchemaName) + "." + common.ExternalForm(_this.currentLibraryName) + ' was ' + msgPrefix + ' successfully';
+			var msgPrefix = "created";
+			var msg= 'Library '+ common.ExternalForm(data.schemaName) + "." + common.ExternalForm(data.libraryName) + ' was ' + msgPrefix + ' successfully';
 			if(UPLOAD_INDEX==UPLOAD_LENGTH){
 				$(LOADING).css('visibility', 'hidden');
 				$(CREATE_BTN).prop('disabled', false);
@@ -285,10 +263,18 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			$(LOADING).css('visibility', 'hidden');
 			$(CREATE_BTN).prop('disabled', false);
 			$(CLEAR_BTN).prop('disabled', false);
-			var errorIndex = error.responseText.lastIndexOf("*** ERROR");
-			var errorString = error.responseText.substring(errorIndex);
-			var msgPrefix = (PAGE_MODE == 'UPDATE' ? "Failed to alter library " : "Failed to create library ");
-			var msg= msgPrefix + common.ExternalForm(_this.currentSchemaName) + "." + common.ExternalForm(_this.currentLibraryName)+ " : " + errorString;
+			
+			var msg = "";
+			if (error.responseText) {
+				var errorIndex = error.responseText.lastIndexOf("*** ERROR");
+				var errorString = error.responseText.substring(errorIndex);
+				var msgPrefix =  "Failed to create library ";
+				var msg= msgPrefix + common.ExternalForm(error.schemaName) + "." + common.ExternalForm(error.libraryName)+ " : " + errorString;
+			}else{
+				if(error.status != null && error.status == 0) {
+					msg = "Error : Unable to communicate with the server.";
+				}
+			}
 			//alert(errorString);
 			var msgObj={msg:msg,tag:"danger",url:null,shortMsg:msgPrefix};
 			if(_this.redirectFlag==false){

@@ -207,6 +207,7 @@ public:
 
 
   void setupPrivInfo();
+  void setPrivInfo(PrivMgrUserPrivs *privInfo) { privInfo_ = privInfo; }
 
   // -------------------------------------------------------------------
   // Standard operators

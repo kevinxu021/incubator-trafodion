@@ -1,6 +1,6 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2015 Esgyn Corporation
+// (C) Copyright 2015-2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
@@ -24,6 +24,7 @@ define([
         'views/workloads/QueryPlanView',
         'views/logs/LogsView',
         'views/tools/CreateLibraryView',
+        'views/tools/AlterLibraryView',
         'views/alerts/AlertsSummaryView',
         'views/alerts/AlertDetailView',
         'views/help/AboutView',
@@ -33,7 +34,7 @@ define([
         ], function($, _, Backbone, NavbarView, DashboardView, WorkbenchView, DCSServerView, LoginView, 
         		SchemasView, SchemaDetailView, SchemaObjectsView, SchemaObjectDetailView,
         		ActiveWorkloadsView, ActiveQueryDetailView, HistoricalWorkloadsView, HistoricalWorkloadDetailView, QueryPlanView, 
-        		LogsView, CreateLibraryView, AlertsSummaryView, AlertDetailView, AboutView, Session, Localizer) {
+        		LogsView, CreateLibraryView, AlterLibraryView, AlertsSummaryView, AlertDetailView, AboutView, Session, Localizer) {
 	'use strict';
 
 	var currentSelection = null;
@@ -55,6 +56,7 @@ define([
 	var queryPlanView = null;
 	var logsView = null;
 	var createLibraryView = null;
+	var alterLibraryView = null;
 	var alertsSummaryView = null;
 	var alertDetailView = null;
 	var aboutView = null;
@@ -93,6 +95,7 @@ define([
 			'workloads/active/querydetail(/*args)':'showActiveQueryDetail',
 			'workloads/queryplan(/*args)':'showQueryPlan',
 			'tools/createlibrary(?*:params)':'createLibrary',
+			'tools/alterlibrary(?*:params)':'alterLibrary',
 			'alerts': 'showAlertsSummary',
 			'alert/detail(/*args)': 'showAlertDetail',
 			'help/about': 'showAbout',
@@ -146,6 +149,7 @@ define([
 			loginView.doLogout();
 		}
 		window.location.hash = '/login';
+		
 		$.each(viewCollection, function(i, v){
 			if(v.doCleanup){
 				v.doCleanup();
@@ -153,6 +157,26 @@ define([
 			v = null;
 		});
 		viewCollection = [];
+		
+		dashboardView = null;
+		workbenchView = null;
+		dcsServerView = null;
+		loginView = null;
+		schemasView = null;
+		schemaDetailView = null;
+		schemaObjectsView = null;
+		schemaObjectDetailView = null;
+		historicalWorkloadsView = null;
+		historicalWorkloadDetailView = null;
+		activeWorkloadsView = null;
+		activeQueryDetailView = null;
+		queryPlanView = null;
+		logsView = null;
+		createLibraryView = null;
+		alterLibraryView = null;
+		alertsSummaryView = null;
+		alertDetailView = null;
+		aboutView = null;
 		currentView = null;
 	};
 
@@ -323,6 +347,16 @@ define([
 				viewCollection.push(createLibraryView);
 			}
 			switchView(createLibraryView, args);
+		});
+		
+		app_router.on('route:alterLibrary', function (args, params) {
+			var args = deparam();
+
+			if(alterLibraryView == null){
+				alterLibraryView = new AlterLibraryView();
+				viewCollection.push(alterLibraryView);
+			}
+			switchView(alterLibraryView, args);
 		});
 		
 		app_router.on('route:showAbout', function (args) {

@@ -124,7 +124,7 @@ EARLY_LIBS = -ljsig
 COMMON_LIBS = -lsbfs -lsbms -levlsq -lwin -ltdm_sqlcli -larkcmp_dll -L../nsksrvrcore -lmxocore -llog4cxx
 
 ifeq ($(SQ_MTYPE),64)
-LOC_JSIG=$(JAVA_HOME)/jre/lib/amd64/server
+LOC_JSIG=$(JAVA_HOME)/jre/lib/$(ARCH)/server
 else
 LOC_JSIG=$(JAVA_HOME)/jre/lib/i386/server
 endif

@@ -36,10 +36,13 @@
 #include "NAMemory.h"
 #include "org_trafodion_sql_HTableClient.h"
 
+using namespace apache::hadoop::hbase::thrift;
+namespace {
+  typedef std::vector<Text> TextVec;
+}
+
 // forward declare
 class ExHbaseAccessStats;
-
-#include "ByteArrayList.h"
 
 class ContextCli;
 
@@ -67,7 +70,6 @@ public :
   NAHeap *heap_;
 };
 
-
 // ===========================================================================
 // ===== The HTableClient class implements access to the Java 
 // ===== HTableClient class.
@@ -75,7 +77,7 @@ public :
 
 typedef enum {
   HTC_OK     = JOI_OK
- ,HTC_FIRST  = BAL_LAST
+ ,HTC_FIRST  = JOI_LAST
  ,HTC_DONE   = HTC_FIRST
  ,HTC_DONE_RESULT = 1000
  ,HTC_DONE_DATA
@@ -99,13 +101,10 @@ typedef enum {
  ,HTC_ERROR_EXISTS_EXCEPTION
  ,HTC_ERROR_COPROC_AGGR_PARAM
  ,HTC_ERROR_COPROC_AGGR_EXCEPTION
- ,HTC_ERROR_COPROC_AGGR_GET_RESULT_PARAM
- ,HTC_ERROR_COPROC_AGGR_GET_RESULT_EXCEPTION
  ,HTC_ERROR_GRANT_PARAM
  ,HTC_ERROR_GRANT_EXCEPTION
  ,HTC_ERROR_REVOKE_PARAM
  ,HTC_ERROR_REVOKE_EXCEPTION
- ,HTC_GETENDKEYS
  ,HTC_ERROR_GETHTABLENAME_EXCEPTION
  ,HTC_GET_COLNAME_EXCEPTION
  ,HTC_GET_COLVAL_EXCEPTION
@@ -177,7 +176,9 @@ public:
   
   HTC_RetCode init();
   
-  HTC_RetCode startScan(Int64 transID, const Text& startRowID, const Text& stopRowID, const LIST(HbaseStr) & cols, Int64 timestamp, bool cacheBlocks, bool smallScanner, Lng32 numCacheRows,
+  HTC_RetCode startScan(Int64 transID, const Text& startRowID, const Text& stopRowID, 
+           const LIST(HbaseStr) & cols, Int64 timestamp, bool cacheBlocks, 
+           bool smallScanner, Lng32 numCacheRows,
                         NABoolean preFetch,
 			const LIST(NAString) *inColNamesToFilter, 
 			const LIST(NAString) *inCompareOpList,
@@ -247,9 +248,6 @@ public:
   // Get the error description.
   virtual char* getErrorText(HTC_RetCode errEnum);
 
-  ByteArrayList* getBeginKeys();
-  ByteArrayList* getEndKeys();
-
   void setTableName(const char *tableName)
   {
     Int32 len = strlen(tableName);
@@ -280,7 +278,6 @@ public:
 
 private:
   NAString getLastJavaError();
-  ByteArrayList* getKeys(Int32 funcIndex);
 
   enum JAVA_METHODS {
     JM_CTOR = 0
@@ -290,12 +287,10 @@ private:
    ,JM_COPROC_AGGR
    ,JM_GET_NAME
    ,JM_GET_HTNAME
-   ,JM_GETENDKEYS
    ,JM_SET_WB_SIZE
    ,JM_SET_WRITE_TO_WAL
    ,JM_FETCH_ROWS
    ,JM_COMPLETE_PUT
-   ,JM_GETBEGINKEYS
    ,JM_LAST
   };
   char *tableName_; 
@@ -418,6 +413,9 @@ typedef enum {
  ,HBC_ERROR_REMOVEHDFSCACHE_EXCEPTION
  ,HBC_ERROR_SHOWHDFSCACHE_EXCEPTION
  ,HBC_ERROR_POOL_NOT_EXIST_EXCEPTION
+ ,HBC_ERROR_LISTALL
+ ,HBC_ERROR_GETKEYS
+ ,HBC_ERROR_REGION_STATS
  ,HBC_LAST
 } HBC_RetCode;
 
@@ -458,8 +456,9 @@ public:
   HBC_RetCode dropAll(const char* pattern, bool async, Int64 transID);
   HBC_RetCode copy(const char* srcTblName, const char* tgtTblName,
                    NABoolean force);
-  ByteArrayList* listAll(const char* pattern);
-  ByteArrayList* getRegionStats(const char* tblName);
+  NAArray<HbaseStr>* listAll(NAHeap *heap, const char* pattern);
+  NAArray<HbaseStr>* getRegionStats(NAHeap *heap, const char* tblName);
+
   HBC_RetCode exists(const char* fileName, Int64 transID);
   HBC_RetCode grant(const Text& user, const Text& tableName, const TextVec& actionCodes); 
   HBC_RetCode revoke(const Text& user, const Text& tableName, const TextVec& actionCodes);
@@ -539,14 +538,17 @@ public:
                                 const char * hbaseAuths,
                                 HTableClient_JNI **outHtc);
   
-  ByteArrayList* showTablesHDFSCache(const TextVec& tables);
+  NAArray<HbaseStr> *showTablesHDFSCache(NAHeap *heap, const TextVec& tables);
 
   HBC_RetCode addTablesToHDFSCache(const TextVec& tables, const char* poolName);
   HBC_RetCode removeTablesFromHDFSCache(const TextVec& tables, const char* poolName);
+  NAArray<HbaseStr>* getStartKeys(NAHeap *heap, const char *tableName, bool useTRex);
+  NAArray<HbaseStr>* getEndKeys(NAHeap *heap, const char * tableName, bool useTRex);
 
 private:   
   // private default constructor
   HBaseClient_JNI(NAHeap *heap, int debugPort, int debugTimeout);
+  NAArray<HbaseStr>* getKeys(Int32 funcIndex, NAHeap *heap, const char *tableName, bool useTRex);
 
 private:
   NAString  getLastJavaError();
@@ -597,6 +599,8 @@ private:
    ,JM_SHOW_TABLES_HDFS_CACHE
    ,JM_ADD_TABLES_TO_HDFS_CACHE
    ,JM_REMOVE_TABLES_FROM_HDFS_CACHE
+   ,JM_HBC_GETSTARTKEYS
+   ,JM_HBC_GETENDKEYS
    ,JM_LAST
   };
   static jclass          javaClass_; 
@@ -871,11 +875,13 @@ jobjectArray convertToByteArrayObjectArray(const TextVec &vec);
 jobjectArray convertToStringObjectArray(const TextVec &vec);
 jobjectArray convertToStringObjectArray(const HBASE_NAMELIST& nameList);
 jobjectArray convertToStringObjectArray(const NAText *text, int arrayLen);
-int convertStringObjectArrayToList(NAHeap *heap, jarray j_objArray, LIST(Text *)&list);
-int convertLongObjectArrayToList(NAHeap *heap, jlongArray j_longArray, LIST(Int64)&list);
-int convertByteArrayObjectArrayToNAArray(NAHeap *heap, jarray j_objArray, NAArray<HbaseStr> **retArray);
-void deleteNAArray(CollHeap *heap, NAArray<HbaseStr> *array);
 
+int convertStringObjectArrayToList(NAHeap *heap, jarray j_objArray, 
+                                         LIST(Text *)&list);
+int convertLongObjectArrayToList(NAHeap *heap, jlongArray j_longArray, LIST(Int64)&list);
+int convertByteArrayObjectArrayToNAArray(NAHeap *heap, jarray j_objArray, 
+             NAArray<HbaseStr> **retArray);
+void deleteNAArray(CollHeap *heap, NAArray<HbaseStr> *array);
 #endif
 
 

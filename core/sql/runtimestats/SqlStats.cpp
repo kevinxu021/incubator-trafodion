@@ -1661,11 +1661,12 @@ StatsGlobals * shareStatsSegment(Int32 &shmid, NABoolean checkForSSMP)
   {
      return NULL;
   }
-  if ((statsGlobalsAddr = shmat(shmid, getRmsSharedMemoryAddr(), 0))
+  if ((statsGlobalsAddr = shmat(shmid, getRmsSharedMemoryAddr(), SHM_REMAP | SHM_RND))
                 == (void *)-1)
   {
      return NULL;
   }
+  gRmsSharedMemoryAddr_ = statsGlobalsAddr;
   statsGlobals = (StatsGlobals *)statsGlobalsAddr;
   if (statsGlobals != NULL)
   {
@@ -1857,6 +1858,10 @@ NABoolean checkIfRTSSemaphoreLocked()
       statsGlobals->setShmDirty();
       retcode = TRUE;
     } 
+  }
+  else
+  { 
+    retcode = TRUE;
   }
   return retcode;
 }

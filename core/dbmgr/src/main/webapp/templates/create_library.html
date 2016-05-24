@@ -8,7 +8,8 @@
 		style="border: 1px solid #dce4ec; border-width: 2px; border-radius: 2px; padding-left: 30px; padding-top: 30px">
 		<form id="create-library-form">
 			<div class="form-group">
-				<label class="control-label">Schema Name</label>
+				<label class="control-label">Schema Name<span
+					style="color: red"> *</span></label>
 				<div class="input-group" style="width: 600px;">
 					<input class="form-control input-sm" style="width: 500px;" id="schema_name"
 						name="schema_name" maxlength="125">
@@ -49,7 +50,7 @@
 
 			<input id="create_btn" type="button" value="Create"
 				class="submit btn btn-primary" disabled> <img
-				id="loading-spinner" src="img/ajax-loader.gif"
+				id="create-loading-spinner" src="img/ajax-loader.gif"
 				style="padding-left: 2px" /><input id="clear_btn" type="button"
 				value="Clear" class="submit btn btn-primary">
 			<div style="height: 10px;"></div>

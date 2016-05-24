@@ -1267,13 +1267,23 @@ short Cast::codeGen(Generator * generator)
 #pragma warn(1506)  // warning elimination 
     }
 #pragma nowarn(1506)   // warning elimination 		      
-  ex_conv_clause * conv_clause =
-	  new(generator->getSpace()) ex_conv_clause(getOperatorType(), attr,
+  ex_conv_clause * conv_clause;
+  if(attr[0]->getNullFlag())  //if target is nullable
+    conv_clause = new(generator->getSpace()) ex_conv_clause(getOperatorType(), attr,
 						    generator->getSpace(),
 						    1 + getArity(), 
   						    checkTruncationError(),
                                                     reverseDataErrorConversionFlag_,
-                                                    noStringTruncationWarnings());
+                                                    noStringTruncationWarnings(),
+                                                    convertNullWhenError());
+  else
+    conv_clause = new(generator->getSpace()) ex_conv_clause(getOperatorType(), attr,
+                                                    generator->getSpace(),
+                                                    1 + getArity(), 
+                                                    checkTruncationError(),
+                                                    reverseDataErrorConversionFlag_,
+                                                    noStringTruncationWarnings(),
+                                                    FALSE);
 #pragma warn(1506)  // warning elimination 
 
   conv_clause->setTreatAllSpacesAsZero(treatAllSpacesAsZero());
@@ -1992,12 +2002,14 @@ ScalarVariance::codeGen(Generator *generator)
 
   switch(getOperatorType())
     {
-    case ITM_VARIANCE:
-      function_clause =	new(space) ExFunctionSVariance(attr, space);
-      break;
-    case ITM_STDDEV:
-      function_clause =	new(space) ExFunctionSStddev(attr, space);
-      break;
+	case ITM_STDDEV_SAMP:
+	case ITM_STDDEV_POP:
+      function_clause =	new(space) ExFunctionSStddev(getOperatorType(), attr, space);
+	  break;
+	case ITM_VARIANCE_SAMP:
+	case ITM_VARIANCE_POP:
+      function_clause =	new(space) ExFunctionSVariance(getOperatorType(), attr, space);
+	  break;
     default:
       GenAssert(0,"ScalarVariance: Unknown operator");
       break;
@@ -2711,6 +2723,7 @@ short LOBinsert::codeGen(Generator * generator)
   li->lobNum() = lobNum();
   li->setLobStorageType(lobStorageType());
   li->setLobStorageLocation((char*)lobStorageLocation().data());
+  li->setLobSize(lobSize());
   li->setLobMaxSize(getLobMaxSize());
   li->setLobMaxChunkMemSize(getLobMaxChunkMemSize());
   li->setLobGCLimit(getLobGCLimit());

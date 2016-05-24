@@ -101,7 +101,7 @@ short HBasetoTxnError(short pv_HBerr)
    case RET_READONLY: return FEOK; //Read-only reply is ok
    case RET_ADD_PARAM: return FEBOUNDSERR;
    case RET_EXCEPTION: return FETRANSEXCEPTION;
-   case RET_HASCONFLICT: return FELOCKED; //Change to FEHASCONFLICT?
+   case RET_HASCONFLICT: return FEHASCONFLICT;
    case RET_IOEXCEPTION: return FETRANSIOEXCEPTION;
    case RET_NOCOMMITEX: return FEABORTEDTRANSID;
    default: 
@@ -959,6 +959,7 @@ short BEGINTX(int *pp_tag, int pv_timeout, int64 pv_type_flags)
 short ENDTRANSACTION() 
 {
     short lv_error = FEOK;
+    short lv_retries = 0;
     // instantiate a gp_trans_thr object for this thread if needed.
     if (gp_trans_thr == NULL)
        gp_trans_thr = new TMLIB_ThreadTxn_Object();
@@ -973,7 +974,16 @@ short ENDTRANSACTION()
      }
 
     TMlibTrace(("TMLIB_TRACE : ENDTRANSACTION ENTRY: txid: %d\n", lp_trans->getTransid()->get_seq_num()), 1);
-    lv_error =  lp_trans->end();
+    
+    do {
+       if (lv_retries > 0)
+       {
+	 TMlibTrace(("TMLIB_TRACE : ENDTRANSACTION error FETMLOCKED, sleeping 1 second and trying again\n"), 1);
+	 SB_Thread::Sthr::sleep(1000); // in msec (1 second)
+       }
+       lv_error =  lp_trans->end();
+    }while ((lv_error == FETMLOCKED) && (lv_retries++ < 60));
+  
     TMlibTrace(("TMLIB_TRACE : ENDTRANSACTION EXIT: txid: %d, retcode: %d\n", lp_trans->getTransid()->get_seq_num(), lv_error), 1);
 
      // cleanup for legacy API
@@ -982,7 +992,8 @@ short ENDTRANSACTION()
          (lv_error == FEOK)  ||
          (lv_error == FEABORTEDTRANSID) ||
          (lv_error == FEENDEDTRANSID) ||
-         (lv_error == FELOCKED))
+         (lv_error == FELOCKED)  ||
+         (lv_error == FEHASCONFLICT))
      {
          // end removes the tx from the list and deletes the
          // enlistment object.  We simply need to delete the trans 

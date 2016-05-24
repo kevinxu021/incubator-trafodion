@@ -1091,6 +1091,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_STABLE_ACCESS	/* Tandem extension */
 %token <tokval> TOK_STATUS
 %token <tokval> TOK_STDDEV              /* Tandem extension */
+%token <tokval> TOK_STDDEV_SAMP
+%token <tokval> TOK_STDDEV_POP
 %token <tokval> TOK_STOP                /* Tandem extension */
 %token <tokval> TOK_STORED
 %token <tokval> TOK_SQL
@@ -1174,6 +1176,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_VARBINARY
 %token <tokval> TOK_VARCHAR
 %token <tokval> TOK_VARIANCE            /* Tandem extension */
+%token <tokval> TOK_VARIANCE_SAMP
+%token <tokval> TOK_VARIANCE_POP
 %token <tokval> TOK_VARWCHAR
 %token <tokval> TOK_VARYING
 %token <tokval> TOK_VERSION
@@ -7289,7 +7293,7 @@ set_function_specification : set_function_type '(' set_quantifier value_expressi
 				 $$ = new (PARSERHEAP())
 				   Aggregate($1, $4, $3, ITM_COUNT, '!');
 			       }
-			     else if ($1 == ITM_VARIANCE || $1 == ITM_STDDEV)
+			     else if ($1 == ITM_VARIANCE_SAMP || $1 == ITM_VARIANCE_POP || $1 == ITM_STDDEV_SAMP || $1 == ITM_STDDEV_POP) 
 			       $$ = new (PARSERHEAP()) Variance($1, $4, NULL, $3);
 			     else
 			       $$ = new (PARSERHEAP()) Aggregate($1, $4, $3);
@@ -7297,7 +7301,7 @@ set_function_specification : set_function_type '(' set_quantifier value_expressi
               | set_function_type '(' set_quantifier value_expression ',' 
                                                      value_expression ')'
 			   {
-			     if ($1 == ITM_VARIANCE || $1 == ITM_STDDEV)
+			     if ($1 == ITM_VARIANCE_SAMP || $1 == ITM_STDDEV_SAMP)
 			       $$ = new (PARSERHEAP()) Variance($1, $4, $6, $3);
 			     else
 			       {
@@ -7359,8 +7363,12 @@ set_function_type :   TOK_AVG 		{ $$ = ITM_AVG; }
                     | TOK_MIN 		{ $$ = ITM_MIN; }
                     | TOK_SUM 		{ $$ = ITM_SUM; }
                     | TOK_COUNT 	{ $$ = ITM_COUNT; }
-                    | TOK_VARIANCE 	{ $$ = ITM_VARIANCE; }
-                    | TOK_STDDEV 	{ $$ = ITM_STDDEV; }
+                    | TOK_VARIANCE 	{ $$ = ITM_VARIANCE_SAMP; }
+                    | TOK_STDDEV 	{ $$ = ITM_STDDEV_SAMP; }
+  		    | TOK_STDDEV_SAMP { $$ = ITM_STDDEV_SAMP;}
+		    | TOK_STDDEV_POP  { $$ = ITM_STDDEV_POP;}
+		    | TOK_VARIANCE_SAMP { $$ = ITM_VARIANCE_SAMP;}
+		    | TOK_VARIANCE_POP  { $$ = ITM_VARIANCE_POP;}
                       // max of ColumnStatistics getNumberOfValues 
                       // across all stripes of an ORC file
                     | TOK_ORC_MAX_NV  { $$ = ITM_ORC_MAX_NV; }
@@ -11664,28 +11672,26 @@ blob_type : TOK_BLOB blob_optional_left_len_right
 		}
             }
 
-blob_optional_left_len_right: '(' TOK_LENGTH NUMERIC_LITERAL_EXACT_NO_SCALE optional_blob_unit ')'
+blob_optional_left_len_right: '(' NUMERIC_LITERAL_EXACT_NO_SCALE optional_blob_unit ')'
         {
 	 
-	  Int64 longIntVal = atoInt64($3->data());
+	  Int64 longIntVal = atoInt64($2->data());
 	  if (longIntVal < 0)
 	  {
 	    // Error: Expected an unsigned integer
 	    *SqlParser_Diags << DgSqlCode(-3017) 
-			     << DgString0(*$3);
+			     << DgString0(*$2);
 	  }
 	  
-	  longIntVal = longIntVal * $4;
+	  longIntVal = longIntVal * $3;
 
 	  $$ = (Lng32)longIntVal;
-	  delete $3;
+	  delete $2;
 	 
 	}
 
 	| empty
 	{ 
-
-
 
 	  if (CmpCommon::getDefault(TRAF_BLOB_AS_VARCHAR) == DF_ON)
 	    {
@@ -11694,15 +11700,15 @@ blob_optional_left_len_right: '(' TOK_LENGTH NUMERIC_LITERAL_EXACT_NO_SCALE opti
 	  else
 	    {
 	 
-	      $$ = (Lng32)CmpCommon::getDefaultNumeric(LOB_MAX_SIZE);
-
+	      $$ = (Lng32)CmpCommon::getDefaultNumeric(LOB_MAX_SIZE)*1024*1024;
 
 	    }
         }
 
 /* type int64 */
-optional_blob_unit :   TOK_M {$$ = 1;}
-                     | TOK_G {$$ = 1024;}
+optional_blob_unit :   TOK_K {$$ = 1024;}
+                     | TOK_M {$$ = 1024*1024;}
+                     | TOK_G {$$ = 1024*1024*1024;}
                      | empty {$$ = 1;}
 
 /* type pCharLenSpec */
@@ -18625,7 +18631,8 @@ rel_subquery : '(' query_expression order_by_clause ')'
                                   if ( temp->getOperatorType() != REL_ROOT )
                                     temp = new (PARSERHEAP()) RelRoot($2);
 
-                                  if (CmpCommon::getDefault(MODE_SPECIAL_4) == DF_OFF) 
+                                  if ((CmpCommon::getDefault(MODE_SPECIAL_4) == DF_OFF) &&
+                                      (CmpCommon::getDefault(ALLOW_ORDER_BY_IN_SUBQUERIES) == DF_OFF))
                                     {
                                       if ($3)
                                         {
@@ -19822,6 +19829,13 @@ update_statement_searched_body : no_log table_name set_update_list where_clause
 				}
 		| no_log TOK_WITH TOK_NO TOK_ROLLBACK table_name set_update_list where_clause
                 {
+                  // no rollback with update not supported for external users.
+                  if (! Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL))
+                    {
+                      yyerror(""); 
+                      YYERROR; /*internal syntax for testing only!*/
+                    }
+                  
                   Scan * inputScan =
                     new (PARSERHEAP())
                     Scan(CorrName(*$5, PARSERHEAP()));
@@ -19845,6 +19859,13 @@ update_statement_searched_body : no_log table_name set_update_list where_clause
                 }
 		| no_log TOK_WITH TOK_NO TOK_ROLLBACK table_name as_clause set_update_list where_clause
                 {
+                  // no rollback with update not supported for external users.
+                  if (! Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL))
+                    {
+                      yyerror(""); 
+                      YYERROR; /*internal syntax for testing only!*/
+                    }
+                  
                   $5->setCorrName(*$6); 
                   Scan * inputScan =
                     new (PARSERHEAP())
@@ -19868,68 +19889,65 @@ update_statement_searched_body : no_log table_name set_update_list where_clause
                   delete $5;
                   delete $6;
                 }
-				| no_log table_name set_update_list TOK_WHERE TOK_CURRENT TOK_OF entity_name_as_item
-				 {
-				    Scan * inputScan = 
-				      new (PARSERHEAP())
-				     Scan(CorrName(*$2, PARSERHEAP()));
+                | no_log table_name set_update_list TOK_WHERE TOK_CURRENT TOK_OF entity_name_as_item
+		{
+                  Scan * inputScan = 
+                    new (PARSERHEAP())
+                    Scan(CorrName(*$2, PARSERHEAP()));
+                  
+                  $$ = new (PARSERHEAP())
+                    Update(CorrName(*$2, PARSERHEAP()),
+                           NULL,
+                           REL_UNARY_UPDATE,
+                           inputScan,
+                           $3,
+                           $7);
+                  if (TRUE == $1)
+                    {
+                      ((Update*)$$)->setNoLogOperation();	
+                    }
+                  delete $2;
+                }
+		| no_log table_name as_clause set_update_list TOK_WHERE TOK_CURRENT TOK_OF entity_name_as_item
+		{
+                  $2->setCorrName(*$3); 
+                  Scan * inputScan = 
+                    new (PARSERHEAP())
+                    Scan(CorrName(*$2, PARSERHEAP()));
+                  
+                  $$ = new (PARSERHEAP())
+                    Update(CorrName(*$2, PARSERHEAP()),
+                           NULL,
+                           REL_UNARY_UPDATE,
+                           inputScan,
+                           $4,
+                           $8);
+                  if (TRUE == $1)
+                    {
+                      ((Update*)$$)->setNoLogOperation();	
+                    }
+                  delete $2;
+                  delete $3;
+                }
 
-				  $$ = new (PARSERHEAP())
-				    Update(CorrName(*$2, PARSERHEAP()),
-					   NULL,
-					   REL_UNARY_UPDATE,
-					   inputScan,
-					   $3,
-					   $7);
-				  if (TRUE == $1)
-				  {
-				    ((Update*)$$)->setNoLogOperation();	
-				  }
-				  delete $2;
-				}
-				| no_log table_name as_clause set_update_list TOK_WHERE TOK_CURRENT TOK_OF entity_name_as_item
-				 {
-                                    $2->setCorrName(*$3); 
-				    Scan * inputScan = 
-				      new (PARSERHEAP())
-				     Scan(CorrName(*$2, PARSERHEAP()));
+	      	| no_log table_as_stream_any set_update_list where_clause
+		{
+                  if ($4 != NULL) {
+                    // attach the WHERE clause to the input scan
+                    $2->addSelPredTree($4);
+                  }
+                  $$ = new (PARSERHEAP())
+                    Update(((Scan *)$2)->getTableName(),
+                           NULL,
+                           REL_UNARY_UPDATE,
+                           $2,
+                           $3);
+                  if (TRUE == $1)
+                    {
+                      ((Update*)$$)->setNoLogOperation();	
+                    }
+                }
 
-				  $$ = new (PARSERHEAP())
-				    Update(CorrName(*$2, PARSERHEAP()),
-					   NULL,
-					   REL_UNARY_UPDATE,
-					   inputScan,
-					   $4,
-					   $8);
-				  if (TRUE == $1)
-				  {
-				    ((Update*)$$)->setNoLogOperation();	
-				  }
-				  delete $2;
-				  delete $3;
-				}
-
-	      			| no_log table_as_stream_any set_update_list where_clause
-				{
-		                  if ($4 != NULL) {
-				    // attach the WHERE clause to the input scan
-				    $2->addSelPredTree($4);
-                		  }
-				  $$ = new (PARSERHEAP())
-				    Update(((Scan *)$2)->getTableName(),
-					   NULL,
-					   REL_UNARY_UPDATE,
-					   $2,
-					   $3);
-				  if (TRUE == $1)
-				  {
-				    ((Update*)$$)->setNoLogOperation();	
-				  }
-				}
-
-// QSTUFF + Mv
-
-// QSTUFF + Mv
 /* type relx */
 update_statement_searched_body : no_log '[' firstn_sorted NUMERIC_LITERAL_EXACT_NO_SCALE ']' table_name set_update_list
                                  where_clause
@@ -19959,7 +19977,7 @@ update_statement_searched_body : no_log '[' firstn_sorted NUMERIC_LITERAL_EXACT_
 				      ((Update*)$$)->setNoLogOperation();	
 				    }
 
-				  inputScan->setFirstNRows(numRows);
+				  $$->setFirstNRows(numRows);
 
 				  delete $6;
 				}
@@ -19992,7 +20010,7 @@ update_statement_searched_body : no_log '[' firstn_sorted NUMERIC_LITERAL_EXACT_
 				      ((Update*)$$)->setNoLogOperation();	
 				    }
 
-				  inputScan->setFirstNRows(numRows);
+				  $$->setFirstNRows(numRows);
 
 				  delete $6;
 				  delete $7;
@@ -20000,6 +20018,13 @@ update_statement_searched_body : no_log '[' firstn_sorted NUMERIC_LITERAL_EXACT_
 		| no_log TOK_WITH TOK_NO TOK_ROLLBACK '[' firstn_sorted NUMERIC_LITERAL_EXACT_NO_SCALE ']' table_name set_update_list
                                  where_clause
                 {
+                  // no rollback with update not supported for external users.
+                  if (! Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL))
+                    {
+                      yyerror(""); 
+                      YYERROR; /*internal syntax for testing only!*/
+                    }
+                  
                   Scan * inputScan =
                     new (PARSERHEAP())
                     Scan(CorrName(*$9, PARSERHEAP()));
@@ -20027,13 +20052,20 @@ update_statement_searched_body : no_log '[' firstn_sorted NUMERIC_LITERAL_EXACT_
 
 		     ((Update*)$$)->setNoRollbackOperation();
 
-                  inputScan->setFirstNRows(numRows);
+                  $$->setFirstNRows(numRows);
 
                   delete $9;
                 }
 		| no_log TOK_WITH TOK_NO TOK_ROLLBACK '[' firstn_sorted NUMERIC_LITERAL_EXACT_NO_SCALE ']' table_name as_clause set_update_list
                                  where_clause
                 {
+                  // no rollback with update not supported for external users.
+                  if (! Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL))
+                    {
+                      yyerror(""); 
+                      YYERROR; /*internal syntax for testing only!*/
+                    }
+                  
                   $9->setCorrName(*$10); 
                   Scan * inputScan =
                     new (PARSERHEAP())
@@ -20060,9 +20092,9 @@ update_statement_searched_body : no_log '[' firstn_sorted NUMERIC_LITERAL_EXACT_
                       ((Update*)$$)->setNoLogOperation();	
                     }
 
-		     ((Update*)$$)->setNoRollbackOperation();
+                  ((Update*)$$)->setNoRollbackOperation();
 
-                  inputScan->setFirstNRows(numRows);
+                  $$->setFirstNRows(numRows);
 
                   delete $9;
                   delete $10;
@@ -20512,7 +20544,7 @@ delete_statement : TOK_DELETE TOK_USING TOK_PURGEDATA TOK_FROM table_name
                     ((Delete*)$$)->setNoLogOperation();	
                   }
 
-		    ((Delete*)$$)->setNoRollbackOperation();
+                  ((Delete*)$$)->setNoRollbackOperation();
 
                   if (($2 == 2) || ($2 == 3))
                    {
@@ -20541,7 +20573,7 @@ delete_statement : TOK_DELETE TOK_USING TOK_PURGEDATA TOK_FROM table_name
                     ((Delete*)$$)->setNoLogOperation();	
                   }
 
-		    ((Delete*)$$)->setNoRollbackOperation();
+                  ((Delete*)$$)->setNoRollbackOperation();
 
                   if (($2 == 2) || ($2 == 3))
                    {
@@ -20592,7 +20624,7 @@ delete_statement : TOK_DELETE no_check_log ignore_triggers '[' firstn_sorted NUM
                   Scan * inputScan =
                     new (PARSERHEAP()) Scan(CorrName(*$11, PARSERHEAP()));
 
-                    Int64 numRows = atoInt64($8->data());
+                  Int64 numRows = atoInt64($8->data());
                   if ($7 == TOK_LAST)
                     {
                       yyerror("LAST option not supported with DELETE statement. \n");
@@ -20613,14 +20645,14 @@ delete_statement : TOK_DELETE no_check_log ignore_triggers '[' firstn_sorted NUM
                       ((Delete*)$$)->setNoLogOperation();
                     }
 
-		    ((Delete*)$$)->setNoRollbackOperation();
+                  ((Delete*)$$)->setNoRollbackOperation();
 
                   $$->setFirstNRows(numRows);
 
                   delete $11;
                 }
 
-| delete_start_tokens TOK_WHERE TOK_CURRENT TOK_OF entity_name_as_item 
+       | delete_start_tokens TOK_WHERE TOK_CURRENT TOK_OF entity_name_as_item 
                                 {
                                   Delete *del = (Delete *)$1;
                                   ComASSERT(del);
@@ -20708,7 +20740,7 @@ delete_statement : TOK_DELETE no_check_log ignore_triggers '[' firstn_sorted NUM
 
 // Long Running Delete
 
-| TOK_DELETE no_check_log TOK_WITH TOK_MULTI TOK_COMMIT multi_commit_size TOK_FROM table_name 
+        | TOK_DELETE no_check_log TOK_WITH TOK_MULTI TOK_COMMIT multi_commit_size TOK_FROM table_name 
               {
 		// Make sure the transaction modes are compatible
 		if (CmpCommon::transMode()->invalidMultiCommitCompatibility())
@@ -33911,6 +33943,8 @@ nonreserved_func_word:  TOK_ABS
                       | TOK_SPACE
                       | TOK_SQRT
                       | TOK_STDDEV
+					  | TOK_STDDEV_SAMP
+					  | TOK_STDDEV_POP
                       | TOK_STOP
 			//                      | TOK_SYSDATE
                       | TOK_TAN
@@ -33931,6 +33965,8 @@ nonreserved_func_word:  TOK_ABS
 			//                      | TOK_UUID
 		      | TOK_USERNAMEINTTOEXT
                       | TOK_VARIANCE
+					  | TOK_VARIANCE_SAMP
+					  | TOK_VARIANCE_POP
                       | TOK_WEEK
                       | TOK_XMLAGG
                       | TOK_XMLELEMENT

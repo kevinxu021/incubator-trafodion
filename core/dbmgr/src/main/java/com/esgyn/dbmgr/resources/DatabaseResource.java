@@ -8,7 +8,6 @@ package com.esgyn.dbmgr.resources;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -413,9 +412,6 @@ public class DatabaseResource {
 				ansiObjectName = Helper.ExternalForm(schemaName) + "." + Helper.ExternalForm(objectName);
 			}
 
-			// String url = ConfigurationResource.getInstance().getJdbcUrl();
-			// connection = DriverManager.getConnection(url, soc.getUsername(),
-			// soc.getPassword());
 			connection = JdbcHelper.getInstance().getAdminConnection();
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_DDL_TEXT),
 					ddlObjectType, ansiObjectName);
@@ -489,6 +485,8 @@ public class DatabaseResource {
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_COLUMNS));
 				pstmt.setString(1, Helper.InternalForm(schemaName));
 				pstmt.setString(2, Helper.InternalForm(objectName));
+				pstmt.setString(3, Helper.InternalForm(schemaName));
+				pstmt.setString(4, Helper.InternalForm(objectName));
 			}
 
 			// TabularResult result =
@@ -552,7 +550,8 @@ public class DatabaseResource {
 		PreparedStatement pstmt = null;
 		Connection connection = null;
 		try {
-			connection = JdbcHelper.getInstance().getAdminConnection();
+			Session soc = SessionModel.getSession(servletRequest, servletResponse);
+			connection = JdbcHelper.getInstance().getConnection(soc.getUsername(), soc.getPassword());
 			String queryText = String.format(
 					SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_HISTOGRAM_STATISTICS),
 					Helper.ExternalForm(schemaName), objectID);
@@ -736,8 +735,8 @@ public class DatabaseResource {
 				ansiObjectName = Helper.ExternalForm(schemaName) + "." + Helper.ExternalForm(objectName);
 			}
 			Session soc = SessionModel.getSession(servletRequest, servletResponse);
-			String url = ConfigurationResource.getInstance().getJdbcUrl();
-			connection = DriverManager.getConnection(url, soc.getUsername(), soc.getPassword());
+
+			connection = JdbcHelper.getInstance().getConnection(soc.getUsername(), soc.getPassword());
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_DDL_TEXT),
 					objectType, ansiObjectName);
 			if (objectType.equalsIgnoreCase("library")) {

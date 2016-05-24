@@ -702,6 +702,9 @@ void copyCommonGenericUpdateFields(GenericUpdate *result,
   result->setPrecondition(bef->getPrecondition());
 
   result->setOptHbaseAccessOptions(bef->getOptHbaseAccessOptions());
+  result->flags() = bef->flags();
+
+  result->setFirstNRows(bef->getFirstNRows());
 }
 
 void copyCommonUpdateFields(Update *result,
@@ -2125,11 +2128,17 @@ NABoolean HbaseDeleteRule::topMatch(RelExpr * relExpr, Context *context)
   if (del->getTableDesc()->getNATable()->isHbaseTable() == FALSE)
     return FALSE;
 
-   if (del->getTableDesc()->getNATable()->hasLobColumn())
+  if (del->getTableDesc()->getNATable()->hasLobColumn())
     return FALSE;
-
+  
   // HbaseDelete can only execute above DP2
   if (context->getReqdPhysicalProperty()->executeInDP2())
+    return FALSE;
+
+  // if this delete was a 'first N' delete, then it needs to be
+  // run as a cursor select...delete where select returns N rows.
+  if ((del->wasFirstN()) ||
+      (del->isNoRollback()))
     return FALSE;
 
   // Check for required physical properties that require an enforcer
@@ -2148,7 +2157,6 @@ NABoolean HbaseDeleteRule::topMatch(RelExpr * relExpr, Context *context)
     return FALSE;
 
   return TRUE;
-
 }
 
 RelExpr * HbaseDeleteRule::nextSubstitute(RelExpr * before,

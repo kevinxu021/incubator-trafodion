@@ -141,8 +141,8 @@
 			<version>${jackson-version}</version>
 		</dependency>
 		<dependency>
-			<groupId>org.trafodion.jdbc.t4.T4Driver</groupId>
-			<artifactId>t4driver</artifactId>
+			<groupId>org.trafodion.jdbc.t4</groupId>
+			<artifactId>jdbcT4</artifactId>
 			<version>${traf-jdbc-version}</version>
 		</dependency>
 		<dependency>
@@ -176,7 +176,7 @@
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<properties>
-				<env.TRAFODION_VER>2.1.0</env.TRAFODION_VER>
+				<env.TRAFODION_VER>2.2.0</env.TRAFODION_VER>
 			</properties>
 		</profile>
 		<!-- The configuration of the production profile -->
