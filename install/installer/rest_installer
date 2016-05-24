@@ -98,7 +98,6 @@ if [[ "$ONE_TAR_INSTALL" == "Y" ]]; then
    REST_DIR=$SQ_ROOT/$REST_DIR
    echo "***INFO: Rest Install Directory: $REST_DIR"
 
-   REST_DIR="$SQ_ROOT/rest*"
 else
    # untar REST build into install directory
    echo "***INFO: untarring build file $REST_BUILD_FILE"
