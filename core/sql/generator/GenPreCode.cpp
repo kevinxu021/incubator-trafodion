@@ -2847,6 +2847,9 @@ short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
            (purgedataHbase()) ||
            (initAuthorization()) ||
            (dropAuthorization()) ||
+           (backup()) ||
+           (restore()) ||
+           (unlockTraf()) ||
            (upgradeRepos())
        )
       )
