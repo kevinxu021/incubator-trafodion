@@ -28,9 +28,7 @@ include macros.gmk
 
 # Make Targets
 .PHONY: all dbsecurity foundation $(MPI_TARGET) ndcs ci jdbc_jar jdbc_type2_jar sqroot $(SEAMONSTER_TARGET) verhdr dcs rest odb
-ifneq ($(ARCH),ppc64le)
 .PHONY: dbmgr
-endif
 .PHONY: package package-all pkg-product pkg-sql-regress pkg-phx-tests pkg-dcs-tests check-copyrights
 
 ################
@@ -39,9 +37,7 @@ endif
 
 # Default target (all components)
 all: $(MPI_TARGET) dbsecurity foundation jdbc_jar $(SEAMONSTER_TARGET) ndcs ci jdbc_type2_jar dcs rest odb lib_mgmt
-ifneq ($(ARCH),ppc64le)
 all: dbmgr
-endif
 
 package: pkg-product pkg-client 
 
