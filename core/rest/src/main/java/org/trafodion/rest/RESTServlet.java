@@ -692,15 +692,16 @@ public class RESTServlet implements RestConstants {
         
         if(LOG.isDebugEnabled())
             LOG.debug("sdata :" + sdata);
-        
-        stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name,false);
-        if (stat == null) {
-            status = Response.Status.CREATED;
-            zkc.create(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name,
-                    data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
-                    CreateMode.PERSISTENT);
-        } else {
-            zkc.setData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name, data, -1);
+        if(name.equals(Constants.DEFAULT_WMS_SLA_NAME)== false){
+            stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name,false);
+            if (stat == null) {
+                status = Response.Status.CREATED;
+                zkc.create(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name,
+                        data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                        CreateMode.PERSISTENT);
+            } else {
+                zkc.setData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name, data, -1);
+            }
         }
         return status;
     }
@@ -711,15 +712,16 @@ public class RESTServlet implements RestConstants {
         
         if(LOG.isDebugEnabled())
             LOG.debug("sdata :" + sdata);
-        
-        stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + name,false);
-        if (stat == null) {
-            status = Response.Status.CREATED;
-            zkc.create(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + name,
-                    data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
-                    CreateMode.PERSISTENT);
-        } else {
-            zkc.setData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + name, data, -1);
+        if(name.equals(Constants.DEFAULT_WMS_PROFILE_NAME)== false){
+            stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + name,false);
+            if (stat == null) {
+                status = Response.Status.CREATED;
+                zkc.create(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + name,
+                        data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                        CreateMode.PERSISTENT);
+            } else {
+                zkc.setData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + name, data, -1);
+            }
         }
         return status;
     }
@@ -730,15 +732,16 @@ public class RESTServlet implements RestConstants {
         
         if(LOG.isDebugEnabled())
             LOG.debug("sdata :" + sdata);
-        
-        stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name,false);
-        if (stat == null) {
-            status = Response.Status.CREATED;
-            zkc.create(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name,
-                    data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
-                    CreateMode.PERSISTENT);
-        } else {
-            zkc.setData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name, data, -1);
+        if(name.equals(Constants.DEFAULT_WMS_MAPPING_NAME)== false){
+            stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name,false);
+            if (stat == null) {
+                status = Response.Status.CREATED;
+                zkc.create(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name,
+                        data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                        CreateMode.PERSISTENT);
+            } else {
+                zkc.setData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name, data, -1);
+            }
         }
         return status;
     }
@@ -748,17 +751,18 @@ public class RESTServlet implements RestConstants {
         
         if(LOG.isDebugEnabled())
             LOG.debug("name :" + name);
-
-        stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name,false);
-        if(stat != null){
-            data = zkc.getData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name, false, stat);
-            if(data != null ){
-                String[] sData = (new String(data)).split(":");
-                for (int index =0; index < sData.length; index++){
-                    String element = sData[index];
-                    if(element.equals("isDefault=no")){
-                        zkc.delete(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name, -1);
-                        break;
+        if(name.equals(Constants.DEFAULT_WMS_SLA_NAME)== false){
+            stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name,false);
+            if(stat != null){
+                data = zkc.getData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name, false, stat);
+                if(data != null ){
+                    String[] sData = (new String(data)).split(":");
+                    for (int index =0; index < sData.length; index++){
+                        String element = sData[index];
+                        if(element.equals("isDefault=no")){
+                            zkc.delete(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name, -1);
+                            break;
+                        }
                     }
                 }
             }
@@ -770,17 +774,18 @@ public class RESTServlet implements RestConstants {
         
         if(LOG.isDebugEnabled())
             LOG.debug("name :" + name);
-
-        stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + name,false);
-        if(stat != null){
-            data = zkc.getData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + name, false, stat);
-            if(data != null ){
-                String[] sData = (new String(data)).split(":");
-                for (int index =0; index < sData.length; index++){
-                    String element = sData[index];
-                    if(element.equals("isDefault=no")){
-                        zkc.delete(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + name, -1);
-                        break;
+        if(name.equals(Constants.DEFAULT_WMS_PROFILE_NAME)== false){
+            stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + name,false);
+            if(stat != null){
+                data = zkc.getData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + name, false, stat);
+                if(data != null ){
+                    String[] sData = (new String(data)).split(":");
+                    for (int index =0; index < sData.length; index++){
+                        String element = sData[index];
+                        if(element.equals("isDefault=no")){
+                            zkc.delete(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + name, -1);
+                            break;
+                        }
                     }
                 }
             }
@@ -792,17 +797,18 @@ public class RESTServlet implements RestConstants {
         
         if(LOG.isDebugEnabled())
             LOG.debug("name :" + name);
-
-        stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name,false);
-        if(stat != null){
-            data = zkc.getData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name, false, stat);
-            if(data != null ){
-                String[] sData = (new String(data)).split(":");
-                for (int index =0; index < sData.length; index++){
-                    String element = sData[index];
-                    if(element.equals("isDefault=no")){
-                        zkc.delete(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name, -1);
-                        break;
+        if(name.equals(Constants.DEFAULT_WMS_MAPPING_NAME)== false){
+            stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name,false);
+            if(stat != null){
+                data = zkc.getData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name, false, stat);
+                if(data != null ){
+                    String[] sData = (new String(data)).split(":");
+                    for (int index =0; index < sData.length; index++){
+                        String element = sData[index];
+                        if(element.equals("isDefault=no")){
+                            zkc.delete(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name, -1);
+                            break;
+                        }
                     }
                 }
             }
