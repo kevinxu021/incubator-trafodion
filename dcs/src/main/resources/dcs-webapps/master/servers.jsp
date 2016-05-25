@@ -174,6 +174,10 @@ entries
         <display:column property="clientAppl" title="Client Appl" sortable="true"/>
         <display:column property="clientIpAddress" title="Client Ip Address" sortable="true"/>
         <display:column property="clientPort" title="Client Port" sortable="true"/>    
+        <display:column property="mtime" title="Connected Interval Sec" sortable="true"/>    
+        <display:column property="mdate" title="Connect Time" sortable="true"/>    
+        <display:column property="sla" title="Mapped Sla" sortable="true"/>    
+        <display:column property="profile" title="Mapped Profile" sortable="true"/>    
     </display:table>
     <%
     } else {
@@ -195,6 +199,8 @@ entries
         <display:column property="clientAppl" title="Client Appl" sortable="true"/>
         <display:column property="clientIpAddress" title="Client Ip Address" sortable="true"/>
         <display:column property="clientPort" title="Client Port" sortable="true"/>    
+        <display:column property="mTime" title="Connected Interval Sec" sortable="true"/>    
+        <display:column property="mdate" title="Connect Time" sortable="true"/>    
     </display:table>
     <%
     }  

@@ -612,6 +612,7 @@ public class ServerManager implements Callable {
                                                 + "/" + aRegisteredServer,
                                                 false);
                                 if (stat != null) {
+                                    registeredServer.setMtime(stat.getMtime());
                                     data = zkc
                                             .getData(
                                                     parentZnode
@@ -645,6 +646,13 @@ public class ServerManager implements Callable {
                                             .next());
                                     registeredServer.setClientPort(scn.next());
                                     registeredServer.setClientAppl(scn.next());
+                                    if (state.equals("CONNECTED")){
+                                        registeredServer.setSla(scn.next());
+                                        registeredServer.setProfile(scn.next());
+                                    } else {
+                                        registeredServer.setSla("");
+                                        registeredServer.setProfile("");
+                                    }
                                     registeredServer.setIsRegistered();
                                     scn.close();
                                     runningServer.getRegistered().add(
@@ -708,6 +716,9 @@ public class ServerManager implements Callable {
                 serverItem.setClientIpAddress(aRegisteredServer
                         .getClientIpAddress());
                 serverItem.setClientPort(aRegisteredServer.getClientPort());
+                serverItem.setMtime(aRegisteredServer.getMtime());
+                serverItem.setSla(aRegisteredServer.getSla());
+                serverItem.setProfile(aRegisteredServer.getProfile());
                 serverItemList.add(serverItem);
             }
         }

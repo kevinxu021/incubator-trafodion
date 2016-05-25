@@ -42,6 +42,10 @@ public class RegisteredServer  {
 	private String clientIpAddress;
 	private String clientPort;
 	private String clientAppl;
+	private String sla;
+	private String profile;
+	private long connectedInterval;
+	private long connectTime;
 
 	public void setIsRegistered() {
 		registered = true;
@@ -129,6 +133,33 @@ public class RegisteredServer  {
 	}
 	public String getClientAppl() {
 		return clientAppl;
-	}		
+	}
+	public String getSla(){
+	    return sla;
+	}
+    public void setSla(String value){
+        sla = value;
+    }
+    public String getProfile(){
+        return profile;
+    }
+    public void setProfile(String value){
+        profile = value;
+    }
+    public Date getConnectTimeAsDate(){
+        return new Date(connectTime);
+    }
+    public long getConnectTime(){
+        return connectTime;
+    }
+    public void setConnectTime(long value){
+        connectTime = value;
+    }
+    public long getConnectedInterval(){
+        return connectedInterval;
+    }
+    public void setConnectedInterval(long value){
+        connectedInterval = value;
+    }
 }
 
