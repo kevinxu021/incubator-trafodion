@@ -80,7 +80,7 @@ public class BackupRestoreClient
             SnapshotCreationException, InterruptedException {
         
         if (logger.isDebugEnabled())
-            logger.debug("BackupRestoreClient.createSnapshot Enter");
+            logger.debug("BackupRestoreClient.createSnapshot Backup Tag : " + backuptag);
 
         HBaseAdmin admin = new HBaseAdmin(config);
         long startId;
@@ -100,7 +100,9 @@ public class BackupRestoreClient
           String snapshotName = hbaseTableName + "_SNAPSHOT_" + backuptag
                   + "_" + String.valueOf(startId);
 
-     
+          if (logger.isDebugEnabled())
+            logger.debug("BackupRestoreClient.createSnapshot snapshotName : " + snapshotName);
+          
           // Flush the table. In future this needs to happen in parallel.
           admin.flush(TableName.valueOf(hbaseTableName));
           // Note , do not disable table.
@@ -126,6 +128,9 @@ public class BackupRestoreClient
         }
         else
         {
+          if (logger.isDebugEnabled())
+            logger.debug("BackupRestoreClient restoreSnapshots User tag :" + backuptag);
+          
           HBaseAdmin admin = new HBaseAdmin(config);
           ArrayList<SnapshotMetaRecord> snapshotList;
 
@@ -137,7 +142,7 @@ public class BackupRestoreClient
             String snapshotName =  s.getSnapshotPath();
   
             if (logger.isDebugEnabled())
-              logger.debug("BackupRestoreClient Restore Snapshot Name :"
+              logger.debug("BackupRestoreClient restoreSnapshots Snapshot Name :"
                       + snapshotName);
   
             admin.restoreSnapshot(snapshotName);
@@ -149,11 +154,15 @@ public class BackupRestoreClient
     
     public void restoreToTimeStamp(String timestamp) throws Exception {
       //System.out.println("restoreToTimeStamp :" + timestamp );
+      if (logger.isDebugEnabled())
+        logger.debug("BackupRestoreClient restoreToTimeStamp Timestamp:" + timestamp);
       int timeout = 1000;
       boolean cb = false;
       IdTm cli = new IdTm(cb);
       IdTmId idtmid = new IdTmId();
       cli.strToId(timeout, idtmid, timestamp);
+      if (logger.isDebugEnabled())
+        logger.debug("BackupRestoreClient restoreToTimeStamp idtmid :" + idtmid.val + " Timestamp : " + timestamp );
       //System.out.println("idtmid :" + idtmid.val + " Timestamp : " + timestamp );
       RMInterface.replayEngineStart(idtmid.val);
     }
@@ -212,9 +221,11 @@ public class BackupRestoreClient
     public byte [][] listAllBackups() throws Exception {
         ArrayList<SnapshotMetaStartRecord> snapshotStartList = null;
         snapshotStartList = sm.listSnapshotStartRecords();
+        if (logger.isDebugEnabled())
+          logger.debug("BackupRestoreClient.listAllBackups snapshotStartList.size() :" + snapshotStartList.size());
         byte[][] backupList = new byte[snapshotStartList.size()][];
         int i =0;
-        byte [] asciiTime = new byte[45];
+        byte [] asciiTime = new byte[40];
         int timeout = 1000;
         boolean cb = false;
         IdTm cli = new IdTm(cb);
@@ -223,7 +234,9 @@ public class BackupRestoreClient
           long key = s.getCompletionTime();
           cli.idToStr(timeout, key, asciiTime);
           String timeStamp = Bytes.toString(asciiTime);
-          String concatStringFullRow = userTag + "    " + timeStamp;
+          String concatStringFullRow = userTag + "    " + key + "     " + timeStamp;
+          if (logger.isDebugEnabled())
+            logger.debug("BackupRestoreClient.listAllBackups  : " + concatStringFullRow);
           byte [] b = concatStringFullRow.getBytes();
           backupList[i++] = b;
         }
