@@ -204,7 +204,7 @@ ZOO_NODES=$(echo $ZOOKEEPER_NODES | tr "," "\n")
 newNodes=""
 for node in $ZOO_NODES
 do
-   tempList="$tempList $node:2181"
+   tempList="$tempList $node:$ZOOKEEPER_PORT"
 
 done
 

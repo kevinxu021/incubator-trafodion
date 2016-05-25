@@ -8643,6 +8643,7 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
        (ddlExpr->addSchemaObjects()) ||
        (ddlExpr->createLibmgr()) ||
        (ddlExpr->restore()) ||
+       (ddlExpr->unlockTraf()) ||
        (ddlExpr->updateVersion())))
     ignoreUninitTrafErr = TRUE;
 
@@ -8787,15 +8788,39 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
     }
   else if (ddlExpr->backup())
     {
+	  if (xnInProgress(&cliInterface))
+	  {
+		  *CmpCommon::diags() << DgSqlCode(-20123)
+		  	<< DgString0("This operation");
+	  }
+	  else
+	  {
 	    backup(ddlExpr, &cliInterface);
+	  }
     }
   else if (ddlExpr->restore())
   {
-      restore(ddlExpr, &cliInterface);
+	  if (xnInProgress(&cliInterface))
+	  {
+		  *CmpCommon::diags() << DgSqlCode(-20123)
+		  	<< DgString0("This operation");
+	  }
+	  else
+	  {
+		  restore(ddlExpr, &cliInterface);
+	  }
   }
   else if (ddlExpr->unlockTraf())
   {
-    unlockAll();
+	  if (xnInProgress(&cliInterface))
+	  {
+		  *CmpCommon::diags() << DgSqlCode(-20123)
+		  << DgString0("This operation");
+	  }
+	  else
+	  {
+		  unlockAll();
+	  }
   }
   else
     {

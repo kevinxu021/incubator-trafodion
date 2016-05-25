@@ -2851,6 +2851,9 @@ short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
            (dropHbase()) ||
            (initAuthorization()) ||
            (dropAuthorization()) ||
+           (backup()) ||
+           (restore()) ||
+           (unlockTraf()) ||
            (upgradeRepos())
        )
       )
