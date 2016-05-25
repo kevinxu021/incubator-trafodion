@@ -66,6 +66,10 @@ public class ServerItem  {
     String clientIpAddress;
     String clientPort;
     String clientAppl;
+    long modifyTime;
+    String sTime;
+    String sla;
+    String profile;
     
     public void setHostname(String value) { hostName = value; }
     public String getHostname() {return hostName; }
@@ -99,5 +103,33 @@ public class ServerItem  {
     public String getClientPort() {return clientPort; }               
     public void setClientAppl(String value) { clientAppl = value; }
     public String getClientAppl() {return clientAppl; }
+    public void setMtime(long value) { modifyTime = value; }
+    public String getMtime() {
+        if(state.equals("CONNECTED")){
+            Date date = new Date();
+            long timeMilli = date.getTime();
+            return Long.toString((timeMilli - modifyTime)/1000);
+        }else
+            return "";
+    }
+    public String getMdate(){
+        if(state.equals("CONNECTED")){
+            Date date = new Date(modifyTime);
+            return date.toString();
+        }else
+            return "";
+    }
+    public void setSla(String value) {
+        sla = value;
+    }
+    public String getSla(){
+        return sla;
+    }
+    public void setProfile(String value) {
+        profile = value;
+    }
+    public String getProfile(){
+        return profile;
+    }
 }
 

@@ -106,6 +106,7 @@ public class RESTServlet implements RestConstants {
 		    initZkProfiles();
 		    initZkMappings();
 		} catch (Exception e) {
+            e.printStackTrace();
 		    LOG.error(e);
 		    System.exit(1);
 		}
@@ -617,7 +618,13 @@ public class RESTServlet implements RestConstants {
 	                                registeredServer.setClientIpAddress(scn.next());
 	                                registeredServer.setClientPort(scn.next());
 	                                registeredServer.setClientAppl(scn.next());
-	                                registeredServer.setIsRegistered();
+	                                if(state.equals("CONNECTED")){
+	                                    registeredServer.setSla(scn.next());
+	                                    registeredServer.setProfile(scn.next());
+	                                    registeredServer.setConnectTime(stat.getMtime());
+	                                    registeredServer.setConnectedInterval(((new Date()).getTime() - stat.getMtime())/1000);
+	                                }
+                                    registeredServer.setIsRegistered();
 	                                scn.close();
 	                                runningServer.getRegistered().add(registeredServer);
 	                            }

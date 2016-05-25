@@ -621,6 +621,7 @@ public static final String DEFAULT_DCS_SERVER_USER_PROGRAM_STATISTICS_OPENTSDB_E
     public static final String IS_DEFAULT = "isDefault";
     /** WMS key names for properties Profile */
     public static final String CQD = "cqd";
+    public static final String SET = "set";
     public static final String HOST_LIST = "hostList";
     /** WMS key names for MAPPING */
     public static final String IS_ACTIVE = "isActive";

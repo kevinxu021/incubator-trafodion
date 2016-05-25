@@ -8902,13 +8902,14 @@ bool isInfoSession(char*& sqlString, const IDL_char *stmtLabel, short& error)
    static char buffer[4000];
    char* in = sqlString;
    SRVR_STMT_HDL *pSrvrStmt = NULL;
-   char outstr[200];
+   char connecttime[200];
    struct tm *tmp;
-   const char* format="%x - %I:%M%p";
+//   const char* format="%x - %I:%M%p";
+   const char* format="%a %b %d %T %Z";
 
    tmp = localtime(&connectedTimestamp);
-   if (strftime(outstr, sizeof(outstr), format, tmp) == 0) {
-        outstr[0]=0;
+   if (strftime(connecttime, sizeof(connecttime), format, tmp) == 0) {
+	   connecttime[0]=0;
     }
    char pattern[] = "SELECT [first 1]"
                     "'%s' as \"SESSION_ID\","
@@ -8918,6 +8919,7 @@ bool isInfoSession(char*& sqlString, const IDL_char *stmtLabel, short& error)
                     "'%s' as \"SERVER_PORT\","
                     "'%s' as \"MAPPED_PROFILE\","
                     "'%s' as \"MAPPED_SLA\","
+           	   	    "'%d' as \"CONNECTED_INTERVAL_SEC\","
            	   	    "'%s' as \"CONNECT_TIME\","
                     "'%s' as \"USER_NAME\","
            	   	   	"'%s' as \"ROLE_NAME\","
@@ -8932,7 +8934,8 @@ bool isInfoSession(char*& sqlString, const IDL_char *stmtLabel, short& error)
         serverPort.c_str(),
         profile.c_str(),
         sla.c_str(),
-        outstr,
+		(int)(time(NULL) - connectedTimestamp),
+		connecttime,
 		srvrGlobal->QSUserName,
 		srvrGlobal->QSRuleName,
 		appName.c_str());

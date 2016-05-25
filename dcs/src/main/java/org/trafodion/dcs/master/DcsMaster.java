@@ -342,8 +342,11 @@ public class DcsMaster implements Runnable {
     }
     private void createDefaultProfile(String path) throws KeeperException, InterruptedException{
         
-        byte data[] = Bytes.toBytes(String.format("%s=%s:%s=%d",
+        byte data[] = Bytes.toBytes(String.format("%s=%s:%s=%s:%s=%s:%s=%s:%s=%d",
                 Constants.IS_DEFAULT,"yes",
+                Constants.CQD,"",
+                Constants.SET,"",
+                Constants.HOST_LIST,"",
                 Constants.LAST_UPDATE, startTime
                 ));
         zkc.create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
@@ -374,17 +377,18 @@ public class DcsMaster implements Runnable {
     }
     private void createDefaultMapping(String path) throws KeeperException, InterruptedException{
         
-        byte data[] = Bytes.toBytes(String.format("%s=%s:%s=%s:%s=%s:%s=%s:%s=%s:%s=%s:%s=%s:%s=%s:%s=%d:%s=%s",
+        byte data[] = Bytes.toBytes(String.format("%s=%s:%s=%s:%s=%s:%s=%s:%s=%s:%s=%s:%s=%s:%s=%s:%s=%s:%s=%s:%s=%d",
+                Constants.IS_DEFAULT,"yes",
                 Constants.IS_ACTIVE,"yes",
-                Constants.SLA,Constants.DEFAULT_WMS_SLA_NAME,
                 Constants.USER_NAME, "",
                 Constants.APPLICATION_NAME, "",
                 Constants.SESSION_NAME, "",
                 Constants.ROLE_NAME, "",
                 Constants.CLIENT_IP_ADDRESS, "",
                 Constants.CLIENT_HOST_NAME, "",
-                Constants.LAST_UPDATE, startTime,
-                Constants.ORDER_NUMBER, Constants.DEFAULT_ORDER_NUMBER
+                Constants.SLA,Constants.DEFAULT_WMS_SLA_NAME,
+                Constants.ORDER_NUMBER, Constants.DEFAULT_ORDER_NUMBER,
+                Constants.LAST_UPDATE, startTime
                 ));
         zkc.create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     }
