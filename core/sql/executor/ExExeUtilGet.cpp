@@ -3299,17 +3299,22 @@ short ExExeUtilBackupRestoreTcb::work()
     case SETUP_HBASE_QUERY_:
     {
       backupList = ehi_->listAllBackups();
-      if (! backupList)
-      {
-        step_ = HANDLE_ERROR_;
-        break;
-      }
+      //if (! backupList)
+      //{
+      //  step_ = HANDLE_ERROR_;
+      //  break;
+      //}
       step_ = PROCESS_NEXT_ROW_;
     }
     break;
   
     case PROCESS_NEXT_ROW_:
     {
+      if(! backupList)
+      {
+        step_ = DONE_;
+        break;
+      }
       if (currIndex_ == backupList->entries())
       {
         step_ = DONE_;
