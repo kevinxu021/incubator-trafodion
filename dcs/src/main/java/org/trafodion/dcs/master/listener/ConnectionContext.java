@@ -153,6 +153,15 @@ public class ConnectionContext {
 		optionFlags2 = buf.getInt();
 		vproc= Util.extractString(buf);
 		client= Util.extractString(buf);
+/*
+        ccExtention = 
+                String sessionName
+                String clientIpAddress 
+                String clientHostName
+                String userName
+                String roleName
+                String applicationName
+*/
 		if (buf.limit() > buf.position())
             ccExtention = Util.extractString(buf);
         else
@@ -170,9 +179,10 @@ public class ConnectionContext {
     		    String key = it.next().toString();
     		    String value = jsonObj.get(key).toString();
     		    attributes.put(key,  value);
-                System.out.println("cc[attributes] key=value :" + key + "=" + value);
-    	        if(LOG.isDebugEnabled())
-    	            LOG.debug("key=value :" + key + "=" + value);
+    	        if(LOG.isDebugEnabled()){
+    	            LOG.debug("cc[attributes] key=value :" + key + "=" + value);
+                    LOG.debug("key=value :" + key + "=" + value);
+    	        }
     		}
 		} catch(JSONException e){
             LOG.error("JSONException :" + e);
@@ -206,7 +216,8 @@ public class ConnectionContext {
         reusedOtherServers.clear();
         idleServers .clear();
         Set<String> keys = availableServers.keySet();
-        System.out.println("Available Servers :" + keys);
+        if(LOG.isDebugEnabled())
+            LOG.debug("Available Servers :" + keys);
 
         for( String key : keys){
             String[] stNode = key.split(":");
@@ -216,12 +227,14 @@ public class ConnectionContext {
             if (hostList.isEmpty() || hostList.contains(hostName)){
                 String value = availableServers.get(key);
                 String[] sValue = value.split(":");
-                System.out.println("value :" + value);
-                System.out.println("sValue.length :" + sValue.length);
-                int i=0;
-                for(String v: sValue){
-                    System.out.println("v[" + i + "] :" + v);
-                    i++;
+                if(LOG.isDebugEnabled()){
+                    LOG.debug("value :" + value);
+                    LOG.debug("sValue.length :" + sValue.length);
+                    int i=0;
+                    for(String v: sValue){
+                        LOG.debug("v[" + i + "] :" + v);
+                        i++;
+                    }
                 }
                 LinkedHashMap<String,Object> attr = new LinkedHashMap<String,Object>();
                 attr.put(Constants.HOST_NAME, hostName);
@@ -257,7 +270,9 @@ public class ConnectionContext {
             sortByTimestamp(reusedSlaServers);
         if( ! reusedOtherServers.isEmpty())
             sortByTimestamp(reusedOtherServers);
-    }
+        if( !idleServers.isEmpty())
+            sortByTimestamp(idleServers);
+   }
     private static void sortByTimestamp(Map<String, LinkedHashMap<String,Object>> map) { 
         List<Set<Map.Entry<String,Object>>> list = new LinkedList(map.entrySet());
         Collections.sort(list, new Comparator<Object>() {

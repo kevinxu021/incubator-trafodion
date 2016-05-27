@@ -208,7 +208,8 @@ public class DefinedMapping  {
         boolean bFound = false;
         boolean bNotEqual = false;
         for(String mappingsKey : mappingsKeys){
-            System.out.println("mappingsKey :" + mappingsKey);
+            if(LOG.isDebugEnabled())
+                LOG.debug("mappingsKey :" + mappingsKey);
             bNotEqual = false;
             LinkedHashMap<String,String> mapp = mappingsMap.get(mappingsKey);
             Set<String> mappKeys = mapp.keySet();
@@ -230,7 +231,8 @@ public class DefinedMapping  {
                     case Constants.CLIENT_IP_ADDRESS:
                     case Constants.CLIENT_HOST_NAME:
                         attribute = attributes.get(mappKey);
-                        System.out.println("mappKey :" + mappKey + " attribute :" + attribute + " value :" + value);
+                        if(LOG.isDebugEnabled())
+                            LOG.debug("mappKey :" + mappKey + " attribute :" + attribute + " value :" + value);
                         if (attribute == null || attribute.length()==0)break;
                         if (!attribute.equals(value))
                             bNotEqual = true;
@@ -246,7 +248,8 @@ public class DefinedMapping  {
         }
         if (bFound == false)
             sla = Constants.DEFAULT_WMS_SLA_NAME;
-        System.out.println("sla :" + sla);
+        if(LOG.isDebugEnabled())
+            LOG.debug("sla :" + sla);
         
         String znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + sla;
         byte data[];
@@ -282,7 +285,8 @@ public class DefinedMapping  {
             throughput = "";
         }
         znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + profile;
-        System.out.println("Profile znode :" + znode);
+        if(LOG.isDebugEnabled())
+            LOG.debug("Profile znode :" + znode);
         try {
             Stat stat = zkc.exists(znode,false);
             if(stat != null) {
@@ -312,12 +316,7 @@ public class DefinedMapping  {
         cc.setThroughput(throughput);
         cc.setProfile(profile);
         cc.setLastUpdate(lastUpdate);
-        System.out.println("sla :" + sla);
-        System.out.println("priority :" + priority);
-        System.out.println("limit :" + limit);
-        System.out.println("throughput :" + throughput);
-        System.out.println("profile :" + profile);
-        System.out.println("lastUpdate :" + lastUpdate);
-        
+        if(LOG.isDebugEnabled())
+            LOG.debug("Profile znode :" + znode + ", sla :" + sla + ", priority :" + priority + ", limit :" + limit + ", throughput :" + throughput + ", profile :" + profile + ", lastUpdate :" + lastUpdate);
     }
 }

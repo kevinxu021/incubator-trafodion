@@ -54,7 +54,7 @@ class ConnectMessage {
             clientHostName = "";
             clientIpAddress = "";
         }
-        String userName = System.getProperty("user.name");
+        String userName = ic.getUid();
         String roleName = ic.getRoleName();
         String applicationName = ic.getApplicationName();
         
