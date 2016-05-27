@@ -68,6 +68,7 @@ where table_uid =
 --delete existing external table and statistics;
 drop table if exists TRAFODION."_HV_REGR_".myorc;
 drop table if exists TRAFODION."_HV_HIVE_".myorc;
+drop table if exists TRAFODION."_HV_REGR_".tbl_no_hist;
 
 --create and populate hive partitioned and bucketing orc table
 sh regrhive.ksh -v -f $REGRTSTDIR/TEST034_myorc.hive.sql;
@@ -75,6 +76,15 @@ sh regrhive.ksh -v -f $REGRTSTDIR/TEST034_myorc.hive.sql;
 --create statistics data and exteranl table
 update statistics for table hive.regr.myorc on every column;
 update statistics for table hive.hive.myorc on every column;
+
+CREATE EXTERNAL TABLE HIVE.REGR.TBL_NO_HIST
+(
+  ID                  INT DEFAULT NULL NOT SERIALIZED
+, COL1                INT DEFAULT NULL NOT SERIALIZED
+, COL2                INT DEFAULT NULL NOT SERIALIZED
+, COL3                DATE DEFAULT NULL NOT SERIALIZED
+)
+FOR HIVE.REGR.TBL_NO_HIST;
 
 ?section test_capture
 --start capture
@@ -91,6 +101,9 @@ explain options 'f' xx;
 execute check_histograms using 'MYORC', '_HV_REGR_';
 
 execute check_histogram_intervals using 'MYORC', '_HV_REGR_';
+
+showddl TRAFODION."_HV_REGR_".tbl_no_hist;
+prepare xx from select * from tbl_no_hist;
 
 ---------------------------MYORC IN HIVE DEFAULT SCHEMA----------------------------
 set schema hive.hive;
@@ -124,6 +137,9 @@ explain options 'f' xx;
 execute check_histograms using 'MYORC', '_HV_REGR_';
 
 execute check_histogram_intervals using 'MYORC', '_HV_REGR_';
+
+showddl TRAFODION."_HV_REGR_".tbl_no_hist;
+prepare xx from select * from tbl_no_hist;
 
 ---------------------------MYORC IN HIVE DEFAULT SCHEMA----------------------------
 set schema hive.hive;
