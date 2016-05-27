@@ -475,10 +475,15 @@ public class RESTServlet implements RestConstants {
                         data = zkc.getData(znode + "/" + child, new SlaDataWatcher(), stat);
                         String delims = "[=:]";
                         String[] tokens = (new String(data)).split(delims);
-                        for (int i = 0; i < tokens.length; i=i+2){
-                            attributes.put(tokens[i], tokens[i + 1]);
+                        if((tokens.length % 2) != 0){
+                            LOG.error("Sla [" + child + "] incorrect format :" + (new String(data)));
                         }
-                        slasMap.put(child,attributes);;
+                        else {
+                            for (int i = 0; i < tokens.length; i=i+2){
+                                attributes.put(tokens[i], tokens[i + 1]);
+                            }
+                            slasMap.put(child,attributes);
+                        }
                     }
                 }
             }
@@ -506,10 +511,15 @@ public class RESTServlet implements RestConstants {
                         data = zkc.getData(znode + "/" + child, new ProfileDataWatcher(), stat);
                         String delims = "[=:]";
                         String[] tokens = (new String(data)).split(delims);
-                        for (int i = 0; i < tokens.length; i=i+2){
-                            attributes.put(tokens[i], tokens[i + 1]);
+                        if((tokens.length % 2) != 0){
+                            LOG.error("Profile [" + child + "] incorrect format :" + (new String(data)));
                         }
-                        profilesMap.put(child,attributes);;
+                        else {
+                            for (int i = 0; i < tokens.length; i=i+2){
+                                attributes.put(tokens[i], tokens[i + 1]);
+                            }
+                            profilesMap.put(child,attributes);;
+                        }
                     }
                 }
             }
@@ -537,10 +547,15 @@ public class RESTServlet implements RestConstants {
                         data = zkc.getData(znode + "/" + child, new MappingDataWatcher(), stat);
                         String delims = "[=:]";
                         String[] tokens = (new String(data)).split(delims);
-                        for (int i = 0; i < tokens.length; i=i+2){
-                            attributes.put(tokens[i], tokens[i + 1]);
+                        if((tokens.length % 2) != 0){
+                            LOG.error("Mapp [" + child + "] incorrect format :" + (new String(data)));
                         }
-                        mappingsMap.put(child,attributes);;
+                        else {
+                            for (int i = 0; i < tokens.length; i=i+2){
+                                attributes.put(tokens[i], tokens[i + 1]);
+                            }
+                            mappingsMap.put(child,attributes);
+                        }
                     }
                 }
             }

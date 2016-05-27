@@ -158,14 +158,16 @@ string connectProfile;
 time_t connect_ctime=0;
 time_t connect_mtime=0;
 char* profConnectData=NULL;
-list<char*> connectList;
+list<char*> connectCqdList;
+list<char*> connectSetList;
 bool connectProfileSame = false;
 //======================== onDisconnect===================================================
 string disconnectProfile;
 time_t disconnect_ctime=0;
 time_t disconnect_mtime=0;
 char* profDisconnectData=NULL;
-list<char*> disconnectList;
+list<char*> disconnectCqdList;
+list<char*> disconnectSetList;
 bool disconnectProfileSame = false;
 //============================================================================================
 bool firstTime = true;
@@ -2043,6 +2045,7 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 	time_t tctime=0;
 	time_t tmtime=0;
 	char* cqds=NULL;
+	char* sets=NULL;
 
 	int rc = zoo_exists(zh, dcsRegisteredNode.c_str(), 0, &stat);
 	if( rc == ZOK )
@@ -2265,8 +2268,10 @@ TNULL:
 					if(profConnectData != NULL)
 						delete[] profConnectData;
 					cqds = NULL;
+					sets = NULL;
 					profConnectData = NULL;
-					connectList.clear();
+					connectCqdList.clear();
+					connectSetList.clear();
 
 					profConnectDataLen = stat.dataLength;
 					profConnectData = new char[profConnectDataLen + 1];
@@ -2275,26 +2280,43 @@ TNULL:
 					if( rc == ZOK )
 					{
 						profConnectData[profConnectDataLen]=0;
-						tkn = strtok(profConnectData, "=");
+						char* stringp = profConnectData;
+						tkn = strsep(&stringp, "=");
 						while(true)
 						{
 							if(tkn == NULL) break;
-							if(strcmp(tkn, "cqd") == 0)
+							if(stricmp(tkn, "cqd") == 0)
 							{
-								cqds = strtok(NULL,":");
-								break;
+								cqds = strsep(&stringp,":");
+								if(sets!=NULL)
+									break;
+							}
+							else if(stricmp(tkn, "set") == 0)
+							{
+								sets = strsep(&stringp,":");
+								if(cqds!=NULL)
+									break;
 							}
 							else
-								tkn = strtok(NULL, ":");
-							tkn = strtok(NULL, "=");
+								tkn = strsep(&stringp, ":");
+							tkn = strsep(&stringp, "=");
 						}
-						if(cqds != NULL)
+						if(cqds != NULL && cqds[0] != 0)
 						{
-							tkn = strtok(cqds, ",");
+							tkn = strsep(&cqds, ";");
 							while(tkn != NULL)
 							{
-								connectList.push_back(tkn);
-								tkn = strtok(NULL, ",");
+								connectCqdList.push_back(tkn);
+								tkn = strsep(&cqds, ";");
+							}
+						}
+						if(sets != NULL && sets[0] != 0)
+						{
+							tkn = strsep(&sets, ";");
+							while(tkn != NULL)
+							{
+								connectSetList.push_back(tkn);
+								tkn = strsep(&sets, ";");
 							}
 						}
 					}
@@ -2319,8 +2341,10 @@ TNULL:
 						if(profDisconnectData != NULL)
 							delete[] profDisconnectData;
 						profDisconnectData = NULL;
-						disconnectList.clear();
+						disconnectCqdList.clear();
+						disconnectSetList.clear();
 						cqds = NULL;
+						sets = NULL;
 
 						profDisconnectDataLen = stat.dataLength;
 						profDisconnectData = new char[profDisconnectDataLen];
@@ -2329,26 +2353,43 @@ TNULL:
 						if( rc == ZOK )
 						{
 							profDisconnectData[profDisconnectDataLen]=0;
-							tkn = strtok(profDisconnectData, "=");
+							char* stringp = profDisconnectData;
+							tkn = strsep(&stringp, "=");
 							while(true)
 							{
 								if(tkn == NULL) break;
-								if(strcmp(tkn, "cqd") == 0)
+								if(stricmp(tkn, "cqd") == 0)
 								{
-									cqds = strtok(NULL,":");
-									break;
+									cqds = strsep(&stringp,":");
+									if(sets!=NULL)
+										break;
+								}
+								else if(stricmp(tkn, "set") == 0)
+								{
+									sets = strsep(&stringp,":");
+									if(cqds!=NULL)
+										break;
 								}
 								else
-									tkn = strtok(NULL, ":");
-								tkn = strtok(NULL, "=");
+									tkn = strsep(&stringp, ":");
+								tkn = strsep(&stringp, "=");
 							}
 							if(cqds != NULL)
 							{
-								tkn = strtok(cqds, ",");
+								tkn = strsep(&cqds, ";");
 								while(tkn != NULL)
 								{
-									disconnectList.push_back(tkn);
-									tkn = strtok(NULL, ",");
+									disconnectCqdList.push_back(tkn);
+									tkn = strsep(&cqds, ";");
+								}
+							}
+							if(sets != NULL)
+							{
+								tkn = strsep(&sets, ";");
+								while(tkn != NULL)
+								{
+									disconnectSetList.push_back(tkn);
+									tkn = strsep(&sets, ";");
 								}
 							}
 						}
@@ -2749,8 +2790,10 @@ TNULL:
 			return;
 		}
 	}
-//============================== Execute all CQDs from the Profile ======================================
-	sqlError = execProfileCqdList(&connectList);
+//============================== Execute all CQDs and Sets from the Profile ======================================
+	sqlError = execProfileCqdList(&connectCqdList);
+	if (sqlError.length() == 0)
+		sqlError = execProfileCqdList(&connectSetList);
 	if (sqlError.length() != 0)
 	{
 		connectProfile = "";
@@ -2759,14 +2802,15 @@ TNULL:
 		if(profConnectData!=NULL)
 			delete[] profConnectData;
 		profConnectData=NULL;
-		connectList.clear();
+		connectSetList.clear();
+		connectCqdList.clear();
 		connectProfileSame = false;
 
 		exception_.exception_detail = -1;
 		exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "EXECUTE CQDS failed :", sqlError.c_str());
+			2, "EXECUTE CQD or SET failed :", sqlError.c_str());
 		SETSRVRERROR(SQLERRWARN, -1, "HY000", (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
 		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
 		updateSrvrState(SRVR_CONNECT_REJECTED);
@@ -9940,10 +9984,10 @@ string execProfileCqdList(list<char*> *pList)
     	if (rc == SQL_ERROR)
     	{
     		ERROR_DESC_def *p_buffer = QryControlSrvrStmt->sqlError.errorList._buffer;
-    		requestError = "CQD failed :" + string(ControlQuery) + " error :"+ p_buffer->errorText;
+    		requestError = "CQD_OR_SET failed :" + string(ControlQuery) + " error :"+ p_buffer->errorText;
     		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
     			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-    			2, "PROFILE_CQD_QUERY", requestError.c_str());
+    			2, "PROFILE_QUERY", requestError.c_str());
     		break;
     	}
     }

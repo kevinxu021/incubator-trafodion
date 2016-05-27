@@ -188,8 +188,10 @@ class ConnectReply {
                     ));
             nodeRegisteredPath = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED + "/" + server;
             zkc.setData(nodeRegisteredPath, data, -1);
-            System.out.println("nodeRegisteredPath :" + nodeRegisteredPath);
-            System.out.println("data :" + new String(data));
+            if(LOG.isDebugEnabled()){
+                LOG.debug("nodeRegisteredPath :" + nodeRegisteredPath);
+                LOG.debug("data :" + new String(data));
+            }
          } catch (KeeperException.NodeExistsException e) {
             LOG.error(clientSocketAddress + ": " + "do nothing...some other server has created znodes: " + e.getMessage());
             exceptionThrown = true;
