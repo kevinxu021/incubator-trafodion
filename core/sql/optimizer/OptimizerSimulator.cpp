@@ -895,7 +895,7 @@ void OptimizerSimulator::dropObjects()
       query = "DROP TABLE IF EXISTS ";
       query += stdQualTblNm.c_str();
       query += " CASCADE;";
-      debugMessage("%s\n", query.c_str());
+      debugMessage("%s\n", query.data());
       retcode = executeFromMetaContext(query.data());
       if(retcode < 0)
       {
