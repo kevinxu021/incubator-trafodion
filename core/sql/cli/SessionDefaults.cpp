@@ -403,20 +403,16 @@ void SessionDefaults::setSessionDefaultAttributeValue
 	setEspIdleTimeout(defaultValueAsLong);
       }
     break;
-    
     case ONLINE_BACKUP_TIMEOUT:
     {
-  setOnlineBackupTimeout(defaultValueAsLong);
+	setOnlineBackupTimeout(defaultValueAsLong);
     }
     break;
-  
-
     case COMPILER_IDLE_TIMEOUT:
       {
 	setCompilerIdleTimeout(defaultValueAsLong);
       }
     break;
-
     case ESP_INACTIVE_TIMEOUT:
       {
 	setEspInactiveTimeout(defaultValueAsLong);

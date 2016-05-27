@@ -444,15 +444,15 @@ short ExControlTcb::work()
                       int lvl = (int) strtoul(value[2], NULL, 10);
                       currContext->getSessionDefaults()->
                         setOnlineBackupTimeout(lvl);
-                   }
+                   } 
                    else if (strcmp(value[1], "COMPILER_IDLE_TIMEOUT") == 0)
                    {
                       int lvl = (int) strtoul(value[2], NULL, 10);
                       currContext->getSessionDefaults()->
                         setCompilerIdleTimeout(lvl);
                    }
-		  }
 	      }
+        }
   }
   getHeap()->deallocateMemory(data);
   

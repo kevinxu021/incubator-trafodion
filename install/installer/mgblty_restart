@@ -25,23 +25,18 @@ source $TRAF_CONFIG
 
 
 function restartMgblty {
-
+ 
 source $TRAF_CONFIG
-
-$SQ_ROOT/sql/scripts/mgblty_stop
-
-sleep 60
-
-#No need to do this. CMON/NMON will auto-restart mgblty components
-#$SQ_ROOT/sql/scripts/mgblty_start
-
+echo "Some of the dependent processes like mxosrvr may not be fully up when manageability processes were first started." >> $INSTALL_LOG
+echo "Stopping the manageability processes. They will be automatically restarted by \$CMON and \$NMON, allowing them to connect with dependent processes." >> $INSTALL_LOG
+$SQ_ROOT/sql/scripts/mgblty_stop >> $INSTALL_LOG
+ 
 }
-
-
+ 
+ 
 #Main
-echo "***INFO: Manageability Restart"
-echo
-
+echo "***INFO: Restarting EsgynDB Manageability Components" >> $INSTALL_LOG
 
 restartMgblty
+
 

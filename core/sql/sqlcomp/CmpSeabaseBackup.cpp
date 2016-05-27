@@ -147,55 +147,6 @@ short CmpSeabaseDDL::unlockSQL()
 
 }
 
-/*
-short CmpSeabaseDDL::lockSQL()
-{
-	StatsGlobals *statsGlobals = GetCliGlobals()->getStatsGlobals();
-	if(statsGlobals == NULL)
-	{
-		*CmpCommon::diags() << DgSqlCode(-CAT_INTERNAL_EXCEPTION_ERROR);
-		return -1;
-	}
-
-	//Set snapshot flag in shared memory.
-	short savedPriority, savedStopMode;
-	short error = statsGlobals->getStatsSemaphore(GetCliGlobals()->getSemId(),
-			GetCliGlobals()->myPin(), savedPriority, savedStopMode, FALSE);
-
-	CMPASSERT(error == 0);
-	
-	statsGlobals->setSnapshotInProgress();
-	
-	statsGlobals->releaseStatsSemaphore(GetCliGlobals()->getSemId(),GetCliGlobals()->myPin(),
-            savedPriority, savedStopMode);
-	
-
-	//propagate the snapshot flag to all nodes
-	//TODO
-	
-	return 0;
-}
-
-short CmpSeabaseDDL::unlockSQL()
-{
-	StatsGlobals *statsGlobals = GetCliGlobals()->getStatsGlobals();
-	CMPASSERT(statsGlobals != NULL);
-	
-	short savedPriority, savedStopMode;
-	//reset snapshotFlag
-	short error = statsGlobals->getStatsSemaphore(GetCliGlobals()->getSemId(),
-			GetCliGlobals()->myPin(), savedPriority, savedStopMode, FALSE);
-
-	CMPASSERT(error == 0);
-	
-	statsGlobals->resetSnapshotInProgress();
-	
-	statsGlobals->releaseStatsSemaphore(GetCliGlobals()->getSemId(),GetCliGlobals()->myPin(),
-            savedPriority, savedStopMode);
-	
-	return 0;
-}
-*/
 NABoolean CmpSeabaseDDL::isSQLLocked()
 {
 	StatsGlobals *statsGlobals = GetCliGlobals()->getStatsGlobals();
