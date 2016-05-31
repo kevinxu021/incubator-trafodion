@@ -534,7 +534,8 @@ define([
 						"className" : "dbmgr-nowrap",
 						"mRender": function ( data, type, full ) {
 							if (type === 'display') {
-								return moment(data).format("YYYY-MM-DD HH:mm:ss");
+								//return moment(data).format("YYYY-MM-DD HH:mm:ss");
+								return common.toServerLocalDateFromMilliSeconds(data, 'YYYY-MM-DD HH:mm:ss');
 							}
 							else return data;
 						}
