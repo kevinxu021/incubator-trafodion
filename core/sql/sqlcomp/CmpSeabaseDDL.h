@@ -407,7 +407,7 @@ class CmpSeabaseDDL
 
    short switchBackCompiler();
 
-  ExpHbaseInterface* allocEHI(NADefaults * defs = NULL);
+  ExpHbaseInterface* allocEHI(NABoolean isMonarchTable, NADefaults * defs = NULL);
   
   short ddlInvalidateNATables();
 
@@ -416,8 +416,9 @@ class CmpSeabaseDDL
 
   enum 
     {
-      MD_TABLES_REPL_SYNC_FLG  = 0x0001,
-      MD_TABLES_REPL_ASYNC_FLG = 0x0002
+      MD_TABLES_REPL_SYNC_FLG       = 0x0001,
+      MD_TABLES_REPL_ASYNC_FLG      = 0x0002,
+      MD_TABLES_STORAGE_MONARCH_FLG = 0x0004
       
     };
   static void setMDflags(Int64 &flags, //INOUT
@@ -470,8 +471,7 @@ class CmpSeabaseDDL
   short isMetadataInitialized(ExpHbaseInterface * ehi = NULL);
   short isOldMetadataInitialized(ExpHbaseInterface * ehi);
 
-  ExpHbaseInterface* allocEHI(const char * server, const char * zkPort,
-                              NABoolean raiseError);
+  ExpHbaseInterface* allocEHI(const char *server, const char *zkport, NABoolean raiseError, NABoolean isMonarchTable);
   
   // if prevContext is defined, get user CQDs from the controlDB of
   // previous context and send them to the new cmp context
@@ -518,6 +518,16 @@ class CmpSeabaseDDL
                          char **encodedKeysBuffer = NULL,
 			 NABoolean doRetry = TRUE,
                          NABoolean ddlXns = FALSE);
+
+  short createMonarchTable(ExpHbaseInterface *ehi, 
+                         HbaseStr *table,
+                         const int tableType,
+                         NAList<HbaseStr> &cols,
+                         NAList<HbaseCreateOption*> * inMonarchCreateOptions = NULL,
+                         const int numSplits = 0,
+                         const int keyLength = 0,
+                         char** encodedKeysBuffer = NULL,
+                         NABoolean doRetry = TRUE);
 
   short alterHbaseTable(ExpHbaseInterface *ehi,
                         HbaseStr *table,

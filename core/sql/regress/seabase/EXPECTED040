@@ -1,0 +1,323 @@
+>>obey TEST040(creates);
+>>create table t040t1 (a int not null primary key, b int)
++>  attribute storage monarch;
+
+--- SQL operation complete.
+>>invoke t040t1;
+
+-- Definition of Monarch table TRAFODION.TEST040_SCH.T040T1
+-- Definition current  Mon Mar 21 18:03:14 2016
+
+  (
+    A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
+  , B                                INT DEFAULT NULL
+  )
+
+--- SQL operation complete.
+>>create index t040t1i1 on t040t1 (b);
+
+--- SQL operation complete.
+>>invoke t040t1;
+
+-- Definition of Monarch table TRAFODION.TEST040_SCH.T040T1
+-- Definition current  Mon Mar 21 18:03:17 2016
+
+  (
+    A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
+  , B                                INT DEFAULT NULL
+  )
+
+--- SQL operation complete.
+>>
+>>obey TEST040(inserts);
+>>explain options 'f' insert into t040t1 values (1,2);
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+3    .    4    root                  o                               1.00E+000
+1    2    3    nested_join                                           1.00E+000
+.    .    2    monarch_insert                  T040T1I1              1.00E+000
+.    .    1    monarch_insert                  T040T1                1.00E+000
+
+--- SQL operation complete.
+>>insert into t040t1 values (1,2);
+
+--- 1 row(s) inserted.
+>>explain options 'f' upsert into t040t1 values (3,4);
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+7    .    8    root                  o                               2.00E+000
+1    6    7    tuple_flow                                            2.00E+000
+2    5    6    nested_join                                           2.00E+000
+3    4    5    blocked_union                                         2.00E+000
+.    .    4    monarch_insert                  T040T1I1              1.00E+000
+.    .    3    monarch_delete                  T040T1I1              1.00E+000
+.    .    2    trafodion_merge                 T040T1                1.00E+000
+.    .    1    values                                                1.00E+000
+
+--- SQL operation complete.
+>>upsert into t040t1 values (3,4);
+
+--- 1 row(s) inserted.
+>>upsert into t040t1 values (5,6), (7,8);
+
+--- 2 row(s) inserted.
+>>
+>>obey TEST040(selects);
+>>control query shape scan(path 'T040T1');
+
+--- SQL operation complete.
+>>explain options 'f' select * from t040t1;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+1    .    2    root                                                  1.00E+002
+.    .    1    monarch_scan                    T040T1                1.00E+002
+
+--- SQL operation complete.
+>>select * from t040t1;
+
+A            B          
+-----------  -----------
+
+          1            2
+          3            4
+          5            6
+          7            8
+
+--- 4 row(s) selected.
+>>control query shape cut;
+
+--- SQL operation complete.
+>>explain options 'f' select * from table(index_table t040t1i1);
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+1    .    2    root                                                  1.00E+002
+.    .    1    monarch_scan                    T040T1I1              1.00E+002
+
+--- SQL operation complete.
+>>select * from table(index_table t040t1i1);
+
+B@           A          
+-----------  -----------
+
+          2            1
+          4            3
+          6            5
+          8            7
+
+--- 4 row(s) selected.
+>>explain options 'f' select * from t040t1 where a = 1;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+1    .    2    root                  o                               1.00E+000
+.    .    1    monarch_scan                    T040T1                1.00E+000
+
+--- SQL operation complete.
+>>select * from t040t1 where a = 1;
+
+A            B          
+-----------  -----------
+
+          1            2
+
+--- 1 row(s) selected.
+>>select * from t040t1 where a = 0;
+
+--- 0 row(s) selected.
+>>
+>>
+>>obey TEST040(drop_index);
+>>drop index t040t1i1;
+
+--- SQL operation complete.
+>>
+>>obey TEST040(deletes_1);
+>>explain options 'f' delete from t040t1 where a = 1;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+1    .    2    root                  o                               1.00E+000
+.    .    1    monarch_delete                  T040T1                1.00E+000
+
+--- SQL operation complete.
+>>delete from t040t1 where a = 1;
+
+--- 1 row(s) deleted.
+>>
+>>obey TEST040(selects_base_table);
+>>control query shape scan(path 'T040T1');
+
+--- SQL operation complete.
+>>select * from t040t1;
+
+A            B          
+-----------  -----------
+
+          3            4
+          5            6
+          7            8
+
+--- 3 row(s) selected.
+>>control query shape cut;
+
+--- SQL operation complete.
+>>
+>>obey TEST040(deletes_all);
+>>explain options 'f' delete from t040t1;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+1    .    2    root                  o                               1.00E+002
+.    .    1    monarch_delete                  T040T1                1.00E+002
+
+--- SQL operation complete.
+>>delete from t040t1;
+
+--- 3 row(s) deleted.
+>>
+>>
+>>
+>>obey TEST040(selects_base_table);
+>>control query shape scan(path 'T040T1');
+
+--- SQL operation complete.
+>>select * from t040t1;
+
+--- 0 row(s) selected.
+>>control query shape cut;
+
+--- SQL operation complete.
+>>
+>>
+>>obey TEST040(create_index);
+>>create index t040t1i1 on t040t1 (b);
+
+--- SQL operation complete.
+>>
+>>obey TEST040(inserts);
+>>explain options 'f' insert into t040t1 values (1,2);
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+3    .    4    root                  o                               1.00E+000
+1    2    3    nested_join                                           1.00E+000
+.    .    2    monarch_insert                  T040T1I1              1.00E+000
+.    .    1    monarch_insert                  T040T1                1.00E+000
+
+--- SQL operation complete.
+>>insert into t040t1 values (1,2);
+
+--- 1 row(s) inserted.
+>>explain options 'f' upsert into t040t1 values (3,4);
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+7    .    8    root                  o                               2.00E+000
+1    6    7    tuple_flow                                            2.00E+000
+2    5    6    nested_join                                           2.00E+000
+3    4    5    blocked_union                                         2.00E+000
+.    .    4    monarch_insert                  T040T1I1              1.00E+000
+.    .    3    monarch_delete                  T040T1I1              1.00E+000
+.    .    2    trafodion_merge                 T040T1                1.00E+000
+.    .    1    values                                                1.00E+000
+
+--- SQL operation complete.
+>>upsert into t040t1 values (3,4);
+
+--- 1 row(s) inserted.
+>>upsert into t040t1 values (5,6), (7,8);
+
+--- 2 row(s) inserted.
+>>
+>>obey TEST040(deletes_1);
+>>explain options 'f' delete from t040t1 where a = 1;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+3    .    4    root                  o                               1.00E+000
+1    2    3    nested_join                                           1.00E+000
+.    .    2    monarch_delete                  T040T1I1              1.00E+000
+.    .    1    monarch_delete                  T040T1                1.00E+000
+
+--- SQL operation complete.
+>>delete from t040t1 where a = 1;
+
+--- 1 row(s) deleted.
+>>
+>>obey TEST040(selects_all);
+>>control query shape scan(path 'T040T1');
+
+--- SQL operation complete.
+>>select * from t040t1;
+
+A            B          
+-----------  -----------
+
+          3            4
+          5            6
+          7            8
+
+--- 3 row(s) selected.
+>>control query shape cut;
+
+--- SQL operation complete.
+>>select * from table(index_table t040t1i1);
+
+B@           A          
+-----------  -----------
+
+          4            3
+          6            5
+          8            7
+
+--- 3 row(s) selected.
+>>
+>>obey TEST040(deletes_all);
+>>explain options 'f' delete from t040t1;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+3    .    4    root                                                  1.00E+002
+1    2    3    nested_join                                           1.00E+002
+.    .    2    monarch_delete                  T040T1I1              1.00E+000
+.    .    1    monarch_delete                  T040T1                1.00E+002
+
+--- SQL operation complete.
+>>delete from t040t1;
+
+--- 3 row(s) deleted.
+>>
+>>
+>>
+>>obey TEST040(selects_all);
+>>control query shape scan(path 'T040T1');
+
+--- SQL operation complete.
+>>select * from t040t1;
+
+--- 0 row(s) selected.
+>>control query shape cut;
+
+--- SQL operation complete.
+>>select * from table(index_table t040t1i1);
+
+--- 0 row(s) selected.
+>>
+>>
+>>--obey TEST040(clean_up);
+>>log;

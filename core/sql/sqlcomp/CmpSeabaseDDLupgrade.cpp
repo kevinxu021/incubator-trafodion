@@ -367,7 +367,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 	      {
 	      case 0:
 		{
-		  ehi = allocEHI(&ActiveSchemaDB()->getDefaults());
+		  ehi = allocEHI(COM_STORAGE_HBASE, &ActiveSchemaDB()->getDefaults());
 		  
 		  Int64 mdCurrMajorVersion;
 		  Int64 mdCurrMinorVersion;
@@ -489,7 +489,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 	      {
 	      case 0:
 		{
-		  ehi = allocEHI(&ActiveSchemaDB()->getDefaults());
+		  ehi = allocEHI(COM_STORAGE_HBASE, &ActiveSchemaDB()->getDefaults());
 		  
 		  Int64 mdCurrMajorVersion;
 		  Int64 mdCurrMinorVersion;
@@ -656,7 +656,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 	      case 1:
 		{
 		  // check if upgrade has already been done.
-		  ehi = allocEHI(&ActiveSchemaDB()->getDefaults());
+		  ehi = allocEHI(COM_STORAGE_HBASE, &ActiveSchemaDB()->getDefaults());
 
 		  Int64 mdCurrMajorVersion;
 		  Int64 mdCurrMinorVersion;
@@ -814,7 +814,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		
 	      case 1:
 		{
-		  ehi = allocEHI();
+		  ehi = allocEHI(COM_STORAGE_HBASE);
 
 		  //
 		  // drop metadata tables using hbase drop command
@@ -862,7 +862,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		  //
 		  // backup current metadata using hbase snapshot command
 		  //
-		  ehi = allocEHI();
+		  ehi = allocEHI(COM_STORAGE_HBASE);
 
 		  for (Lng32 i = 0; i < sizeof(allMDupgradeInfo)/sizeof(MDUpgradeInfo); i++)
 		    {
@@ -942,7 +942,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		
 	      case 1:
 		{
-		  ehi = allocEHI();
+		  ehi = allocEHI(COM_STORAGE_HBASE);
 
 		  //
 		  // drop metadata tables using hbase drop command
@@ -1289,7 +1289,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		
 	      case 1:
 		{
-		  ehi = allocEHI();
+		  ehi = allocEHI(COM_STORAGE_HBASE);
 
 		  // drop info about old tables from the new metadata.
 		  // do not drop the actual hbase tables. 
@@ -1752,7 +1752,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		
 	      case 1:
 		{
-		  ehi = allocEHI();
+		  ehi = allocEHI(COM_STORAGE_HBASE);
 
 		  // drop old tables from hbase.
 		  for (Lng32 i = 0; i < sizeof(allMDupgradeInfo)/sizeof(MDUpgradeInfo); i++)
@@ -1884,7 +1884,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 	      case 2:
 		{
 		  if (ehi == NULL)
-		    ehi = allocEHI();
+		    ehi = allocEHI(COM_STORAGE_HBASE);
 		  
 		  dropMDtables(ehi, TRUE); // drop old MD
 		  deallocEHI(ehi);
@@ -1917,7 +1917,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 	      case 5:
 		{
 		  if (ehi == NULL)
-		    ehi = allocEHI();
+		    ehi = allocEHI(COM_STORAGE_HBASE);
 		  
 		  restoreOldMDtables(ehi); // restore old MD and make them current
 		  deallocEHI(ehi);

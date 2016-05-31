@@ -215,6 +215,8 @@ ExHdfsScanTcb::ExHdfsScanTcb(
   ehi_ = ExpHbaseInterface::newInstance(glob->getDefaultHeap(),
                                         (char*)"",  //Later replace with server cqd
                                         (char*)"", ////Later replace with port cqd
+                                        ((ComTdbHbaseAccess *)getTdb())->getStorageType(),
+                                        ((ComTdbHbaseAccess *)getTdb())->replSync(),
                                         jniDebugPort,
                                         jniDebugTimeout);
 }

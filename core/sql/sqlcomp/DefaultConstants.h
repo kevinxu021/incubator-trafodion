@@ -3882,6 +3882,8 @@ enum DefaultConstants
   ONLINE_BACKUP_TIMEOUT,
 
   COMPILER_IDLE_TIMEOUT,
+  MONARCH_LOCATOR_ADDRESS,
+  MONARCH_LOCATOR_PORT,
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!
   __NUM_DEFAULT_ATTRIBUTES

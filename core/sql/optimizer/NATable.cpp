@@ -5297,6 +5297,7 @@ NATable::NATable(BindWA *bindWA,
     newColumns_(heap),
     snapshotName_(NULL),
     xnRepl_(COM_REPL_NONE),
+    storageType_(COM_STORAGE_HBASE),
     prototype_(NULL)
 {
   NAString tblName = qualifiedName_.getQualifiedNameObj().getQualifiedNameAsString();
@@ -5412,6 +5413,8 @@ NATable::NATable(BindWA *bindWA,
       else if ((ComReplType)table_desc->body.table_desc.xn_repl == COM_REPL_ASYNC)
         setXnRepl(COM_REPL_ASYNC);
     }
+
+  setStorageType(table_desc->body.table_desc.storageType);
 
   if (corrName.isExternal())
   {
@@ -6034,7 +6037,8 @@ NATable::NATable(BindWA *bindWA,
     privInfo_(NULL),
     newColumns_(heap),
     snapshotName_(NULL),
-    xnRepl_(COM_REPL_NONE)
+    xnRepl_(COM_REPL_NONE),
+    storageType_(COM_STORAGE_HBASE)
 {
 
   NAString tblName = qualifiedName_.getQualifiedNameObj().getQualifiedNameAsString();
@@ -8041,16 +8045,28 @@ ExpHbaseInterface* NATable::getHBaseInterface() const
       getSpecialType() == ExtendedQualName::VIRTUAL_TABLE)
     return NULL;
 
-   return NATable::getHBaseInterfaceRaw();
+   return NATable::getHBaseInterfaceRaw
+     ((storageType_ == COM_STORAGE_MONARCH));
 }
 
-ExpHbaseInterface* NATable::getHBaseInterfaceRaw() 
+ExpHbaseInterface* NATable::getHBaseInterfaceRaw(NABoolean isMonarchTable) 
 {
   NADefaults* defs = &ActiveSchemaDB()->getDefaults();
-  const char* server = defs->getValue(HBASE_SERVER);
-  const char* zkPort = defs->getValue(HBASE_ZOOKEEPER_PORT);
+  const char* server;
+  const char* zkPort;
+  if (isMonarchTable) {
+     server = defs->getValue(MONARCH_LOCATOR_ADDRESS);
+     zkPort = defs->getValue(MONARCH_LOCATOR_PORT);
+  }
+  else {
+     server = defs->getValue(HBASE_SERVER);
+     zkPort = defs->getValue(HBASE_ZOOKEEPER_PORT);
+  }
+  NABoolean replSync = FALSE;
   ExpHbaseInterface* ehi = ExpHbaseInterface::newInstance
-                           (STMTHEAP, server, zkPort);
+                           (STMTHEAP, server, zkPort, 
+                            (isMonarchTable ? COM_STORAGE_MONARCH : COM_STORAGE_HBASE),
+                           replSync);
 
   Lng32 retcode = ehi->init(NULL);
   if (retcode < 0)
@@ -8064,13 +8080,12 @@ ExpHbaseInterface* NATable::getHBaseInterfaceRaw()
     delete ehi;
     return NULL;
   }
-
   return ehi;
 }
 
 NAArray<HbaseStr> *NATable::getRegionsBeginKey(const char* hbaseName) 
 {
-  ExpHbaseInterface* ehi = getHBaseInterfaceRaw();
+  ExpHbaseInterface* ehi = getHBaseInterfaceRaw(FALSE);
   NAArray<HbaseStr> *keyArray = NULL;
 
   if (!ehi)

@@ -236,7 +236,7 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_DROP_ALL       ].jm_name      = "dropAll";
     JavaMethods_[JM_DROP_ALL       ].jm_signature = "(Ljava/lang/String;J)Z";
     JavaMethods_[JM_LIST_ALL       ].jm_name      = "listAll";
-    JavaMethods_[JM_LIST_ALL       ].jm_signature = "(Ljava/lang/String;)[[B";
+    JavaMethods_[JM_LIST_ALL       ].jm_signature = "(Ljava/lang/String;)[Ljava/lang/String;";
     JavaMethods_[JM_GET_REGION_STATS       ].jm_name      = "getRegionStats";
     JavaMethods_[JM_GET_REGION_STATS       ].jm_signature = "(Ljava/lang/String;)[[B";
     JavaMethods_[JM_COPY       ].jm_name      = "copy";
@@ -1305,7 +1305,7 @@ NAArray<HbaseStr>* HBaseClient_JNI::listAll(NAHeap *heap, const char* pattern)
   }
 
   NAArray<HbaseStr> *hbaseTables;
-  jint retcode = convertByteArrayObjectArrayToNAArray(heap, j_hbaseTables, &hbaseTables);
+  jint retcode = convertStringObjectArrayToNAArray(heap, j_hbaseTables, &hbaseTables);
   jenv_->PopLocalFrame(NULL);
   if (retcode == 0)
      return NULL;
@@ -5590,13 +5590,15 @@ void HTableClient_JNI::cleanupResultInfo()
       jenv_->ReleaseByteArrayElements(jba_rowID_, p_rowID_, JNI_ABORT);
       p_rowID_ = NULL;
       jenv_->DeleteGlobalRef(jba_rowID_);
+      jba_rowID_ = NULL;
    }
    if (p_kvsPerRow_ != NULL)
    {
       jenv_->ReleaseIntArrayElements(jKvsPerRow_, p_kvsPerRow_, JNI_ABORT);
-       p_kvsPerRow_ = NULL;
+      p_kvsPerRow_ = NULL;
+      jenv_->DeleteGlobalRef(jKvsPerRow_);
+      jKvsPerRow_ = NULL;
    }
-   jenv_->DeleteGlobalRef(jKvsPerRow_);
    cleanupDone_ = TRUE;
    return;
 }
@@ -6383,11 +6385,46 @@ jint convertByteArrayObjectArrayToNAArray(NAHeap *heap, jarray j_objArray, NAArr
     NAArray<HbaseStr> *tmpArray = new (heap) NAArray<HbaseStr> (heap, arrayLen); 
     for (int i = 0; i < arrayLen; i++) {
         j_ba = (jbyteArray)jenv_->GetObjectArrayElement((jobjectArray)j_objArray, i);
+        if (j_ba == NULL) {
+           element.len = 0;
+           element.val = NULL;
+           tmpArray->insert(i,element);
+           continue;
+        }
         j_baLen = jenv_->GetArrayLength(j_ba);
         ba = new (heap) BYTE[j_baLen];
         jenv_->GetByteArrayRegion(j_ba, 0, j_baLen, (jbyte *)ba); 
         element.len = j_baLen;
         element.val = (char *)ba;
+        tmpArray->insert(i,element);
+    }
+    *retArray = tmpArray;
+    return arrayLen;
+}
+
+jint convertStringObjectArrayToNAArray(NAHeap *heap, jarray j_objArray, NAArray<HbaseStr> **retArray) 
+{
+    if (j_objArray == NULL) {
+        *retArray = NULL;
+        return 0;
+    }
+    int arrayLen = jenv_->GetArrayLength(j_objArray);
+    NAArray<HbaseStr> *tmpArray = new (heap) NAArray<HbaseStr> (heap, arrayLen); 
+    jstring j_str;
+    char *str;
+    jboolean isCopy;
+    jint strLen;
+    HbaseStr element; 
+
+    for (int i = 0; i < arrayLen; i++)
+    {
+        j_str = (jstring)jenv_->GetObjectArrayElement((jobjectArray)j_objArray, i);
+        strLen = jenv_->GetStringUTFLength(j_str);
+        str = new (heap) char[strLen+1]; 
+        jenv_->GetStringUTFRegion(j_str, 0, strLen, str);
+        str[strLen] = '\0';
+        element.len = strLen+1;
+        element.val = (char *)str;
         tmpArray->insert(i,element);
     }
     *retArray = tmpArray;
