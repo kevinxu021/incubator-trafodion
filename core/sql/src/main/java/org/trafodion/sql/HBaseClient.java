@@ -141,6 +141,7 @@ public class HBaseClient {
     public static final int HBASE_DURABILITY = 20;
     public static final int HBASE_MEMSTORE_FLUSH_SIZE = 21;
     public static final int HBASE_SPLIT_POLICY = 22;
+    public static final int HBASE_ENCRYPTION = 23;
 
     
     public HBaseClient() {
@@ -263,7 +264,7 @@ public class HBaseClient {
             else
               metaColDesc.setMaxVersions(DtmConst.SSCC_MAX_DATA_VERSION);
             metaColDesc.setInMemory(true);
-            desc.addFamily(metaColDesc);
+            //desc.addFamily(metaColDesc);
             HBaseAdmin admin = new HBaseAdmin(config);
             admin.createTable(desc);
             admin.close();
@@ -373,6 +374,11 @@ public class HBaseClient {
            case HBASE_BLOCKSIZE:
                colDesc.setBlocksize
                    (Integer.parseInt(tableOption));
+               returnStatus.setColumnDescriptorChanged();
+               break ;
+           case HBASE_ENCRYPTION:
+               if (tableOption.equalsIgnoreCase("AES"))
+                   colDesc.setEncryptionType("AES");
                returnStatus.setColumnDescriptorChanged();
                break ;
            case HBASE_DATA_BLOCK_ENCODING:
@@ -529,7 +535,7 @@ public class HBaseClient {
             else
               metaColDesc.setMaxVersions(DtmConst.SSCC_MAX_DATA_VERSION);
             metaColDesc.setInMemory(true);
-            desc.addFamily(metaColDesc);
+            //desc.addFamily(metaColDesc);
             HBaseAdmin admin = new HBaseAdmin(config);
                if (beginEndKeys != null && beginEndKeys.length > 0)
                {
