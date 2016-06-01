@@ -154,6 +154,7 @@ private ConcurrentHashMap<Long,TransactionalRegionScannerHolder> scanners =
 static ConcurrentHashMap<String, Object> trxRegionMap;
 
 private ConcurrentHashMap<String, TrxTransactionState> transactionsById = new ConcurrentHashMap<String, TrxTransactionState>();
+private SortedMap<Long, TrxTransactionState> commitedTransactionsBySequenceNumber = Collections.synchronizedSortedMap(new TreeMap<Long, TrxTransactionState>());
 private Set<TrxTransactionState> commitPendingTransactions = Collections.synchronizedSet(new HashSet<TrxTransactionState>());
 private AtomicBoolean blockAll = new AtomicBoolean(false);
 private AtomicBoolean blockNonPhase2 = new AtomicBoolean(false);
@@ -322,6 +323,17 @@ public void start(CoprocessorEnvironment e) throws IOException {
    }
    else {
        transactionsRefMap.put(lv_regionName+trxkeytransactionsById, this.transactionsById);
+   }
+   
+   @SuppressWarnings("unchecked")
+   SortedMap<Long, TrxTransactionState> commitedTransactionsBySequenceNumberCheck = (SortedMap<Long, TrxTransactionState>)
+                                                                       transactionsRefMap
+                                                                       .get(lv_regionName+trxkeycommitedTransactionsBySequenceNumber);
+   if(commitedTransactionsBySequenceNumberCheck != null) {
+       this.commitedTransactionsBySequenceNumber = commitedTransactionsBySequenceNumberCheck;
+   }
+   else {
+       transactionsRefMap.put(lv_regionName+trxkeycommitedTransactionsBySequenceNumber, this.commitedTransactionsBySequenceNumber);
    }
 
    @SuppressWarnings("unchecked")
@@ -917,7 +929,9 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
     public void preSplit(ObserverContext<RegionCoprocessorEnvironment> c, byte[] splitRow) throws IOException {
         if(LOG.isTraceEnabled()) LOG.trace("preSplit -- ENTRY region: " + regionInfo.getRegionNameAsString());
 
-        if(LOG.isTraceEnabled()) LOG.trace("preSplit -- transactionsById (" + transactionsById.size() + " ), commitPendingTransactions (" + commitPendingTransactions.size() +"), scanners (" + scanners.size() + ")");
+        //if(LOG.isTraceEnabled()) LOG.trace("preSplit -- transactionsById (" + transactionsById.size() + " ), commitPendingTransactions (" + commitPendingTransactions.size() +"), scanners (" + scanners.size() + ")");
+        LOG.info("preSplit - " + regionInfo.getRegionNameAsString() + " - transactionsById (" + transactionsById.size()
+                        + " ), commitPendingTransactions (" + commitPendingTransactions.size() +"), scanners (" + scanners.size() + ")");
 
         blockNewTrans.set(true);
 
@@ -988,6 +1002,10 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
 
     @Override
     public void    preClose(ObserverContext<RegionCoprocessorEnvironment> c, boolean abortRequested) {
+	
+        LOG.info("preClose - " + regionInfo.getRegionNameAsString() + " - transactionsById (" + transactionsById.size()
+                        + " ), committed Transactions (" + commitedTransactionsBySequenceNumber.size() +"), scanners (" + scanners.size() + ")");
+			
         if (hasFlushed ||
             hasClosed ||
             splitDelayNoFlush ||
@@ -998,7 +1016,7 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
 	if (commitPendingTransactions.size() > 0) {
 	    LOG.warn("preClose -- commitPendingTransactions (" + commitPendingTransactions.size() +")");
 	}
-
+	
         if (!hasClosed) {
                 blockNonPhase2.set(true);
 
@@ -1025,6 +1043,14 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
             hasFlushed)
             return;
 
+        if ((transactionsById.size() <= 0) && (commitPendingTransactions.size() <= 0)) {
+            hasFlushed = true;
+	    commitedTransactionsBySequenceNumber.clear();
+            LOG.info("preClose: return : no active or prepared transactions " + regionInfo.getRegionNameAsString());
+            return;
+	}
+
+
         @SuppressWarnings("rawtypes")
         TrxRegionEndpoint tre = (TrxRegionEndpoint)trxRegionMap.get(regionInfo.getRegionNameAsString()+TrxRegionEndpoint.trxkeyEPCPinstance);
         if(tre == null) {
@@ -1041,6 +1067,7 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
               }
             }
             hasFlushed = true;
+	    commitedTransactionsBySequenceNumber.clear();
           } catch (IOException ioe) {
             if (LOG.isErrorEnabled()) LOG.error("Unable to flush to filesystem");
             hasFlushed = false;
