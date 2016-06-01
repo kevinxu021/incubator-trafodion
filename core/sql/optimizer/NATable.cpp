@@ -9070,6 +9070,12 @@ NABoolean NATableDB::enforceMemorySpaceConstraints()
         if(!table->accessedInCurrentStatement_)
         {
            RemoveFromNATableCache( table , replacementCursor_ );
+
+           // Since the above call can reduce the length of cachedTableList_ by 1,
+           // we need to make sure the start position never falls out of the valid
+           // range in cachedTableList_.
+           if( startingCursorPosition >= cachedTableList_.entries() )
+             startingCursorPosition = cachedTableList_.entries()-1;
         }
       }
       else{
