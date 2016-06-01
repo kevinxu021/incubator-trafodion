@@ -99,6 +99,7 @@ ExHdfsScanTcb::ExHdfsScanTcb(
   , nextDelimRangeNum_(-1)
   , preOpenedRangeNum_(-1)
   , leftOpenRangeNum_(-1)
+  , dataModCheckDone_(FALSE)
 {
   Space * space = (glob ? glob->getSpace() : 0);
   CollHeap * heap = (glob ? glob->getDefaultHeap() : 0);
@@ -431,7 +432,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 
 	    if (hdfsScanTdb().getHdfsFileInfoList()->isEmpty())
 	      {
-		step_ = DONE;
+                step_ = CHECK_FOR_DATA_MOD_AND_DONE;
 		break;
 	      }
 
@@ -458,12 +459,78 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 
 	    hdfsScanBufMaxSize_ = hdfsScanTdb().hdfsBufSize_;
 
+            dataModCheckDone_ = FALSE;
+
 	    if (numRanges_ > 0)
-              step_ = INIT_HDFS_CURSOR;
+              step_ = CHECK_FOR_DATA_MOD;
             else
-              step_ = DONE;
+              step_ = CHECK_FOR_DATA_MOD_AND_DONE;
 	  }
 	  break;
+
+        case CHECK_FOR_DATA_MOD:
+        case CHECK_FOR_DATA_MOD_AND_DONE:
+          {
+            char * dirPath = hdfsScanTdb().hdfsRootDir_;
+            Int64 modTS = hdfsScanTdb().modTSforDir_;
+            if ((dirPath == NULL) || (modTS == -1))
+              dataModCheckDone_ = TRUE;
+
+            if (NOT dataModCheckDone_)
+              {
+                Lng32 numOfPartLevels = hdfsScanTdb().numOfPartCols_;
+
+                if (hdfsScanTdb().hdfsDirsToCheck())
+                  {
+                    // TBD
+                  }
+
+                retcode = ExpLOBinterfaceDataModCheck
+                  (lobGlob_,
+                   dirPath,
+                   hdfsScanTdb().hostName_,
+                   hdfsScanTdb().port_,
+                   modTS,
+                   numOfPartLevels);
+                
+                if (retcode < 0)
+                  {
+                    Lng32 cliError = 0;
+		    
+                    Lng32 intParam1 = -retcode;
+                    ComDiagsArea * diagsArea = NULL;
+                    ExRaiseSqlError(getHeap(), &diagsArea, 
+                                    (ExeErrorCode)(EXE_ERROR_FROM_LOB_INTERFACE),
+                                    NULL, &intParam1, 
+                                    &cliError, 
+                                    NULL, 
+                                    "HDFS",
+                                    (char*)"ExpLOBInterfaceDataModCheck",
+                                    getLobErrStr(intParam1));
+                    pentry_down->setDiagsArea(diagsArea);
+                    step_ = HANDLE_ERROR_AND_DONE;
+                    break;
+                  }  
+
+                if (retcode == 1) // check failed
+                  {
+                    ComDiagsArea * diagsArea = NULL;
+                    ExRaiseSqlError(getHeap(), &diagsArea, 
+                                    (ExeErrorCode)(EXE_HIVE_DATA_MOD_CHECK_ERROR));
+                    pentry_down->setDiagsArea(diagsArea);
+                    step_ = HANDLE_ERROR_AND_DONE;
+                    break;
+                  }
+
+                dataModCheckDone_ = TRUE;
+              }
+
+            if (step_ == CHECK_FOR_DATA_MOD_AND_DONE)
+              step_ = DONE;
+            else
+              step_ = INIT_HDFS_CURSOR;
+          }
+          break;
 
 	case INIT_HDFS_CURSOR:
 	  {
@@ -648,10 +715,11 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
             trailingPrevRead_ = 0; 
             firstBufOfFile_ = true;
             numBytesProcessedInRange_ = 0;
+
             step_ = GET_HDFS_DATA;
           }
           break;
-	  
+
 	case GET_HDFS_DATA:
 	  {
 	    Int64 bytesToRead = hdfsScanBufMaxSize_ - trailingPrevRead_;
@@ -1360,8 +1428,10 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
             workAtp_->getDiagsArea()->clear();
 	}
 	break;
+
         case HANDLE_ERROR_WITH_CLOSE:
 	case HANDLE_ERROR:
+	case HANDLE_ERROR_AND_DONE:
 	  {
 	    if (qparent_.up->isFull())
 	      return WORK_OK;
@@ -1390,6 +1460,8 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	    
             if (step_ == HANDLE_ERROR_WITH_CLOSE)
                step_ = CLOSE_HDFS_CURSOR;
+            else if (step_ == HANDLE_ERROR_AND_DONE)
+              step_ = DONE;
             else
 	       step_ = ERROR_CLOSE_FILE;
 	    break;

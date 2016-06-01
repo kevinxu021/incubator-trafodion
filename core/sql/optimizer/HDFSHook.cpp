@@ -893,6 +893,8 @@ void HHDFSListPartitionStats::populate(hdfsFS fs,
     }
   else
     {
+      dirInfo_ = *dirInfo;
+
       // list all the files in this directory, they all belong
       // to this partition and either belong to a specific bucket
       // or to the default bucket
@@ -1394,6 +1396,9 @@ void HHDFSTableStats::processDirectory(const NAString &dir,
       totalNumPartitions_++;
       // aggregate stats
       add(partStats);
+
+      if (partStats->dirInfo()->mLastMod > modificationTS_)
+        modificationTS_ = partStats->dirInfo()->mLastMod;
     }
 }
 

@@ -274,6 +274,7 @@ public :
   Int32 getHdfsPort() const {return hdfsPort_;}
   const NAString& getHiveTableName() const {return hiveTableName_;}
   NABoolean isHiveInsert() const {return (hiveTableDesc_ != NULL);}
+  const TableDesc* getHiveTableDesc() const { return hiveTableDesc_; }
   const NATable *getHiveNATable() const {return hiveNATable_;}
   const NAString& getDelimiter() const {return delimiter_;}
   NABoolean isAppend() const {return isAppend_;}
