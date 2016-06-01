@@ -80,7 +80,7 @@
 #include "ExCancel.h"
 #include "ExHdfsScan.h"
 #include "ExHbaseAccess.h"
-
+#include "ExOrcAccess.h"
 
 #endif
 

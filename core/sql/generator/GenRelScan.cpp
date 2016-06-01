@@ -41,6 +41,7 @@
 #include "ControlDB.h"
 #include "GenExpGenerator.h"
 #include "ComTdbHdfsScan.h"
+#include "ComTdbOrcAccess.h"
 #include "ComTdbDDL.h"                  // for describe
 #include "ComTdbHbaseAccess.h"
 #include "HashRow.h"                    // for sizeof(HashRow)

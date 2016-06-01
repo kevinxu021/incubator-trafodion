@@ -35,6 +35,8 @@
 #include "ComTdb.h"
 #include "ex_tcb.h"
 #include "ExHdfsScan.h"
+#include "ExOrcAccess.h"
+#include "ExHbaseAccess.h"
 #include "ex_exe_stmt_globals.h"
 #include "ExpLOBinterface.h"
 #include "Hbase_types.h"
@@ -135,7 +137,6 @@ ExOrcScanTcb::ExOrcScanTcb(
         .setDataPointer(orcOperRow_);
 
     }
-
 }
 
 ExOrcScanTcb::~ExOrcScanTcb()
@@ -1065,6 +1066,7 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
 
 	    short rc = 0;
 	    if (moveRowToUpQueue(outputRow_, orcAggrTdb().outputRowLength_, 
+                                 (Lng32)orcAggrTdb().tuppIndex_,
 				 &rc, FALSE))
 	      return rc;
 	    
@@ -1100,3 +1102,107 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
   return WORK_OK;
 }
 
+#ifdef __ignore
+////////////////////////////////////////////////////////////////////////
+//
+// Direct Buffer contains multiple rows that are sent through JNI to
+// the java layer.
+//
+// Direct Buffer has the format:
+//   numRows:          Lng32
+// 
+// Each row has the format:
+//   numCols:         Lng32   (number of colValues)
+//   colValue        (first col value)
+//     colNameLen     short   
+//     colName        colNameLen bytes  (ROUND2)
+//     nullValue      short
+//     colValueLen    Lng32
+//     colValue       colValueLen bytes   (ROUND4)
+//
+/////////////////////////////////////////////////////////////////////////
+void ExOrcInsertTcb::allocateDirectBufferForJNI(
+     Lng32 numCols, short maxColNameLen, Lng32 rowLen, Lng32 numRows)
+{
+  if (directBuffer_ == NULL)
+    {
+      Lng32 colInfoMaxLen =
+        sizeof(short) + // colNameLen
+        ROUND2(maxColNameLen) + 
+        sizeof(short) + // nullValue
+        sizeof(Lng32);  // colValueLen
+
+      Lng32 rowsOverhead = sizeof(numCols) + (numCols * ROUND4(colInfoMaxLen));
+
+      //      Lng32 rowLen = orcAccessTdb().getRowLen();
+      Lng32 totalRowLen  = rowsOverhead + rowLen;
+
+      directBufferLen_     = sizeof(numRows) + (totalRowLen * numRows);
+      directBufferMaxRows_ = numRows;
+      directBuffer_        = new (getHeap()) char[directBufferLen_];
+    }
+
+  currBufferPtr_ = directBuffer_ + sizeof(numRows);
+
+  numRowsInBuffer_ = 0;
+
+  return;
+}
+
+short ExOrcInsertTcb::addRowToDirectBuffer( UInt16 tuppIndex, 
+                                            char * tuppRow,
+                                            Queue * listOfColNames)
+{
+  if (numRowsInBuffer_ == directBufferMaxRows_)
+    return 1; // buffer full
+
+  ExpTupleDesc * rowTD =
+    orcInsertTdb().workCriDesc_->getTupleDescriptor(tuppIndex);
+  listOfColNames->position();
+
+  // numCols
+  *(Lng32*)currBufferPtr_ = bswap_32(rowTD->numAttrs());
+  currBufferPtr_ += sizeof(Lng32);
+  for (Lng32 i = 0; i <  rowTD->numAttrs(); i++) // for each col
+    {
+      Attributes * attr = rowTD->getAttr(i);
+      ex_assert(attr, "Unable to obtain column descriptor");
+
+      // colNameLen and colName
+      short colNameLen;
+      char * colName;
+      ExHbaseAccessTcb::extractColNameFields((char*)listOfColNames->getCurr(),
+                                             colNameLen, colName);
+      *(short*)currBufferPtr_ = bswap_16(colNameLen);
+      currBufferPtr_ += sizeof(short);
+      memcpy(currBufferPtr_, colName, colNameLen);
+      currBufferPtr_ += ROUND2(colNameLen);
+      
+      // nullValue
+      short nullVal = 0;
+      if (attr->getNullFlag())
+        nullVal = *(short*)&tuppRow[attr->getNullIndOffset()];
+      *(short*)currBufferPtr_ = bswap_16(nullVal);
+      currBufferPtr_ += sizeof(short);
+
+      // colValueLen and colVal
+      Lng32 colValLen =  attr->getLength(&tuppRow[attr->getVCLenIndOffset()]);
+      *(Lng32*)currBufferPtr_ = bswap_32(colValLen);
+      currBufferPtr_ += sizeof(Lng32);
+
+      char * colVal = &tuppRow[attr->getOffset()];
+      memcpy(currBufferPtr_, colVal, colValLen);
+      currBufferPtr_ += ROUND4(colValLen);
+
+      listOfColNames->advance();
+    }	// for
+
+  numRowsInBuffer_++;
+
+  if (numRowsInBuffer_ == directBufferMaxRows_)
+    return 1; // buffer full
+
+  return 0;
+}
+
+#endif

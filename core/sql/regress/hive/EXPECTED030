@@ -41,7 +41,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Wed Jun  1 15:52:22 2016
+-- Definition current  Fri May 13 23:43:20 2016
 
   (
     S_STORE_SK                       INT
@@ -977,7 +977,7 @@ NUM_HITS    NUM_PARAMS
 >>invoke hive.hive.store_sales_orc;
 
 -- Definition of hive table STORE_SALES_ORC
--- Definition current  Wed Jun  1 15:52:53 2016
+-- Definition current  Fri May 13 23:44:06 2016
 
   (
     SS_SOLD_DATE_SK                  INT
@@ -1022,9 +1022,9 @@ NUM_HITS    NUM_PARAMS
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212331556373690257
+PLAN_ID .................. 212329943048416790
 ROWS_OUT ................ 20
-EST_TOTAL_COST ........... 0.01
+EST_TOTAL_COST ........... 1.21
 STATEMENT ................ select * from store_sales_orc where ss_item_sk = 1;
 
 
@@ -1143,7 +1143,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212331556374933175
+PLAN_ID .................. 212329943050702805
 ROWS_OUT ......... 2,880,401
 EST_TOTAL_COST ........... 0.56
 STATEMENT ................ select *
@@ -1369,7 +1369,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Wed Jun  1 15:52:57 2016
+-- Definition current  Fri May 13 23:44:13 2016
 
   (
     D_DATE_SK                        INT
@@ -1512,7 +1512,7 @@ CREATE EXTERNAL TABLE HIVE.HIVE.DATE_DIM_ORC
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212331556380813851
+PLAN_ID .................. 212329943056440555
 ROWS_OUT ................ 20
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1619,7 +1619,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Wed Jun  1 15:53:09 2016
+-- Definition current  Fri May 13 23:44:25 2016
 
   (
     D_DATE_SK                        INT
@@ -1762,7 +1762,7 @@ CREATE EXTERNAL TABLE HIVE.HIVE.DATE_DIM_ORC
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212331556392540209
+PLAN_ID .................. 212329943067801124
 ROWS_OUT ................ 20
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1889,22 +1889,13 @@ DESCRIPTION
 
 >>prepare s from upsert into hive.hive.store2_sales_orc values (1);
 
-*** ERROR[4223] Upsert/Insert/Update/Delete on ORC table is not supported in this software version.
-
-*** ERROR[8822] The statement was not prepared.
-
+--- SQL command prepared.
 >>prepare s from upsert using load into hive.hive.store2_sales_orc values (1);
 
-*** ERROR[4223] Upsert/Insert/Update/Delete on ORC table is not supported in this software version.
-
-*** ERROR[8822] The statement was not prepared.
-
+--- SQL command prepared.
 >>prepare s from insert into hive.hive.store2_sales_orc values (1);
 
-*** ERROR[4223] Upsert/Insert/Update/Delete on ORC table is not supported in this software version.
-
-*** ERROR[8822] The statement was not prepared.
-
+--- SQL command prepared.
 >>prepare s from update hive.hive.store2_sales_orc set ss_net_paid = 1;
 
 *** ERROR[4223] Upsert/Insert/Update/Delete on ORC table is not supported in this software version.
@@ -2010,7 +2001,7 @@ orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK is null ) 
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-PLAN_ID .................. 212331556417146453
+PLAN_ID .................. 212329943089729129
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 0.05
 STATEMENT ................ select count(*)

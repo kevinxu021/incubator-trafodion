@@ -11356,9 +11356,42 @@ RelExpr * PhysicalFastExtract::preCodeGen (Generator * generator,
     return this;
 
   generator->setIsFastExtract(TRUE);  
-
+  
   if (!RelExpr::preCodeGen(generator,externalInputs,pulledNewInputs))
     return NULL;
+  
+  if ((hiveNATable() && hiveNATable()->isORC()) &&
+      (reqdOrder().entries() > 0))
+    {
+      Sort *sortNode = new(generator->wHeap()) Sort(child(0));
+      
+      sortNode->getSortKey() = reqdOrder();
+      
+      // Use the same characteristic inputs and outputs as the left child
+      sortNode->setGroupAttr(new(generator->wHeap())
+                             GroupAttributes(*(child(0)->getGroupAttr())));
+      //pass along some of the  estimates 
+      sortNode->setEstRowsUsed(child(0)->getEstRowsUsed());
+      sortNode->setMaxCardEst(child(0)->getMaxCardEst());
+      sortNode->setInputCardinality(child(0)->getInputCardinality());
+      sortNode->setPhysicalProperty(child(0)->getPhysicalProperty());
+      sortNode->setCollectNFErrors();
+      sortNode->setOperatorCost(0);
+      sortNode->setRollUpCost(child(0)->getRollUpCost());
+
+      child(0)->markAsBound();
+
+      sortNode->bindNode(generator->getBindWA());
+      if (generator->getBindWA()->errStatus())
+        return NULL;
+      
+      RelExpr * re = sortNode->preCodeGen(generator, 
+                                          externalInputs, pulledNewInputs);
+      if (! re)
+        return NULL;
+
+      child(0) = re;
+    }
 
   ValueIdSet availableValues;
   getInputValuesFromParentAndChildren(availableValues);

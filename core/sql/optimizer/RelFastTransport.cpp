@@ -101,6 +101,7 @@ RelExpr * FastExtract::copyTopNode(RelExpr *derivedNode,
   result->isSequenceFile_ = isSequenceFile_;
   result->hiveNATable_ = hiveNATable_;
   result->overwriteHiveTable_ = overwriteHiveTable_;
+  result->reqdOrder_ = reqdOrder_;
 
   return RelExpr::copyTopNode(result, outHeap);
 }
@@ -112,7 +113,10 @@ const NAString FastExtract::getText() const
   if (isHiveInsert())
   {
     NAString op(CmpCommon::statementHeap());
-    op = "hive_insert";
+    if (hiveNATable_->isORC())
+      op = "orc_insert";
+    else
+      op = "hive_insert";
     NAString tname(hiveTableName_,CmpCommon::statementHeap());
     return op + " " + tname;
   }
@@ -143,12 +147,21 @@ void FastExtract::transformNode(NormWA & normWARef,
 {
   RelExpr::transformNode(normWARef, locationOfPointerToMe);
 };
+
 void FastExtract::rewriteNode(NormWA & normWARef)
 {
   selectList_.normalizeNode(normWARef);
   // rewrite group attributes and selection pred
   RelExpr::rewriteNode(normWARef);
+
+  FastExtract * fe
+    = (FastExtract *)(this->castToRelExpr());
+  
+  if (fe->reqdOrder().normalizeNode(normWARef))
+    {
+    }
 } ;
+
 RelExpr * FastExtract::normalizeNode(NormWA & normWARef)
 {
   return RelExpr::normalizeNode(normWARef);
