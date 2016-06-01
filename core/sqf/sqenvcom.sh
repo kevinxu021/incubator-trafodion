@@ -813,6 +813,11 @@ if [ -z $ICU ]; then
   export ICU="${TOOLSDIR}/icu4c_4.4"
 fi
 
+if [ -z $ORCCPPREADER ]; then
+  export ORCCPPREADER="${TOOLSDIR}/orc-cpp-reader"
+fi
+
+
 #######################
 # Developer Local over-rides  (see sqf/LocalSettingsTemplate.sh)
 # Cannot rely on this, the connectivity build overwrites the .trafodion file

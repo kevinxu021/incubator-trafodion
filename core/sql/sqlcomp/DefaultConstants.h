@@ -3867,11 +3867,13 @@ enum DefaultConstants
   HIVE_HDFS_STATS_MAX_SAMPLE_FILES,
   HIVE_HDFS_STATS_SAMPLE_LOB_INTFC,
   HIVE_TREAT_EMPTY_STRING_AS_NULL,
-
+  
+  ORC_HDFS_STATS_LOG_FILE,
   // ON: to read number of rows from each ORC data file
   // OFF: skip the reading and fake a row count of 100 per ORC data file
   ORC_READ_NUM_ROWS,
-  
+  //use c++ code in OrcCppReader to read orc file via libhdfs.so
+  ORC_USE_CPP_READER,
   //Amount of time transactional and non transactional queries 
   //loop around when online backup lock is activated. During this
   //time queries at HtableClient.java and commit work loop until
