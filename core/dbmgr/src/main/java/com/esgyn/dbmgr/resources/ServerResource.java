@@ -83,7 +83,8 @@ public class ServerResource {
 			objNode.put("serverTimeZone", ConfigurationResource.getServerTimeZone());
 			objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
 			objNode.put("dcsMasterInfoUri", configResource.getDcsMasterInfoUri());
-
+			objNode.put("dbmgrTimeZone", DateTimeZone.getDefault().getID());
+			objNode.put("dbmgrUTCOffset", DateTimeZone.getDefault().getOffset(DateTime.now().getMillis()));
 			Session content = new Session(usr, pwd, new DateTime(DateTimeZone.UTC));
 			SessionModel.putSessionObject(key, content);
 		} else {
@@ -148,7 +149,8 @@ public class ServerResource {
 		objNode.put("serverTimeZone", ConfigurationResource.getServerTimeZone());
 		objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
 		objNode.put("dcsMasterInfoUri", server.getDcsMasterInfoUri());
-
+		objNode.put("dbmgrTimeZone", DateTimeZone.getDefault().getID());
+		objNode.put("dbmgrUTCOffset", DateTimeZone.getDefault().getOffset(DateTime.now().getMillis()));
 		objNode.put("databaseVersion", ConfigurationResource.getDatabaseVersion());
 		objNode.put("databaseEdition", ConfigurationResource.getDatabaseEdition());
 
