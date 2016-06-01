@@ -418,6 +418,8 @@ public:
     return partStringRowLen_;
   }
 
+  void setModTSforDir(Int64 v) { modTSforDir_ = v; }
+  Int64 getModTSforDir() const { return modTSforDir_; }
 
 protected:
   NABasicPtr   targetName_;                                  // 00 - 07
@@ -448,10 +450,10 @@ protected:
   Int16        hdfsReplication_;                             // 150 - 151
   UInt32       maxOpenPartitions_;                           // 152 - 155
   UInt32       childDataRowLen_;                             // 156 - 159
+  Int64        modTSforDir_;                                 // 160 - 167
   
   // Make sure class size is a multiple of 8
-  char fillerComTdbFastTransport_[8];                        // 160 - 167
-
+  char fillerComTdbFastTransport_[8];                        // 168 - 175
 };
 
 #endif // COM_TDB_FAST_TRANSPORT_H

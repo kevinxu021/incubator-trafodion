@@ -131,6 +131,7 @@ class ComTdbHdfsScan : public ComTdb
   NABasicPtr errCountTable_;                                  // 160 - 167
   NABasicPtr loggingLocation_;                                // 168 - 175
   NABasicPtr errCountRowId_;                                  // 176 - 183
+
   // list of retrieved cols. Each entry is "class HdfsColInfo".
   QueuePtr hdfsColInfoList_;                                  // 184 - 191
   UInt16 origTuppIndex_;                                      // 192 - 193
@@ -145,8 +146,17 @@ class ComTdbHdfsScan : public ComTdb
   UInt32 numCompressionInfos_;                                // 224 - 227
   NAVersionedObjectPtrTempl<ComCompressionInfo>
                                       compressionInfos_;      // 228 - 235
-  char fillersComTdbHdfsScan1_[12];                           // 236 - 247
+  char fillersComTdbHdfsScan1_[4];                            // 236 - 239
 
+  // next 4 params are used to check if data under hdfsFileDir
+  // was modified after query was compiled.
+  NABasicPtr hdfsRootDir_;                                     // 240 - 247
+  Int64  modTSforDir_;                                         // 248 - 255
+  Lng32  numOfPartCols_;                                       // 256 - 259
+  QueuePtr hdfsDirsToCheck_;                                   // 260 - 267
+
+  char fillersComTdbHdfsScan2_[4];                             // 268 - 271
+    
 public:
   enum HDFSFileType
   {
@@ -203,9 +213,16 @@ public:
 		 Cardinality estimatedRowCount,
                  Int32  numBuffers,
                  UInt32  bufferSize,
-                 char * errCountTable,
-                 char * loggingLocation,
-                 char * errCountId
+                 char * errCountTable = NULL,
+                 char * loggingLocation = NULL,
+                 char * errCountId = NULL,
+
+                 // next 4 params are used to check if data under hdfsFileDir
+                 // was modified after query was compiled.
+                 char * hdfsRootDir  = NULL,
+                 Int64  modTSforDir   = -1,
+                 Lng32  numOfPartCols = -1,
+                 Queue * hdfsDirsToCheck = NULL
                  );
 
   ~ComTdbHdfsScan();
@@ -354,7 +371,8 @@ public:
   {
     return workCriDesc_->getTupleDescriptor(moveExprColsTuppIndex_);
   }
-  
+
+  Queue * hdfsDirsToCheck() { return hdfsDirsToCheck_; }
 };
 
 inline ComTdb * ComTdbHdfsScan::getChildTdb()

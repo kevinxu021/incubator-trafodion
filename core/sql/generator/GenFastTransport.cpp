@@ -45,7 +45,7 @@
 #include "ComQueue.h"
 //#include "UdfDllInteraction.h"
 #include "RelFastTransport.h"
-
+#include "HDFSHook.h"
 
 
 // Helper function to allocate a string in the plan
@@ -703,6 +703,19 @@ PhysicalFastExtract::codeGen(Generator *generator)
 
   if (isHiveInsert())
     getHiveNATable()->getTableName().getHiveSchemaName(hiveSchemaNameNAString);
+
+  Int64 modTS = -1;
+  if ((CmpCommon::getDefault(HIVE_DATA_MOD_CHECK) == DF_ON) &&
+      (isHiveInsert()) &&
+      (getHiveTableDesc() && getHiveTableDesc()->getNATable() && 
+       getHiveTableDesc()->getNATable()->getClusteringIndex()))
+    {
+      const HHDFSTableStats* hTabStats = 
+        getHiveTableDesc()->getNATable()->getClusteringIndex()->getHHDFSTableStats();
+
+      modTS = hTabStats->getModificationTS();
+    }
+
   targetName = AllocStringInSpace(*space, (char *)getTargetName().data());
   hdfsHostName = AllocStringInSpace(*space, (char *)getHdfsHostName().data());
   hiveSchemaName = AllocStringInSpace(*space, (char *)hiveSchemaNameNAString.data());
@@ -756,7 +769,7 @@ PhysicalFastExtract::codeGen(Generator *generator)
   {
     newTdb->setIsHiveInsert(1);
     newTdb->setIncludeHeader(0);
-    setOverwriteHiveTable( getOverwriteHiveTable());
+    newTdb->setOverwriteHiveTable( getOverwriteHiveTable());
   }
   else
   {
@@ -770,8 +783,10 @@ PhysicalFastExtract::codeGen(Generator *generator)
     else
     GenAssert(0, "Unexpected Fast Extract compression type")
   }
-     if((ActiveSchemaDB()->getDefaults()).getToken(FAST_EXTRACT_DIAGS) == DF_ON)
-    	 newTdb->setPrintDiags(1);
+  if((ActiveSchemaDB()->getDefaults()).getToken(FAST_EXTRACT_DIAGS) == DF_ON)
+    newTdb->setPrintDiags(1);
+
+  newTdb->setModTSforDir(modTS);
 
   return result;
 }

@@ -27,25 +27,17 @@
 
 --- SQL operation complete.
 >>obey $$REGRTSTDIR$$/TEST003(tests1);
+>>
 >>set schema hive.hive;
-
---- SQL operation complete.
->>cqd attempt_esp_parallelism 'off';
-
---- SQL operation complete.
->>cqd AUTO_QUERY_RETRY 'OFF';
-
---- SQL operation complete.
->>cqd hive_max_esps  '1';
-
---- SQL operation complete.
->>cqd PARALLEL_NUM_ESPS '1';
 
 --- SQL operation complete.
 >>cqd HIVE_MAX_STRING_LENGTH '25' ;
 
 --- SQL operation complete.
 >>cqd mode_seahive 'ON';
+
+--- SQL operation complete.
+>>cqd auto_query_retry_warnings 'ON';
 
 --- SQL operation complete.
 >>
@@ -61,7 +53,7 @@
 
 --- SQL command prepared.
 >>
->>prepare s from insert into hive.ins_customer select * from hive.customer$$ORC$$;
+>>prepare s from insert into hive.ins_customer select * from hive.customer;
 
 --- SQL command prepared.
 >>execute s;
@@ -178,6 +170,10 @@ P_PROMO_SK   P_PROMO_ID                 P_START_DATE_SK  P_END_DATE_SK  P_ITEM_S
 
 *** ERROR[8822] The statement was not prepared.
 
+*** WARNING[8597] Statement was automatically retried 1 time(s). Delay before each retry was 0 seconds. See next entry for the error that caused this retry.
+
+*** WARNING[4023] The degree of each row value constructor (20) must equal the degree of the target table column list (19).
+
 >>-- number of columns doesn't match
 >>
 >>prepare s from
@@ -187,14 +183,15 @@ P_PROMO_SK   P_PROMO_ID                 P_START_DATE_SK  P_END_DATE_SK  P_ITEM_S
 
 *** ERROR[8822] The statement was not prepared.
 
+*** WARNING[8597] Statement was automatically retried 1 time(s). Delay before each retry was 0 seconds. See next entry for the error that caused this retry.
+
+*** WARNING[4039] Column T_TIME_SK is of type INTEGER, incompatible with the value's type, CHAR(1).
+
 >>-- wrong data types
 >>
 >>
 >>--try new HIVE SYNTAX
 >>--------------
->>cqd query_cache '0';
-
---- SQL operation complete.
 >>insert into TABLE hive.ins_customer_address select * from hive.customer_address$$ORC$$;
 
 --- 50000 row(s) inserted.
@@ -229,6 +226,10 @@ P_PROMO_SK   P_PROMO_ID                 P_START_DATE_SK  P_END_DATE_SK  P_ITEM_S
 
 --- 1 row(s) selected.
 >>select count(*) from hive.ins_customer_address;
+
+*** WARNING[8597] Statement was automatically retried 1 time(s). Delay before each retry was 0 seconds. See next entry for the error that caused this retry.
+
+*** WARNING[8436] Mismatch detected between compiletime and runtime hive table definitions.
 
 (EXPR)              
 --------------------
@@ -569,9 +570,6 @@ T_TIME_SK    T_TIME_ID                  T_TIME       T_HOUR       T_MINUTE     T
 >>cqd HIVE_MAX_STRING_LENGTH '25' ;
 
 --- SQL operation complete.
->>cqd query_cache '0';
-
---- SQL operation complete.
 >>control query shape esp_exchange(cut);
 
 --- SQL operation complete.
@@ -683,15 +681,13 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 < >>select ss_sold_date_sk,ss_store_sk, sum (ss_quantity)  from store_sales$$ORC$$ group by  ss_sold_date_sk ,ss_store_sk order by  ss_sold_date_sk,ss_store_sk;
 ---
 > >>select  * from ins_store_sales_summary order by  ss_sold_date_sk,ss_store_sk;
-3,10c3,4
-< *** WARNING[6008] Statistics for column (SS_SOLD_DATE_SK) from table HIVE.HIVE.STORE_SALES_ORC were not available. As a result, the access path chosen might not be the best possible.
-< 
-< *** WARNING[6008] Statistics for column (SS_STORE_SK) from table HIVE.HIVE.STORE_SALES_ORC were not available. As a result, the access path chosen might not be the best possible.
-< 
-< *** WARNING[6007] Multi-column statistics for columns (SS_SOLD_DATE_SK, SS_STORE_SK) from table HIVE.HIVE.STORE_SALES_ORC were not available. The columns were being used by GroupBy operator. As a result, the access path chosen might not be the best possible.
-< 
+3,4c3,8
 < SS_SOLD_DATE_SK  SS_STORE_SK  (EXPR)              
 < ---------------  -----------  --------------------
 ---
+> *** WARNING[8597] Statement was automatically retried 1 time(s). Delay before each retry was 0 seconds. See next entry for the error that caused this retry.
+> 
+> *** WARNING[8436] Mismatch detected between compiletime and runtime hive table definitions.
+> 
 > SS_SOLD_DATE_SK  SS_STORE_SK  SS_QUANTITY
 > ---------------  -----------  -----------

@@ -58,13 +58,11 @@ sh regrhive.ksh -v -f $REGRTSTDIR/TEST003_create_hive_tables.hive;
 log LOG003 clear;
 
 ?section tests1
+
 set schema hive.hive;
-cqd attempt_esp_parallelism 'off';
-cqd AUTO_QUERY_RETRY 'OFF';
-cqd hive_max_esps  '1';
-cqd PARALLEL_NUM_ESPS '1';
 cqd HIVE_MAX_STRING_LENGTH '25' ;
 cqd mode_seahive 'ON';
+cqd auto_query_retry_warnings 'ON';
 
 prepare showOperators from
 select operator
@@ -76,7 +74,7 @@ select operator
   ) as t
 order by s desc;
 
-prepare s from insert into hive.ins_customer select * from hive.customer$$ORC$$;
+prepare s from insert into hive.ins_customer select * from hive.customer;
 execute s;
 select count(*) from hive.customer$$ORC$$;
 select count(*) from hive.ins_customer;
@@ -104,7 +102,6 @@ insert into hive.ins_time_dim values ('a', 2, 3, 4, 5, 6, 'c', 'd', 'e', 'f');
 
 --try new HIVE SYNTAX
 --------------
-cqd query_cache '0';
 insert into TABLE hive.ins_customer_address select * from hive.customer_address$$ORC$$;
 
 select count(*) from hive.customer_address$$ORC$$;
@@ -171,7 +168,6 @@ cqd PARALLEL_NUM_ESPS '2';
 set schema hive;
 cqd hive_max_esps '2';
 cqd HIVE_MAX_STRING_LENGTH '25' ;
-cqd query_cache '0';
 control query shape esp_exchange(cut);
 prepare s from insert into table ins_store_sales_summary select ss_sold_date_sk,ss_store_sk, sum (ss_quantity) from store_sales$$ORC$$ group by  ss_sold_date_sk ,ss_store_sk; 
 explain options 'f' s;

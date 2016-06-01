@@ -9089,7 +9089,8 @@ RelExpr *Insert::bindNode(BindWA *bindWA)
                           TRUE,
                           new (bindWA->wHeap()) NAString(tableDir),
                           new (bindWA->wHeap()) NAString(hostName),
-                          hdfsPort);
+                          hdfsPort,
+                          hTabStats->getModificationTS());
 
       //new root to prevent  error 4056 when binding
       newRelExpr = new (bindWA->wHeap()) RelRoot(newRelExpr);

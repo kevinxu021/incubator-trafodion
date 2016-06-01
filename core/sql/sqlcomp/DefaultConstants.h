@@ -3882,6 +3882,11 @@ enum DefaultConstants
   ONLINE_BACKUP_TIMEOUT,
 
   COMPILER_IDLE_TIMEOUT,
+
+  // if set, data modification check is done at runtime before running
+  // a query.
+  HIVE_DATA_MOD_CHECK,
+
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!
   __NUM_DEFAULT_ATTRIBUTES

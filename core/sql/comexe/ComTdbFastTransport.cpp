@@ -108,7 +108,8 @@ ComTdbFastExtract::ComTdbFastExtract(
   hdfsReplication_(replication),
   ioTimeout_(ioTimeout),
   maxOpenPartitions_(maxOpenPartitions),
-  childDataRowLen_(childDataRowLen)
+  childDataRowLen_(childDataRowLen),
+  modTSforDir_(-1)
 {
 
 }
@@ -252,6 +253,9 @@ void ComTdbFastExtract::displayContents(Space *space, ULng32 flag)
          space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sz);
    }
 
+   str_sprintf(buf, "modTSforDir_ = %Ld", modTSforDir_);
+   space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+   
   } // if (flag & 0x00000008)
 
    displayExpression(space,flag);
