@@ -90,7 +90,7 @@ public class ConnectionContext {
 	
 	HashMap<String, String> attributes;
 	String sla;
-	int priority;
+	String priority;
 	int limit;
 	int throughput;
     int curLimit;
@@ -317,8 +317,8 @@ public class ConnectionContext {
         this.sla = sla;
     }
     public void setPriority(String s){
-        if (s == null || s.length()== 0) s = "0";
-        priority = new Integer(s);
+        if (s == null || s.length()== 0) s = Constants.PRTY_LOW;
+        priority = s;
     }
     public void setLimit(String s){
         if (s == null || s.length()== 0) s = "0";
@@ -340,7 +340,7 @@ public class ConnectionContext {
     public String getSla(){
         return sla;
     }
-    public int getPriority(){
+    public String getPriority(){
         return priority;
     }
     public int getLimit(){

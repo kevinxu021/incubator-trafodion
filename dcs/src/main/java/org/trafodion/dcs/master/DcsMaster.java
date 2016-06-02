@@ -306,9 +306,9 @@ public class DcsMaster implements Runnable {
     }
     private void createDefaultSLA(String path) throws KeeperException, InterruptedException{
             
-        byte data[] = Bytes.toBytes(String.format("%s=%s:%s=%d:%s=%s:%s=%s:%s=%s:%s=%s:%s=%d",
+        byte data[] = Bytes.toBytes(String.format("%s=%s:%s=%s:%s=%s:%s=%s:%s=%s:%s=%s:%s=%d",
                     Constants.IS_DEFAULT,"yes",
-                    Constants.PRIORITY, 5, 
+                    Constants.PRIORITY, Constants.PRTY_MEDIUM, 
                     Constants.LIMIT, "",
                     Constants.THROUGHPUT, "",
                     Constants.ON_CONNECT_PROFILE, Constants.DEFAULT_WMS_PROFILE_NAME,
