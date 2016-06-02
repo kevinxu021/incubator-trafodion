@@ -153,7 +153,7 @@ if [ $? != 0 ]; then
    exit -1
 fi
 
-ssh -q -n $HDFS_NODE 'sudo su' "$HDFS_USER" '--command "hadoop fs -chown -R '"$TRAF_USER"'/user/' "$TRAF_USER"'"'
+ssh -q -n $HDFS_NODE 'sudo su' "$HDFS_USER" '--command "hadoop fs -chown -R '"$TRAF_USER"' /user/'"$TRAF_USER"'"'
 
 ssh -q -n $HDFS_NODE 'sudo su' "$HDFS_USER" '--command "hadoop fs -mkdir -p /hbase-staging"'
 if [ $? != 0 ]; then
