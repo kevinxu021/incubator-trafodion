@@ -12,6 +12,13 @@
 .dbmgr-tools-form label {
 	width: 150px;
 }
+#notifyMenu>ul.odd {
+    background: url('../img/details_open.png') no-repeat left top;
+    cursor: pointer;
+}
+#notifyMenu>ul.odd.shown {
+    background: url('../img/details_close.png') no-repeat left top;
+}
 
 .dbmgr-tools-form .file {
 	position: relative;
