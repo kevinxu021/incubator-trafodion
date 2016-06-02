@@ -121,6 +121,10 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
+#ifdefined HDP2.3 || CDH5.5
+import org.apache.hadoop.hbase.ChoreService;
+import org.apache.hadoop.hbase.ScheduledChore;
+#endif
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.KeyValueUtil;
@@ -319,6 +323,7 @@ CoprocessorService, Coprocessor {
   private Path recoveryTrxPath = null;
   private int cleanAT = 0;
   
+  
   private long[] commitCheckTimes   = new long[50];
   private long[] hasConflictTimes   = new long[50];
   private long[] putBySequenceTimes = new long[50];
@@ -368,6 +373,7 @@ CoprocessorService, Coprocessor {
   private int PIT_max_txn_mutation_per_FILE = 100;
   private long PIT_max_size_mutation_per_FILE = 10000000; // 10 MB
   private static Object zkRecoveryCheckLock = new Object();
+  private static Object choreDetectStaleBranchLock = new Object();
   private static ZooKeeperWatcher zkw1 = null;
   String lv_hostName;
   int lv_port;
@@ -378,7 +384,7 @@ CoprocessorService, Coprocessor {
 
   private static final int MINIMUM_LEASE_TIME = 7200 * 1000;
   private static final int LEASE_CHECK_FREQUENCY = 1000;
-  private static final int DEFAULT_SLEEP = 60 * 1000;
+  private static final int DEFAULT_SLEEP = 60 * 1000; // 60 seconds
   private static final int DEFAULT_MEMORY_THRESHOLD = 100; // 100% memory used
   private static final int DEFAULT_MEMORY_SLEEP = 15 * 1000;
   private static final boolean DEFAULT_MEMORY_WARN_ONLY = true;        
@@ -441,6 +447,9 @@ CoprocessorService, Coprocessor {
   public static final int REGION_STATE_START = 2;
 
   public static final String trxkeyEPCPinstance = "EPCPinstance";
+  #ifdefined HDP2.3 || CDH5.5
+  static ChoreService s_ChoreService = null;
+  #endif
   // TBD Maybe we should just use HashMap to improve the performance, ConcurrentHashMap could be too strict
   static ConcurrentHashMap<String, Object> transactionsEPCPMap;
   STRConfig pSTRConfig = null;
@@ -468,6 +477,9 @@ CoprocessorService, Coprocessor {
   static SnapshotMeta snapMeta = null;
   MutationCapture mutationCapture;
   int mutationFlushed = 0;
+  long choreCount = 1;
+  static int txnChoreServiceThreadPoolSize = 1;
+  public static final int DEFAULT_TXN_CHORE_SERVICE_THREAD_POOL_SIZE=5;
   
   public static final int PIT_MUTATION_CREATE = 1;
   public static final int PIT_MUTATION_APPEND = 2;
@@ -3635,10 +3647,20 @@ CoprocessorService, Coprocessor {
             + this.suppressOutOfOrderProtocolException);
 
         // Start the clean core thread
-          
+	
+        this.txnChoreServiceThreadPoolSize = 
+                tmp_env.getConfiguration().getInt("hbase.regionserver.region.transactional.chore_service_thread_pool_size",
+				DEFAULT_TXN_CHORE_SERVICE_THREAD_POOL_SIZE);        
+        if (LOG.isTraceEnabled()) LOG.trace("Transactional chore thread pool size setting is " + this.txnChoreServiceThreadPoolSize);
         this.cleanOldTransactionsThread = new CleanOldTransactionsChore(this, cleanTimer, stoppable);
 
-        UncaughtExceptionHandler handler = new UncaughtExceptionHandler() {
+#ifdefined HDP2.3 || CDH5.5
+	if (this.cleanOldTransactionsThread != null) {
+	    setupChoreService();
+	    s_ChoreService.scheduleChore(this.cleanOldTransactionsThread);
+	}
+#else
+      UncaughtExceptionHandler handler = new UncaughtExceptionHandler() {
 
           public void uncaughtException(final Thread t, final Throwable e)
           {
@@ -3650,6 +3672,7 @@ CoprocessorService, Coprocessor {
 	
         ChoreThread = new Thread(this.cleanOldTransactionsThread);
         Threads.setDaemonThreadRunning(ChoreThread, n + ".oldTransactionCleaner", handler);
+#endif
 
         // Start the memory usage chore thread if the threshold
         // selected is greater than the default of 100%.   
@@ -3792,6 +3815,16 @@ CoprocessorService, Coprocessor {
                                   this.transactionsById);
     }
     
+   SortedMap<Long, TrxTransactionState> commitedTransactionsBySequenceNumberCheck = (SortedMap<Long, TrxTransactionState>)
+                                                                       transactionsByIdTestz
+                                                                       .get( this.m_Region.getRegionInfo().getRegionNameAsString()+TrxRegionObserver.trxkeycommitedTransactionsBySequenceNumber);
+   if(commitedTransactionsBySequenceNumberCheck != null) {
+       this.commitedTransactionsBySequenceNumber = commitedTransactionsBySequenceNumberCheck;
+   }
+   else {
+       transactionsByIdTestz.put(this.m_Region.getRegionInfo().getRegionNameAsString()+TrxRegionObserver.trxkeycommitedTransactionsBySequenceNumber, this.commitedTransactionsBySequenceNumber);
+   }
+    
     MutationCapture mutationCap = (MutationCapture)transactionsByIdTestz
                                                .get(this.m_Region.getRegionInfo().getRegionNameAsString()+TrxRegionObserver.trxkeyMutationCapture);
     if(mutationCap != null) {
@@ -3859,6 +3892,10 @@ CoprocessorService, Coprocessor {
 
   @Override
   public void stop(CoprocessorEnvironment env) throws IOException {
+      
+    //if (LOG.isTraceEnabled()) LOG.trace("Stop 1 - " + this.m_Region.getRegionInfo().getRegionNameAsString() + " - transactionsById (" + transactionsById.size()
+    //                    + " ), committed Transactions (" + commitedTransactionsBySequenceNumber.size() +"), scanners (" + scanners.size() + ")");      
+      
     if (LOG.isTraceEnabled()) LOG.trace("stop ");
     stoppable.stop("stop() TrxRegionEndpoint");
     
@@ -3872,6 +3909,14 @@ CoprocessorService, Coprocessor {
     transactionsEPCPMap.remove(this.m_Region.getRegionInfo().getRegionNameAsString()+trxkeyEPCPinstance);
 
   }
+ 
+#ifdefined HDP2.3 || CDH5.5
+  private synchronized void setupChoreService() { 
+      if (s_ChoreService == null) {
+	s_ChoreService = new ChoreService("Cleanup ChoreService", this.txnChoreServiceThreadPoolSize);  
+      }
+  }
+#endif
 
   // Internal support methods
    /**
@@ -4009,6 +4054,8 @@ CoprocessorService, Coprocessor {
 
   public void choreThreadDetectStaleTransactionBranch() {
       
+      synchronized(choreDetectStaleBranchLock) {
+
       List<Integer> staleBranchforTMId = new ArrayList<Integer>();
       List<TrxTransactionState> commitPendingCopy = new ArrayList<TrxTransactionState>(commitPendingTransactions);
       Map<Long, List<WALEdit>> indoubtTransactionsMap = new TreeMap<Long, List<WALEdit>>(indoubtTransactionsById);
@@ -4085,6 +4132,8 @@ CoprocessorService, Coprocessor {
       commitPendingCopy.clear();
       indoubtTransactionsMap.clear();
       staleBranchforTMId.clear();
+      
+      } // synchronized
   }
 
   public void createRecoveryzNode(int node, String encodedName, byte [] data) throws IOException {
@@ -5439,6 +5488,7 @@ CoprocessorService, Coprocessor {
     if (LOG.isTraceEnabled()) LOG.trace("Enter beginTransIfNotExist, txid: "
             + transactionId + " startId: " + startId + ", regionName " + regionInfo.getRegionNameAsString()
             + " transactionsById size: " + transactionsById.size());
+
     checkBlockNewTrans(transactionId);
 
     String key = getTransactionalUniqueId(transactionId);
@@ -6305,12 +6355,23 @@ CoprocessorService, Coprocessor {
       TrxTransactionState state = null;
       int numRemoved = 0;
       long key = 0;
+      
+      if (LOG.isTraceEnabled()) {
+	            LOG.trace("Region Cleanup " + getRegionNameAsString() + "Chore removeUnNeededCommittedTransactions: Iteration "
+	                            + choreCount + " size " + commitedTransactionsBySequenceNumber.size());
+      }
 
+      if ((commitedTransactionsBySequenceNumber.size() != 0) && ((choreCount % 10) == 1)) {
+	            LOG.info("Region Cleanup " + getRegionNameAsString() + "Chore removeUnNeededCommittedTransactions: Iteration "
+	                            + choreCount + " size " + commitedTransactionsBySequenceNumber.size());
+      }
+      
       if (minStartSeqNumber == null) {
         minStartSeqNumber = Long.MAX_VALUE;  
       }
 
       synchronized (commitedTransactionsBySequenceNumber) {
+      choreCount++;
       for (Entry<Long, TrxTransactionState> entry : new LinkedList<Entry<Long, TrxTransactionState>>(
         commitedTransactionsBySequenceNumber.entrySet())) {
           key = entry.getKey();
@@ -6376,17 +6437,19 @@ CoprocessorService, Coprocessor {
       if (listSize == 0)
         return;
 
-      if (scanners == null || scanners.isEmpty())
+      if (scanners == null || scanners.isEmpty()) {
+        cleanScannersForTransactions.clear();
         return;
+      }
 
       scannerSize = scanners.size();
-      scannerIter = scanners.entrySet().iterator();
 
       if (LOG.isTraceEnabled()) LOG.trace("removeUnNeededStaleScanners - transactions list count is " + listSize + ", scanners size is " + scannerSize);
 
       for (transIter = cleanScannersForTransactions.iterator(); transIter.hasNext();) {
 
         transactionId = transIter.next();
+        scannerIter = scanners.entrySet().iterator();
 
         while(scannerIter.hasNext()){
 
@@ -6469,6 +6532,7 @@ CoprocessorService, Coprocessor {
 
      @Override
      public void stop(String why) {
+       LOG.info("Cleanup Chore thread is stopped: " + why);
        this.stop = true;
      }
 
