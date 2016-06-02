@@ -226,7 +226,7 @@ testfiles="$prettyfiles"
 prettyfiles=
 
 # skip these tests on all platforms.
-skipTheseTests=""
+skipTheseTests="TEST004"
 
 # skip these tests for SQLMX and SQLMP tables on NSK platform
 if [ $nsk -eq 1 ]; then
@@ -260,8 +260,6 @@ if [ "$seabase" -ne 0 ]; then
     skipTheseTests="TEST004"
   fi
 fi
-#skipTheseTests="TEST020"
-skipTheseTests=
 
 # Skip exclusive tests during concurrent execution
 if [ "$REGRCONCURRENT" -ne 0 ]; then

@@ -1519,7 +1519,8 @@ public:
 			  NABoolean ishiveTruncate = FALSE,
 			  char * hiveTableLocation = NULL,
                           char * hiveHostName = NULL,
-                          Lng32 hivePortNum = 0
+                          Lng32 hivePortNum = 0,
+                          Int64 hiveModTS = -1
 			  );
 
   Long pack(void *);
@@ -1568,6 +1569,11 @@ public:
   Lng32 getHiveHdfsPort() const
   {
     return hiveHdfsPort_;
+  }
+
+  Lng32 getHiveModTS() const
+  {
+    return hiveModTS_;
   }
 
   // ---------------------------------------------------------------------
@@ -1646,7 +1652,9 @@ private:
   NABasicPtr  hiveTableLocation_;                    // 56-63
   NABasicPtr hiveHdfsHost_;                          // 64-71
   Int32 hiveHdfsPort_;                               // 72-75
-  char fillersComTdbExeUtilFastDelete_[52];          // 76-127
+  char fillers1_[4];                                 // 76-79
+  Int64 hiveModTS_;                                  // 80-87
+  char fillersComTdbExeUtilFastDelete_[40];          // 88-127
 };
 
 class ComTdbExeUtilGetStatistics : public ComTdbExeUtil

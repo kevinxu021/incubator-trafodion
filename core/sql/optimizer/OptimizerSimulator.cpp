@@ -573,6 +573,17 @@ void OptimizerSimulator::dumpHistograms()
     //enumerate captured table names and tableUIDs in hash table
     for(iterator.getNext(name, tableUID); name && tableUID; iterator.getNext(name, tableUID))
     {
+        //check if this table_uid is in TRAFODION."_HIVESTATS_".SB_HISTOGRAMS,
+        //if not, we consider this table has no histogram data.
+        Queue * outQueue = NULL;
+        query = "SELECT TABLE_UID FROM TRAFODION.";
+        query += name->getSchemaName();
+        query += ".SB_HISTOGRAMS WHERE TABLE_UID = ";
+        query += std::to_string((long long)(*tableUID)).c_str();
+        retcode = fetchAllRowsFromMetaContext(outQueue, query.data());
+        if(retcode < 0 || outQueue && outQueue->entries() == 0)
+            continue;
+
         debugMessage("Dumping histograms for %s\n", name->getQualifiedNameAsAnsiString().data());
         //dump histograms data to hdfs
         query =   "UNLOAD WITH NULL_STRING '\\N' INTO ";
@@ -731,8 +742,15 @@ void OptimizerSimulator::dumpHiveHistograms()
     //enumerate captured table names and tableUIDs in hash table
     for(iterator.getNext(name, tableUID); name && tableUID; iterator.getNext(name, tableUID))
     {
-        if(*tableUID == 0)//no histogram for this hive table
+        //check if this table_uid is in TRAFODION."_HIVESTATS_".SB_HISTOGRAMS,
+        //if not, we consider this table has no histogram data.
+        Queue * outQueue = NULL;
+        query = "SELECT TABLE_UID FROM TRAFODION.\"_HIVESTATS_\".SB_HISTOGRAMS WHERE TABLE_UID = ";
+        query += std::to_string((long long)(*tableUID)).c_str();
+        retcode = fetchAllRowsFromMetaContext(outQueue, query.data());
+        if(retcode < 0 || outQueue && outQueue->entries() == 0)
             continue;
+        
         debugMessage("Dumping histograms for %s\n", name->getQualifiedNameAsAnsiString().data());
         
         //dump histograms data to hdfs
@@ -877,7 +895,7 @@ void OptimizerSimulator::dropObjects()
       query = "DROP TABLE IF EXISTS ";
       query += stdQualTblNm.c_str();
       query += " CASCADE;";
-      debugMessage("DELETING %s ...\n", stdQualTblNm.c_str());
+      debugMessage("%s\n", query.data());
       retcode = executeFromMetaContext(query.data());
       if(retcode < 0)
       {
@@ -903,14 +921,14 @@ void OptimizerSimulator::dropObjects()
            break;
          NAString name = str.c_str();
          qualName = new (heap_) QualifiedName(name,3);
-         trafName = ComConvertNativeNameToTrafName(
-                                                                         qualName->getCatalogName(),
-                                                                         qualName->getSchemaName(),
-                                                                         qualName->getObjectName());
-         QualifiedName qualTrafName(trafName,3);
+         trafName = ComConvertNativeNameToTrafName(qualName->getCatalogName(),
+                                                   qualName->getSchemaName(),
+                                                   qualName->getObjectName());
+          QualifiedName qualTrafName(trafName,3);
           //drop external table
           NAString dropStmt = "DROP TABLE IF EXISTS ";
           dropStmt += trafName;
+          debugMessage("%s\n", dropStmt.data());                                                               
           retcode = executeFromMetaContext(dropStmt.data());
           if(retcode < 0)
           {
@@ -924,6 +942,7 @@ void OptimizerSimulator::dropObjects()
           dropStmt += hiveSchemaName;
           dropStmt +=  '.';
           dropStmt += qualName->getObjectName();
+          debugMessage("%s\n", dropStmt.data());
           execHiveSQL(dropStmt.data());//drop hive table
    }
 }
@@ -954,9 +973,6 @@ void OptimizerSimulator::loadDDLs()
     {
         raiseOsimException("Error open %s", logFilePaths_[CREATE_SCHEMA_DDLS]);
     }    
-    //ignore first 2 lines
-    //createSchemas.ignore(OSIM_LINEMAX, '\n');
-    //createSchemas.ignore(OSIM_LINEMAX, '\n');
     while(readStmt(createSchemas, statement, comment))
     {
         if(comment.length() > 0)
@@ -974,9 +990,6 @@ void OptimizerSimulator::loadDDLs()
     {
         raiseOsimException("Error open %s", logFilePaths_[CREATE_TABLE_DDLS]);
     }    
-    //ignore first 2 lines
-    //createTables.ignore(OSIM_LINEMAX, '\n');
-    //createTables.ignore(OSIM_LINEMAX, '\n');
     while(readStmt(createTables, statement, comment))
     {
         if(comment.length() > 0)
@@ -999,9 +1012,7 @@ void OptimizerSimulator::loadDDLs()
     {
         raiseOsimException("Error open %s", logFilePaths_[VIEWDDLS]);
     }  
-    //ignore first 2 lines
-    //createViews.ignore(OSIM_LINEMAX, '\n');
-    //createViews.ignore(OSIM_LINEMAX, '\n');
+
     while(readStmt(createViews, statement, comment))
     {
         if(comment.length() > 0)
@@ -1722,8 +1733,6 @@ void OptimizerSimulator::loadHistograms(const char* histogramPath, NABoolean isH
         raiseOsimException("Error open %s", histogramPath);
     }   
     char * txt = new (STMTHEAP) char[1024];
-    //s.ignore(OSIM_LINEMAX, '\n');
-    //s.ignore(OSIM_LINEMAX, '\n');
     s.read(txt, 1024);
     while(s.gcount() > 0)
     {
@@ -1809,9 +1818,7 @@ void OptimizerSimulator::readAndSetCQDs()
    {
         raiseOsimException("Error open %s", logFilePaths_[CQD_DEFAULTSFILE]);
    } 
-   // Read and ignore the top 2 header lines.
-   //inLogfile.ignore(OSIM_LINEMAX, '\n');
-   //inLogfile.ignore(OSIM_LINEMAX, '\n');
+
    Lng32 retcode;
    std::string cqd;
    while(inLogfile.good())
@@ -2370,10 +2377,6 @@ void OptimizerSimulator::readLogfile_getEstimatedRows()
 
   ifstream inLogfile(logFilePaths_[ESTIMATED_ROWS]);
 
-  // Read and ignore the top 2 header lines.
-  //inLogfile.ignore(OSIM_LINEMAX, '\n');
-  //inLogfile.ignore(OSIM_LINEMAX, '\n');
-
   while(inLogfile.good())
   {
     // read tableName and estRows from the file
@@ -2437,10 +2440,6 @@ void OptimizerSimulator::readLogFile_getNodeAndClusterNumbers()
     raiseOsimException("Unable to open %s file for reading data.", logFilePaths_[NODE_AND_CLUSTER_NUMBERS]);
 
   ifstream inLogfile(logFilePaths_[NODE_AND_CLUSTER_NUMBERS]);
-
-  // Read and ignore the top 2 header lines.
-  //inLogfile.ignore(OSIM_LINEMAX, '\n');
-  //inLogfile.ignore(OSIM_LINEMAX, '\n');
 
   if(inLogfile.good())
   {
@@ -2544,7 +2543,9 @@ void OSIM_captureTableOrView(NATable * naTab)
 
 void OptimizerSimulator::capture_TableOrView(NATable * naTab)
 {
-  if(naTab->isHiveTable()||naTab->isHistogramTable())
+  if(naTab->isHiveTable()
+     ||naTab->isHistogramTable()
+     ||ComIsTrafodionReservedSchemaName(naTab->getTableName().getSchemaName()))
       return;
   const char * viewText = naTab->getViewText();
   const QualifiedName objQualifiedName = naTab->getTableName();
@@ -2643,16 +2644,13 @@ void OptimizerSimulator::capture_TableOrView(NATable * naTab)
         }
         //end capture referred tables
     
-
       // Open file in append mode.
       ofstream * tablesListFile = writeLogStreams_[TABLESFILE];
       (*tablesListFile) << objQualifiedName.getQualifiedNameAsAnsiString().data() <<endl;
 
-      // insert tableName into hash table
-      // this is used to check if the table has already
-      // been written out to disk
+      //insert tableName into hash table for later use
       QualifiedName * tableName = new (heap_) QualifiedName(objQualifiedName, heap_);
-      //save table uid for dump historgram data when done
+      //save table uid to get historgram data on leaving.
       Int64 * tableUID = new Int64(naTab->objectUid().get_value());
       hashDict_Tables_->insert(tableName, tableUID);
       dumpDDLs(objQualifiedName);
@@ -2822,10 +2820,6 @@ void OptimizerSimulator::readLogFile_captureSysType()
   }
 
   ifstream inLogfile(logFilePaths_[CAPTURE_SYS_TYPE]);
-
-  // Read and ignore the top 2 header lines.
-  //inLogfile.ignore(OSIM_LINEMAX, '\n');
-  //inLogfile.ignore(OSIM_LINEMAX, '\n');
 
   char captureSysTypeString[64];
   inLogfile >> captureSysTypeString;

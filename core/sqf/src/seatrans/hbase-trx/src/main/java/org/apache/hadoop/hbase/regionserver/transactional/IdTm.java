@@ -140,7 +140,6 @@ public class IdTm implements IdTmCb {
      */
     public void idToStr(int timeout, long id, byte [] idString) throws IdTmException {
       if (LOG.isDebugEnabled()) LOG.debug("idToStr begin, id: " + Long.toHexString(id));
-      //System.out.println("idToStr begin, id: " + Long.toHexString(id));
 
       try {
            int err = native_id_to_string(timeout, id, idString);
@@ -169,12 +168,10 @@ public class IdTm implements IdTmCb {
            int err = native_string_to_id(timeout, id, Bytes.toBytes(idString), idString.length());
            if (LOG.isDebugEnabled()) LOG.debug("strToId returned: " + id.val
                                            + ", hex: " + Long.toHexString(id.val) + " error: " + err);
-                          System.out.println("strToId returned: " + id.val
-                                   + ", hex: " + Long.toHexString(id.val) + " error: " + err);
 
            if (err != 0) {
               LOG.error("native_string_to_id returned: " + err + " Throwing IdTmException");
-              throw new IdTmException("ferr=" + err);
+              throw new IdTmException("native_string_to_id returned: ferr=" + err);
            }
         } catch (Throwable t) {
            LOG.error("strToId threw:", t);

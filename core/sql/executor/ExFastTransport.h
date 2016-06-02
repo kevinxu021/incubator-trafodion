@@ -255,6 +255,7 @@ public:
   enum FastExtractStates
   {
     EXTRACT_NOT_STARTED = 0,
+    EXTRACT_CHECK_MOD_TS,
     EXTRACT_INITIALIZE,
     EXTRACT_PASS_REQUEST_TO_CHILD,
     EXTRACT_READ_ROWS_FROM_CHILD,
@@ -369,9 +370,13 @@ protected:
   time_t              tstart_;
 
   UInt32             bufferAllocFailuresCount_;
+
   Int32              totalNumBuffers_;
   Int32              totalNumOpens_;
   Int32              lastEvicted_;
+
+  // modification timestamp of root dir location.
+  Int64              modTS_;
 }; // class ExFastExtractTcb
 /////////////////////////////////////////////////////
 
@@ -458,6 +463,7 @@ protected:
   Lng32 lobInterfaceInsert(ssize_t bytesToWrite);
   Lng32 lobInterfaceCreate(const char *fileName);
   Lng32 lobInterfaceClose(const char *fileName);
+  Lng32 lobInterfaceDataModCheck();
 
   virtual void insertUpQueueEntry(ex_queue::up_status status,
                           ComDiagsArea *diags,

@@ -599,6 +599,8 @@ SDDkwd__(CAT_ENABLE_QUERY_INVALIDATION, "ON"),
 
   DDkwd__(COLLECT_REORG_STATS,                                  "ON"),
 
+  DDint__(COMPILER_IDLE_TIMEOUT,                    "1800"), // To match with set session defaults value
+
   // tracking compilers specific defaults
   DDint__(COMPILER_TRACKING_INTERVAL, "0"),
   DD_____(COMPILER_TRACKING_LOGFILE,  "NONE"),
@@ -1968,6 +1970,8 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
 
   DD_____(HIVE_CATALOG,                                ""),
 
+  DDkwd__(HIVE_DATA_MOD_CHECK,                  "ON"),
+
   DDkwd__(HIVE_DEFAULT_CHARSET,            (char *)SQLCHARSETSTRING_UTF8),
   DD_____(HIVE_DEFAULT_SCHEMA,                  "HIVE"),
   DDkwd__(HIVE_DESCRIBE_VIRT_COLS,              "OFF"),
@@ -2807,7 +2811,7 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   DDansi_(OUTPUT_DATE_FORMAT,		        ""),
 
   // Overflow mode for scratch files
-  DDkwd__(OVERFLOW_MODE,                  "MMAP"),
+  DDkwd__(OVERFLOW_MODE,                  "DISK"),
 
   // Sequence generator override identity values
   DDkwd__(OVERRIDE_GENERATED_IDENTITY_VALUES,	  "OFF"),

@@ -373,6 +373,8 @@ public:
   Int32 getNumOfBuckets() const { return (defaultBucketIdx_ ? defaultBucketIdx_ : 1); }
   Int32 getLastValidBucketIndx() const               { return defaultBucketIdx_; }
 
+  const hdfsFileInfo * dirInfo() const {return &dirInfo_; }
+
   void populate(hdfsFS fs,
                 const NAString &dir,
                 int partIndex,
@@ -408,6 +410,8 @@ private:
 
   char recordTerminator_;
   
+  hdfsFileInfo dirInfo_;
+
   NAMemory *heap_;
 };
 
@@ -508,6 +512,9 @@ public:
   Int32 getCurrHdfsPort() const { return currHdfsPort_; }
   void *getLOBGlobals() const { return lobGlob_; }
   
+  const Lng32 numOfPartCols() const { return numOfPartCols_; }
+  const Lng32 totalNumPartitions() const { return totalNumPartitions_; }
+
 private:
   enum FileType
   {

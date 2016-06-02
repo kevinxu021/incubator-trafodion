@@ -7,19 +7,19 @@ import java.util.Properties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.trafodion.jdbc.t4.HPT4DataSource;
+import org.trafodion.jdbc.t4.TrafT4DataSource;
 
 import com.esgyn.dbmgr.resources.ConfigurationResource;
 
 public class JdbcHelper {
 	private static final Logger _LOG = LoggerFactory.getLogger(JdbcHelper.class);
 	private static JdbcHelper jdbcHelper;
-	private static HPT4DataSource dataSource = null;
+	private static TrafT4DataSource dataSource = null;
 	public static final String APPLICATION_NAME = "EsgynDB Manager";
 
 	private JdbcHelper() {
 		ConfigurationResource configResource = ConfigurationResource.getInstance();
-		dataSource = new HPT4DataSource();
+		dataSource = new TrafT4DataSource();
 		dataSource.setApplicationName(APPLICATION_NAME);
 		dataSource.setUrl(configResource.getJdbcUrl());
 		dataSource.setMaxStatements(ConfigurationResource.getMaxStatementsCache());

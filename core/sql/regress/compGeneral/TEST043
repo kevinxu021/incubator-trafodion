@@ -92,6 +92,10 @@ values
 
 update statistics for table osimt1 on number;
 
+drop table if exists osimt2;
+create table osimt2 like osimt1;
+insert into table osimt2 select * from osimt1;
+
 ?section test_capture
 --start capture
 sh rm -rf osim;
@@ -107,6 +111,9 @@ explain options 'f' xx;
 execute check_histograms using 'OSIMT1', 'OSIMREGR';
 
 execute check_histogram_intervals using 'OSIMT1', 'OSIMREGR';
+
+prepare xx from select * from osimt2;
+showddl osimt2;
 
 log;
 control osim capture stop;
@@ -128,6 +135,9 @@ explain options 'f' xx;
 execute check_histograms using 'OSIMT1', 'OSIMREGR';
 
 execute check_histogram_intervals using 'OSIMT1', 'OSIMREGR';
+
+prepare xx from select * from osimt2;
+showddl osimt2;
 
 log;
 

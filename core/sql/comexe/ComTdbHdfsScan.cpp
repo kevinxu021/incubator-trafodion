@@ -75,9 +75,15 @@ ComTdbHdfsScan::ComTdbHdfsScan(
                                Cardinality estimatedRowCount,
                                Int32  numBuffers,
                                UInt32  bufferSize,
-                               char * errCountTable = NULL,
-                               char * loggingLocation = NULL,
-                               char * errCountId = NULL
+                               char * errCountTable,
+                               char * loggingLocation,
+                               char * errCountId,
+
+                               char * hdfsRootDir,
+                               Int64  modTSforDir,
+                               Lng32  numOfPartCols,
+                               Queue * hdfsDirsToCheck
+
                                )
 : ComTdb( ComTdb::ex_HDFS_SCAN,
             eye_HDFS_SCAN,
@@ -127,7 +133,11 @@ ComTdbHdfsScan::ComTdbHdfsScan(
   virtColsTuppIndex_(virtColsTuppIndex),
   partColsRowLength_(partColsRowLength),
   virtColsRowLength_(virtColsRowLength),
-  partElimExpr_(part_elim_expr)
+  partElimExpr_(part_elim_expr),
+  hdfsRootDir_(hdfsRootDir),
+  modTSforDir_(modTSforDir),
+  numOfPartCols_(numOfPartCols),
+  hdfsDirsToCheck_(hdfsDirsToCheck)
 {};
 
 ComTdbHdfsScan::~ComTdbHdfsScan()
@@ -179,6 +189,9 @@ Long ComTdbHdfsScan::pack(void * space)
   loggingLocation_.pack(space);
   errCountRowId_.pack(space);
   partElimExpr_.pack(space);
+  hdfsRootDir_.pack(space);
+  hdfsDirsToCheck_.pack(space);
+
   return ComTdb::pack(space);
 }
 
@@ -227,6 +240,9 @@ Lng32 ComTdbHdfsScan::unpack(void * base, void * reallocator)
   if (loggingLocation_.unpack(base)) return -1;
   if (errCountRowId_.unpack(base)) return -1;
   if (partElimExpr_.unpack(base, reallocator)) return -1;
+  if (hdfsRootDir_.unpack(base)) return -1;
+  if (hdfsDirsToCheck_.unpack(base, reallocator)) return -1;
+
   return ComTdb::unpack(base, reallocator);
 }
 
@@ -488,6 +504,28 @@ void ComTdbHdfsScan::displayContentsBase(Space * space,ULng32 flag)
               space->allocateAndCopyToAlignedSpace
                 (buf, str_len(buf), sizeof(short));
             }
+        }
+
+      if (hdfsRootDir_)
+        {
+          str_sprintf(buf, "hdfsRootDir: %s", hdfsRootDir_);
+          space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+
+          str_sprintf(buf, "modTSforDir_ = %Ld, numOfPartCols_ = %d",
+                      modTSforDir_, numOfPartCols_);
+          space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+
+          if (hdfsDirsToCheck())
+            {
+              hdfsDirsToCheck()->position();
+              char * dir = NULL;
+              while ((dir = (char*)hdfsDirsToCheck()->getNext()) != NULL)
+                {
+                  str_sprintf(buf, "Dir Name: %s", dir);
+                  space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+                }
+            }
+
         }
     }
 }
