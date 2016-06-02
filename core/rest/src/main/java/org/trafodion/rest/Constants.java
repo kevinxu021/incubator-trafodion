@@ -259,6 +259,9 @@ public final class Constants {
   public static final String ORDER_NUMBER = "orderNumber"; 
   /** WMS key names for SLA */
   public static final String PRIORITY = "priority";
+  public static final String PRTY_LOW = "Low";
+  public static final String PRTY_MEDIUM = "Medium";
+  public static final String PRTY_HIGH = "High";
   public static final String LIMIT = "limit";
   public static final String THROUGHPUT = "throughput";
   public static final String ON_CONNECT_PROFILE = "onConnectProfile";
