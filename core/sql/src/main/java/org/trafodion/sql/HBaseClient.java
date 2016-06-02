@@ -264,7 +264,7 @@ public class HBaseClient {
             else
               metaColDesc.setMaxVersions(DtmConst.SSCC_MAX_DATA_VERSION);
             metaColDesc.setInMemory(true);
-            //desc.addFamily(metaColDesc);
+            desc.addFamily(metaColDesc);
             HBaseAdmin admin = new HBaseAdmin(config);
             admin.createTable(desc);
             admin.close();
@@ -535,7 +535,7 @@ public class HBaseClient {
             else
               metaColDesc.setMaxVersions(DtmConst.SSCC_MAX_DATA_VERSION);
             metaColDesc.setInMemory(true);
-            //desc.addFamily(metaColDesc);
+            desc.addFamily(metaColDesc);
             HBaseAdmin admin = new HBaseAdmin(config);
                if (beginEndKeys != null && beginEndKeys.length > 0)
                {
