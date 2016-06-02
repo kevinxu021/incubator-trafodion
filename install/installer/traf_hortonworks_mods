@@ -44,9 +44,6 @@ PORT=`echo $URL | sed 's/.*://'`
 AMBARI_HOST=$(echo $URL | sed 's@.*://@@' | sed 's@:.*@@')
 HDFS_NODE=$(echo $HDFS_NODES | head -n1 | awk '{print $1;}')
 HBASE_NODE=$(echo $HBASE_NODES | head -n1 | awk '{print $1;}')
-echo "export AMBARI_HOST=\"$AMBARI_HOST\"" >> $TRAF_CONFIG
-echo "export HDFS_NODE=\"$HDFS_NODE\"" >> $TRAF_CONFIG
-echo "export HBASE_NODE=\"$HBASE_NODE\"" >> $TRAF_CONFIG
 sudo chmod 777 $TRAF_CONFIG
 source $TRAF_CONFIG
 
