@@ -98,7 +98,7 @@ namespace EsgynDB.Data
             {
                 if (this._state != ConnectionState.Closed)
                 {
-                    string msg = EsgynDBResources.FormatMessage(EsgynDBMessage.InvalidConnectionState, this._state);
+                    string msg = EsgynDBResources.GetMessage(EsgynDBMessage.InvalidConnectionState, this._state);
                     EsgynDBException.ThrowException(this, new InvalidOperationException(msg));
                 }
 
@@ -373,6 +373,7 @@ namespace EsgynDB.Data
             }
         }
 
+
         /// <summary>
         /// Closes the connection, freeing all server and client resources.
         /// </summary>
@@ -381,16 +382,16 @@ namespace EsgynDB.Data
             Close(false);
         }
 
-        internal void Close(bool forceClose)
+        public void Close(bool forceClose)
         {
-            Close(forceClose, false);
+            Close(forceClose, false, false);
         }
 
         /// <summary>
         /// Disconnect will call doIO
         /// If doIO has any network issue, it can't continue to disconnect server throught IO.
         /// </summary>
-        internal void Close(bool forceClose, bool networkErr)
+        internal void Close(bool forceClose, bool isFreeStmtErr, bool isDisconnectErr)
         {
             if (EsgynDBTrace.IsPublicEnabled)
             {
@@ -416,27 +417,26 @@ namespace EsgynDB.Data
                                 EsgynDBConnection._connPools[this.ConnectionStringBuilder.ConnectionString].RemoveConnection(this);
                             }
 
-
-                            while (this.Commands.Count > 0)
+                            if (!isFreeStmtErr)
                             {
-                                try
+                                while (this.Commands.Count > 0)
                                 {
-                                    if (!networkErr && !this.Network.isIdleTimeout)
+                                    try
+                                    {
                                         this.RemoveCommand(this.Commands[0]);
-                                    else
+                                    }
+                                    catch
+                                    {
                                         this.Commands.RemoveAt(0);
-                                }
-                                catch
-                                {
-                                    this.Commands.RemoveAt(0);
-                                    //Doesn't matter if got any error
+                                        //Doesn't matter if got any error
+                                    }
                                 }
                             }
 
                         }
 
                         // close the connection
-                        if ((forceClose || this.ConnectionStringBuilder.MaxPoolSize <= 0) && !this.Network.IsClosed && !networkErr && !this.Network.isIdleTimeout)
+                        if ((forceClose || this.ConnectionStringBuilder.MaxPoolSize <= 0) && !isDisconnectErr)
                         {
                             lock (this.dataAccessLock)
                             {
@@ -718,7 +718,9 @@ namespace EsgynDB.Data
                     case CloseError.ParamError:
                     case CloseError.TransactionError:
                     default:
-                        throw new EsgynDBException(EsgynDBMessage.InternalError, null, "FreeCommand", reply.error.ToString() + " " + reply.errorDetail + " " + reply.errorText);
+                        EsgynDBException.ThrowException(this, new InternalFailureException(EsgynDBResources.GetMessage(EsgynDBMessage.InternalError, null, "FreeCommand", reply.error.ToString() + " " + reply.errorDetail + " " + reply.errorText), null));
+                        break;
+
                 }
             }
 
@@ -815,7 +817,8 @@ namespace EsgynDB.Data
                         case GetObjRefError.InvalidUser:
                         case GetObjRefError.ASTimeout:
                         default:
-                            throw new EsgynDBException(EsgynDBMessage.InternalError, "GetObjRef", reply.error.ToString() + " " + reply.errorDetail + " " + reply.errorText);
+                            EsgynDBException.ThrowException(this, new InternalFailureException(EsgynDBResources.GetMessage(EsgynDBMessage.InternalError, "GetObjRef", reply.error.ToString() + " " + reply.errorDetail + " " + reply.errorText), null));
+                            break;
                     }
                 }
                 catch (Exception e)
@@ -846,7 +849,7 @@ namespace EsgynDB.Data
             // we looped <retryCount> times and still failed
             if (!success)
             {
-                throw new EsgynDBException(EsgynDBMessage.TryAgain, retryEx != null ? retryEx.Message : null);
+                EsgynDBException.ThrowException(this, new EsgynDBException(EsgynDBMessage.TryAgain, retryEx != null ? retryEx.Message : null));
             }
 
             // backup connection info
@@ -947,7 +950,8 @@ namespace EsgynDB.Data
                     case InitDialogueError.SQLInvalidHandle:
                     case InitDialogueError.SQLNeedData:
                     default:
-                        throw new EsgynDBException(EsgynDBMessage.InternalError, null, "InitDiag", reply.error.ToString() + " " + reply.errorDetail + " " + reply.errorText);
+                        EsgynDBException.ThrowException(this, new InternalFailureException(EsgynDBResources.GetMessage(EsgynDBMessage.InternalError, null, "InitDiag", reply.error.ToString() + " " + reply.errorDetail + " " + reply.errorText), null));
+                        break;
                 }
             }
 
