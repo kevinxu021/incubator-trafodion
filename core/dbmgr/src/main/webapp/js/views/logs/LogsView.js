@@ -49,7 +49,6 @@ define([
 	FILTER_PROCESS_NAMES = '#filter-process-names',
 	FILTER_ERROR_CODES = '#filter-error-codes',
 	FILTER_MESSAGE_TEXT = '#filter-message-text',
-	FILTER_ERROR_MSG = '#filter-error-text',
 	FILTER_TIME_RANGE = '#filter-time-range',
 	FILTER_MAX_FETCH_ROWS = '#max-fetch-rows';
 
@@ -155,7 +154,7 @@ define([
 				var startTime = new Date($(START_TIME_PICKER).data("DateTimePicker").date()).getTime();
 				var endTime = new Date($(END_TIME_PICKER).data("DateTimePicker").date()).getTime();
 				return (startTime > 0 && startTime < endTime);
-			}, "* Invalid Date Time and/or Start Time is greater than End Time");
+			}, "* Invalid Date Time or Start Time is greater than End Time");
 
 			$.validator.addMethod("validateErrorCodes", function(value, element) {
 				var errorCodes = $(FILTER_ERROR_CODES).val();
@@ -377,11 +376,9 @@ define([
 		},
 
 		filterButtonClicked: function(){
-			$(FILTER_ERROR_MSG).html('');
 			$(FILTER_DIALOG).modal('show');
 		},
 		filterDialogReset: function(){
-			$(FILTER_ERROR_MSG).html('');
 			lastAppliedFilters={};
 			lastAppliedFilters=initAppliedFilter;
 			validator.resetForm();
@@ -410,8 +407,6 @@ define([
 			if(source != null && $(source.currentTarget)[0] == $(FILTER_APPLY_BUTTON)[0]){
 				$(FILTER_DIALOG).modal('hide');
 			}
-			$(FILTER_ERROR_MSG).html('');
-
 			_this.showLoading();
 			logsHandler.fetchLogs(lastAppliedFilters);
 		},

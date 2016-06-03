@@ -25,7 +25,7 @@
 	<entry key="maxStatementsCache">100</entry>
 	
 	<!-- The Trafodion REST Server URI -->
-	<entry key="trafodionRestServerUri">10.1.30.80:4200</entry>
+	<entry key="trafodionRestServerUri">10.1.30.41:4200</entry>
 
 	<!-- The EsgynDB DCS Master Info URI -->
 	<entry key="dcsMasterInfoUri">http://10.1.30.80:24400</entry>
@@ -55,7 +55,7 @@
 	<entry key="requestHeaderSize">98304</entry>
 
 	<!-- The TimeZone name of the EsgynDB server. Enter in java time zone format like America/New_York -->
-	<entry key="timeZoneName">Etc/UTC</entry>
+	<entry key="timeZoneName">America/New_York</entry>
 	
 	<!-- The openTSDB HTTP URI-->
 	<entry key="openTSDBUri">10.1.30.80:5242</entry>
