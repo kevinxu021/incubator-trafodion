@@ -131,7 +131,7 @@ define([
 								 "className" : "dbmgr-nowrap",
 					                	 "mRender": function ( data, type, full ) {
 					                		 if (type === 'display') {
-					                			 return common.toDateFromMilliSeconds(data);
+					                			 return common.toServerLocalDateFromMilliSeconds(data, 'YYYY-MM-DD HH:mm:ss');
 					                		 }
 					                		 else return data;
 					                	 }
