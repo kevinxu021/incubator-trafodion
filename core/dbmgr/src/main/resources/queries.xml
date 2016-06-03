@@ -797,5 +797,41 @@
 			<name>CHECK_LIBRARY</name>
 			<text><![CDATA[select object_name, object_type from "_MD_".objects where schema_name = '%1$s' and object_name = '%2$s' and object_type = 'LB']]></text>
 		</query>
+		<query>
+			<name>WMS_ADD_ALTER_PROFILE</name>
+			<text><![CDATA[{"url":"http://%1$s/v1/wms/profiles", "method":"POST", "jsonParameter":{"%2$s":{"cqd":"%3$s","set":"%4$s","hostList":"%5$s","isDefault":"no","lastUpdate":""}}, "contentType":"application/json"}]]></text>
+		</query>
+		<query>
+			<name>WMS_DELETE_PROFILE</name>
+			<text><![CDATA[{"url":"http://%1$s/v1/wms/profiles/query?delete=%2$s", "method":"DELETE"}]]></text>
+		</query>
+		<query>
+			<name>WMS_GET_PROFILES</name>
+			<text><![CDATA[{"url":"http://%1$s/v1/wms/profiles", "method":"get"}]]></text>
+		</query>
+		<query>
+			<name>WMS_ADD_ALTER_SLA</name>
+			<text><![CDATA[{"url":"http://%1$s/v1/wms/slas", "method":"POST", "jsonParameter":{"%2$s":{"priority":"%3$s","limit":"%4$s","throughput":"%5$s","onConnectProfile":"%6$s","onDisconnectProfile":"", "isDefault":"no","lastUpdate":""}}, "contentType":"application/json"}]]></text>
+		</query>
+		<query>
+			<name>WMS_GET_SLAS</name>
+			<text><![CDATA[{"url":"http://%1$s/v1/wms/slas", "method":"get"}]]></text>
+		</query>
+		<query>
+			<name>WMS_DELETE_SLA</name>
+			<text><![CDATA[{"url":"http://%1$s/v1/wms/slas/query?delete=%2$s", "method":"DELETE"}]]></text>
+		</query>
+		<query>
+			<name>WMS_GET_MAPPINGS</name>
+			<text><![CDATA[{"url":"http://%1$s/v1/wms/mappings", "method":"get"}]]></text>
+		</query>		
+		<query>
+			<name>WMS_ADD_ALTER_MAPPING</name>
+			<text><![CDATA[{"url":"http://%1$s/v1/wms/mappings", "method":"POST", "jsonParameter":{"%2$s":{"userName":"%3$s","applicationName":"%4$s","sessionName":"%5$s","roleName":"%6$s","sla":"%7$s","clientIpAddress":"%8$s","clientHostName":"%9$s","orderNumber":"%10$s", "isDefault":"no","lastUpdate":""}}, "contentType":"application/json"}]]></text>
+		</query>
+		<query>
+			<name>WMS_DELETE_MAPPING</name>
+			<text><![CDATA[{"url":"http://%1$s/v1/wms/mappings/query?delete=%2$s", "method":"DELETE"}]]></text>
+		</query>
 	</queries>
 </SystemQueries>

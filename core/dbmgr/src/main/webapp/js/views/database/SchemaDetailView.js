@@ -291,7 +291,7 @@ define([
 			if(!pageStatus.privilegesFetched || pageStatus.privilegesFetched == false){
 				$(PRIVILEGES_SPINNER).show();
 				$(PRIVILEGES_ERROR_CONTAINER).hide();
-				$(PRIVILEGES__CONTAINER).show();
+				$(PRIVILEGES_CONTAINER).show();
 				var objectID = _this.getObjectID();
 				dbHandler.fetchPrivileges('schema', routeArgs.name, objectID, null);
 			}			

@@ -65,7 +65,7 @@ define([
 				var startTime = new Date($(START_TIME_PICKER).data("DateTimePicker").date()).getTime();
 				var endTime = new Date($(END_TIME_PICKER).data("DateTimePicker").date()).getTime();
 				return (startTime > 0 && startTime < endTime);
-			}, "* Invalid Date Time and/or Start Time is not less than End Time");
+			}, "* Invalid Date Time or Start Time is not less than End Time");
 
 			validator = $(FILTER_FORM).validate({
 				rules: {
