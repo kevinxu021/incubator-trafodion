@@ -320,12 +320,14 @@ public class ServerResource extends ResourceBase {
                     String state = aRegisteredServer.getState();
                     if(state.equals("CONNECTED")){
                         obj.put("MAPPED_SLA",aRegisteredServer.getSla());
-                        obj.put("MAPPED_PROFILE",aRegisteredServer.getProfile());
+                        obj.put("MAPPED_CONNECT_PROFILE",aRegisteredServer.getConnectProfile());
+                        obj.put("MAPPED_DISCONNECT_PROFILE",aRegisteredServer.getDisconnectProfile());
                         obj.put("CONNECTED_INTERVAL_SEC",aRegisteredServer.getConnectedInterval());
                         obj.put("CONNECT_TIME",aRegisteredServer.getConnectTimeAsDate());
                     } else {
                         obj.put("MAPPED_SLA","");
-                        obj.put("MAPPED_PROFILE","");
+                        obj.put("MAPPED_CONNECT_PROFILE","");
+                        obj.put("MAPPED_DISCONNECT_PROFILE","");
                         obj.put("CONNECTED_INTERVAL_SEC","");
                         obj.put("CONNECT_TIME","");
                     }

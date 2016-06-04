@@ -180,11 +180,16 @@ public class RESTServlet implements RestConstants {
                                 data = zkc.getData(znode + "/" + child, new SlaDataWatcher(), stat);
                                 String delims = "[=:]";
                                 String[] tokens = (new String(data)).split(delims);
-                                for (int i = 0; i < tokens.length; i=i+2){
-                                    attributes.put(tokens[i], tokens[i + 1]);
+                                if((tokens.length % 2) != 0){
+                                    LOG.error("SlaWatcher [" + child + "] incorrect format :" + (new String(data)));
                                 }
-                                synchronized(slasMap){
-                                    slasMap.put(child, attributes);
+                                else {
+                                    for (int i = 0; i < tokens.length; i=i+2){
+                                        attributes.put(tokens[i], tokens[i + 1]);
+                                    }
+                                    synchronized(slasMap){
+                                        slasMap.put(child, attributes);
+                                    }
                                 }
                             }
                         }
@@ -217,11 +222,16 @@ public class RESTServlet implements RestConstants {
                     data = zkc.getData(znode, new SlaDataWatcher(), stat);
                     String delims = "[=:]";
                     String[] tokens = (new String(data)).split(delims);
-                    for (int i = 0; i < tokens.length; i=i+2){
-                        attributes.put(tokens[i], tokens[i + 1]);
+                    if((tokens.length % 2) != 0){
+                        LOG.error("SlaDataWatcher [" + child + "] incorrect format :" + (new String(data)));
                     }
-                    synchronized (slasMap){
-                        slasMap.put(child,attributes);
+                    else {
+                        for (int i = 0; i < tokens.length; i=i+2){
+                            attributes.put(tokens[i], tokens[i + 1]);
+                        }
+                        synchronized (slasMap){
+                            slasMap.put(child,attributes);
+                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -258,11 +268,16 @@ public class RESTServlet implements RestConstants {
                                 data = zkc.getData(znode + "/" + child, new ProfileDataWatcher(), stat);
                                 String delims = "[=:]";
                                 String[] tokens = (new String(data)).split(delims);
-                                for (int i = 0; i < tokens.length; i=i+2){
-                                    attributes.put(tokens[i], tokens[i + 1]);
+                                if((tokens.length % 2) != 0){
+                                    LOG.error("ProfileWatcher [" + child + "] incorrect format :" + (new String(data)));
                                 }
-                                synchronized (profilesMap){
-                                    profilesMap.put(child, attributes);
+                                else {
+                                    for (int i = 0; i < tokens.length; i=i+2){
+                                        attributes.put(tokens[i], tokens[i + 1]);
+                                    }
+                                    synchronized (profilesMap){
+                                        profilesMap.put(child, attributes);
+                                    }
                                 }
                             }
                         }
@@ -295,11 +310,16 @@ public class RESTServlet implements RestConstants {
                     data = zkc.getData(znode, new ProfileDataWatcher(), stat);
                     String delims = "[=:]";
                     String[] tokens = (new String(data)).split(delims);
-                    for (int i = 0; i < tokens.length; i=i+2){
-                        attributes.put(tokens[i], tokens[i + 1]);
+                    if((tokens.length % 2) != 0){
+                        LOG.error("ProfileDataWatcher [" + child + "] incorrect format :" + (new String(data)));
                     }
-                    synchronized (profilesMap){
-                        profilesMap.put(child,attributes);
+                    else {
+                        for (int i = 0; i < tokens.length; i=i+2){
+                            attributes.put(tokens[i], tokens[i + 1]);
+                        }
+                        synchronized (profilesMap){
+                            profilesMap.put(child,attributes);
+                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -335,11 +355,16 @@ public class RESTServlet implements RestConstants {
                                 data = zkc.getData(znode + "/" + child, new MappingDataWatcher(), stat);
                                 String delims = "[=:]";
                                 String[] tokens = (new String(data)).split(delims);
-                                for (int i = 0; i < tokens.length; i=i+2){
-                                    attributes.put(tokens[i], tokens[i + 1]);
+                                if((tokens.length % 2) != 0){
+                                    LOG.error("MappingWatcher [" + child + "] incorrect format :" + (new String(data)));
                                 }
-                                synchronized (mappingsMap){
-                                    mappingsMap.put(child, attributes);
+                                else {
+                                    for (int i = 0; i < tokens.length; i=i+2){
+                                        attributes.put(tokens[i], tokens[i + 1]);
+                                    }
+                                    synchronized (mappingsMap){
+                                        mappingsMap.put(child, attributes);
+                                    }
                                 }
                             }
                         }
@@ -372,11 +397,16 @@ public class RESTServlet implements RestConstants {
                     data = zkc.getData(znode, new MappingDataWatcher(), stat);
                     String delims = "[=:]";
                     String[] tokens = (new String(data)).split(delims);
-                    for (int i = 0; i < tokens.length; i=i+2){
-                        attributes.put(tokens[i], tokens[i + 1]);
+                    if((tokens.length % 2) != 0){
+                        LOG.error("MappingDataWatcher [" + child + "] incorrect format :" + (new String(data)));
                     }
-                    synchronized (mappingsMap){
-                        mappingsMap.put(child,attributes);
+                    else {
+                        for (int i = 0; i < tokens.length; i=i+2){
+                            attributes.put(tokens[i], tokens[i + 1]);
+                        }
+                        synchronized (mappingsMap){
+                            mappingsMap.put(child,attributes);
+                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -482,7 +512,9 @@ public class RESTServlet implements RestConstants {
                             for (int i = 0; i < tokens.length; i=i+2){
                                 attributes.put(tokens[i], tokens[i + 1]);
                             }
-                            slasMap.put(child,attributes);
+                            synchronized (slasMap){
+                                slasMap.put(child,attributes);
+                            }
                         }
                     }
                 }
@@ -518,7 +550,9 @@ public class RESTServlet implements RestConstants {
                             for (int i = 0; i < tokens.length; i=i+2){
                                 attributes.put(tokens[i], tokens[i + 1]);
                             }
-                            profilesMap.put(child,attributes);;
+                            synchronized(profilesMap){
+                                profilesMap.put(child,attributes);
+                            }
                         }
                     }
                 }
@@ -554,7 +588,9 @@ public class RESTServlet implements RestConstants {
                             for (int i = 0; i < tokens.length; i=i+2){
                                 attributes.put(tokens[i], tokens[i + 1]);
                             }
-                            mappingsMap.put(child,attributes);
+                            synchronized(mappingsMap){
+                                mappingsMap.put(child,attributes);
+                            }
                         }
                     }
                 }
@@ -635,7 +671,8 @@ public class RESTServlet implements RestConstants {
 	                                registeredServer.setClientAppl(scn.next());
 	                                if(state.equals("CONNECTED")){
 	                                    registeredServer.setSla(scn.next());
-	                                    registeredServer.setProfile(scn.next());
+	                                    registeredServer.setConnectProfile(scn.next());
+                                        registeredServer.setDisconnectProfile(scn.next());
 	                                    registeredServer.setConnectTime(stat.getMtime());
 	                                    registeredServer.setConnectedInterval(((new Date()).getTime() - stat.getMtime())/1000);
 	                                }
@@ -703,19 +740,38 @@ public class RESTServlet implements RestConstants {
     public synchronized Response.Status postWmsSla(String name, String sdata) throws Exception {
         Response.Status status = Response.Status.OK;
         Stat stat = null;
-        byte[] data = sdata.getBytes();
+        byte[] data = null;
+        String tdata = "";
         
         if(LOG.isDebugEnabled())
             LOG.debug("sdata :" + sdata);
         if(name.equals(Constants.DEFAULT_WMS_SLA_NAME)== false){
-            stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name,false);
-            if (stat == null) {
-                status = Response.Status.CREATED;
-                zkc.create(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name,
-                        data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
-                        CreateMode.PERSISTENT);
-            } else {
-                zkc.setData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name, data, -1);
+            String delims = "[=:]";
+            String[] tokens = sdata.split(delims);
+            if((tokens.length % 2) != 0){
+                LOG.error("postWmsSla [" + name + "] incorrect format :" + sdata);
+            }
+            else {
+                for (int i = 0; i < tokens.length; i=i+2){
+                    switch(tokens[i]){
+                    case Constants.IS_DEFAULT:
+                        tokens[i + 1] = "no";
+                        break;
+                    }
+                    if(i>0)
+                        tdata = tdata + ":";
+                    tdata = tdata + tokens[i] + "=" + tokens[i + 1];
+                }
+                data = tdata.getBytes();
+                stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name,false);
+                if (stat == null) {
+                    status = Response.Status.CREATED;
+                    zkc.create(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name,
+                            data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                            CreateMode.PERSISTENT);
+                } else {
+                    zkc.setData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name, data, -1);
+                }
             }
         }
         return status;
@@ -723,19 +779,38 @@ public class RESTServlet implements RestConstants {
     public synchronized Response.Status postWmsProfile(String name, String sdata) throws Exception {
         Response.Status status = Response.Status.OK;
         Stat stat = null;
-        byte[] data = sdata.getBytes();
+        byte[] data = null;
+        String tdata = "";
         
         if(LOG.isDebugEnabled())
             LOG.debug("sdata :" + sdata);
         if(name.equals(Constants.DEFAULT_WMS_PROFILE_NAME)== false){
-            stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + name,false);
-            if (stat == null) {
-                status = Response.Status.CREATED;
-                zkc.create(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + name,
-                        data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
-                        CreateMode.PERSISTENT);
-            } else {
-                zkc.setData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + name, data, -1);
+            String delims = "[=:]";
+            String[] tokens = sdata.split(delims);
+            if((tokens.length % 2) != 0){
+                LOG.error("postWmsProfile [" + name + "] incorrect format :" + sdata);
+            }
+            else {
+                for (int i = 0; i < tokens.length; i=i+2){
+                    switch(tokens[i]){
+                    case Constants.IS_DEFAULT:
+                        tokens[i + 1] = "no";
+                        break;
+                    }
+                    if(i>0)
+                        tdata = tdata + ":";
+                    tdata = tdata + tokens[i] + "=" + tokens[i + 1];
+                }
+                data = tdata.getBytes();
+                stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + name,false);
+                if (stat == null) {
+                    status = Response.Status.CREATED;
+                    zkc.create(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + name,
+                            data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                            CreateMode.PERSISTENT);
+                } else {
+                    zkc.setData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + name, data, -1);
+                }
             }
         }
         return status;
@@ -743,19 +818,47 @@ public class RESTServlet implements RestConstants {
     public synchronized Response.Status postWmsMapping(String name, String sdata) throws Exception {
         Response.Status status = Response.Status.OK;
         Stat stat = null;
-        byte[] data = sdata.getBytes();
+        byte[] data = null;
+        short defaultOrderNumber = Short.valueOf(Constants.DEFAULT_ORDER_NUMBER);
+        short currentOrderNumber = 0;
+        String tdata = "";
         
         if(LOG.isDebugEnabled())
             LOG.debug("sdata :" + sdata);
         if(name.equals(Constants.DEFAULT_WMS_MAPPING_NAME)== false){
-            stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name,false);
-            if (stat == null) {
-                status = Response.Status.CREATED;
-                zkc.create(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name,
-                        data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
-                        CreateMode.PERSISTENT);
-            } else {
-                zkc.setData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name, data, -1);
+            String delims = "[=:]";
+            String[] tokens = sdata.split(delims);
+            if((tokens.length % 2) != 0){
+                LOG.error("postWmsMapping [" + name + "] incorrect format :" + sdata);
+            }
+            else {
+                for (int i = 0; i < tokens.length; i=i+2){
+                    switch(tokens[i]){
+                    case Constants.IS_DEFAULT:
+                        tokens[i + 1] = "no";
+                        break;
+                    case Constants.ORDER_NUMBER:
+                        currentOrderNumber = Short.valueOf(tokens[i + 1]);
+                        if (currentOrderNumber < 0)
+                            tokens[i + 1] = "0";
+                        else if (currentOrderNumber >= defaultOrderNumber)
+                            tokens[i + 1] = String.valueOf(defaultOrderNumber - 1);
+                       break;
+                    }
+                    if(i>0)
+                        tdata = tdata + ":";
+                    tdata = tdata + tokens[i] + "=" + tokens[i + 1];
+                }
+                data = tdata.getBytes();
+                stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name,false);
+                if (stat == null) {
+                    status = Response.Status.CREATED;
+                    zkc.create(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name,
+                            data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                            CreateMode.PERSISTENT);
+                } else {
+                    zkc.setData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name, data, -1);
+                }
             }
         }
         return status;

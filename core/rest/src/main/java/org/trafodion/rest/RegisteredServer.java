@@ -43,7 +43,8 @@ public class RegisteredServer  {
 	private String clientPort;
 	private String clientAppl;
 	private String sla;
-	private String profile;
+	private String connectProfile;
+    private String disconnectProfile;
 	private long connectedInterval;
 	private long connectTime;
 
@@ -140,11 +141,17 @@ public class RegisteredServer  {
     public void setSla(String value){
         sla = value;
     }
-    public String getProfile(){
-        return profile;
+    public String getConnectProfile(){
+        return connectProfile;
     }
-    public void setProfile(String value){
-        profile = value;
+    public void setConnectProfile(String value){
+        connectProfile = value;
+    }
+    public String getDisconnectProfile(){
+        return disconnectProfile;
+    }
+    public void setDisconnectProfile(String value){
+        disconnectProfile = value;
     }
     public Date getConnectTimeAsDate(){
         return new Date(connectTime);
