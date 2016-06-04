@@ -140,6 +140,7 @@ int interval_max=1;
 int limit_count=0;
 int limit_max=-1;
 
+char *extData = NULL;
 string serverProcessId;
 string serverProcessName;
 string serverHost;
@@ -150,7 +151,8 @@ time_t connectedTimestamp; //timestamp when ZK updated server state to CONNECTED
 //===========================profile cqds================================================
 string execProfileCqdList(list<char*> *pList);
 string sla;
-string profile;
+string cprofile;
+string dprofile;
 string lastUpdate;
 string requestError ;
 //======================== onConnect ====================================================
@@ -2056,10 +2058,10 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 		while(!stateOk && cnt)
 		{
 			// call sync to get up to date data
-			data = strdup(dcsRegisteredNode.c_str());
-			rc = zoo_async(zh, dcsRegisteredNode.c_str(), sync_string_completion, data);
 			if ( data != NULL )
 				free(data);
+			data = strdup(dcsRegisteredNode.c_str());
+			rc = zoo_async(zh, dcsRegisteredNode.c_str(), sync_string_completion, data);
 			if( rc != ZOK )
 			{
 				sprintf(tmpString, "odbc_SQLSvc_InitializeDialogue_ame_...Error %d calling zoo_async() for %s. Server exiting.", rc, dcsRegisteredNode.c_str());
@@ -2074,6 +2076,9 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 			rc = zoo_get(zh, dcsRegisteredNode.c_str(), false, zkData, &zkDataLen, &stat);
 			if( rc == ZOK )
 			{
+				if(extData != NULL)
+					free(extData);
+				extData = strdup(zkData);
 				// The first token should be CONNECTING state
 				tkn = strtok(zkData, ":");
 				if( tkn == NULL || stricmp(tkn, "CONNECTING") )
@@ -2142,6 +2147,7 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 				return;
 			}
 /*========================= get SLA ========================================
+
             timestamp,--------------------------2
             dialogueId,-------------------------3
             serverNodeId,-----------------------4
@@ -2154,35 +2160,44 @@ odbc_SQLSvc_InitializeDialogue_ame_(
             clientPort--------------------------11
             windowText,-------------------------12
             sla,--------------------------------13
-            profile,----------------------------14
-            lastUpdate--------------------------15
+            connectProfile,---------------------14
+            disconnectProfile,------------------15
+            lastUpdate--------------------------16
 */
-			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #4
-			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #5
+			char* stringp = extData;
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #1
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #2
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #3
+
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #4
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #5
 			else
 				serverProcessId = string(tkn);
-			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #6
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #6
 			else
 				serverProcessName = string(tkn);
-			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #7
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #7
 			else
 				serverHost = string(tkn);
-			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #8
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #8
 			else
 				serverPort = string(tkn);
-			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #9
-			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #10
-			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #11
-			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #12
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #9
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #10
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #11
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #12
 			else
 				appName = string(tkn);
-			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #13
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #13
 			else
 				sla = string(tkn);
-			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #14
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #14
 			else
-				profile = string(tkn);
-			if(NULL == (tkn = strtok(NULL, ":"))) goto TNULL;			//token #15
+				cprofile = string(tkn);
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #15
+			else
+				dprofile = string(tkn);
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #16
 			else
 				lastUpdate = string(tkn);
 TNULL:
@@ -2193,6 +2208,8 @@ TNULL:
 					1, "No expected tokens in registered node. Server exiting.");
 				exitServerProcess();
 			}
+			free(extData);
+			extData != NULL;
 // build sla path from zk node /<user name>/wms/slas/sla
 			char * cstr = new char [dcsRegisteredNode.length()+1];
 			strcpy (cstr, dcsRegisteredNode.c_str() + 1); //skip first "/"
@@ -2221,14 +2238,14 @@ TNULL:
 				if( rc == ZOK )
 				{
 					// isDefault=no:priority=1:limit=:throughput=:onConnectProfile=testProfile:onDisconnectProfile=defaultProfile:lastUpdate=1462326660114
-					tkn = strtok(slaData, "=");
-
+					char* stringp = slaData;
+					tkn = strsep(&stringp, "=");
 					while(true)
 					{
 						if(tkn == NULL) break;
 						if(strcmp(tkn, "onConnectProfile") == 0)
 						{
-							tkn = strtok(NULL,":");
+							cqds = strsep(&stringp,":");
 							curConnectProfile = string(tkn);
 						}
 						else if(strcmp(tkn, "onConnectProfile") == 0)
@@ -2374,7 +2391,7 @@ TNULL:
 									tkn = strsep(&stringp, ":");
 								tkn = strsep(&stringp, "=");
 							}
-							if(cqds != NULL)
+							if(cqds != NULL && cqds[0] != 0)
 							{
 								tkn = strsep(&cqds, ";");
 								while(tkn != NULL)
@@ -2383,7 +2400,7 @@ TNULL:
 									tkn = strsep(&cqds, ";");
 								}
 							}
-							if(sets != NULL)
+							if(sets != NULL && sets[0] != 0)
 							{
 								tkn = strsep(&sets, ";");
 								while(tkn != NULL)
@@ -4098,6 +4115,7 @@ odbc_SQLSvc_TerminateDialogue_ame_(
 {
 	SRVRTRACE_ENTER(FILE_AME+6);
 	long status = 0;
+	string sqlError;
 
 	odbc_SQLSvc_TerminateDialogue_exc_ exception_={0,0,0};
 	odbc_SQLSvc_MonitorCall_exc_	monitorException_={0,0};
@@ -4172,6 +4190,7 @@ odbc_SQLSvc_TerminateDialogue_ame_(
 
 	if (exception_.exception_nr == CEE_SUCCESS)
 	{
+
 		if (srvrGlobal->tip_gateway != NULL)
 		{
 			#ifdef TIP_DEFINED
@@ -4208,10 +4227,30 @@ odbc_SQLSvc_TerminateDialogue_ame_(
 			exitServerProcess();
 		}
 	}
+//============================== Execute all CQDs and Sets from the Profile ======================================
+	sqlError = execProfileCqdList(&disconnectCqdList);
+	if (sqlError.length() == 0)
+		sqlError = execProfileCqdList(&disconnectSetList);
+	if (sqlError.length() != 0)
+	{
+		disconnectProfile = "";
+		disconnect_ctime=0;
+		disconnect_mtime=0;
+		if(profDisconnectData!=NULL)
+			delete[] profDisconnectData;
+		profDisconnectData=NULL;
+		disconnectCqdList.clear();
+		disconnectSetList.clear();
+		disconnectProfileSame = false;
+
+		exception_.exception_detail = -1;
+		exception_.exception_nr = odbc_SQLSvc_TerminateDialogue_SQLError_exn_;
+		SETSRVRERROR(SQLERRWARN, -1, "HY000", (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+	}
 
 	odbc_SQLSvc_TerminateDialogue_ts_res_(objtag_, call_id_, &exception_);
 
-        if( heapSizeExit == true )
+	if( heapSizeExit == true )
 	{
 		odbc_SQLSvc_StopServer_exc_ StopException;
 		StopException.exception_nr=0;
@@ -8961,8 +9000,9 @@ bool isInfoSession(char*& sqlString, const IDL_char *stmtLabel, short& error)
                     "'%s' as \"SERVER_PROCESS_ID\","
                     "'%s' as \"SERVER_HOST\","
                     "'%s' as \"SERVER_PORT\","
-                    "'%s' as \"MAPPED_PROFILE\","
-                    "'%s' as \"MAPPED_SLA\","
+           	   	    "'%s' as \"MAPPED_SLA\","
+                    "'%s' as \"MAPPED_CONNECT_PROFILE\","
+           	   	   	"'%s' as \"MAPPED_DISCONNECT_PROFILE\","
            	   	    "'%d' as \"CONNECTED_INTERVAL_SEC\","
            	   	    "'%s' as \"CONNECT_TIME\","
                     "'%s' as \"USER_NAME\","
@@ -8976,8 +9016,9 @@ bool isInfoSession(char*& sqlString, const IDL_char *stmtLabel, short& error)
 		serverProcessId.c_str(),
 		serverHost.c_str(),
         serverPort.c_str(),
-        profile.c_str(),
         sla.c_str(),
+        connectProfile.c_str(),
+        disconnectProfile.c_str(),
 		(int)(time(NULL) - connectedTimestamp),
 		connecttime,
 		srvrGlobal->QSUserName,
@@ -9448,7 +9489,9 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 			   	   << ":"
 				   << sla
 				   << ":"
-				   << profile
+				   << connectProfile
+				   << ":"
+				   << disconnectProfile
 				   << ":"
 				   << lastUpdate
 				   << ":"
@@ -9475,7 +9518,9 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 			   	   << ":"
 				   << sla
 				   << ":"
-				   << profile
+				   << connectProfile
+				   << ":"
+				   << disconnectProfile
 				   << ":"
 				   << lastUpdate
 				   << ":"
@@ -9535,7 +9580,9 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 			   << ":"
 			   << sla
 			   << ":"
-			   << profile
+			   << connectProfile
+			   << ":"
+			   << disconnectProfile
 			   << ":"
 			   << lastUpdate
 			   << ":"
@@ -9585,7 +9632,9 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 			   << ":"
 			   << sla
 			   << ":"
-			   << profile
+			   << connectProfile
+			   << ":"
+			   << disconnectProfile
 			   << ":"
 			   << lastUpdate
 			   << ":"
@@ -9646,7 +9695,9 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 				   << ":"
 				   << sla
 				   << ":"
-				   << profile
+				   << connectProfile
+				   << ":"
+				   << disconnectProfile
 				   << ":"
 				   << lastUpdate
 				   << ":"
@@ -9698,7 +9749,9 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 			   << ":"
 			   << sla
 			   << ":"
-			   << profile
+			   << connectProfile
+			   << ":"
+			   << disconnectProfile
 			   << ":"
 			   << lastUpdate
 			   << ":"

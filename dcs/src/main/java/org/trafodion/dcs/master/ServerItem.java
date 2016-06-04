@@ -69,7 +69,8 @@ public class ServerItem  {
     long modifyTime;
     String sTime;
     String sla;
-    String profile;
+    String cprofile;
+    String dprofile;
     
     public void setHostname(String value) { hostName = value; }
     public String getHostname() {return hostName; }
@@ -125,11 +126,17 @@ public class ServerItem  {
     public String getSla(){
         return sla;
     }
-    public void setProfile(String value) {
-        profile = value;
+    public void setConnectProfile(String value) {
+        cprofile = value;
     }
-    public String getProfile(){
-        return profile;
+    public void setDisconnectProfile(String value) {
+        dprofile = value;
+    }
+    public String getConnectProfile(){
+        return cprofile;
+    }
+    public String getDisconnectProfile(){
+        return dprofile;
     }
 }
 

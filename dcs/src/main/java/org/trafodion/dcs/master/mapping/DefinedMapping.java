@@ -189,7 +189,8 @@ public class DefinedMapping  {
         // Mapping
         String sla = "";
         // Sla
-        String profile = "";
+        String cprofile = "";
+        String dprofile = "";
         String priority = "";
         String limit = "";
         String throughput = "";
@@ -263,9 +264,12 @@ public class DefinedMapping  {
                 for (int i = 0; i < tokens.length; i=i+2){
                     switch(tokens[i]){
                         case Constants.ON_CONNECT_PROFILE:
-                            profile = tokens[i + 1];
+                            cprofile = tokens[i + 1];
                             break;
-                        case Constants.PRIORITY:
+                        case Constants.ON_DISCONNECT_PROFILE:
+                            dprofile = tokens[i + 1];
+                            break;
+                       case Constants.PRIORITY:
                             priority = tokens[i + 1];
                             break;
                         case Constants.LIMIT:
@@ -279,12 +283,13 @@ public class DefinedMapping  {
             }
         } catch(Exception e){
             LOG.error("Exception while reading sla znodes: [" + znode + "] " + e.getMessage());
-            profile = Constants.DEFAULT_WMS_PROFILE_NAME;
+            cprofile = Constants.DEFAULT_WMS_PROFILE_NAME;
+            dprofile = Constants.DEFAULT_WMS_PROFILE_NAME;
             priority = "";
             limit = "";
             throughput = "";
         }
-        znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + profile;
+        znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + cprofile;
         if(LOG.isDebugEnabled())
             LOG.debug("Profile znode :" + znode);
         try {
@@ -307,16 +312,18 @@ public class DefinedMapping  {
             }
         } catch(Exception e){
             LOG.error("Exception while reading profile znodes: [" + znode + "] " + e.getMessage());
-            profile = Constants.DEFAULT_WMS_PROFILE_NAME;
+            cprofile = Constants.DEFAULT_WMS_PROFILE_NAME;
+            dprofile = Constants.DEFAULT_WMS_PROFILE_NAME;
             lastUpdate = "1";
         }
         cc.setSla(sla);
         cc.setPriority(priority);
         cc.setLimit(limit);
         cc.setThroughput(throughput);
-        cc.setProfile(profile);
+        cc.setConnectProfile(cprofile);
+        cc.setDisconnectProfile(dprofile);
         cc.setLastUpdate(lastUpdate);
         if(LOG.isDebugEnabled())
-            LOG.debug("Profile znode :" + znode + ", sla :" + sla + ", priority :" + priority + ", limit :" + limit + ", throughput :" + throughput + ", profile :" + profile + ", lastUpdate :" + lastUpdate);
+            LOG.debug("Profile znode :" + znode + ", sla :" + sla + ", priority :" + priority + ", limit :" + limit + ", throughput :" + throughput + ", connect profile :" + cprofile + ", disconnect profile :" + dprofile +  ", lastUpdate :" + lastUpdate);
     }
 }

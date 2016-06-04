@@ -648,10 +648,12 @@ public class ServerManager implements Callable {
                                     registeredServer.setClientAppl(scn.next());
                                     if (state.equals("CONNECTED")){
                                         registeredServer.setSla(scn.next());
-                                        registeredServer.setProfile(scn.next());
+                                        registeredServer.setConnectProfile(scn.next());
+                                        registeredServer.setDisconnectProfile(scn.next());
                                     } else {
                                         registeredServer.setSla("");
-                                        registeredServer.setProfile("");
+                                        registeredServer.setConnectProfile("");
+                                        registeredServer.setDisconnectProfile("");
                                     }
                                     registeredServer.setIsRegistered();
                                     scn.close();
@@ -718,7 +720,8 @@ public class ServerManager implements Callable {
                 serverItem.setClientPort(aRegisteredServer.getClientPort());
                 serverItem.setMtime(aRegisteredServer.getMtime());
                 serverItem.setSla(aRegisteredServer.getSla());
-                serverItem.setProfile(aRegisteredServer.getProfile());
+                serverItem.setConnectProfile(aRegisteredServer.getConnectProfile());
+                serverItem.setDisconnectProfile(aRegisteredServer.getDisconnectProfile());
                 serverItemList.add(serverItem);
             }
         }

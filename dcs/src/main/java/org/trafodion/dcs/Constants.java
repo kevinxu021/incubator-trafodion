@@ -661,7 +661,8 @@ public static final String DEFAULT_DCS_SERVER_USER_PROGRAM_STATISTICS_OPENTSDB_E
     public static final String CLIENT_PORT = "clientPort";
     public static final String WINDOW_TEXT = "windowText";
     public static final String MAPPED_SLA = "sla";
-    public static final String MAPPED_PROFILE = "profile";
+    public static final String MAPPED_CONNECT_PROFILE = "connectProfile";
+    public static final String MAPPED_DISCONNECT_PROFILE = "disconnectProfile";
     public static final String MAPPED_PROFILE_TIMESTAMP = "profileTimestamp";
 
     

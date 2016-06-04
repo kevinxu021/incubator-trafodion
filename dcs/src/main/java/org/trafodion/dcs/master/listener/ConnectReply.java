@@ -171,7 +171,7 @@ class ConnectReply {
             dialogueId = (dialogueId < 0 )? -dialogueId : dialogueId;
             if(LOG.isDebugEnabled())
                 LOG.debug(clientSocketAddress + ": " + "dialogueId: " + dialogueId);
-            data = Bytes.toBytes(String.format("CONNECTING:%d:%d:%d:%d:%s:%s:%d:%s:%s:%s:%s:%s:%d:",
+            data = Bytes.toBytes(String.format("CONNECTING:%d:%d:%d:%d:%s:%s:%d:%s:%s:%s:%s:%s:%s:%d:",
                     timestamp,              //1
                     dialogueId,             //2 
                     serverNodeId,           //3
@@ -183,8 +183,9 @@ class ConnectReply {
                     clientSocketAddress,    //10,11 
                     cc.windowText,          //12
                     cc.getSla(),            //13
-                    cc.getProfile(),        //14
-                    cc.getLastUpdate()      //15
+                    cc.getConnectProfile(), //14
+                    cc.getDisconnectProfile(), //15
+                    cc.getLastUpdate()      //16
                     ));
             nodeRegisteredPath = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED + "/" + server;
             zkc.setData(nodeRegisteredPath, data, -1);
@@ -228,7 +229,8 @@ class ConnectReply {
                 LOG.debug(clientSocketAddress + ": " + "dataSource: " + dataSource);
                 LOG.debug(clientSocketAddress + ": " + "client computer name:ipaddress:port " + cc.computerName+ ":" + clientSocketAddress);
                 LOG.debug(clientSocketAddress + ": " + "sla :" + cc.getSla());
-                LOG.debug(clientSocketAddress + ": " + "profile :" + cc.getProfile());
+                LOG.debug(clientSocketAddress + ": " + "connectProfile :" + cc.getConnectProfile());
+                LOG.debug(clientSocketAddress + ": " + "disconnectProfile :" + cc.getDisconnectProfile());
                 LOG.debug(clientSocketAddress + ": " + "profile Last Update :" + cc.getLastUpdate());
             }
             userSid = new String(cc.user.userName).getBytes("UTF-8");

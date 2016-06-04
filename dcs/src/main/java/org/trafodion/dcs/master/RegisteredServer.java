@@ -67,7 +67,8 @@ public class RegisteredServer  {
 	private String clientAppl;
 	private long mtime;
 	private String sla;
-	private String profile;
+	private String cprofile;
+    private String dprofile;
 
 	public void setIsRegistered() {
 		registered = true;
@@ -165,11 +166,17 @@ public class RegisteredServer  {
     public String getSla(){
         return sla;
     }
-    public void setProfile(String value){
-        profile = value;
+    public void setConnectProfile(String value){
+        cprofile = value;
     }
-    public String getProfile(){
-        return profile;
+    public String getConnectProfile(){
+        return cprofile;
+    }
+    public void setDisconnectProfile(String value){
+        dprofile = value;
+    }
+    public String getDisconnectProfile(){
+        return dprofile;
     }
 }
 

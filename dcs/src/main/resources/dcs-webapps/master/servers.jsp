@@ -177,7 +177,8 @@ entries
         <display:column property="mtime" title="Connected Interval Sec" sortable="true"/>    
         <display:column property="mdate" title="Connect Time" sortable="true"/>    
         <display:column property="sla" title="Mapped Sla" sortable="true"/>    
-        <display:column property="profile" title="Mapped Profile" sortable="true"/>    
+        <display:column property="connectProfile" title="Mapped Connect Profile" sortable="true"/>    
+        <display:column property="disconnectProfile" title="Mapped Disconnect Profile" sortable="true"/>    
     </display:table>
     <%
     } else {
@@ -201,6 +202,9 @@ entries
         <display:column property="clientPort" title="Client Port" sortable="true"/>    
         <display:column property="mTime" title="Connected Interval Sec" sortable="true"/>    
         <display:column property="mdate" title="Connect Time" sortable="true"/>    
+        <display:column property="sla" title="Mapped Sla" sortable="true"/>    
+        <display:column property="connectProfile" title="Mapped Connect Profile" sortable="true"/>    
+        <display:column property="disconnectProfile" title="Mapped Disconnect Profile" sortable="true"/>    
     </display:table>
     <%
     }  

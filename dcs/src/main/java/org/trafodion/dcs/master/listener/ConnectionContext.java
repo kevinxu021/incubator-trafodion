@@ -99,7 +99,8 @@ public class ConnectionContext {
 	boolean isThroughput=false;
 /*
 */
-	String profile;
+	String connectProfile;
+    String disconnectProfile;
 	long lastUpdate;
 	Set<String> hostList;
 /*
@@ -248,16 +249,17 @@ public class ConnectionContext {
                 if(sValue.length == 8){
                     idleServers.put(key, attr);
                 }
-                else if(sValue.length == 16) {
+                else if(sValue.length == 17) {
                     attr.put(Constants.COMPUTER_NAME, sValue[8]);
                     attr.put(Constants.CLIENT_SOCKET, sValue[9]);
                     attr.put(Constants.CLIENT_PORT, sValue[10]);
                     attr.put(Constants.WINDOW_TEXT, sValue[11]);
                     attr.put(Constants.MAPPED_SLA, sValue[12]);
-                    attr.put(Constants.MAPPED_PROFILE, sValue[13]);
-                    attr.put(Constants.MAPPED_PROFILE_TIMESTAMP, Long.parseLong(sValue[14]));
-                    attr.put (Constants.USER_NAME, sValue[15]);
-                    if(sValue[12].equals(sla) && sValue[15].equals(user.userName)){
+                    attr.put(Constants.MAPPED_CONNECT_PROFILE, sValue[13]);
+                    attr.put(Constants.MAPPED_DISCONNECT_PROFILE, sValue[14]);
+                    attr.put(Constants.MAPPED_PROFILE_TIMESTAMP, Long.parseLong(sValue[15]));
+                    attr.put (Constants.USER_NAME, sValue[16]);
+                    if(sValue[12].equals(sla) && sValue[16].equals(user.userName)){
                         reusedSlaServers.put(key, attr);
                     }
                     else {
@@ -328,8 +330,11 @@ public class ConnectionContext {
         if (s == null || s.length()== 0) s = "0";
         throughput = new Integer(s);;
     }
-    public String getProfile(){
-        return profile;
+    public String getConnectProfile(){
+        return connectProfile;
+    }
+    public String getDisconnectProfile(){
+        return disconnectProfile;
     }
     public long getLastUpdate(){
        return lastUpdate;
@@ -371,8 +376,11 @@ public class ConnectionContext {
     public HashMap<String, String> getAttributes(){
         return attributes;
     }
-    public void setProfile(String profile){
-        this.profile = profile;
+    public void setConnectProfile(String v){
+        connectProfile = v;
+    }
+    public void setDisconnectProfile(String v){
+        disconnectProfile = v;
     }
     public boolean isThroughput(){
         if(throughput == 0)return false; 
