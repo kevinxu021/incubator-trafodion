@@ -231,12 +231,18 @@ public class BackupRestoreClient
         IdTm cli = new IdTm(cb);
         for (SnapshotMetaStartRecord s : snapshotStartList) {
           String userTag = s.getUserTag();
-          long key = s.getCompletionTime();
-          cli.idToStr(timeout, key, asciiTime);
-          String timeStamp = Bytes.toString(asciiTime);
-          String concatStringFullRow = userTag + "    " + key + "     " + timeStamp;
+          String concatStringFullRow;
+          if (s.getSnapshotComplete()){
+             long key = s.getCompletionTime();
+             cli.idToStr(timeout, key, asciiTime);
+             String timeStamp = Bytes.toString(asciiTime);
+             concatStringFullRow = userTag + "    " + key + "     " + timeStamp;
+          }
+          else{
+              concatStringFullRow = userTag + "    Incomplete";
+          }
           if (logger.isDebugEnabled())
-            logger.debug("BackupRestoreClient.listAllBackups  : " + concatStringFullRow);
+              logger.debug("BackupRestoreClient.listAllBackups  : " + concatStringFullRow);
           byte [] b = concatStringFullRow.getBytes();
           backupList[i++] = b;
         }
