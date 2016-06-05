@@ -32,7 +32,7 @@ import java.util.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-class ConnectionContext {
+public class ConnectionContext {
 	private static  final Log LOG = LogFactory.getLog(ConnectionContext.class);
 
 	String datasource = "";

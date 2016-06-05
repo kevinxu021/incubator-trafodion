@@ -47,6 +47,7 @@ import org.trafodion.dcs.Constants;
 import org.trafodion.dcs.util.DcsConfiguration;
 import org.trafodion.dcs.util.DcsNetworkConfiguration;
 import org.trafodion.dcs.master.Metrics;
+import org.trafodion.dcs.master.mapping.DefinedMapping;
 
 public class ListenerService extends Thread{
     private static  final Log LOG = LogFactory.getLog(ListenerService.class);
@@ -65,12 +66,19 @@ public class ListenerService extends Thread{
     private ListenerWorker worker=null;
     private List<PendingRequest> pendingChanges = new LinkedList<PendingRequest>();	//list of PendingRequests instances
     private HashMap<SelectionKey, Long> timeouts = new HashMap<SelectionKey, Long>(); // hash map of timeouts
-
+    private DefinedMapping mapping = null;
+    
     private void init(){
-        if(metrics != null)metrics.initListenerMetrics(System.nanoTime());
-        worker = new ListenerWorker(zkc,parentZnode);
-        worker.start();
-        this.start();
+        try {
+            mapping = new DefinedMapping(zkc,parentZnode);
+            if(metrics != null)metrics.initListenerMetrics(System.nanoTime());
+            worker = new ListenerWorker(zkc,parentZnode,mapping);
+            worker.start();
+            this.start();
+        } catch (Exception e){
+            LOG.error("Cannot create Profile object: " + e.getMessage());
+            System.exit(1);
+        }
     }
 
     public ListenerService(String[] args) {
@@ -354,6 +362,8 @@ public class ListenerService extends Thread{
             if (clientData.total_read > (clientData.hdr.getTotalLength() + ListenerConstants.HEADER_SIZE)){
                 throw new IOException("Wrong total length in read Header : total_read " + clientData.total_read + ", hdr_total_length + hdr_size " + clientData.hdr.getTotalLength() +  + ListenerConstants.HEADER_SIZE);
             }
+            Util.toHexString("Client buf", clientData.buf[1]);
+
             key.attach(clientData);
             this.worker.processData(this, key);
             if(LOG.isDebugEnabled())

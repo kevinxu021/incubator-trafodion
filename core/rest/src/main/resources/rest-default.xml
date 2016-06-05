@@ -180,7 +180,7 @@
  -->
   <property>
     <name>rest.zookeeper.property.clientPort</name>
-    <value>2181</value>
+    <value>22770</value>
     <description>
     The port at which ZooKeeper is listening for clients.
     </description>
@@ -200,12 +200,12 @@
   
   <property>
     <name>rest.port</name>
-    <value>4200</value>
+    <value>22793</value>
     <description>The http port for the REST server.</description>
   </property>
    <property>
     <name>rest.https.port</name>
-    <value>4201</value>
+    <value>22794</value>
     <description>The https port for the REST server.</description>
   </property>
   <property>

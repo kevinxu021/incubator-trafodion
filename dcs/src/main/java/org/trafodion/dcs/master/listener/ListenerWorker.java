@@ -37,6 +37,7 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooKeeper;
 import org.trafodion.dcs.zookeeper.ZkClient;
 import org.trafodion.dcs.Constants;
+import org.trafodion.dcs.master.mapping.DefinedMapping;
 
 public class ListenerWorker extends Thread {
     private static  final Log LOG = LogFactory.getLog(ListenerWorker.class);
@@ -44,6 +45,7 @@ public class ListenerWorker extends Thread {
     private ZkClient zkc=null;
     ConnectReply connectReplay = null;
     private String parentZnode;
+    private DefinedMapping mapping = null;
     
     private RequestGetObjectRef requestGetObjectRef = null;
     private RequestCancelQuery requestCancelQuery = null;
@@ -60,12 +62,13 @@ public class ListenerWorker extends Thread {
             System.exit(-1);
         }
     }
-    ListenerWorker(ZkClient zkc,String parentZnode){	
+    ListenerWorker(ZkClient zkc,String parentZnode, DefinedMapping mapping){	
         this.zkc=zkc;
         this.parentZnode=parentZnode;
-        connectReplay = new ConnectReply(zkc,parentZnode);
+        this.mapping = mapping;
+        connectReplay = new ConnectReply(zkc,parentZnode, mapping);
         
-        requestGetObjectRef = new RequestGetObjectRef(zkc,parentZnode);
+        requestGetObjectRef = new RequestGetObjectRef(zkc,parentZnode, mapping);
         requestCancelQuery = new RequestCancelQuery(zkc,parentZnode);
         requestUnknown = new RequestUnknown(zkc,parentZnode);
         
