@@ -25,6 +25,7 @@
 create schema trafodion.hbase;
 set schema trafodion.hbase;
 CQD COMP_BOOL_226 'ON';
+cqd hist_missing_stats_warning_level '0';
 
 cqd TRAF_LOAD_TAKE_SNAPSHOT 'on';
 

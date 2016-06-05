@@ -34,6 +34,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.*;
 
 import org.apache.hadoop.hive.ql.io.orc.*;
+import org.apache.hadoop.hive.serde2.io.DateWritable;
 import org.apache.hadoop.hive.serde2.io.TimestampWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.*;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.*;
@@ -65,17 +66,20 @@ public class OrcFileWriter {
     NullWritable nullValue;
 
     // this set of constants MUST be kept in sync with 
-    // datatype defines in common/dfs2rec.h
-    private static final int REC_BIN16_SIGNED   = 130;
-    private static final int REC_BIN16_UNSIGNED = 131;
-    private static final int REC_BIN32_SIGNED   = 132;
-    private static final int REC_BIN32_UNSIGNED = 133;
-    private static final int REC_BIN64_SIGNED   = 134;
-    private static final int REC_IEEE_FLOAT32   = 142;
-    private static final int REC_IEEE_FLOAT64   = 143;
-    private static final int REC_BYTE_F_ASCII   = 0;
-    private static final int REC_BYTE_V_ASCII   = 64;
-    private static final int REC_DATETIME       = 192;
+    // datatype defines in common/dfs2rec.h and cli/sqlcli.h
+    private static final int REC_BIN16_SIGNED    = 130;
+    private static final int REC_BIN16_UNSIGNED  = 131;
+    private static final int REC_BIN32_SIGNED    = 132;
+    private static final int REC_BIN32_UNSIGNED  = 133;
+    private static final int REC_BIN64_SIGNED    = 134;
+    private static final int REC_IEEE_FLOAT32    = 142;
+    private static final int REC_IEEE_FLOAT64    = 143;
+    private static final int REC_BYTE_F_ASCII    = 0;
+    private static final int REC_BYTE_V_ASCII    = 64;
+    private static final int REC_DATETIME        = 192;
+    private static final int SQLDTCODE_DATE      = 1;
+    private static final int SQLDTCODE_TIME      = 2;
+    private static final int SQLDTCODE_TIMESTAMP = 3;
 
     String getLastError() {
 	return null; //lastError;
@@ -97,20 +101,15 @@ public class OrcFileWriter {
             listOfColName.add((String)colNameList[i]);
         }
 
-        listOfObjectInspector = new ArrayList<ObjectInspector>(colTypeInfoList.length);
+        listOfObjectInspector = 
+            new ArrayList<ObjectInspector>(colTypeInfoList.length);
         for (int i = 0; i < colTypeInfoList.length; i++) {
             ByteBuffer bb = ByteBuffer.wrap((byte[])colTypeInfoList[i]);
             bb.order(ByteOrder.LITTLE_ENDIAN);
 
             int type = bb.getInt();
-            //            int length  = bb.getInt();
-            //            int precision = bb.getInt();
-            //            int scale = bb.getInt();
-            //            short nullable = bb.getShort();
-
-            //            System.out.println("i = " + i + "type = " + type + ", length = " + length);
-            //            if (length > maxLength)
-            //                maxLength = length;
+            int precision = bb.getInt();
+            //            System.out.println("i = " + i + "type = " + type + " precision = " + precision);
 
             ObjectInspector oi;
             switch (type) {
@@ -142,7 +141,12 @@ public class OrcFileWriter {
                 break;
                 
             case REC_DATETIME:
-                oi = PrimitiveObjectInspectorFactory.writableTimestampObjectInspector;
+                if (precision == SQLDTCODE_TIMESTAMP)
+                    oi = PrimitiveObjectInspectorFactory.writableTimestampObjectInspector;
+                else if (precision == SQLDTCODE_DATE)
+                    oi = PrimitiveObjectInspectorFactory.writableDateObjectInspector;                  
+                else
+                    oi = PrimitiveObjectInspectorFactory.writableStringObjectInspector;                    
                 break;
 
             default:
@@ -241,15 +245,24 @@ public class OrcFileWriter {
                         colVals[j] = new Text();
                         ((Text)colVals[j]).set(Bytes.toString(colVal, 0, length));
                     }
+                   else if (oi.getTypeName() == "date") {
+                       //                       System.out.println(" date. length = " + length + " data = " + Bytes.toString(colVal, 0, length));
+                       colVals[j] = new DateWritable();
+                       ((DateWritable)colVals[j]).set
+                           (Date.valueOf(Bytes.toString(colVal, 0, length)));
+                    }
                    else if (oi.getTypeName() == "timestamp") {
                        colVals[j] = new TimestampWritable();
-                       Timestamp ts = new Timestamp(2016,05,20,01,01,01,10);
-                       ((TimestampWritable)colVals[j]).set(ts);
-                       // ((TimestampWritable)colVals[j]).set(Bytes.toString(colVal, 0, length));
-                    }
-                 }
+                       ((TimestampWritable)colVals[j]).set
+                           (Timestamp.valueOf(Bytes.toString(colVal, 0, length)));
+                   }
+                   else {
+                       colVals[j] = new Text();
+                       ((Text)colVals[j]).set(Bytes.toString(colVal, 0, length));
+                   }
+                }
             }
-
+            
             writer.addRow(colVals);
 
         } // for

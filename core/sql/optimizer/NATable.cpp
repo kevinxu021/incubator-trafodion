@@ -8166,6 +8166,9 @@ short NATable::updateExtTableAttrs(NATable *etTable)
   NAFileSet *fileset = this->getClusteringIndex();
   NAFileSet *etFileset = etTable->getClusteringIndex();
 
+  if (getUserColumnCount() != etTable->getUserColumnCount())
+    return -1;
+
   colcount_ = etTable->getColumnCount();
   colArray_ = etTable->getNAColumnArray();
 
@@ -8591,7 +8594,15 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
                    NATable * etTable = new (naTableHeap) NATable
                      (bindWA, cn, naTableHeap, etDesc);
                    
-                   table->updateExtTableAttrs(etTable);
+                   short rc = table->updateExtTableAttrs(etTable);
+                   if ((rc) && (NOT bindWA->externalTableDrop()))
+                     {
+                       *CmpCommon::diags()
+                         << DgSqlCode(-8437);
+
+                       bindWA->setErrStatus();
+                       return NULL;
+                     }
 
                    table->setHasHiveExtTable(TRUE);
                  }

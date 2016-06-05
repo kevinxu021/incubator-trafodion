@@ -123,10 +123,16 @@ public:
        Cardinality estimatedRowCount,
        Int32  numBuffers,
        UInt32  bufferSize,
-       char * errCountTable,
-       char * loggingLocation,
-       char * errCountId
-   );
+
+       char * errCountTable = NULL,
+       char * loggingLocation = NULL,
+       char * errCountId = NULL,
+       
+       char * hdfsRoorDir = NULL,
+       Int64 modTSforDir = -1,
+       Lng32  numOfPartCols = -1,
+       Queue * hdfsDirsToCheck = NULL
+    );
   
   ~ComTdbOrcAccess();
 
@@ -193,9 +199,14 @@ public:
        Cardinality estimatedRowCount,
        Int32  numBuffers,
        UInt32  bufferSize,
-       char * errCountTable,
-       char * loggingLocation,
-       char * errCountId
+       char * errCountTable = NULL,
+       char * loggingLocation = NULL,
+       char * errCountId = NULL,
+
+       char * hdfsRoorDir = NULL,
+       Int64 modTSforDir = -1,
+       Lng32  numOfPartCols = -1,
+       Queue * hdfsDirsToCheck = NULL
    );
   
   ~ComTdbOrcScan();

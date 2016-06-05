@@ -561,6 +561,14 @@ short FileScan::genForOrc(Generator * generator,
   hdfsPort = 0;
   hdfsHostName = NULL;
 
+  // determine host and port from dir name
+  NAString dummy, hostName;
+  NABoolean result = ((HHDFSTableStats*)hTabStats)->splitLocation
+    (hTabStats->tableDir().data(), hostName, hdfsPort, dummy) ;
+  GenAssert(result, "Invalid Hive directory name");
+  hdfsHostName = 
+        space->AllocateAndCopyToAlignedSpace(hostName, 0);
+
   hdfsFileInfoList = new(space) Queue(space);
   hdfsFileRangeBeginList = new(space) Queue(space);
   hdfsFileRangeNumList = new(space) Queue(space);
@@ -1646,7 +1654,8 @@ if (hTabStats->isOrcFile())
            buffersize,
            errCountTab,
            logLocation,
-           errCountRowId 
+           errCountRowId,
+           hdfsRootDir, modTS, numOfPartLevels, hdfsDirsToCheck
        );
   else
     hdfsscan_tdb = new(space)

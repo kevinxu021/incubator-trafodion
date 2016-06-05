@@ -83,9 +83,13 @@ ComTdbOrcAccess::ComTdbOrcAccess(
                                Int32  numBuffers,
                                UInt32  bufferSize,
 
-                               char * errCountTable = NULL,
-                               char * loggingLocation = NULL,
-                               char * errCountId = NULL
+                               char * errCountTable,
+                               char * loggingLocation,
+                               char * errCountId,
+                               char * hdfsRootDir,
+                               Int64 modTSforDir,
+                               Lng32 numOfPartCols,
+                               Queue * hdfsDirsToCheck
                                )
   : ComTdbHdfsScan( 
                    tableName,
@@ -120,7 +124,8 @@ ComTdbOrcAccess::ComTdbOrcAccess(
                    estimatedRowCount,
                    numBuffers,
                    bufferSize,
-                   errCountTable, loggingLocation, errCountId)
+                   errCountTable, loggingLocation, errCountId,
+                   hdfsRootDir, modTSforDir, numOfPartCols, hdfsDirsToCheck)
 {
 }
 
@@ -184,47 +189,55 @@ ComTdbOrcScan::ComTdbOrcScan(
                                Cardinality estimatedRowCount,
                                Int32  numBuffers,
                                UInt32  bufferSize,
-                               char * errCountTable = NULL,
-                               char * loggingLocation = NULL,
-                               char * errCountId = NULL
-                               )
-  : ComTdbOrcAccess( 
-                   tableName,
-                   type,
-                   select_pred,
-                   move_expr,
-                   convert_expr,
-                   move_convert_expr,
-                   part_elim_expr,
-                   convertSkipListSize, convertSkipList, hostName, port,
-                   hdfsFileInfoList,
-                   hdfsFileRangeBeginList,
-                   hdfsFileRangeNumList,
-                   hdfsColInfoList,
-                   recordDelimiter, columnDelimiter, hdfsBufSize, 
-                   rangeTailIOSize,
-                   numPartCols,
-                   hdfsSqlMaxRecLen,
-                   outputRowLength, asciiRowLen, moveColsRowLen,
-                   partColsRowLength,
-                   virtColsRowLength,
-                   tuppIndex, asciiTuppIndex, workAtpIndex, moveColsTuppIndex, 
-                   partColsTuppIndex,
-                   virtColsTuppIndex,
-                   work_cri_desc,
-                   given_cri_desc,
-                   returned_cri_desc,
-                   down,
-                   up,
-                   estimatedRowCount,
-                   numBuffers,
-                   bufferSize,
-                   errCountTable, loggingLocation, errCountId),
-    orcOperExpr_(orcOperExpr),
-    orcOperLength_(orcOperLength),
-    orcOperTuppIndex_(orcOperTuppIndex),
-    listOfOrcPPI_(tdbListOfOrcPPI),
-    orcAllColInfoList_(orcAllColInfoList)
+                               char * errCountTable,
+                               char * loggingLocation,
+                               char * errCountId,
+
+                               char * hdfsRootDir,
+                               Int64  modTSforDir,
+                               Lng32 numOfPartCols,
+                               Queue * hdfsDirsToCheck
+                             )
+     : ComTdbOrcAccess
+       ( 
+            tableName,
+            type,
+            select_pred,
+            move_expr,
+            convert_expr,
+            move_convert_expr,
+            part_elim_expr,
+            convertSkipListSize, convertSkipList, hostName, port,
+            hdfsFileInfoList,
+            hdfsFileRangeBeginList,
+            hdfsFileRangeNumList,
+            hdfsColInfoList,
+            recordDelimiter, columnDelimiter, hdfsBufSize, 
+            rangeTailIOSize,
+            numPartCols,
+            hdfsSqlMaxRecLen,
+            outputRowLength, asciiRowLen, moveColsRowLen,
+            partColsRowLength,
+            virtColsRowLength,
+            tuppIndex, asciiTuppIndex, workAtpIndex, moveColsTuppIndex, 
+            partColsTuppIndex,
+            virtColsTuppIndex,
+            work_cri_desc,
+            given_cri_desc,
+            returned_cri_desc,
+            down,
+            up,
+            estimatedRowCount,
+            numBuffers,
+            bufferSize,
+            errCountTable, loggingLocation, errCountId,
+            hdfsRootDir, modTSforDir, numOfPartCols, hdfsDirsToCheck
+         ),
+       orcOperExpr_(orcOperExpr),
+       orcOperLength_(orcOperLength),
+       orcOperTuppIndex_(orcOperTuppIndex),
+       listOfOrcPPI_(tdbListOfOrcPPI),
+       orcAllColInfoList_(orcAllColInfoList)
 {
   setNodeType(ComTdb::ex_ORC_SCAN);
   setEyeCatcher(eye_ORC_SCAN);

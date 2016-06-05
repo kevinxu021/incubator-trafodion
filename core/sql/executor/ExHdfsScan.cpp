@@ -286,31 +286,6 @@ short ExHdfsAccessTcb::handleError(short &rc)
   return 0;
 }
 
-#ifdef __ignore
-short ExHdfsAccessTcb::handleDone(ExWorkProcRetcode &rc)
-{
-  if (qparent_.up->isFull())
-    {
-      rc = WORK_OK;
-      return -1;
-    }
-
-  ex_queue_entry *pentry_down = qparent_.down->getHeadEntry();
-  ex_queue_entry *up_entry = qparent_.up->getTailEntry();
-  up_entry->copyAtp(pentry_down);
-  up_entry->upState.parentIndex =
-    pentry_down->downState.parentIndex;
-  up_entry->upState.downIndex = qparent_.down->getHeadIndex();
-  up_entry->upState.status = ex_queue::Q_NO_DATA;
-  up_entry->upState.setMatchNo(matches_);
-  qparent_.up->insert();
-  
-  qparent_.down->removeHead();
-
-  return 0;
-}
-#endif
-
 short ExHdfsAccessTcb::handleDone(ExWorkProcRetcode &rc, Int64 rowsAffected)
 {
   if (qparent_.up->isFull())

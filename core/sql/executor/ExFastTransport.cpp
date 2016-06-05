@@ -640,9 +640,6 @@ void ExHdfsFastExtractTcb::convertSQRowToString(ULng32 nullLen,
   ULng32 childRowLen = dataDesc->getAllocatedSize();
   UInt32 vcActualLen = 0;
 
-  if (orcRow)
-    nullLen = sizeof(short);
-
   for (UInt32 i = 0; i < myTdb().getChildTuple()->numAttrs(); i++) {
     Attributes * attr = myTdb().getChildTableAttr(i);
     Attributes * attr2 = myTdb().getChildTableAttr2(i);
@@ -650,10 +647,9 @@ void ExHdfsFastExtractTcb::convertSQRowToString(ULng32 nullLen,
     UInt32 childColLen = 0;
     UInt32 maxTargetColLen = attr2->getLength();
 
-    //format is aligned format--
+    //source format is aligned format--
     //----------
-    // field is varchar
-    if (attr->getVCIndicatorLength() > 0) {
+    if (attr->getVCIndicatorLength() > 0) { // source is varchar
       childColData = childRow + *((UInt32*) (childRow + attr->getVoaOffset()));
       childColLen = attr->getLength(childColData);
       childColData += attr->getVCIndicatorLength();
@@ -679,33 +675,40 @@ void ExHdfsFastExtractTcb::convertSQRowToString(ULng32 nullLen,
       }
     }
 
+    // ORC nullable tgt have the format: 2-bytes nullval followed by data.
+    // If src is not nullable and src value is not null, then nullval contains 
+    // zero. Otherwise it contains -1.
     short nullVal = 0;
     if (orcRow) {
+      nullLen = sizeof(short);
       Attributes * tgtAttr = myTdb().getTgtValsAttr(i);
 
       if (tgtAttr->getNullFlag()) {
-        if (ExpAlignedFormat::isNullValue(childRow + attr->getNullIndOffset(),
-                                          attr->getNullBitIndex())) 
+        if (attr->getNullFlag() 
+            && ExpAlignedFormat::isNullValue(
+                 childRow + attr->getNullIndOffset(),
+                 attr->getNullBitIndex()))
           nullVal = -1;
         
         memcpy(targetData, (char*)&nullVal, nullLen);
         targetData += nullLen;
         currPartn_->currBuffer_->bytesLeft_ -= nullLen;
-      } // nullable
-      
+      } // tgt nullable
     } // orcRow 
-
-    if ((NOT orcRow) && 
-        (attr->getNullFlag()
-         && ExpAlignedFormat::isNullValue(childRow + attr->getNullIndOffset(),
-                                          attr->getNullBitIndex()))) {
-          if ( !getEmptyNullString()) // includes hive null which is empty string
-            {
-              memcpy(targetData, myTdb().getNullString(), nullLen);
-              targetData += nullLen;
-            }
-          currPartn_->currBuffer_->bytesLeft_ -= nullLen;
-    } else if (NOT (orcRow && nullVal)) {
+    else if (attr->getNullFlag()
+             && ExpAlignedFormat::isNullValue(
+                  childRow + attr->getNullIndOffset(),
+                  attr->getNullBitIndex())) {
+      if ( !getEmptyNullString()) // includes hive null which is empty string
+        {
+          memcpy(targetData, myTdb().getNullString(), nullLen);
+          targetData += nullLen;
+        }
+      currPartn_->currBuffer_->bytesLeft_ -= nullLen;
+      nullVal = -1;
+    } // not orcRow
+    
+    if (! nullVal) {
       switch ((conv_case_index) sourceFieldsConvIndex_[i]) {
       case CONV_ASCII_V_V:
       case CONV_ASCII_F_V:
@@ -756,6 +759,7 @@ void ExHdfsFastExtractTcb::convertSQRowToString(ULng32 nullLen,
       }                      //switch
     }
     
+    // add delimiters for non-orc rows
     if (NOT orcRow) {
       if (i == myTdb().getChildTuple()->numAttrs() - 1) {
         strncpy(targetData, myTdb().getRecordSeparator(), recSepLen);
@@ -826,6 +830,8 @@ void ExHdfsFastExtractTcb::createORCcolInfoLists
       Attributes * attr = rowTD->getAttr(i);
       Text typeInfo;
       Lng32 temp = attr->getDatatype();
+      typeInfo.append((char*)&temp, sizeof(temp));
+      temp = attr->getPrecision();
       typeInfo.append((char*)&temp, sizeof(temp));
 
 #ifdef __ignore

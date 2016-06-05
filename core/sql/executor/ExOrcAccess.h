@@ -118,6 +118,8 @@ public:
 protected:
   enum {
     NOT_STARTED
+  , CHECK_FOR_DATA_MOD
+  , CHECK_FOR_DATA_MOD_AND_DONE
   , SETUP_ORC_PPI
   , INIT_ORC_CURSOR
   , OPEN_ORC_CURSOR
@@ -169,6 +171,8 @@ protected:
   Lng32 orcPPIBuflen_;
 
   TextVec orcPPIvec_;
+
+  NABoolean dataModCheckDone_;
 };
 
 // -----------------------------------------------------------------------
