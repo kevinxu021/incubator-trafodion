@@ -112,20 +112,73 @@ private:
   // ---------------------------------------------------------------------
 };
 
-class ExHdfsScanTcb  : public ex_tcb
+class ExHdfsAccessTcb  : public ex_tcb
 {
-#ifdef NEED_PSTATE
   friend class ExHdfsScanPrivateState;
-#endif
+
+public:
+  ExHdfsAccessTcb( const ComTdbHdfsScan &tdb,
+                   ex_globals *glob );
+  
+  ~ExHdfsAccessTcb();
+
+  virtual void freeResources();
+  virtual void registerSubtasks();  // register work procedures with scheduler
+
+  ex_queue_pair getParentQueue() const { return qparent_;}
+  virtual Int32 numChildren() const { return 0; }
+  virtual const ex_tcb* getChild(Int32 /*pos*/) const { return NULL; }
+  virtual NABoolean needStatsEntry();
+
+  // For dynamic queue resizing.
+  virtual ex_tcb_private_state * allocatePstates(
+       Lng32 &numElems,      // inout, desired/actual elements
+       Lng32 &pstateLength); // out, length of one element
+
+protected:
+  /////////////////////////////////////////////////////
+  // Protected methods.
+  /////////////////////////////////////////////////////
+  short moveRowToUpQueue(const char * row, Lng32 len, 
+                         Lng32 tuppIndex,
+                         short * rc, NABoolean isVarchar);
+  short handleError(short &rc);
+  short handleDone(ExWorkProcRetcode &rc, Int64 rowsAffected = 0);
+
+  short setupError(Lng32 exeError, Lng32 retcode, 
+                   const char * str, const char * str2, const char * str3);
+
+  /////////////////////////////////////////////////////
+  // Private data.
+  /////////////////////////////////////////////////////
+
+  ex_queue_pair  qparent_;
+  Int64 matches_;
+  Int64 matchBrkPoint_;
+  atp_struct * workAtp_;
+  
+  sql_buffer_pool * pool_;            // row images after selection pred,
+
+  char loggingFileName_[1000];
+  NABoolean LoggingFileCreated_ ;
+
+  ExpHbaseInterface * ehi_;
+
+  Lng32 myInstNum_;
+};
+
+class ExHdfsScanTcb  : public ExHdfsAccessTcb
+{
+  friend class ExHdfsScanPrivateState;
 
 public:
   ExHdfsScanTcb( const ComTdbHdfsScan &tdb,
-                         ex_globals *glob );
+                 ex_globals *glob );
 
   ~ExHdfsScanTcb();
 
-  void freeResources();
-  virtual void registerSubtasks();  // register work procedures with scheduler
+  virtual void freeResources();
+
   virtual Int32 fixup();
 
   virtual ExWorkProcRetcode work(); 
@@ -134,16 +187,6 @@ public:
   static ExWorkProcRetcode sWorkUp(ex_tcb *tcb) 
       { return ((ExHdfsScanTcb *) tcb)->work(); }
 
-  ex_queue_pair getParentQueue() const { return qparent_;}
-  virtual Int32 numChildren() const { return 0; }
-  virtual const ex_tcb* getChild(Int32 /*pos*/) const { return NULL; }
-  virtual NABoolean needStatsEntry();
-  virtual ExOperStats *doAllocateStatsEntry(CollHeap *heap,
-					    ComTdb *tdb);
-  virtual ex_tcb_private_state *allocatePstates(
-    Lng32 &numElems,
-    Lng32 &pstateLength);
-
   ExHdfsScanStats *getHfdsScanStats()
   {
     if (getStatsEntry())
@@ -151,12 +194,10 @@ public:
     else
       return NULL;
   }
-#ifdef NEED_PSTATE
-  // For dynamic queue resizing.
-  virtual ex_tcb_private_state * allocatePstates(
-       Lng32 &numElems,      // inout, desired/actual elements
-       Lng32 &pstateLength); // out, length of one element
-#endif
+
+  virtual ExOperStats * doAllocateStatsEntry(
+       CollHeap *heap,
+       ComTdb *tdb);
 
 protected:
   enum {
@@ -189,14 +230,14 @@ protected:
   inline ExHdfsScanTdb &hdfsScanTdb() const
     { return (ExHdfsScanTdb &) tdb; }
 
+  inline ex_expr *convertExpr() const 
+    { return hdfsScanTdb().convertExpr_; }
+
   inline ex_expr *selectPred() const 
     { return hdfsScanTdb().selectPred_; }
 
   inline ex_expr *moveExpr() const 
     { return hdfsScanTdb().moveExpr_; }
-
-  inline ex_expr *convertExpr() const 
-    { return hdfsScanTdb().convertExpr_; }
 
   inline ex_expr *moveColsConvertExpr() const 
     { return hdfsScanTdb().moveColsConvertExpr_; }
@@ -215,25 +256,13 @@ protected:
   char * extractAndTransformAsciiSourceToSqlRow(int &err,
 						ComDiagsArea * &diagsArea, int mode);
 
-  short moveRowToUpQueue(const char * row, Lng32 len, 
-                         short * rc, NABoolean isVarchar);
   void initPartAndVirtColData(HdfsFileInfo* hdfo, Lng32 rangeNum, bool prefetch);
   int getAndInitNextSelectedRange(bool prefetch);
-
-  short handleError(short &rc);
-  short handleDone(ExWorkProcRetcode &rc);
-
-  short setupError(Lng32 exeError, Lng32 retcode, 
-                   const char * str, const char * str2, const char * str3);
 
   /////////////////////////////////////////////////////
   // Private data.
   /////////////////////////////////////////////////////
 
-  ex_queue_pair  qparent_;
-  Int64 matches_;
-  Int64 matchBrkPoint_;
-  atp_struct     * workAtp_;
   Int64 bytesLeft_;
   hdfsFile hfdsFileHandle_;
   char * hdfsScanBuffer_;
@@ -277,8 +306,6 @@ protected:
   tupp virtColTupp_;                  // tupp for virtual columns, if needed
   struct ComTdbHdfsVirtCols *virtColData_; // pointer to data for virtual columns
 
-  sql_buffer_pool * pool_;            // row images after selection pred,
-                                      // with only the required columns. 
   hdfsFile hdfsFp_;
   hdfsFS hdfsFs_;     // shallow copy from cliGlobals.
 
@@ -294,7 +321,6 @@ protected:
   ExHdfsScanStats * hdfsStats_;
   HdfsFileInfo *hdfo_;
   Int64 hdfsOffset_;
-  Lng32 myInstNum_;
   Lng32 beginRangeNum_;
   Lng32 numRanges_;
   Lng32 currRangeNum_;
@@ -308,260 +334,15 @@ protected:
   bool  seqScanAgain_;
   char cursorId_[8];
 
-  char loggingFileName_[1000];
-  NABoolean LoggingFileCreated_ ;
   char * hdfsLoggingRow_;
   char * hdfsLoggingRowEnd_;
   tupp_descriptor * defragTd_;
-
-  ExpHbaseInterface * ehi_;
 
   NABoolean exception_;
   ComCondition * lastErrorCnd_;
   NABoolean checkRangeDelimiter_;
 
   NABoolean dataModCheckDone_;
-};
-
-// -----------------------------------------------------------------------
-// ExOrcScanTdb
-// -----------------------------------------------------------------------
-class ExOrcScanTdb : public ComTdbOrcScan
-{
-public:
-
-  // ---------------------------------------------------------------------
-  // Constructor is only called to instantiate an object used for
-  // retrieval of the virtual table function pointer of the class while
-  // unpacking. An empty constructor is enough.
-  // ---------------------------------------------------------------------
-  NA_EIDPROC ExOrcScanTdb()
-  {}
-
-  NA_EIDPROC virtual ~ExOrcScanTdb()
-  {}
-
-  // ---------------------------------------------------------------------
-  // Build a TCB for this TDB. Redefined in the Executor project.
-  // ---------------------------------------------------------------------
-  NA_EIDPROC virtual ex_tcb *build(ex_globals *globals);
-
-private:
-  // ---------------------------------------------------------------------
-  // !!!!!!! IMPORTANT -- NO DATA MEMBERS ALLOWED IN EXECUTOR TDB !!!!!!!!
-  // *********************************************************************
-  // The Executor TDB's are only used for the sole purpose of providing a
-  // way to supplement the Compiler TDB's (in comexe) with methods whose
-  // implementation depends on Executor objects. This is done so as to
-  // decouple the Compiler from linking in Executor objects unnecessarily.
-  //
-  // When a Compiler generated TDB arrives at the Executor, the same data
-  // image is "cast" as an Executor TDB after unpacking. Therefore, it is
-  // a requirement that a Compiler TDB has the same object layout as its
-  // corresponding Executor TDB. As a result of this, all Executor TDB's
-  // must have absolutely NO data members, but only member functions. So,
-  // if you reach here with an intention to add data members to a TDB, ask
-  // yourself two questions:
-  //
-  // 1. Are those data members Compiler-generated?
-  //    If yes, put them in the appropriate ComTdb subclass instead.
-  //    If no, they should probably belong to someplace else (like TCB).
-  // 
-  // 2. Are the classes those data members belong defined in the executor
-  //    project?
-  //    If your answer to both questions is yes, you might need to move
-  //    the classes to the comexe project.
-  // ---------------------------------------------------------------------
-};
-
-class ExOrcScanTcb  : public ExHdfsScanTcb
-{
-  friend class ExOrcFastAggrTcb;
-
-public:
-  ExOrcScanTcb( const ComTdbOrcScan &tdb,
-                 ex_globals *glob );
-
-  ~ExOrcScanTcb();
-
-  virtual ExWorkProcRetcode work(); 
-
-  inline ExOrcScanTdb &orcScanTdb() const
-  { return (ExOrcScanTdb &) tdb; }
-
-  inline ex_expr *orcOperExpr() const 
-    { return orcScanTdb().orcOperExpr_; }
-  
-protected:
-  enum {
-    NOT_STARTED
-  , SETUP_ORC_PPI
-  , INIT_ORC_CURSOR
-  , OPEN_ORC_CURSOR
-  , GET_ORC_ROW
-  , PROCESS_ORC_ROW
-  , CLOSE_ORC_CURSOR
-  , CLOSE_ORC_CURSOR_AND_DONE
-  , RETURN_ROW
-  , CLOSE_FILE
-  , ERROR_CLOSE_FILE
-  , COLLECT_STATS
-  , HANDLE_ERROR
-  , DONE
-  } step_;
-
-  /////////////////////////////////////////////////////
-  // Private methods.
-  /////////////////////////////////////////////////////
- private:
-  short extractAndTransformOrcSourceToSqlRow(
-                                             char * orcRow,
-                                             Int64 orcRowLen,
-                                             Lng32 numOrcCols,
-                                             ComDiagsArea* &diagsArea);
-  
-  /////////////////////////////////////////////////////
-  // Private data.
-  /////////////////////////////////////////////////////
-
-  ExpORCinterface * orci_;
-
-  Int64 orcStartRowNum_;
-  Int64 orcNumRows_;
-  Int64 orcStopRowNum_;
-
-  // Number of columns to be returned. -1, for all cols.
-  Lng32 numCols_;
-  // array of col numbers to be returned. (zero based)
-  Lng32 *whichCols_;
-
-  // returned row from orc scanFetch
-  char * orcRow_;
-  Int64 orcRowLen_;
-  Int64 orcRowNum_;
-  Lng32 numOrcCols_;
-
-  char * orcOperRow_;
-  char * orcPPIBuf_;
-  Lng32 orcPPIBuflen_;
-
-  TextVec orcPPIvec_;
-};
-
-// -----------------------------------------------------------------------
-// ExOrcFastAggrTdb
-// -----------------------------------------------------------------------
-class ExOrcFastAggrTdb : public ComTdbOrcFastAggr
-{
-public:
-
-  // ---------------------------------------------------------------------
-  // Constructor is only called to instantiate an object used for
-  // retrieval of the virtual table function pointer of the class while
-  // unpacking. An empty constructor is enough.
-  // ---------------------------------------------------------------------
-  NA_EIDPROC ExOrcFastAggrTdb()
-  {}
-
-  NA_EIDPROC virtual ~ExOrcFastAggrTdb()
-  {}
-
-  // ---------------------------------------------------------------------
-  // Build a TCB for this TDB. Redefined in the Executor project.
-  // ---------------------------------------------------------------------
-  NA_EIDPROC virtual ex_tcb *build(ex_globals *globals);
-
-private:
-  // ---------------------------------------------------------------------
-  // !!!!!!! IMPORTANT -- NO DATA MEMBERS ALLOWED IN EXECUTOR TDB !!!!!!!!
-  // *********************************************************************
-  // The Executor TDB's are only used for the sole purpose of providing a
-  // way to supplement the Compiler TDB's (in comexe) with methods whose
-  // implementation depends on Executor objects. This is done so as to
-  // decouple the Compiler from linking in Executor objects unnecessarily.
-  //
-  // When a Compiler generated TDB arrives at the Executor, the same data
-  // image is "cast" as an Executor TDB after unpacking. Therefore, it is
-  // a requirement that a Compiler TDB has the same object layout as its
-  // corresponding Executor TDB. As a result of this, all Executor TDB's
-  // must have absolutely NO data members, but only member functions. So,
-  // if you reach here with an intention to add data members to a TDB, ask
-  // yourself two questions:
-  //
-  // 1. Are those data members Compiler-generated?
-  //    If yes, put them in the appropriate ComTdb subclass instead.
-  //    If no, they should probably belong to someplace else (like TCB).
-  // 
-  // 2. Are the classes those data members belong defined in the executor
-  //    project?
-  //    If your answer to both questions is yes, you might need to move
-  //    the classes to the comexe project.
-  // ---------------------------------------------------------------------
-};
-
-// class ExOrcFastAggrTcb
-class ExOrcFastAggrTcb  : public ExOrcScanTcb
-{
-public:
-  ExOrcFastAggrTcb( const ComTdbOrcFastAggr &tdb,
-                    ex_globals *glob );
-  
-  ~ExOrcFastAggrTcb();
-
-  virtual ExWorkProcRetcode work(); 
-
-  inline ExOrcFastAggrTdb &orcAggrTdb() const
-  { return (ExOrcFastAggrTdb &) tdb; }
-
-  ex_expr *aggrExpr() const 
-  { return orcAggrTdb().aggrExpr_; }
-
-   
-protected:
-  enum {
-    NOT_STARTED
-    , ORC_AGGR_INIT
-    , ORC_AGGR_OPEN
-    , ORC_AGGR_NEXT
-    , ORC_AGGR_CLOSE
-    , ORC_AGGR_EVAL
-    , ORC_AGGR_COUNT
-    , ORC_AGGR_COUNT_NONULL
-    , ORC_AGGR_MIN
-    , ORC_AGGR_MAX
-    , ORC_AGGR_SUM
-    , ORC_AGGR_NV_LOWER_BOUND
-    , ORC_AGGR_NV_UPPER_BOUND
-    , ORC_AGGR_HAVING_PRED
-    , ORC_AGGR_PROJECT
-    , ORC_AGGR_RETURN
-    , CLOSE_FILE
-    , ERROR_CLOSE_FILE
-    , COLLECT_STATS
-    , HANDLE_ERROR
-    , DONE
-  } step_;
-
-  /////////////////////////////////////////////////////
-  // Private data.
-  /////////////////////////////////////////////////////
- private:
-  Int64 rowCount_;
-  
-  char * outputRow_;
-
-  // row where aggregate values retrieved from orc will be moved into.
-  char * orcAggrRow_;
-
-  // row where aggregate value from all stripes will be computed.
-  char * finalAggrRow_;
-
-  Lng32 aggrNum_;
-
-  ComTdbOrcFastAggr::OrcAggrType aggrType_;
-  Lng32 colNum_;
-
-  NAArray<HbaseStr> *colStats_;
 };
 
 #define RANGE_DELIMITER '\002'
@@ -661,7 +442,5 @@ inline char *hdfs_strchr(char *s, int rd, int cd, const char *end, NABoolean che
   *rdSeen = FALSE;
   return NULL;
 }
-
-
 
 #endif

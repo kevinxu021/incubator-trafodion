@@ -187,6 +187,9 @@ public:
                                Lng32 instId,
                                char * loggingFileName);
 
+  static void extractColNameFields
+  (char * inValPtr, short &colNameLen, char* &colName);
+
 protected:
 
   /////////////////////////////////////////////////////
@@ -300,9 +303,6 @@ protected:
   short copyCell();
   Lng32 createSQRowDirect(Int64 *lastestRowTimestamp = NULL);
   Lng32 setupSQMultiVersionRow();
-
-  void extractColNameFields
-    (char * inValPtr, short &colNameLen, char* &colName);
 
   short getColPos(char * colName, Lng32 colNameLen, Lng32 &idx);
   short applyPred(ex_expr * expr,UInt16 tuppIndex = 0,

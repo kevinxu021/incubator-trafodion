@@ -70,11 +70,273 @@ ex_tcb * ExHdfsScanTdb::build(ex_globals * glob)
 // Constructor and initialization.
 ////////////////////////////////////////////////////////////////
 
-ExHdfsScanTcb::ExHdfsScanTcb(
+ExHdfsAccessTcb::ExHdfsAccessTcb(
           const ComTdbHdfsScan &hdfsScanTdb, 
           ex_globals * glob ) :
   ex_tcb( hdfsScanTdb, 1, glob)
   , workAtp_(NULL)
+  , pool_(NULL)
+  , matches_(0)
+  , matchBrkPoint_(0)
+{
+  Space * space = (glob ? glob->getSpace() : 0);
+  CollHeap * heap = (glob ? glob->getDefaultHeap() : 0);
+
+  pool_ = new(space) 
+        sql_buffer_pool(hdfsScanTdb.numBuffers_,
+        hdfsScanTdb.bufferSize_,
+        space,
+        ((ExHdfsScanTdb &)hdfsScanTdb).denseBuffers() ? 
+        SqlBufferBase::DENSE_ : SqlBufferBase::NORMAL_);
+
+  pool_->setStaticMode(TRUE);
+        
+  // Allocate the queue to communicate with parent
+  allocateParentQueues(qparent_);
+
+  workAtp_ = allocateAtp(hdfsScanTdb.workCriDesc_, space);
+
+  /*
+  // Register subtasks with the scheduler
+  registerSubtasks();
+  registerResizeSubtasks();
+  */
+
+  Lng32 fileNum = getGlobals()->castToExExeStmtGlobals()->getMyInstanceNumber();
+  ExHbaseAccessTcb::buildLoggingPath(((ExHdfsScanTdb &)hdfsScanTdb).getLoggingLocation(),
+                     (char *)((ExHdfsScanTdb &)hdfsScanTdb).getErrCountRowId(),
+                     ((ExHdfsScanTdb &)hdfsScanTdb).tableName(),
+                     "hive_scan_err",
+                     fileNum,
+                     loggingFileName_);
+  LoggingFileCreated_ = FALSE;
+
+  //shoud be move to work method
+  int jniDebugPort = 0;
+  int jniDebugTimeout = 0;
+  ehi_ = ExpHbaseInterface::newInstance(glob->getDefaultHeap(),
+                                        (char*)"",  //Later replace with server cqd
+                                        (char*)"", ////Later replace with port cqd
+                                        jniDebugPort,
+                                        jniDebugTimeout);
+}
+    
+ExHdfsAccessTcb::~ExHdfsAccessTcb()
+{
+  freeResources();
+}
+
+void ExHdfsAccessTcb::freeResources()
+{
+  if (workAtp_)
+  {
+    workAtp_->release();
+    deallocateAtp(workAtp_, getSpace());
+    workAtp_ = NULL;
+  }
+  if (pool_)
+  {
+    delete pool_;
+    pool_ = NULL;
+  }
+  if (qparent_.up)
+  {
+    delete qparent_.up;
+    qparent_.up = NULL;
+  }
+  if (qparent_.down)
+  {
+    delete qparent_.down;
+    qparent_.down = NULL;
+  }
+}
+
+NABoolean ExHdfsAccessTcb::needStatsEntry()
+{
+  // stats are collected for ALL and OPERATOR options.
+  if ((getGlobals()->getStatsArea()->getCollectStatsType() == 
+       ComTdb::ALL_STATS) ||
+      (getGlobals()->getStatsArea()->getCollectStatsType() == 
+      ComTdb::OPERATOR_STATS))
+    return TRUE;
+  else if ( getGlobals()->getStatsArea()->getCollectStatsType() == ComTdb::PERTABLE_STATS)
+    return TRUE;
+  else
+    return FALSE;
+}
+
+void ExHdfsAccessTcb::registerSubtasks()
+{
+  ExScheduler *sched = getGlobals()->getScheduler();
+
+  sched->registerInsertSubtask(sWork,   this, qparent_.down,"PD");
+  sched->registerUnblockSubtask(sWork,    this, qparent_.up,  "PU");
+  sched->registerCancelSubtask(sWork,     this, qparent_.down,"CN");
+
+}
+
+ex_tcb_private_state *ExHdfsAccessTcb::allocatePstates(
+     Lng32 &numElems,      // inout, desired/actual elements
+     Lng32 &pstateLength)  // out, length of one element
+{
+  PstateAllocator<ex_tcb_private_state> pa;
+  return pa.allocatePstates(this, numElems, pstateLength);
+}
+
+short ExHdfsAccessTcb::setupError(Lng32 exeError, Lng32 retcode, 
+                                const char * str, const char * str2, const char * str3)
+{
+  // Make sure retcode is positive.
+  if (retcode < 0)
+    retcode = -retcode;
+    
+  ex_queue_entry *pentry_down = qparent_.down->getHeadEntry();
+  
+  Lng32 intParam1 = retcode;
+  Lng32 intParam2 = 0;
+  ComDiagsArea * diagsArea = NULL;
+  ExRaiseSqlError(getHeap(), &diagsArea, 
+                  (ExeErrorCode)(exeError), NULL, &intParam1, 
+                  &intParam2, NULL, 
+                  (str ? (char*)str : (char*)" "),
+                  (str2 ? (char*)str2 : (char*)" "),
+                  (str3 ? (char*)str3 : (char*)" "));
+                  
+  pentry_down->setDiagsArea(diagsArea);
+  return -1;
+}
+
+short ExHdfsAccessTcb::moveRowToUpQueue(const char * row, Lng32 len, 
+                                        Lng32 tuppIndex,
+                                        short * rc, NABoolean isVarchar)
+{
+  if (qparent_.up->isFull())
+    {
+      if (rc)
+	*rc = WORK_OK;
+      return -1;
+    }
+
+  Lng32 length;
+  if (len <= 0)
+    length = strlen(row);
+  else
+    length = len;
+
+  tupp p;
+  if (pool_->get_free_tuple(p, (Lng32)
+			    ((isVarchar ? SQL_VARCHAR_HDR_SIZE : 0)
+			     + length)))
+    {
+      if (rc)
+	*rc = WORK_POOL_BLOCKED;
+      return -1;
+    }
+  
+  char * dp = p.getDataPointer();
+  if (isVarchar)
+    {
+      *(short*)dp = (short)length;
+      str_cpy_all(&dp[SQL_VARCHAR_HDR_SIZE], row, length);
+    }
+  else
+    {
+      str_cpy_all(dp, row, length);
+    }
+
+  ex_queue_entry * pentry_down = qparent_.down->getHeadEntry();
+  ex_queue_entry * up_entry = qparent_.up->getTailEntry();
+  
+  up_entry->copyAtp(pentry_down);
+  //  up_entry->getAtp()->getTupp((Lng32)hdfsScanTdb().tuppIndex_) = p;
+  up_entry->getAtp()->getTupp(tuppIndex) = p;
+
+  up_entry->upState.parentIndex = 
+    pentry_down->downState.parentIndex;
+  
+  up_entry->upState.setMatchNo(++matches_);
+  up_entry->upState.status = ex_queue::Q_OK_MMORE;
+
+  // insert into parent
+  qparent_.up->insert();
+
+  return 0;
+}
+
+short ExHdfsAccessTcb::handleError(short &rc)
+{
+  if (qparent_.up->isFull())
+    {
+      rc = WORK_OK;
+      return -1;
+    }
+
+  if (qparent_.up->isFull())
+    return WORK_OK;
+  
+  ex_queue_entry *pentry_down = qparent_.down->getHeadEntry();
+  ex_queue_entry *up_entry = qparent_.up->getTailEntry();
+  up_entry->copyAtp(pentry_down);
+  up_entry->upState.parentIndex =
+    pentry_down->downState.parentIndex;
+  up_entry->upState.downIndex = qparent_.down->getHeadIndex();
+  up_entry->upState.status = ex_queue::Q_SQLERROR;
+  qparent_.up->insert();
+
+  return 0;
+}
+
+short ExHdfsAccessTcb::handleDone(ExWorkProcRetcode &rc, Int64 rowsAffected)
+{
+  if (qparent_.up->isFull())
+    {
+      rc = WORK_OK;
+      return -1;
+    }
+
+  ex_queue_entry *pentry_down = qparent_.down->getHeadEntry();
+  ex_queue_entry *up_entry = qparent_.up->getTailEntry();
+  up_entry->copyAtp(pentry_down);
+  up_entry->upState.parentIndex =
+    pentry_down->downState.parentIndex;
+  up_entry->upState.downIndex = qparent_.down->getHeadIndex();
+  up_entry->upState.status = ex_queue::Q_NO_DATA;
+  up_entry->upState.setMatchNo(matches_);
+  if (rowsAffected > 0)
+    {
+      ExMasterStmtGlobals *g = getGlobals()->
+        castToExExeStmtGlobals()->castToExMasterStmtGlobals();
+      if (g)
+        {
+          g->setRowsAffected(g->getRowsAffected() + rowsAffected);
+        }
+      else
+        {
+          ComDiagsArea * diagsArea = up_entry->getDiagsArea();
+          if (!diagsArea)
+            {
+              diagsArea = 
+                ComDiagsArea::allocate(getGlobals()->getDefaultHeap());
+              up_entry->setDiagsArea(diagsArea);
+            }
+          diagsArea->addRowCount(rowsAffected);
+        }
+    }
+  qparent_.up->insert();
+  
+  qparent_.down->removeHead();
+
+  return 0;
+}
+
+////////////////////////////////////////////////////////////////
+// Constructor and initialization.
+////////////////////////////////////////////////////////////////
+
+ExHdfsScanTcb::ExHdfsScanTcb(
+          const ComTdbHdfsScan &hdfsScanTdb, 
+          ex_globals * glob ) :
+  ExHdfsAccessTcb( hdfsScanTdb, glob)
   , bytesLeft_(0)
   , hdfsScanBuffer_(NULL)
   , hdfsBufNextRow_(NULL)
@@ -85,10 +347,7 @@ ExHdfsScanTcb::ExHdfsScanTcb(
   , debugPrevRow_(NULL)
   , hdfsSqlBuffer_(NULL)
   , hdfsSqlData_(NULL)
-  , pool_(NULL)
   , step_(NOT_STARTED)
-  , matches_(0)
-  , matchBrkPoint_(0)
   , endOfRequestedRange_(NULL)
   , sequenceFileReader_(NULL)
   , seqScanAgain_(false)
@@ -163,17 +422,6 @@ ExHdfsScanTcb::ExHdfsScanTcb(
       virtColData_ = NULL;
     }
 
-  pool_ = new(space) 
-        sql_buffer_pool(hdfsScanTdb.numBuffers_,
-        hdfsScanTdb.bufferSize_,
-        space,
-        ((ExHdfsScanTdb &)hdfsScanTdb).denseBuffers() ? 
-        SqlBufferBase::DENSE_ : SqlBufferBase::NORMAL_);
-
-
-  pool_->setStaticMode(TRUE);
-        
-
   defragTd_ = NULL;
   // removing the cast produce a compile error
   if (((ExHdfsScanTdb &)hdfsScanTdb).useCifDefrag())
@@ -197,27 +445,9 @@ ExHdfsScanTcb::ExHdfsScanTcb(
   if (partElimExpr())
     partElimExpr()->fixup(0, getExpressionMode(), this,  space, heap, FALSE, glob);
 
-
-  // Register subtasks with the scheduler
   registerSubtasks();
   registerResizeSubtasks();
 
-  Lng32 fileNum = getGlobals()->castToExExeStmtGlobals()->getMyInstanceNumber();
-  ExHbaseAccessTcb::buildLoggingPath(((ExHdfsScanTdb &)hdfsScanTdb).getLoggingLocation(),
-                     (char *)((ExHdfsScanTdb &)hdfsScanTdb).getErrCountRowId(),
-                     ((ExHdfsScanTdb &)hdfsScanTdb).tableName(),
-                     "hive_scan_err",
-                     fileNum,
-                     loggingFileName_);
-  LoggingFileCreated_ = FALSE;
-  //shoud be move to work method
-  int jniDebugPort = 0;
-  int jniDebugTimeout = 0;
-  ehi_ = ExpHbaseInterface::newInstance(glob->getDefaultHeap(),
-                                        (char*)"",  //Later replace with server cqd
-                                        (char*)"", ////Later replace with port cqd
-                                        jniDebugPort,
-                                        jniDebugTimeout);
 }
     
 ExHdfsScanTcb::~ExHdfsScanTcb()
@@ -227,12 +457,6 @@ ExHdfsScanTcb::~ExHdfsScanTcb()
 
 void ExHdfsScanTcb::freeResources()
 {
-  if (workAtp_)
-  {
-    workAtp_->release();
-    deallocateAtp(workAtp_, getSpace());
-    workAtp_ = NULL;
-  }
   if (hdfsScanBuffer_)
   {
     NADELETEBASIC(hdfsScanBuffer_, getSpace());
@@ -273,37 +497,10 @@ void ExHdfsScanTcb::freeResources()
     virtColsBuffer_ = NULL;
     virtColData_ = NULL;
   }
-  if (pool_)
-  {
-    delete pool_;
-    pool_ = NULL;
-  }
-  if (qparent_.up)
-  {
-    delete qparent_.up;
-    qparent_.up = NULL;
-  }
-  if (qparent_.down)
-  {
-    delete qparent_.down;
-    qparent_.down = NULL;
-  }
-
   ExpLOBinterfaceCleanup
     (lobGlob_, getGlobals()->getDefaultHeap());
-}
-NABoolean ExHdfsScanTcb::needStatsEntry()
-{
-  // stats are collected for ALL and OPERATOR options.
-  if ((getGlobals()->getStatsArea()->getCollectStatsType() == 
-       ComTdb::ALL_STATS) ||
-      (getGlobals()->getStatsArea()->getCollectStatsType() == 
-      ComTdb::OPERATOR_STATS))
-    return TRUE;
-  else if ( getGlobals()->getStatsArea()->getCollectStatsType() == ComTdb::PERTABLE_STATS)
-    return TRUE;
-  else
-    return FALSE;
+
+  ExHdfsAccessTcb::freeResources();
 }
 
 ExOperStats * ExHdfsScanTcb::doAllocateStatsEntry(
@@ -343,24 +540,6 @@ ExOperStats * ExHdfsScanTcb::doAllocateStatsEntry(
     }
 }
 
-void ExHdfsScanTcb::registerSubtasks()
-{
-  ExScheduler *sched = getGlobals()->getScheduler();
-
-  sched->registerInsertSubtask(sWork,   this, qparent_.down,"PD");
-  sched->registerUnblockSubtask(sWork,    this, qparent_.up,  "PU");
-  sched->registerCancelSubtask(sWork,     this, qparent_.down,"CN");
-
-}
-
-ex_tcb_private_state *ExHdfsScanTcb::allocatePstates(
-     Lng32 &numElems,      // inout, desired/actual elements
-     Lng32 &pstateLength)  // out, length of one element
-{
-  PstateAllocator<ex_tcb_private_state> pa;
-  return pa.allocatePstates(this, numElems, pstateLength);
-}
-
 Int32 ExHdfsScanTcb::fixup()
 {
   lobGlob_ = NULL;
@@ -373,29 +552,6 @@ Int32 ExHdfsScanTcb::fixup()
 
 void brkpoint()
 {}
-
-short ExHdfsScanTcb::setupError(Lng32 exeError, Lng32 retcode, 
-                                const char * str, const char * str2, const char * str3)
-{
-  // Make sure retcode is positive.
-  if (retcode < 0)
-    retcode = -retcode;
-    
-  ex_queue_entry *pentry_down = qparent_.down->getHeadEntry();
-  
-  Lng32 intParam1 = retcode;
-  Lng32 intParam2 = 0;
-  ComDiagsArea * diagsArea = NULL;
-  ExRaiseSqlError(getHeap(), &diagsArea, 
-                  (ExeErrorCode)(exeError), NULL, &intParam1, 
-                  &intParam2, NULL, 
-                  (str ? (char*)str : (char*)" "),
-                  (str2 ? (char*)str2 : (char*)" "),
-                  (str3 ? (char*)str3 : (char*)" "));
-                  
-  pentry_down->setDiagsArea(diagsArea);
-  return -1;
-}
 
 ExWorkProcRetcode ExHdfsScanTcb::work()
 {
@@ -1800,61 +1956,6 @@ char * ExHdfsScanTcb::extractAndTransformAsciiSourceToSqlRow(int &err,
   return NULL;
 }
 
-short ExHdfsScanTcb::moveRowToUpQueue(const char * row, Lng32 len, 
-                                      short * rc, NABoolean isVarchar)
-{
-  if (qparent_.up->isFull())
-    {
-      if (rc)
-	*rc = WORK_OK;
-      return -1;
-    }
-
-  Lng32 length;
-  if (len <= 0)
-    length = strlen(row);
-  else
-    length = len;
-
-  tupp p;
-  if (pool_->get_free_tuple(p, (Lng32)
-			    ((isVarchar ? SQL_VARCHAR_HDR_SIZE : 0)
-			     + length)))
-    {
-      if (rc)
-	*rc = WORK_POOL_BLOCKED;
-      return -1;
-    }
-  
-  char * dp = p.getDataPointer();
-  if (isVarchar)
-    {
-      *(short*)dp = (short)length;
-      str_cpy_all(&dp[SQL_VARCHAR_HDR_SIZE], row, length);
-    }
-  else
-    {
-      str_cpy_all(dp, row, length);
-    }
-
-  ex_queue_entry * pentry_down = qparent_.down->getHeadEntry();
-  ex_queue_entry * up_entry = qparent_.up->getTailEntry();
-  
-  up_entry->copyAtp(pentry_down);
-  up_entry->getAtp()->getTupp((Lng32)hdfsScanTdb().tuppIndex_) = p;
-
-  up_entry->upState.parentIndex = 
-    pentry_down->downState.parentIndex;
-  
-  up_entry->upState.setMatchNo(++matches_);
-  up_entry->upState.status = ex_queue::Q_OK_MMORE;
-
-  // insert into parent
-  qparent_.up->insert();
-
-  return 0;
-}
-
 void ExHdfsScanTcb::initPartAndVirtColData(HdfsFileInfo* hdfo,
                                            Lng32 rangeNum,
                                            bool prefetch)
@@ -1964,48 +2065,3 @@ int ExHdfsScanTcb::getAndInitNextSelectedRange(bool prefetch)
       return -1;
 }
 
-short ExHdfsScanTcb::handleError(short &rc)
-{
-  if (qparent_.up->isFull())
-    {
-      rc = WORK_OK;
-      return -1;
-    }
-
-  if (qparent_.up->isFull())
-    return WORK_OK;
-  
-  ex_queue_entry *pentry_down = qparent_.down->getHeadEntry();
-  ex_queue_entry *up_entry = qparent_.up->getTailEntry();
-  up_entry->copyAtp(pentry_down);
-  up_entry->upState.parentIndex =
-    pentry_down->downState.parentIndex;
-  up_entry->upState.downIndex = qparent_.down->getHeadIndex();
-  up_entry->upState.status = ex_queue::Q_SQLERROR;
-  qparent_.up->insert();
-
-  return 0;
-}
-
-short ExHdfsScanTcb::handleDone(ExWorkProcRetcode &rc)
-{
-  if (qparent_.up->isFull())
-    {
-      rc = WORK_OK;
-      return -1;
-    }
-
-  ex_queue_entry *pentry_down = qparent_.down->getHeadEntry();
-  ex_queue_entry *up_entry = qparent_.up->getTailEntry();
-  up_entry->copyAtp(pentry_down);
-  up_entry->upState.parentIndex =
-    pentry_down->downState.parentIndex;
-  up_entry->upState.downIndex = qparent_.down->getHeadIndex();
-  up_entry->upState.status = ex_queue::Q_NO_DATA;
-  up_entry->upState.setMatchNo(matches_);
-  qparent_.up->insert();
-  
-  qparent_.down->removeHead();
-
-  return 0;
-}

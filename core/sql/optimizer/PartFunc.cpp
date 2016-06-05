@@ -2492,8 +2492,9 @@ createPartitioningFunctionForIndexDesc(IndexDesc *idesc) const
   for (CollIndex i = 0; i < partKeyColumns.entries(); i++)
     {
       // which column of the index is this (usually this will be == i)
-      ixColNumber = allColumns.index(partKeyColumns[i]);
-
+      ixColNumber = 
+        allColumns.getColumnPosition(partKeyColumns[i]->getColName());
+      
       // insert the value id of the index column into the partitioning
       // key column value id set
       keyValueId = idesc->getIndexColumns()[ixColNumber];

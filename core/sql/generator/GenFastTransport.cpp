@@ -135,7 +135,7 @@ int CreateAllCharsExpr(const NAType &formalType,
   else
   {
     const CharType &cFormalType = (CharType&)formalType;
-    typ = new (h) SQLVarChar( maxLength,
+    typ = new (h) SQLVarChar( (maxLength == 0 ? 1 : maxLength),
                               cFormalType.supportsSQLnull(),
                               cFormalType.isUpshifted(),
                               cFormalType.isCaseinsensitive(),
@@ -297,12 +297,14 @@ static short ft_codegen(Generator *generator,
   UInt32 partStringRowLen = 0;
   ULng32 childDataRowLen = 0;
   ULng32 cnvChildDataRowLen = 0;
+  ULng32 tgtValsRowLen = 0;
   ExpTupleDesc *requestTupleDesc = NULL;
 
   ExpTupleDesc *outputTupleDesc = NULL;
   ExpTupleDesc *childDataTupleDesc = NULL;
   ExpTupleDesc *cnvChildDataTupleDesc = NULL;
   ExpTupleDesc *partStringTupleDesc = NULL;
+  ExpTupleDesc *tgtValsTupleDesc = NULL;
   newTdb = NULL;
 
   OperatorTypeEnum relExprType = relExpr.getOperatorType();
@@ -321,6 +323,7 @@ static short ft_codegen(Generator *generator,
   unsigned short childDataTuppIndex = 0;
   unsigned short cnvChildDataTuppIndex = 0;
   unsigned short partStringTuppIndex = 0;
+  unsigned short tgtValsTuppIndex = 0;
 
   numWorkTupps = 3;
   childDataTuppIndex = numWorkTupps - 1 ;
@@ -328,6 +331,8 @@ static short ft_codegen(Generator *generator,
   cnvChildDataTuppIndex = numWorkTupps - 1;
   numWorkTupps++;
   partStringTuppIndex = numWorkTupps - 1;
+  numWorkTupps++;
+  tgtValsTuppIndex = numWorkTupps - 1;
 
   work_cri_desc = new (space) ex_cri_desc(numWorkTupps, space);
 
@@ -337,14 +342,22 @@ static short ft_codegen(Generator *generator,
   ValueIdList childDataVids;
   ValueIdList cnvChildDataVids;
   ValueIdList partColValsVids;
+  ValueIdList tgtValsVids;
+
   NAString partColValsSQLExpr;
   const ValueIdList& childVals = fastExtract->getSelectList();
   const NAColumnArray *naColArray = NULL;
   CollIndex hiveColIx = 0;
 
+  // when calling orc insert, need to pass in the column name
+  // that is being updated. Create list of user columns.
+  Queue * orcColNameList = new(space) Queue(space);
   if (fastExtract->getHiveNATable())
   {
     naColArray = &(fastExtract->getHiveNATable()->getNAColumnArray());
+
+    if (fastExtract->getHiveNATable()->isORC())
+      orcColNameList = new(space) Queue(space);
   }
 
   for (i = 0; i < childVals.entries(); i++)
@@ -380,6 +393,28 @@ static short ft_codegen(Generator *generator,
         // regular column
         childDataVids.insert(lmExpr->getValueId());
         cnvChildDataVids.insert(lmExpr2->getValueId());
+
+        // create tuple desc that describes the target hive columns.
+        if (naColArray)
+          {
+            NAType * naType = (NAType*)(*naColArray)[i]->getType();
+            ItemExpr * tgtVal = 
+              new (CmpCommon::statementHeap()) NATypeToItem(naType);
+
+            tgtVal->synthTypeAndValueId();
+            tgtVal->bindNode(generator->getBindWA());
+            tgtValsVids.insert(tgtVal->getValueId());
+          }
+
+        if (orcColNameList && naColArray)
+          {
+            NAString colName((*naColArray)[i]->getColName());
+            char * cnameInList = 
+              space->allocateAndCopyToAlignedSpace
+              (colName.data(), colName.length(), 0);
+            
+            orcColNameList->insert(cnameInList);
+          }
       }
     else
       {
@@ -451,6 +486,17 @@ static short ft_codegen(Generator *generator,
        &cnvChildDataTupleDesc,                      // [optional OUT] tuple desc
        ExpTupleDesc::LONG_FORMAT              // [optional IN] tuple desc format
        );
+
+    exp_gen->processValIdList (
+       tgtValsVids,                            // [IN] ValueIdList
+       ExpTupleDesc::SQLARK_EXPLODED_FORMAT,   // [IN] tuple data format
+       tgtValsRowLen,                          // [OUT] tuple length
+       workAtpNumber,                          // [IN] atp number
+       tgtValsTuppIndex,                       // [IN] index into atp
+       &tgtValsTupleDesc,                      // [optional OUT] tuple desc
+       ExpTupleDesc::LONG_FORMAT               // [optional IN] tuple desc format
+       );
+
   }
 
   if (partColValsVids.entries() > 0)
@@ -492,11 +538,10 @@ static short ft_codegen(Generator *generator,
   work_cri_desc->setTupleDescriptor(childDataTuppIndex, childDataTupleDesc);
   work_cri_desc->setTupleDescriptor(cnvChildDataTuppIndex, cnvChildDataTupleDesc);
   work_cri_desc->setTupleDescriptor(partStringTuppIndex, partStringTupleDesc);
+  work_cri_desc->setTupleDescriptor(tgtValsTuppIndex, tgtValsTupleDesc);
 
   // We can now remove all appended map tables
   generator->removeAll(last_map_table);
-
-
 
   ComSInt32 maxrs = 0;
   UInt32 flags = 0;
@@ -543,9 +588,11 @@ static short ft_codegen(Generator *generator,
     childDataTuppIndex,
     cnvChildDataTuppIndex,
     partStringTuppIndex,
+    tgtValsTuppIndex,
     childDataRowLen,
     hdfsBufSize,
-    replication
+    replication,
+    orcColNameList
     );
 
   tdb->setSequenceFile(isSequenceFile);
@@ -770,6 +817,7 @@ PhysicalFastExtract::codeGen(Generator *generator)
     newTdb->setIsHiveInsert(1);
     newTdb->setIncludeHeader(0);
     newTdb->setOverwriteHiveTable( getOverwriteHiveTable());
+    newTdb->setIsOrcFile(hiveNATable() && hiveNATable()->isORC());
   }
   else
   {
