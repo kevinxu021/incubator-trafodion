@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Net;
-using System.Net.Sockets;
 
 namespace EsgynDB.Data
 {
@@ -15,34 +13,9 @@ namespace EsgynDB.Data
         public string ClientUsername;
 
         private byte[] _clientUsername;
-        private EsgynDBEncoder encoder;
 
         public void WriteToDataStream(DataStream ds)
         {
-            IPHostEntry heserver = Dns.GetHostEntry(ConnectionContext.ComputerName);
-            String ipClientAddress = "";
-
-            IPAddress[] ipv4Addresses = Array.FindAll(heserver.AddressList,
-                item => item.AddressFamily == AddressFamily.InterNetwork);
-
-            foreach (IPAddress ipAddress in ipv4Addresses)
-            {
-                String ipString = ipAddress.ToString();
-                if (!ipString.Equals(ipClientAddress))
-                {
-                    ipClientAddress = ipString;
-                }
-            }
-
-            String roleName = ConnectionContext.UserRole;
-            String ccExtention = String.Format("{{\"sessionName\":\"{0}\",\"ipClientAddress\":\"{1}\",\"clientHostName\":\"{2}\",\"userName\":\"{3}\",\"roleName\":\"{4}\",\"applicationName\":\"{5}\"}}",
-                       ConnectionContext.SessionName,
-                       ipClientAddress,
-                       ConnectionContext.ComputerName,
-                       ClientUsername,
-                       roleName,
-                       System.AppDomain.CurrentDomain.FriendlyName;);
-
             ConnectionContext.WriteToDataStream(ds);
             UserDescription.WriteToDataStream(ds);
 
@@ -55,13 +28,12 @@ namespace EsgynDB.Data
             ds.WriteString(ConnectionContext._clientVproc);
 
             ds.WriteString(_clientUsername);
-            //ds.WriteString(encoder.GetBytes(ccExtention, encoder.Transport));
         }
 
         public int PrepareMessageParams(EsgynDBEncoder enc)
         {
             int len = 22; //5*4 Int32, 1*2 Int16
-            encoder = enc;
+
             len += ConnectionContext.PrepareMessageParams(enc);
             len += UserDescription.PrepareMessageParams(enc);
 
