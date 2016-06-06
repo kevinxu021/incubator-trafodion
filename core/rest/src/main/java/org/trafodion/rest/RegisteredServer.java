@@ -45,6 +45,7 @@ public class RegisteredServer  {
 	private String sla;
 	private String connectProfile;
     private String disconnectProfile;
+	private String profile;
 	private long connectedInterval;
 	private long connectTime;
 

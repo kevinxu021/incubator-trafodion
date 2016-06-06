@@ -14,6 +14,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -42,8 +43,10 @@ import com.esgyn.dbmgr.common.TabularResult;
 import com.esgyn.dbmgr.model.QueryDetail;
 import com.esgyn.dbmgr.model.Session;
 import com.esgyn.dbmgr.model.SessionModel;
+import com.esgyn.dbmgr.rest.RESTProcessor;
 import com.esgyn.dbmgr.sql.SystemQueryCache;
 import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -589,6 +592,437 @@ public class WorkloadsResource {
 				}
 			}
 		}
+		return true;
+	}
+
+	@GET
+	@Path("/profiles/")
+	@Produces("application/json")
+	public TabularResult getProfiles(@Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		TabularResult result = new TabularResult();
+		try {
+			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
+			String uri = "";
+			Session soc = SessionModel.getSession(servletRequest, servletResponse);
+
+			if (trafRestUri != null && trafRestUri.length() > 0) {
+				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_GET_PROFILES);
+				uri = String.format(queryText, trafRestUri);
+			}
+
+			String profilesStr = RESTProcessor.getRestOutput(uri, soc.getUsername(), soc.getPassword());
+
+			JsonFactory factory = new JsonFactory();
+			ObjectMapper mapper = new ObjectMapper(factory);
+			ArrayNode resultNode = mapper.createArrayNode();
+			try {
+				JsonNode node = mapper.readTree(profilesStr);
+				Iterator<String> profileNames = node.fieldNames();
+				while (profileNames.hasNext()) {
+					String profileName = profileNames.next();
+					ObjectNode pNode = mapper.createObjectNode();
+					pNode.put("Profile Name", profileName);
+					JsonNode node1 = node.get(profileName);
+					pNode.setAll((ObjectNode) node1);
+					resultNode.add(pNode);
+				}
+			} catch (Exception ex) {
+
+			}
+			ArrayList<String> columns = new ArrayList<String>();
+			ArrayList<Object[]> rowData = new ArrayList<Object[]>();
+			if (resultNode != null && resultNode.size() > 0)
+				RESTProcessor.processResult(mapper.writeValueAsString(resultNode), columns, rowData);
+			else {
+				columns.add("Result");
+				rowData.add(new Object[] { "No profiles found" });
+			}
+
+			result.columnNames = new String[columns.size()];
+			result.columnNames = columns.toArray(result.columnNames);
+			result.resultArray = rowData;
+
+		} catch (Exception ex) {
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to fetch workload profiles", ex);
+			_LOG.error(ee.getMessage());
+			throw ee;
+		}
+		return result;
+	}
+
+	@POST
+	@Path("/profile/")
+	@Consumes("application/json")
+	@Produces("application/json")
+	public String addAlterProfile(ObjectNode obj, @Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		try {
+			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
+			String uri = "";
+			Session soc = SessionModel.getSession(servletRequest, servletResponse);
+
+			String profileName = "";
+			if (obj.has("name")) {
+				profileName = obj.get("name").textValue();
+			}
+			String cqds = "";
+			if (obj.has("cqds")) {
+				cqds = obj.get("cqds").textValue();
+			}
+			String sets = "";
+			if (obj.has("sets")) {
+				sets = obj.get("sets").textValue();
+			}
+			String nodes = "";
+			if (obj.has("nodes")) {
+				nodes = obj.get("nodes").textValue();
+			}
+
+			if (trafRestUri != null && trafRestUri.length() > 0) {
+				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_ADD_ALTER_PROFILE);
+				uri = String.format(queryText, trafRestUri, profileName, cqds, sets, nodes);
+			}
+			System.out.println(uri);
+
+			Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
+		} catch (Exception ex) {
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to add or alter profile", ex);
+			_LOG.error(ex.getMessage());
+			throw ee;
+		}
+		try {
+			JsonFactory factory = new JsonFactory();
+			ObjectMapper mapper = new ObjectMapper(factory);
+			ObjectNode resultNode = mapper.createObjectNode();
+			resultNode.put("status", "Success");
+			return mapper.writeValueAsString(resultNode);
+		} catch (Exception ex) {
+			throw new EsgynDBMgrException(ex.getMessage());
+		}
+	}
+
+	@DELETE
+	@Path("/profile/")
+	@Produces("application/json")
+	public boolean deleteProfile(@QueryParam("profile") String profile,
+			@Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+		try {
+			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
+			String uri = "";
+			Session soc = SessionModel.getSession(servletRequest, servletResponse);
+
+			if (trafRestUri != null && trafRestUri.length() > 0) {
+				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_DELETE_PROFILE);
+				uri = String.format(queryText, trafRestUri, profile);
+				Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
+			}
+
+		} catch (Exception ex) {
+			EsgynDBMgrException ee = Helper
+					.createDBManagerException(String.format("Failed to delete profile %1$s : ", profile), ex);
+			_LOG.error(ee.getMessage());
+			throw ee;
+		}
+
+		return true;
+	}
+
+	@GET
+	@Path("/slas/")
+	@Produces("application/json")
+	public TabularResult getSLAs(@Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		TabularResult result = new TabularResult();
+		try {
+			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
+			String uri = "";
+			Session soc = SessionModel.getSession(servletRequest, servletResponse);
+
+			if (trafRestUri != null && trafRestUri.length() > 0) {
+				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_GET_SLAS);
+				uri = String.format(queryText, trafRestUri);
+			}
+
+			String mappingsStr = RESTProcessor.getRestOutput(uri, soc.getUsername(), soc.getPassword());
+
+			JsonFactory factory = new JsonFactory();
+			ObjectMapper mapper = new ObjectMapper(factory);
+			ArrayNode resultNode = mapper.createArrayNode();
+			try {
+				JsonNode node = mapper.readTree(mappingsStr);
+				Iterator<String> slas = node.fieldNames();
+				while (slas.hasNext()) {
+					String slaName = slas.next();
+					ObjectNode pNode = mapper.createObjectNode();
+					pNode.put("SLA Name", slaName);
+					JsonNode node1 = node.get(slaName);
+					pNode.setAll((ObjectNode) node1);
+					resultNode.add(pNode);
+				}
+			} catch (Exception ex) {
+
+			}
+			ArrayList<String> columns = new ArrayList<String>();
+			ArrayList<Object[]> rowData = new ArrayList<Object[]>();
+			if (resultNode != null && resultNode.size() > 0)
+				RESTProcessor.processResult(mapper.writeValueAsString(resultNode), columns, rowData);
+			else {
+				columns.add("Result");
+				rowData.add(new Object[] { "No SLAs found" });
+			}
+
+			result.columnNames = new String[columns.size()];
+			result.columnNames = columns.toArray(result.columnNames);
+			result.resultArray = rowData;
+
+		} catch (Exception ex) {
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to fetch SLAs", ex);
+			_LOG.error(ee.getMessage());
+			throw ee;
+		}
+		return result;
+	}
+
+	@POST
+	@Path("/sla/")
+	@Consumes("application/json")
+	@Produces("application/json")
+	public String addAlterSLA(ObjectNode obj, @Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		try {
+			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
+			String uri = "";
+			Session soc = SessionModel.getSession(servletRequest, servletResponse);
+
+			String slaName = "";
+			if (obj.has("name")) {
+				slaName = obj.get("name").textValue();
+			}
+			String priority = "";
+			if (obj.has("priority")) {
+				priority = obj.get("priority").textValue();
+			}
+			String limit = "";
+			if (obj.has("limit")) {
+				limit = obj.get("limit").textValue();
+			}
+			String throughput = "";
+			if (obj.has("throughput")) {
+				throughput = obj.get("throughput").textValue();
+			}
+			String connProfile = "";
+			if (obj.has("connProfile")) {
+				connProfile = obj.get("connProfile").textValue();
+			}
+
+			if (trafRestUri != null && trafRestUri.length() > 0) {
+				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_ADD_ALTER_SLA);
+				uri = String.format(queryText, trafRestUri, slaName, priority, limit, throughput, connProfile);
+			}
+			System.out.println(uri);
+
+			Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
+		} catch (Exception ex) {
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to add or alter SLA", ex);
+			_LOG.error(ex.getMessage());
+			throw ee;
+		}
+		try {
+			JsonFactory factory = new JsonFactory();
+			ObjectMapper mapper = new ObjectMapper(factory);
+			ObjectNode resultNode = mapper.createObjectNode();
+			resultNode.put("status", "Success");
+			return mapper.writeValueAsString(resultNode);
+		} catch (Exception ex) {
+			throw new EsgynDBMgrException(ex.getMessage());
+		}
+	}
+
+	@DELETE
+	@Path("/sla/")
+	@Produces("application/json")
+	public boolean deleteSLA(@QueryParam("sla") String sla, @Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+		try {
+			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
+			String uri = "";
+			Session soc = SessionModel.getSession(servletRequest, servletResponse);
+
+			if (trafRestUri != null && trafRestUri.length() > 0) {
+				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_DELETE_SLA);
+				uri = String.format(queryText, trafRestUri, sla);
+				Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
+			}
+
+		} catch (Exception ex) {
+			EsgynDBMgrException ee = Helper.createDBManagerException(String.format("Failed to delete sla %1$s : ", sla),
+					ex);
+			_LOG.error(ee.getMessage());
+			throw ee;
+		}
+
+		return true;
+	}
+
+	@GET
+	@Path("/mappings/")
+	@Produces("application/json")
+	public TabularResult getMappings(@Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		TabularResult result = new TabularResult();
+		try {
+			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
+			String uri = "";
+			Session soc = SessionModel.getSession(servletRequest, servletResponse);
+
+			if (trafRestUri != null && trafRestUri.length() > 0) {
+				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_GET_MAPPINGS);
+				uri = String.format(queryText, trafRestUri);
+			}
+			
+			String mappingsStr = RESTProcessor.getRestOutput(uri, soc.getUsername(), soc.getPassword());
+
+			JsonFactory factory = new JsonFactory();
+			ObjectMapper mapper = new ObjectMapper(factory);
+			ArrayNode resultNode = mapper.createArrayNode();
+			try {
+				JsonNode node = mapper.readTree(mappingsStr);
+				Iterator<String> mappingNames = node.fieldNames();
+				while (mappingNames.hasNext()) {
+					String mappingName = mappingNames.next();
+					ObjectNode pNode = mapper.createObjectNode();
+					pNode.put("Mapping Name", mappingName);
+					JsonNode node1 = node.get(mappingName);
+					pNode.setAll((ObjectNode) node1);
+					resultNode.add(pNode);
+				}
+			} catch (Exception ex) {
+
+			}
+			ArrayList<String> columns = new ArrayList<String>();
+			ArrayList<Object[]> rowData = new ArrayList<Object[]>();
+			if (resultNode != null && resultNode.size() > 0)
+				RESTProcessor.processResult(mapper.writeValueAsString(resultNode), columns, rowData);
+			else {
+				columns.add("Result");
+				rowData.add(new Object[] { "No mappings found" });
+			}
+
+			result.columnNames = new String[columns.size()];
+			result.columnNames = columns.toArray(result.columnNames);
+			result.resultArray = rowData;
+
+
+		} catch (Exception ex) {
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to fetch workload mappings", ex);
+			_LOG.error(ee.getMessage());
+			throw ee;
+		}
+		return result;
+	}
+
+	@POST
+	@Path("/mapping/")
+	@Consumes("application/json")
+	@Produces("application/json")
+	public String addAlterMapping(ObjectNode obj, @Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		try {
+			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
+			String uri = "";
+			Session soc = SessionModel.getSession(servletRequest, servletResponse);
+
+			String mappingName = "";
+			if (obj.has("name")) {
+				mappingName = obj.get("name").textValue();
+			}
+			String user = "";
+			if (obj.has("user")) {
+				user = obj.get("user").textValue();
+			}
+			String application = "";
+			if (obj.has("application")) {
+				application = obj.get("application").textValue();
+			}
+			String role = "";
+			if (obj.has("role")) {
+				role = obj.get("role").textValue();
+			}
+			String session = "";
+			if (obj.has("session")) {
+				session = obj.get("session").textValue();
+			}
+			String clientIP = "";
+			if (obj.has("clientIP")) {
+				clientIP = obj.get("clientIP").textValue();
+			}
+			String clientHost = "";
+			if (obj.has("clientHost")) {
+				clientHost = obj.get("clientHost").textValue();
+			}
+			String sla = "";
+			if (obj.has("sla")) {
+				sla = obj.get("sla").textValue();
+			}
+			String seqNo = "";
+			if (obj.has("seqNo")) {
+				seqNo = obj.get("seqNo").textValue();
+			}
+			if (trafRestUri != null && trafRestUri.length() > 0) {
+				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_ADD_ALTER_MAPPING);
+				uri = String.format(queryText, trafRestUri, mappingName, user, application, session, role, sla,
+						clientIP, clientHost, seqNo);
+			}
+			System.out.println(uri);
+
+			Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
+		} catch (Exception ex) {
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to add or alter mapping ", ex);
+			_LOG.error(ex.getMessage());
+			throw ee;
+		}
+		try {
+			JsonFactory factory = new JsonFactory();
+			ObjectMapper mapper = new ObjectMapper(factory);
+			ObjectNode resultNode = mapper.createObjectNode();
+			resultNode.put("status", "Success");
+			return mapper.writeValueAsString(resultNode);
+		} catch (Exception ex) {
+			throw new EsgynDBMgrException(ex.getMessage());
+		}
+	}
+
+	@DELETE
+	@Path("/mapping/")
+	@Produces("application/json")
+	public boolean deleteMapping(@QueryParam("mapping") String mapping, @Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+		try {
+			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
+			String uri = "";
+			Session soc = SessionModel.getSession(servletRequest, servletResponse);
+
+			if (trafRestUri != null && trafRestUri.length() > 0) {
+				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_DELETE_MAPPING);
+				uri = String.format(queryText, trafRestUri, mapping);
+				Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
+			}
+
+		} catch (Exception ex) {
+			EsgynDBMgrException ee = Helper
+					.createDBManagerException(String.format("Failed to delete mapping %1$s : ", mapping), ex);
+			_LOG.error(ee.getMessage());
+			throw ee;
+		}
+
 		return true;
 	}
 
