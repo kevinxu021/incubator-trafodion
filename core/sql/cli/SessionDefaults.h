@@ -98,6 +98,7 @@ public:
     CANCEL_QUERY_ALLOWED,
     CANCEL_UNIQUE_QUERY,
     CATALOG,
+    COMPILER_IDLE_TIMEOUT,
     DBTR_PROCESS,
     ESP_ASSIGN_DEPTH,
     ESP_ASSIGN_TIME_WINDOW,
@@ -133,7 +134,6 @@ public:
     SUSPEND_LOGGING,
     USER_EXPERIENCE_LEVEL,
     WMS_PROCESS,
-    COMPILER_IDLE_TIMEOUT,
     LAST_SESSION_DEFAULT_ATTRIBUTE  // This enum entry should be last always. Add new enums before this entry
   };
   
@@ -253,7 +253,8 @@ public:
       }
     
     catalog_ = new(heap_) char[attrValueLen + 1];
-    strcpy(catalog_, attrValue);
+    strncpy(catalog_, attrValue, attrValueLen);
+    catalog_[attrValueLen] = '\0';
 
     updateDefaultsValueString(CATALOG, catalog_);
   }
@@ -266,8 +267,8 @@ public:
       }
     
     schema_ = new(heap_) char[attrValueLen + 1];
-    strcpy(schema_, attrValue);
-
+    strncpy(schema_, attrValue, attrValueLen);
+    schema_[attrValueLen] = '\0';
     updateDefaultsValueString(SCHEMA, schema_);
   }
 
@@ -279,8 +280,8 @@ public:
       }
     
     uel_ = new(heap_) char[attrValueLen + 1];
-    strcpy(uel_, attrValue);
-
+    strncpy(uel_, attrValue, attrValueLen);
+    uel_[attrValueLen] = '\0';
     updateDefaultsValueString(USER_EXPERIENCE_LEVEL, uel_);
   }
   void setEspAssignDepth(Lng32 espAssignDepth) 
