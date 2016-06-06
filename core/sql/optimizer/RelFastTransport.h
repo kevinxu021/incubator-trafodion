@@ -115,8 +115,10 @@ public :
     recordSeparator_(*recordSep, oHeap),
     overwriteHiveTable_(FALSE),
     isSequenceFile_(FALSE),
-    hiveNATable_(NULL)
-  { };
+    hiveNATable_(NULL),
+    nullStringSpec_((nullString ? TRUE : FALSE))
+  {
+  };
 
   FastExtract(RelExpr* child,
       NAString* targName,
@@ -137,7 +139,8 @@ public :
     recordSeparator_(oHeap),
     overwriteHiveTable_(FALSE),
     isSequenceFile_(FALSE),
-    hiveNATable_(NULL)
+    hiveNATable_(NULL),
+    nullStringSpec_(FALSE)
   { };
 
 
@@ -158,7 +161,8 @@ public :
     recordSeparator_(oHeap),
     overwriteHiveTable_(FALSE),
     isSequenceFile_(FALSE),
-    hiveNATable_(NULL)
+    hiveNATable_(NULL),
+    nullStringSpec_(FALSE)
   { };
 
   FastExtract(RelExpr* child,
@@ -185,8 +189,10 @@ public :
     recordSeparator_(oHeap),
     overwriteHiveTable_(FALSE),
     isSequenceFile_(FALSE),
-    hiveNATable_(NULL)
+    hiveNATable_(NULL),
+    nullStringSpec_(FALSE)
   { };
+
   //! FastExtract Copy Constructor
   FastExtract(const FastExtract &other);
 
@@ -335,6 +341,7 @@ private:
   NAString header_;
   CompressionType cType_;
   NAString nullString_;
+  NABoolean nullStringSpec_; // if null format string is specified
   NAString recordSeparator_;
   NABoolean isAppend_;
   TableDesc *hiveTableDesc_;

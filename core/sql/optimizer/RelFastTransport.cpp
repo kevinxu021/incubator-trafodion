@@ -235,6 +235,7 @@ short FastExtract::setOptions(NAList<UnloadOption*> *
           *da << DgSqlCode(-4376) << DgString0("NULL_STRING");
           return 1;
         }
+        nullStringSpec_ = TRUE;
       }
       break;
       case UnloadOption::RECORD_SEP_:

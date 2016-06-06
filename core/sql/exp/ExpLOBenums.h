@@ -178,7 +178,8 @@ typedef enum {
    Lob_File,
    Lob_Memory,
    Lob_Buffer,
-   Lob_Foreign_Lob
+   Lob_Foreign_Lob,
+   Lob_External
 } LobsSubOper;
 
 typedef enum {

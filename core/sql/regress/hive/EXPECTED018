@@ -6,6 +6,9 @@
 >>create table nulls (a char(5), b char(10));
 
 --- SQL operation complete.
+>>create table null_format_src (a varchar(5), b varchar(5));
+
+--- SQL operation complete.
 >>
 >>create table customer_demographics
 +>(
@@ -132,6 +135,13 @@
 +>                          ('aaa5',null),(null,'bbbbb6');
 
 --- 6 row(s) inserted.
+>>
+>>insert into null_format_src values 
++>   ('a', 'b'), ('a', null), (null, 'b'), ('a', ''), ('', 'b'),
++>   (null, ''), (':', null), ('', ''), (':', ':'), (null, null);
+
+--- 10 row(s) inserted.
+>>
 >>--load1
 >>load with no recovery into customer_address 
 +>select * from hive.hive.customer_address;
@@ -271,12 +281,19 @@ Task:  COMPLETION      Status: Ended      ET: 00:00:00.180
               160756
 
 --- 1 row(s) selected.
->>-------------------------------
->>--hive insert 0
->>insert overwrite table hive.hive.nulls select * from nulls;
+>>
+>>------------------------------------------
+>>-- handling of various null formats
+>>
+>>-- using insert
+>>insert overwrite table hive.hive.null_format_default select * from null_format_src;
 
---- 6 row(s) inserted.
->>select * from hive.hive.nulls order by a,b;
+*** WARNING[8597] Statement was automatically retried 1 time(s). Delay before each retry was 0 seconds. See next entry for the error that caused this retry.
+
+*** WARNING[8436] Mismatch detected between compiletime and runtime hive table definitions.
+
+--- 10 row(s) inserted.
+>>select * from hive.hive.null_format_default;
 
 A                                                             B
 ------------------------------------------------------------  ------------------------------------------------------------
@@ -309,18 +326,90 @@ aaa5                                                          ?
 
 --- SQL operation complete.
 >>
->>---index 0
->>create index customer_idx1 on customer_salt(c_first_name, c_last_name);
+>>insert overwrite table hive.hive.null_format_empty select * from null_format_src;
 
---- SQL operation complete.
+*** WARNING[8597] Statement was automatically retried 1 time(s). Delay before each retry was 0 seconds. See next entry for the error that caused this retry.
+
+*** WARNING[8436] Mismatch detected between compiletime and runtime hive table definitions.
+
+--- 10 row(s) inserted.
+>>select * from hive.hive.null_format_empty;
+
+A                                                             B
+------------------------------------------------------------  ------------------------------------------------------------
+
+a                                                             b                                                           
+a                                                             ?                                                           
+?                                                             b                                                           
+a                                                             ?                                                           
+?                                                             b                                                           
+?                                                             ?                                                           
+:                                                             ?                                                           
+?                                                             ?                                                           
+:                                                             :                                                           
+?                                                             ?                                                           
+
+--- 10 row(s) selected.
+>>
+>>insert overwrite table hive.hive.null_format_colon select * from null_format_src;
+
+*** WARNING[8597] Statement was automatically retried 1 time(s). Delay before each retry was 0 seconds. See next entry for the error that caused this retry.
+
+*** WARNING[8436] Mismatch detected between compiletime and runtime hive table definitions.
+
+--- 10 row(s) inserted.
+>>select * from hive.hive.null_format_colon;
+
+A                                                             B
+------------------------------------------------------------  ------------------------------------------------------------
+
+a                                                             b                                                           
+a                                                             ?                                                           
+?                                                             b                                                           
+a                                                                                                                         
+                                                              b                                                           
+?                                                                                                                         
+?                                                             ?                                                           
+                                                                                                                          
+?                                                             ?                                                           
+?                                                             ?                                                           
+
+--- 10 row(s) selected.
 >>
 >>
->>sh  regrhbase.ksh $REGRTSTDIR/TEST018_create_hbase_objects.hbase &> $REGRRUNDIR/LOG018_create_hbase_tables.log ;
->>
->>---unload 0 -- nulls 
+>>-- using unload
 >>unload with purgedata from target
-+>   into '/user/hive/exttables/nulls'
-+>   select * from nulls;
++>   into '/user/hive/exttables/null_format_default'
++>   select * from null_format_src;
+Task: UNLOAD           Status: Started
+Task:  EMPTY TARGET    Status: Started
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.005
+Task:  EXTRACT         Status: Started
+       Rows Processed: 10 
+Task:  EXTRACT         Status: Ended      ET: 00:00:00.232
+
+--- 10 row(s) unloaded.
+>>select * from hive.hive.null_format_default;
+
+A                                                             B
+------------------------------------------------------------  ------------------------------------------------------------
+
+a                                                             b                                                           
+a                                                             ?                                                           
+?                                                             b                                                           
+a                                                                                                                         
+                                                              b                                                           
+?                                                                                                                         
+:                                                             ?                                                           
+                                                                                                                          
+:                                                             :                                                           
+?                                                             ?                                                           
+
+--- 10 row(s) selected.
+>>
+>>unload with purgedata from target
++>   into '/user/hive/exttables/null_format_empty'
++>   select * from null_format_src;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
 Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.369
@@ -356,18 +445,56 @@ Task:  EXTRACT         Status: Started
        Rows Processed: 6 
 Task:  EXTRACT         Status: Ended      ET: 00:00:00.250
 
---- 6 row(s) unloaded.
->>select * from hive.hive.nulls order by a,b;
+--- 10 row(s) unloaded.
+>>select * from hive.hive.null_format_empty;
 
 A                                                             B
 ------------------------------------------------------------  ------------------------------------------------------------
 
-aaa1                                                          bbbbb1                                                      
-aaa3                                                          ?                                                           
-aaa5                                                          ?                                                           
-?                                                             bbbbb2                                                      
-?                                                             bbbbb6                                                      
+a                                                             b                                                           
+a                                                             ?                                                           
+?                                                             b                                                           
+a                                                             ?                                                           
+?                                                             b                                                           
 ?                                                             ?                                                           
+:                                                             ?                                                           
+?                                                             ?                                                           
+:                                                             :                                                           
+?                                                             ?                                                           
+
+--- 10 row(s) selected.
+>>
+>>unload with purgedata from target
++>   into '/user/hive/exttables/null_format_colon'
++>   select * from null_format_src;
+Task: UNLOAD           Status: Started
+Task:  EMPTY TARGET    Status: Started
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.006
+Task:  EXTRACT         Status: Started
+       Rows Processed: 10 
+Task:  EXTRACT         Status: Ended      ET: 00:00:00.213
+
+--- 10 row(s) unloaded.
+>>select * from hive.hive.null_format_colon;
+
+A                                                             B
+------------------------------------------------------------  ------------------------------------------------------------
+
+a                                                             b                                                           
+a                                                             ?                                                           
+?                                                             b                                                           
+a                                                                                                                         
+                                                              b                                                           
+?                                                                                                                         
+?                                                             ?                                                           
+                                                                                                                          
+?                                                             ?                                                           
+?                                                             ?                                                           
+
+--- 10 row(s) selected.
+>>
+>>---index 0
+>>create index customer_idx1 on customer_salt(c_first_name, c_last_name);
 
 --- 6 row(s) selected.
 >>cqd hive_treat_empty_string_as_null reset ;
@@ -1673,6 +1800,10 @@ C_CUSTOMER_SK  C_CUSTOMER_ID     C_CURRENT_CDEMO_SK  C_CURRENT_HDEMO_SK  C_CURRE
 >>--*********************BULK UNLOAD with SNAPSHOT SCAN
 >>--unload 20
 >>
+>>cqd comp_bool_226 'on';
+
+--- SQL operation complete.
+>>  -- allow the extract syntax
 >>explain options 'f' 
 +>UNLOAD EXTRACT TO '/bulkload/customer_address'
 +>select * from trafodion.hbase.customer_address <<+ cardinality 10e10 >>;
@@ -1683,6 +1814,9 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 3    .    4    root                                                  1.00E+011
 1    .    3    unload                                                1.00E+011
 .    .    1    trafodion_scan                  CUSTOMER_ADDRESS      1.00E+011
+
+--- SQL operation complete.
+>>cqd comp_bool_226 reset;
 
 --- SQL operation complete.
 >>
@@ -1744,6 +1878,10 @@ CA_ADDRESS_SK  CA_ADDRESS_ID                                                    
 >>
 >>--unload 21
 >>
+>>cqd comp_bool_226 'on';
+
+--- SQL operation complete.
+>>  -- allow the extract syntax
 >>explain options 'f' 
 +>UNLOAD EXTRACT TO '/user/hive/exttables/unload_customer_demographics'
 +>select * from trafodion.hbase.customer_demographics_salt <<+ cardinality 10e10 >>;
@@ -1755,6 +1893,9 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 3    .    4    esp_exchange                    1:4(hash2)            1.00E+011
 1    .    3    unload                                                1.00E+011
 .    .    1    trafodion_scan                  CUSTOMER_DEMOGRAPHIC  1.00E+011
+
+--- SQL operation complete.
+>>cqd comp_bool_226 reset;
 
 --- SQL operation complete.
 >>
@@ -2076,6 +2217,10 @@ C_CUSTOMER_SK  C_CUSTOMER_ID                                                    
 --- 20 row(s) selected.
 >>
 >>--unload 26 --test with index scan
+>>cqd comp_bool_226 'on';
+
+--- SQL operation complete.
+>>  -- allow the extract syntax
 >>explain options 'f' 
 +>UNLOAD EXTRACT TO '/bulkload/customer_name'
 +>select c_first_name,c_last_name from trafodion.hbase.customer_salt;
@@ -2086,6 +2231,9 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 3    .    4    root                                                  1.00E+002
 1    .    3    unload                                                1.00E+002
 .    .    1    trafodion_index_scan            CUSTOMER_IDX1         1.00E+002
+
+--- SQL operation complete.
+>>cqd comp_bool_226 reset;
 
 --- SQL operation complete.
 >>

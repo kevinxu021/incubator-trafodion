@@ -50,6 +50,7 @@
 #include "SequenceFileReader.h" 
 #include  "cli_stdh.h"
 #include "HBaseClient_JNI.h"
+#include "ComSmallDefs.h"
 
 
 //----------------------------------------------------------------------
@@ -674,11 +675,15 @@ void ExHdfsFastExtractTcb::convertSQRowToString(ULng32 nullLen,
     if (attr->getNullFlag()
         && ExpAlignedFormat::isNullValue(childRow + attr->getNullIndOffset(),
             attr->getNullBitIndex())) {
-      if ( !getEmptyNullString()) // includes hive null which is empty string
-      {
-        memcpy(targetData, myTdb().getNullString(), nullLen);
-        targetData += nullLen;
-      }
+      // source is a null value.
+
+      nullLen = 0;
+      if (myTdb().getNullString()) {
+        nullLen = strlen(myTdb().getNullString());
+        memcpy(targetData, myTdb().getNullString(), nullLen); 
+      } 
+
+      targetData += nullLen;
       currPartn_->currBuffer_->bytesLeft_ -= nullLen;
     } else {
       switch ((conv_case_index) sourceFieldsConvIndex_[i]) {
@@ -763,7 +768,8 @@ ExWorkProcRetcode ExHdfsFastExtractTcb::work()
   SFW_RetCode sfwRetCode = SFW_OK;
   ULng32 recSepLen = strlen(myTdb().getRecordSeparator());
   ULng32 delimLen = strlen(myTdb().getDelimiter());
-  ULng32 nullLen = strlen(myTdb().getNullString());
+  ULng32 nullLen = 
+    (myTdb().getNullString() ? strlen(myTdb().getNullString()) : 0);
   if (myTdb().getIsHiveInsert())
   {
     recSepLen = 1;

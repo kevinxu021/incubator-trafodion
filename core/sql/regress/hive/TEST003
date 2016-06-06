@@ -74,6 +74,16 @@ select operator
   ) as t
 order by s desc;
 
+log LOG003 clear;
+
+set schema hive.hive;
+--cqd attempt_esp_parallelism 'off';
+--cqd hive_max_esps  '1';
+--cqd PARALLEL_NUM_ESPS '1';
+cqd HIVE_MAX_STRING_LENGTH '25' ;
+cqd mode_seahive 'ON';
+cqd auto_query_retry_warnings 'ON';
+
 prepare s from insert into hive.ins_customer select * from hive.customer;
 execute s;
 select count(*) from hive.customer$$ORC$$;

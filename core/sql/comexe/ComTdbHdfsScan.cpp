@@ -51,6 +51,7 @@ ComTdbHdfsScan::ComTdbHdfsScan(
                                Int16 numCompressionInfos,
                                char recordDelimiter,
                                char columnDelimiter,
+                               char * nullFormat,
                                Int64 hdfsBufSize,
                                UInt32 rangeTailIOSize,
                                Int32 numPartCols,
@@ -112,6 +113,7 @@ ComTdbHdfsScan::ComTdbHdfsScan(
   numCompressionInfos_(numCompressionInfos),
   recordDelimiter_(recordDelimiter),
   columnDelimiter_(columnDelimiter),
+  nullFormat_(nullFormat),
   hdfsBufSize_(hdfsBufSize),
   rangeTailIOSize_(rangeTailIOSize),
   numPartCols_(numPartCols),
@@ -119,11 +121,11 @@ ComTdbHdfsScan::ComTdbHdfsScan(
   outputRowLength_(outputRowLength),
   asciiRowLen_(asciiRowLen),
   moveExprColsRowLength_(moveColsRowLen),
+  origTuppIndex_(origTuppIndex),
   tuppIndex_(tuppIndex),
   asciiTuppIndex_(asciiTuppIndex),
   workAtpIndex_(workAtpIndex),
   moveExprColsTuppIndex_(moveColsTuppIndex),
-  origTuppIndex_(origTuppIndex),
   workCriDesc_(work_cri_desc),
   flags_(0),
   errCountTable_(errCountTable),
@@ -185,6 +187,8 @@ Long ComTdbHdfsScan::pack(void * space)
     }
 
   compressionInfos_.packArray(space, numCompressionInfos_);
+  nullFormat_.pack(space);
+
   errCountTable_.pack(space);
   loggingLocation_.pack(space);
   errCountRowId_.pack(space);
@@ -235,6 +239,8 @@ Lng32 ComTdbHdfsScan::unpack(void * base, void * reallocator)
     return -1;
   if (hdfsFileRangeBeginList_.unpack(base, reallocator)) return -1;
   if (hdfsFileRangeNumList_.unpack(base, reallocator)) return -1;
+
+  if (nullFormat_.unpack(base)) return -1;
 
   if (errCountTable_.unpack(base)) return -1;
   if (loggingLocation_.unpack(base)) return -1;
