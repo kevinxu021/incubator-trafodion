@@ -20,12 +20,6 @@
 //
 // @@@ END COPYRIGHT @@@
 **********************************************************************/
-/*
- * ExFastTransportIO.h
- *
- *  Created on: Nov 05, 2012
- */
-
 
 #ifndef __EX_FAST_TRANSPORT_H
 #define __EX_FAST_TRANSPORT_H
@@ -37,17 +31,18 @@
 
 #include "ExpLOBinterface.h"
 #include "ex_exe_stmt_globals.h"
+
+#include "Hbase_types.h"
+using namespace apache::hadoop::hbase::thrift;
+namespace {
+  typedef std::vector<Text> TextVec;
+}
+
 // -----------------------------------------------------------------------
 // Forward class declarations
 // -----------------------------------------------------------------------
-#ifndef __EID 
-class sql_buffer;
-class ExExeStmtGlobals;
 class SequenceFileWriter;
-#endif
-
-class SequenceFileWriter;
-
+class OrcFileWriter;
 
 // -----------------------------------------------------------------------
 // Classes defined in this file
@@ -67,6 +62,7 @@ public:
   IOBuffer(char *buffer, Int32 bufSize)
     : bytesLeft_(bufSize),
       bufSize_(bufSize),
+      numRows_(0),
       status_(EMPTY)
   {
     data_ = buffer;
@@ -90,6 +86,7 @@ public:
   char* data_;
   Int32 bytesLeft_;
   Int32 bufSize_;
+  Int32 numRows_;
   BufferStatus status_;
 
 };
@@ -207,7 +204,14 @@ public:
   {
     return workCriDesc_->getTupleDescriptor(cnvChildDataTuppIndex_)->getAttr(colInd);
   }
-
+  inline ExpTupleDesc *getTgtValsTuple() const
+  {
+    return workCriDesc_->getTupleDescriptor(tgtValsTuppIndex_);
+  }
+  inline Attributes *getTgtValsAttr( UInt32 colInd) const
+  {
+    return workCriDesc_->getTupleDescriptor(tgtValsTuppIndex_)->getAttr(colInd);
+  }
 
 
 private:
@@ -408,6 +412,7 @@ private:
   NAString fileName_;
 
   SequenceFileWriter *sequenceFileWriter_;
+  OrcFileWriter *orcFileWriter_;
 
   // remember whether we created a LOB interface object
   // for this file
@@ -435,6 +440,7 @@ class ExHdfsFastExtractTcb : public ExFastExtractTcb
                             ULng32 delimLen,
                             tupp_descriptor* dataDesc,
                             char* targetData,
+                            NABoolean orcRow,
                             NABoolean & convError);
 
   friend class ExFastExtractTdb;
@@ -468,9 +474,11 @@ protected:
   virtual void insertUpQueueEntry(ex_queue::up_status status,
                           ComDiagsArea *diags,
                           NABoolean popDownQueue);
-                          
+
   NABoolean isSequenceFile();
   void createSequenceFileError(Int32 sfwRetCode);
+  NABoolean isOrcFile();                          
+  void createOrcFileError(Int32 ofwRetCode);
   NABoolean isHdfsCompressed();
   NABoolean getEmptyNullString()
   {
@@ -482,6 +490,10 @@ protected:
   int sendPartition(ExHdfsFastExtractPartition *part,
                     ExFastExtractStats *feStats);
   int closePartition(ExHdfsFastExtractPartition *part);
+
+  void createORCcolInfoLists
+  (TextVec &colNameList,
+   TextVec &colTypeInfoLIst);
 
   void * lobGlob_;
 

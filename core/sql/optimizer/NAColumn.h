@@ -656,7 +656,7 @@ public:
   //    -1 if the column is not found in the array
   Int32 getColumnPosition(NAColumn&) const;
 
-  Int32 getColumnPosition(NAString&) const;
+  Int32 getColumnPosition(const NAString&) const;
 
   // get total storage size (aggregated over each element)
   Int32 getTotalStorageSize() const;

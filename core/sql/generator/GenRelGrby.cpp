@@ -52,6 +52,7 @@
 #include "ItmBitMuxFunction.h"
 #include "ComUnits.h"
 #include "ComTdbHdfsScan.h"
+#include "ComTdbOrcAccess.h"
 #include "sql_buffer_size.h"
 //#include "ExStats.h"
 

@@ -9040,16 +9040,30 @@ RelExpr *Insert::bindNode(BindWA *bindWA)
      
     const NABoolean isSequenceFile = hTabStats->isSequenceFile();
     
-    RelExpr * unloadRelExpr =
+    FastExtract * unloadRelExpr =
                     new (bindWA->wHeap())
                     FastExtract( mychild,
                                  new (bindWA->wHeap()) NAString(hiveTablePath),
                                  new (bindWA->wHeap()) NAString(hostName),
                                  hdfsPort,
                                  getTableDesc(),
-                                 new (bindWA->wHeap()) NAString(getTableName().getQualifiedNameObj().getObjectName()),
+                                 new (bindWA->wHeap()) 
+                                 NAString(getTableName().getQualifiedNameObj().
+                                          getObjectName()),
                                  FastExtract::FILE,
                                  bindWA->wHeap());
+    ItemExpr *orderByTree = removeOrderByTree();
+    if (orderByTree) {
+      bindWA->getCurrentScope()->context()->inOrderBy() = TRUE;
+      bindWA->getCurrentScope()->setRETDesc(mychild->getRETDesc());
+      orderByTree->convertToValueIdList(unloadRelExpr->reqdOrder(), 
+                                        bindWA, ITM_ITEM_LIST);
+      
+      bindWA->getCurrentScope()->context()->inOrderBy() = FALSE;
+      if (bindWA->errStatus()) return NULL;
+      bindWA->getCurrentScope()->setRETDesc(getRETDesc());
+    }
+
     RelExpr * boundUnloadRelExpr = unloadRelExpr->bindNode(bindWA);
     if (bindWA->errStatus())
       return NULL;
@@ -11863,7 +11877,9 @@ RelExpr *GenericUpdate::bindNode(BindWA *bindWA)
       return this;
      }
 
-  if (naTable->isORC())
+  if (naTable->isORC() &&
+      (getOperatorType() != REL_UNARY_INSERT) && 
+      (getOperatorType() != REL_LEAF_INSERT))
     {
       *CmpCommon::diags() << DgSqlCode(-4223)
 			  << DgString0("Upsert/Insert/Update/Delete on ORC table is");

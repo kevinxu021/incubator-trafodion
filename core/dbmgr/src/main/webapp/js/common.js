@@ -20,7 +20,7 @@ define(['moment',
 
 			// var _isoDateFormat='yyyy-MM-dd HH:mm:ss'
 			var REFRESH_INTERVAL = '#refreshInterval';
-			this.MESSAGE_COUNT=0;
+			/*this.MESSAGE_COUNT=0;*/
 			var dispatcher = new EventDispatcher();
 			this.ISODateFormat = 'YYYY-MM-DD HH:mm:ss';
 			var _this = this;
@@ -37,9 +37,9 @@ define(['moment',
 			this.LIBRARY_ALTERED_EVENT = 'LIBRARY_ALTERED_EVENT';
 			this.NOFITY_MESSAGE = 'nofigyMessage';
 			this.MESSAGE_LIST=new Array();
-			this.popupIndex;
+			/*this.popupIndex;
 			this.isAllNotificationInserted=false;
-			this.hideNotifications=null;
+			this.hideNotifications=null;*/
 			this.commonTimeRange=null;
 			this.START_TIME_PICKER = '#startdatetimepicker';
 			this.END_TIME_PICKER = '#enddatetimepicker';

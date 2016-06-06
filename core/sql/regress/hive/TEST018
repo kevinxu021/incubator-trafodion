@@ -29,6 +29,7 @@ cqd TRAF_TABLE_SNAPSHOT_SCAN_TABLE_SIZE_THRESHOLD  '0';
 cqd hive_max_string_length '60';
 cqd HIST_ROWCOUNT_REQUIRING_STATS '50000';
 cqd AUTO_QUERY_RETRY_WARNINGS 'ON';
+cqd hist_missing_stats_warning_level '0';
 
 obey TEST018(clean_up);
 

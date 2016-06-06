@@ -328,6 +328,10 @@ public :
     partStringExpr_ += vid;
   }
 
+  const NATable * hiveNATable() { return hiveNATable_; }
+
+  ValueIdList   &reqdOrder()            { return reqdOrder_; }
+
 private:
   
   
@@ -350,6 +354,8 @@ private:
   NABoolean isSequenceFile_;
   const NATable *hiveNATable_;
   ValueIdSet partStringExpr_; // set in codeGen()
+
+  ValueIdList      reqdOrder_;                  // ORDER BY list
 
 }; // class FastExtract
 

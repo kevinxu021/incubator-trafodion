@@ -63,6 +63,7 @@ set schema hive.hive;
 cqd HIVE_MAX_STRING_LENGTH '25' ;
 cqd mode_seahive 'ON';
 cqd auto_query_retry_warnings 'ON';
+cqd hist_missing_stats_warning_level '0';
 
 prepare showOperators from
 select operator

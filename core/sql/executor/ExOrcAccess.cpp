@@ -35,6 +35,8 @@
 #include "ComTdb.h"
 #include "ex_tcb.h"
 #include "ExHdfsScan.h"
+#include "ExOrcAccess.h"
+#include "ExHbaseAccess.h"
 #include "ex_exe_stmt_globals.h"
 #include "ExpLOBinterface.h"
 #include "Hbase_types.h"
@@ -135,7 +137,6 @@ ExOrcScanTcb::ExOrcScanTcb(
         .setDataPointer(orcOperRow_);
 
     }
-
 }
 
 ExOrcScanTcb::~ExOrcScanTcb()
@@ -251,9 +252,11 @@ ExWorkProcRetcode ExOrcScanTcb::work()
 	    beginRangeNum_ = -1;
 	    numRanges_ = -1;
 
+            dataModCheckDone_ = FALSE;
+
 	    if (orcScanTdb().getHdfsFileInfoList()->isEmpty())
 	      {
-		step_ = DONE;
+                step_ = CHECK_FOR_DATA_MOD_AND_DONE;
 		break;
 	      }
 
@@ -263,7 +266,7 @@ ExWorkProcRetcode ExOrcScanTcb::work()
             // need to be retrieved. We are done.
             if (myInstNum_ >= hdfsScanTdb().getHdfsFileRangeBeginList()->entries())
               {
-                step_ = DONE;
+                step_ = CHECK_FOR_DATA_MOD_AND_DONE;
                 break;
               }
 
@@ -276,19 +279,80 @@ ExWorkProcRetcode ExOrcScanTcb::work()
 	    currRangeNum_ = beginRangeNum_;
 
 	    if (numRanges_ > 0)
-              {
-                if (orcScanTdb().listOfOrcPPI())
-                  step_ = SETUP_ORC_PPI;
-                else
-                  step_ = INIT_ORC_CURSOR;
-              }
+              step_ = CHECK_FOR_DATA_MOD;
             else
-              step_ = DONE;
+              step_ = CHECK_FOR_DATA_MOD_AND_DONE;
 	  }
 	  break;
 
+        case CHECK_FOR_DATA_MOD:
+        case CHECK_FOR_DATA_MOD_AND_DONE:
+          {
+            char * dirPath = orcScanTdb().hdfsRootDir_;
+            Int64 modTS = orcScanTdb().modTSforDir_;
+
+            if ((dirPath == NULL) || (modTS == -1))
+              dataModCheckDone_ = TRUE;
+
+            if (NOT dataModCheckDone_)
+              {
+                Lng32 numOfPartLevels = orcScanTdb().numOfPartCols_;
+
+                retcode = ExpLOBinterfaceDataModCheck
+                  (lobGlob_,
+                   dirPath,
+                   orcScanTdb().hostName_,
+                   orcScanTdb().port_,
+                   modTS,
+                   numOfPartLevels);
+                
+                if (retcode < 0)
+                  {
+                    Lng32 cliError = 0;
+		    
+                    Lng32 intParam1 = -retcode;
+                    ComDiagsArea * diagsArea = NULL;
+                    ExRaiseSqlError(getHeap(), &diagsArea, 
+                                    (ExeErrorCode)(EXE_ERROR_FROM_LOB_INTERFACE),
+                                    NULL, &intParam1, 
+                                    &cliError, 
+                                    NULL, 
+                                    "HDFS",
+                                    (char*)"ExpLOBInterfaceDataModCheck",
+                                    getLobErrStr(intParam1));
+                    pentry_down->setDiagsArea(diagsArea);
+                    step_ = HANDLE_ERROR;
+                    break;
+                  }  
+
+                if (retcode == 1) // check failed
+                  {
+                    ComDiagsArea * diagsArea = NULL;
+                    ExRaiseSqlError(getHeap(), &diagsArea, 
+                                    (ExeErrorCode)(8436));
+                    pentry_down->setDiagsArea(diagsArea);
+                    step_ = HANDLE_ERROR;
+                    break;
+                  }
+
+                dataModCheckDone_ = TRUE;
+              }
+
+            if (step_ == CHECK_FOR_DATA_MOD_AND_DONE)
+              step_ = DONE;
+            else
+              step_ = SETUP_ORC_PPI;
+          }
+          break;
+
         case SETUP_ORC_PPI:
           {
+            if (! orcScanTdb().listOfOrcPPI())
+              {
+                step_ = INIT_ORC_CURSOR;
+                break;
+              }
+
             orcPPIvec_.clear();
 
             ExpTupleDesc * orcOperTD = NULL;
@@ -1065,6 +1129,7 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
 
 	    short rc = 0;
 	    if (moveRowToUpQueue(outputRow_, orcAggrTdb().outputRowLength_, 
+                                 (Lng32)orcAggrTdb().tuppIndex_,
 				 &rc, FALSE))
 	      return rc;
 	    
