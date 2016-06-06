@@ -811,7 +811,7 @@
 		</query>
 		<query>
 			<name>WMS_ADD_ALTER_SLA</name>
-			<text><![CDATA[{"url":"http://%1$s/v1/wms/slas", "method":"POST", "jsonParameter":{"%2$s":{"priority":"%3$s","limit":"%4$s","throughput":"%5$s","onConnectProfile":"%6$s","onDisconnectProfile":"", "isDefault":"no","lastUpdate":""}}, "contentType":"application/json"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/v1/wms/slas", "method":"POST", "jsonParameter":{"%2$s":{"priority":"%3$s","limit":"%4$s","throughput":"%5$s","onConnectProfile":"%6$s","onDisconnectProfile":"%7$s", "isDefault":"no","lastUpdate":""}}, "contentType":"application/json"}]]></text>
 		</query>
 		<query>
 			<name>WMS_GET_SLAS</name>

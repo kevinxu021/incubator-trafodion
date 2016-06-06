@@ -45,7 +45,8 @@ define([
 	SLA_PRIORITY = '#sla_priority',
 	SLA_LIMIT = '#sla_limit',
 	SLA_THROUGHPUT = '#sla_throughput',
-	SLA_CONN_PROFILE_NAME = '#conn_profile_name',
+	SLA_CONNECT_PROFILE_NAME = '#connect_profile_name',
+	SLA_DISCONNECT_PROFILE_NAME = '#disconnect_profile_name',
 	SLA_APPLY_BTN = "#slaApplyButton",
 	SLA_RESET_BTN = "#slaResetButton",
 	SLA_DELETE_DIALOG = '#sla-delete-dialog',
@@ -187,8 +188,8 @@ define([
 					$(SLA_PRIORITY).val();
 					$(SLA_LIMIT).val(slaDialogParams.data["limit"]);
 					$(SLA_THROUGHPUT).val(slaDialogParams.data["throughput"]);
-					$(SLA_CONN_PROFILE_NAME).val(slaDialogParams.data["onConnectProfile"]);
-					//$(CQD_CONTAINER).val(slaDialogParams.data[dataTableColNames.indexOf("cqd")]);
+					$(SLA_CONNECT_PROFILE_NAME).val(slaDialogParams.data["onConnectProfile"]);
+					$(SLA_DISCONNECT_PROFILE_NAME).val(slaDialogParams.data["onDisconnectProfile"]);
 				}
 				if(slaDialogParams.type && slaDialogParams.type == 'alter'){
 					$(SLA_DIALOG_TITLE).text('Alter SLA');
@@ -197,7 +198,8 @@ define([
 					$(SLA_PRIORITY).val();
 					$(SLA_LIMIT).val(slaDialogParams.data["limit"]);
 					$(SLA_THROUGHPUT).val(slaDialogParams.data["throughput"]);
-					$(SLA_CONN_PROFILE_NAME).val(slaDialogParams.data["onConnectProfile"]);
+					$(SLA_CONNECT_PROFILE_NAME).val(slaDialogParams.data["onConnectProfile"]);
+					$(SLA_DISCONNECT_PROFILE_NAME).val(slaDialogParams.data["onDisconnectProfile"]);
 				}
 			}			
 		},
@@ -267,7 +269,7 @@ define([
 						"mData": updateTimeColIndex,
 						"mRender": function ( data, type, full ) {
 							if(type == 'display'){
-								return moment(parseInt(data)).format("YYYY-MM-DD HH:mm:ss");
+								return common.toServerLocalDateFromMilliSeconds(parseInt(data), 'YYYY-MM-DD HH:mm:ss');
 							}else 
 								return data;
 						}
@@ -405,7 +407,8 @@ define([
 			sla.priority = $(SLA_PRIORITY).val();
 			sla.limit = $(SLA_LIMIT).val();
 			sla.throughput = $(SLA_THROUGHPUT).val();
-			sla.connProfile = $(SLA_CONN_PROFILE_NAME).val();
+			sla.connectProfile = $(SLA_CONNECT_PROFILE_NAME).val();
+			sla.disconnectProfile = $(SLA_DISCONNECT_PROFILE_NAME).val();
 
 			$(SLA_DIALOG_SPINNER).show();
 			$(SLA_APPLY_BTN).prop("disabled", true);
@@ -461,7 +464,8 @@ define([
 			alert(msg);
 		},
 		displayProfiles: function (result){
-			$(SLA_CONN_PROFILE_NAME).empty();
+			$(SLA_CONNECT_PROFILE_NAME).empty();
+			$(SLA_DISCONNECT_PROFILE_NAME).empty();
 			var keys = result.columnNames;
 			var profileNameColIndex = -1;
 			$.each(keys, function(k, v) {
@@ -476,14 +480,21 @@ define([
 				});			
 			}
 			$.each(profileNames, function(key, value) {   
-			     $(SLA_CONN_PROFILE_NAME)
+			     $(SLA_CONNECT_PROFILE_NAME)
 			         .append($("<option></option>")
 			                    .attr("value",value)
 			                    .text(value)); 
+			     $(SLA_DISCONNECT_PROFILE_NAME)
+		         .append($("<option></option>")
+		                    .attr("value",value)
+		                    .text(value)); 
 			});
 			
 			if($.inArray(slaDialogParams.data["onConnectProfile"], profileNames)){
-				$(SLA_CONN_PROFILE_NAME).val(slaDialogParams.data["onConnectProfile"]);
+				$(SLA_CONNECT_PROFILE_NAME).val(slaDialogParams.data["onConnectProfile"]);
+			}
+			if($.inArray(slaDialogParams.data["onDisconnectProfile"], profileNames)){
+				$(SLA_DISCONNECT_PROFILE_NAME).val(slaDialogParams.data["onDisconnectProfile"]);
 			}
 		},
 		fetchProfilesError: function (jqXHR) {
