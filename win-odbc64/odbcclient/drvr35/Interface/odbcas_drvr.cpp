@@ -107,6 +107,11 @@ odbcas_ASSvc_GetObjRefHdl_(
 	char srvrIpAddress[100] = {0};
 	IDL_long srvrIpAddressLength = 0;
 	IDL_long srvrPort = 0;
+	IDL_char ccExtention[512] = { 0 };
+	char fullCliAppName[256] = { 0 };
+	struct hostent *remoteHost;
+	struct in_addr addr;
+	char clientIpAddress[20] = { 0 };
 	
 	SRVR_CALL_CONTEXT *srvrCallContext = (SRVR_CALL_CONTEXT *)tag_;
 	CConnect *pConnection = (CConnect *)srvrCallContext->sqlHandle;
@@ -114,6 +119,37 @@ odbcas_ASSvc_GetObjRefHdl_(
 	pConnection->m_asTCPIPSystem->odbcAPI = AS_API_GETOBJREF;
 	pConnection->m_asTCPIPSystem->dialogueId = srvrCallContext->dialogueId;
 	pConnection->m_asTCPIPSystem->dwTimeout = srvrCallContext->u.connectParams.loginTimeout;
+
+	// Retrieve the application name
+	::GetModuleFileName(NULL, fullCliAppName, 256);
+	string szCliAppName((const char*)fullCliAppName);
+	int index = szCliAppName.find_last_of('\\');
+	szCliAppName = szCliAppName.substr((index + 1), szCliAppName.length());
+
+	// Retrive the IP Address
+	int i = 0;
+	remoteHost = gethostbyname(inContext->computerName);
+	if (remoteHost->h_addrtype == AF_INET)
+	{
+		while (remoteHost->h_addr_list[i] != 0)
+		{
+			addr.s_addr = *(u_long *)remoteHost->h_addr_list[i++];
+			if (addr.s_addr != 0x100007F) {
+				strncpy(clientIpAddress, inet_ntoa(addr), 20);
+				break;
+			}
+		}
+	}
+
+	sprintf(ccExtention,
+		"{\"sessionName\":\"%s\",\"ipClientAddress\":\"%s\",\"clientHostName\":\"%s\",\"userName\":\"%s\",\"roleName\":\"%s\",\"applicationName\":\"%s\"}",
+		inContext->sessionName,
+		clientIpAddress,
+		inContext->computerName,
+		inContext->clientUserName,
+		inContext->userRole,
+		szCliAppName
+		);
 
 //
 // do marshaling of input parameters
@@ -125,7 +161,8 @@ odbcas_ASSvc_GetObjRefHdl_(
 		, inContext
 		, userDesc
 		, srvrType
-		, retryCount);
+		, retryCount
+		, ccExtention);
 
 	if (retcode != CEE_SUCCESS)
 		return retcode;
