@@ -262,7 +262,7 @@ define([
 						"mData": updateTimeColIndex,
 						"mRender": function ( data, type, full ) {
 							if(type == 'display'){
-								return moment(parseInt(data)).format("YYYY-MM-DD HH:mm:ss");
+								return common.toServerLocalDateFromMilliSeconds(parseInt(data), 'YYYY-MM-DD HH:mm:ss');
 							}else 
 								return data;
 						}
