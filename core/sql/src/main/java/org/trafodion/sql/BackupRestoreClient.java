@@ -116,7 +116,9 @@ public class BackupRestoreClient
 
         // Complete snapshotMeta update.
         completeSnapshotMeta();
-       
+
+        logger.info("BackupRestoreClient.createSnapshot Snapshot complete for Backup Tag : " + backuptag);
+
         return true;
     }
 
