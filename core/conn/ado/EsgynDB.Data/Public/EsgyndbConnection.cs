@@ -417,7 +417,7 @@ namespace EsgynDB.Data
                                 EsgynDBConnection._connPools[this.ConnectionStringBuilder.ConnectionString].RemoveConnection(this);
                             }
 
-                            if (!isFreeStmtErr)
+                            if (!isFreeStmtErr && this.Network != null && !this.Network.isIdleTimeout)
                             {
                                 while (this.Commands.Count > 0)
                                 {
@@ -436,7 +436,7 @@ namespace EsgynDB.Data
                         }
 
                         // close the connection
-                        if ((forceClose || this.ConnectionStringBuilder.MaxPoolSize <= 0) && !isDisconnectErr)
+                        if ((forceClose || this.ConnectionStringBuilder.MaxPoolSize <= 0) && !isDisconnectErr && this.Network != null && !this.Network.isIdleTimeout)
                         {
                             lock (this.dataAccessLock)
                             {
