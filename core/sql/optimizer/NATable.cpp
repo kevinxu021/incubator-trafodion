@@ -8162,6 +8162,13 @@ short NATable::updateExtTableAttrs(NATable *etTable)
   addVirtualHiveColumns(colArray_, this, colcount_-1, heap_);
   colcount_ += 4;
 
+  // mark the partition columns in the external table
+  NAColumnArray &myCols = fileset->allColumns_;
+
+  for (CollIndex i=0; i<myCols.entries(); i++)
+    if (myCols[i]->isHivePartColumn())
+      etFileset->markAsHivePartitioningColumn(i);
+
   fileset->allColumns_ = etFileset->getAllColumns();
   addVirtualHiveColumns(fileset->allColumns_, this, 
                         fileset->allColumns_.entries()-1, heap_);

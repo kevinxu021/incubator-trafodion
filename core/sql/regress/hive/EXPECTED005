@@ -81,6 +81,16 @@ ID           COL2         P1           P2                                P1T    
 
 --- 7 row(s) selected.
 >>
+>>set schema trafodion.sch;
+
+--- SQL operation complete.
+>>create external table hivepi for hive.hive.hivepi;
+
+--- SQL operation complete.
+>>set schema hive.hive;
+
+--- SQL operation complete.
+>>
 >>insert into hive.hive.hivepis select id, col2, p1, p2 from hive.hive.hivenonp;
 
 --- 7 row(s) inserted.
@@ -1195,15 +1205,6 @@ ID           COL2         P1
 
 --- 4 row(s) selected.
 >>
->>set catalog trafodion;
-
---- SQL operation complete.
->>create external table hivepi for hive.hive.hivepi;
-
---- SQL operation complete.
->>set schema hive.hive;
-
---- SQL operation complete.
 >>update statistics for table hive.hive.hivepi on every column;
 
 --- SQL operation complete.

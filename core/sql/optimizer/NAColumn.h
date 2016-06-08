@@ -179,7 +179,7 @@ public:
     hbaseColFam_(nac.hbaseColFam_),
     hbaseColQual_(nac.hbaseColQual_),
     hbaseColFlags_(nac.hbaseColFlags_),
-    virtualColumnType_(NON_VIRTUAL_COL)
+    virtualColumnType_(nac.virtualColumnType_)
   {
     routineParamType_[0] = 0;
     if (nac.routineParamType_) strncpy(routineParamType_, nac.routineParamType_, 2);
