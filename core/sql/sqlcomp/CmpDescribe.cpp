@@ -2316,8 +2316,10 @@ short CmpDescribeHiveTable (
   else if (type == 2)
     {
       outputShortLine(space,"/* Hive DDL */");
-
-      sprintf(buf,  "CREATE TABLE %s",
+      NAString hiveSchemaName;
+      dtName.getQualifiedNameObj().getHiveSchemaName(hiveSchemaName);
+      hiveSchemaName.toUpper();
+      sprintf(buf,  "CREATE TABLE %s.%s", hiveSchemaName.data(),
               tableName.data());
       outputShortLine(space, buf);
     }
@@ -2331,7 +2333,7 @@ short CmpDescribeHiveTable (
     {
       NAColumn * nac = naTable->getNAColumnArray()[i];
 
-      if(nac->isHivePartColumn())
+      if(nac->isHivePartColumn() && type != 1)
           continue;
 
       if (!nac->isHiveVirtualColumn() || describeVirtCols)
@@ -3039,7 +3041,7 @@ short CmpDescribeSeabaseTable (
     {
       sprintf(buf,  "CREATE%sTABLE %s",
               (isVolatile ? " VOLATILE " : isExternalTable ? " EXTERNAL " : " "), 
-              (isExternalTable ? objectName.data() : tableName.data()));
+               (isExternalTable ? extName.data() : tableName.data()));
       outputShortLine(*space, buf);
     }
 

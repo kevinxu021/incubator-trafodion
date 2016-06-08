@@ -75,6 +75,7 @@ static const SessionDefaults::SessionDefaultMap sessionDefaultMap[] =
   SDEntry(SessionDefaults::CANCEL_QUERY_ALLOWED,     CANCEL_QUERY_ALLOWED,       SessionDefaults::SDT_BOOLEAN,        FALSE,   FALSE, TRUE,  FALSE),
   SDEntry(SessionDefaults::CANCEL_UNIQUE_QUERY,      CANCEL_UNIQUE_QUERY,        SessionDefaults::SDT_BOOLEAN,        FALSE,   FALSE, TRUE,  FALSE),
   SDEntry(SessionDefaults::CATALOG,                  CATALOG,                    SessionDefaults::SDT_ASCII,          TRUE,    TRUE,  FALSE, FALSE),
+  SDEntry(SessionDefaults::COMPILER_IDLE_TIMEOUT,    COMPILER_IDLE_TIMEOUT,      SessionDefaults::SDT_BINARY_SIGNED,  FALSE,   TRUE,  TRUE,  TRUE),  
   SDEntry(SessionDefaults::DBTR_PROCESS,             DBTR_PROCESS,               SessionDefaults::SDT_BOOLEAN,        TRUE,    FALSE, FALSE, FALSE),
   SDEntry(SessionDefaults::ESP_ASSIGN_DEPTH,         ESP_ASSIGN_DEPTH,           SessionDefaults::SDT_BINARY_SIGNED,  FALSE,   TRUE,  TRUE,  TRUE),
   SDEntry(SessionDefaults::ESP_ASSIGN_TIME_WINDOW,   ESP_ASSIGN_TIME_WINDOW,     SessionDefaults::SDT_BINARY_SIGNED,  FALSE,   TRUE,  TRUE,  TRUE),
@@ -95,6 +96,7 @@ static const SessionDefaults::SessionDefaultMap sessionDefaultMap[] =
   SDEntry(SessionDefaults::MAX_POLLING_INTERVAL,     MAX_POLLING_INTERVAL,       SessionDefaults::SDT_BINARY_SIGNED,  FALSE,   TRUE, TRUE, TRUE),
   SDEntry(SessionDefaults::MXCMP_PRIORITY,           MXCMP_PRIORITY,             SessionDefaults::SDT_BINARY_SIGNED,  FALSE,   TRUE,  TRUE,  TRUE),
   SDEntry(SessionDefaults::MXCMP_PRIORITY_DELTA,     MXCMP_PRIORITY_DELTA,       SessionDefaults::SDT_BINARY_SIGNED,  FALSE,   TRUE,  TRUE,  TRUE),
+  SDEntry(SessionDefaults::ONLINE_BACKUP_TIMEOUT,    ONLINE_BACKUP_TIMEOUT,      SessionDefaults::SDT_BINARY_SIGNED,  TRUE,    TRUE,  TRUE,  TRUE),
   SDEntry(SessionDefaults::PARENT_QID,               PARENT_QID,                 SessionDefaults::SDT_ASCII,          FALSE,   FALSE, TRUE,  FALSE),
   SDEntry(SessionDefaults::PARENT_QID_SYSTEM,        PARENT_QID_SYSTEM,          SessionDefaults::SDT_ASCII,          FALSE,   FALSE, TRUE,  FALSE),
   SDEntry(SessionDefaults::PARSER_FLAGS,             PARSER_FLAGS,               SessionDefaults::SDT_BINARY_SIGNED,  FALSE,   FALSE, TRUE,  FALSE),
@@ -193,6 +195,8 @@ SessionDefaults::SessionDefaults(CollHeap * heap)
   setEspStopIdleTimeout(60);
   // Default is 1800 (idle ESPs time out in 30 minutes)
   setEspIdleTimeout(30*60);
+  // Default is 1800 (Compiler Idle time out in 30 minutes)
+  setCompilerIdleTimeout(30*60);
   // Default is 0 (inactive ESPs never time out)
   setEspInactiveTimeout(0);
   // how long master waits for release work reply from esps (default is 15
@@ -234,6 +238,7 @@ SessionDefaults::SessionDefaults(CollHeap * heap)
   setCancelEscalationMxosrvrInterval(120);
   setCancelEscalationSaveabend(FALSE);
   setModeSeabase(FALSE);
+  setOnlineBackupTimeout(60);
 }
   
 SessionDefaults::~SessionDefaults()
@@ -398,7 +403,16 @@ void SessionDefaults::setSessionDefaultAttributeValue
 	setEspIdleTimeout(defaultValueAsLong);
       }
     break;
-
+    case ONLINE_BACKUP_TIMEOUT:
+    {
+	setOnlineBackupTimeout(defaultValueAsLong);
+    }
+    break;
+    case COMPILER_IDLE_TIMEOUT:
+      {
+	setCompilerIdleTimeout(defaultValueAsLong);
+      }
+    break;
     case ESP_INACTIVE_TIMEOUT:
       {
 	setEspInactiveTimeout(defaultValueAsLong);
@@ -740,6 +754,8 @@ static const QueryString cqdInfo[] =
   {"unique_hash_joins"}, {"OFF"}
 , {"transform_to_sidetree_insert"}, {"OFF"}
 , {"METADATA_CACHE_SIZE"}, {"0"}
+, {"QUERY_CACHE"}, {"0"}
+, {"TRAF_RELOAD_NATABLE_CACHE"}, {"ON"}
 };
 
 static const AQRInfo::AQRErrorMap aqrErrorMap[] = 
@@ -770,6 +786,10 @@ static const AQRInfo::AQRErrorMap aqrErrorMap[] =
 
   // parallel purgedata failed
   AQREntry(   8022,      0,      3,    60,      0,   0, "",    0,     1),
+
+  // hive data modification timestamp mismatch.
+  // query will be AQR'd and hive metadata will be reloaded.
+  AQREntry(   8436,      0,      1,     0,      0,   2, "04:05",  0,     0),
 
   // FS memory errors
   AQREntry(   8550,     30,      1,    60,      0,   0, "",    0,     0),

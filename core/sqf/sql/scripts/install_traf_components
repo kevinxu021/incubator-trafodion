@@ -36,15 +36,16 @@ fi
 TRAF_SRC=$MY_SQROOT/../../
 DCS_SRC=$MY_SQROOT/../../dcs
 REST_SRC=$MY_SQROOT/../rest
+DBMGR_SRC=$MY_SQROOT/../dbmgr
 PHX_SRC=$MY_SQROOT/../../tests/phx
 TRAF_TARS=$MY_SQROOT/../../distribution
 
-if [ -z "$DCS_TAR" ]; then
-  DCS_TAR=$(ls $TRAF_TARS/dcs*tar.gz 2>/dev/null)
+if [ -z "$DCS_BLD" ]; then
+  DCS_BLD=$(ls -d $DCS_SRC/target/dcs-*/dcs-* 2>/dev/null)
 fi
 
-if [ -z "$REST_TAR" ]; then
-  REST_TAR=$(ls $TRAF_TARS/rest*tar.gz 2>/dev/null)
+if [ -z "$REST_BLD" ]; then
+  REST_BLD=$(ls -d $REST_SRC/target/rest-*/rest-* 2>/dev/null)
 fi
 
 if [ -z "$PHX_TAR" ]; then
@@ -56,15 +57,15 @@ if [ -z "$DCSTEST_TAR" ]; then
 fi
 
 if [ -z "$CLIENT_TAR" ]; then
-    CLIENT_TAR=$(ls $TRAF_TARS/trafodion_clients-*.tgz 2>/dev/null)
+    CLIENT_TAR=$(ls $TRAF_TARS/*clients* 2>/dev/null)
 fi
 
-if [ -z "$DBMGR_TAR" ]; then
-    DBMGR_TAR=$(ls $TRAF_TARS/dbmgr*.gz 2>/dev/null)
+if [ -z "$DBMGR_BLD" ]; then
+    DBMGR_BLD=$(ls -d $DBMGR_SRC/target/dbmgr-*/dbmgr-* 2>/dev/null)
 fi
 
-if [ -z "$MGBLTY_TAR" ]; then
-    MGBLTY_TAR=$(ls $TRAF_TARS/mgblty*.gz 2>/dev/null)
+if [ -z "$MGBLTY_BLD" ]; then
+    MGBLTY_BLD=$(ls -d $TRAF_SRC/mgblty 2>/dev/null)
 fi
 
 if [[ -f $CLIENT_TAR ]]; then
@@ -92,10 +93,10 @@ else
 fi
 
 echo "   For local hadoop... $MY_SW_ROOT" | tee -a ${MY_LOG_FILE}
-echo "   For DCS_TAR... $DCS_TAR" | tee -a ${MY_LOG_FILE}
-echo "   For REST_TAR... $REST_TAR" | tee -a ${MY_LOG_FILE}
-echo "   For MGBLTY_TAR... $MGBLTY_TAR" | tee -a ${MY_LOG_FILE}
-echo "   For DBMGR_TAR... $DBMGR_TAR" | tee -a ${MY_LOG_FILE}
+echo "   For DCS_BLD... $DCS_BLD" | tee -a ${MY_LOG_FILE}
+echo "   For REST_BLD... $REST_BLD" | tee -a ${MY_LOG_FILE}
+echo "   For MGBLTY_BLD... $MGBLTY_BLD" | tee -a ${MY_LOG_FILE}
+echo "   For DBMGR_BLD... $DBMGR_BLD" | tee -a ${MY_LOG_FILE}
 
 if [[ -f $PHX_TAR ]]; then
   echo "   For PHX_TAR... $PHX_TAR" | tee -a ${MY_LOG_FILE}
@@ -115,31 +116,31 @@ echo | tee -a ${MY_LOG_FILE}
 if [ -d dcs-* ]; then
   echo "DCS files already exist, skipping DCS setup" | tee -a ${MY_LOG_FILE}
 else
-  if [[ -f $DCS_TAR ]]; then
-      echo "Using DCS Tar: $DCS_TAR" | tee -a ${MY_LOG_FILE}
+  if [[ -d $DCS_BLD ]]; then
+      echo "Using DCS Build: $DCS_BLD" | tee -a ${MY_LOG_FILE}
   elif [[ -d $DCS_SRC ]]; then
-      echo "DCS tar file was not found in $TRAF_TARS" | tee -a ${MY_LOG_FILE}
-      echo "Building DCS tar file" | tee -a ${MY_LOG_FILE}
+      echo "DCS built target was not found in $DCS_SRC" | tee -a ${MY_LOG_FILE}
+      echo "Building DCS" | tee -a ${MY_LOG_FILE}
       if [[ -f $MY_SQROOT/export/lib/jdbcT4-${TRAFODION_VER}.jar ]]; then
          echo "JDBCT4 jar file exist. Proceeding to build DCS from $DCS_SRC" | tee -a ${MY_LOG_FILE}
          cd $DCS_SRC
          ${MAVEN:-mvn} clean site package >>${MY_LOG_FILE} 2>&1
-         mv $DCS_SRC/target/dcs*.gz $TRAF_TARS
          cd $MY_SW_ROOT
       else
          echo "JDBCT4 jar file does not exist $MY_SQROOT/export/lib folder. " | tee -a ${MY_LOG_FILE}
          echo "Please build the core Trafodion component"  | tee -a ${MY_LOG_FILE}
          exit 2
       fi
+      DCS_BLD=$(ls -d $DCS_SRC/target/dcs-*/dcs-* 2>/dev/null)
   fi
 
-  if [[ ! -f $DCS_TAR ]]; then
-    echo "**** ERROR: DCS tar file not found. "  | tee -a ${MY_LOG_FILE}
+  if [[ ! -d $DCS_BLD ]]; then
+    echo "**** ERROR: DCS built target not found. "  | tee -a ${MY_LOG_FILE}
     exit 2
   fi
 # Install DCS
-  echo "Installing DCS from: $DCS_TAR"  | tee -a ${MY_LOG_FILE}
-  tar xzf $DCS_TAR | tee -a ${MY_LOG_FILE}
+  echo "Installing DCS from: $DCS_BLD"  | tee -a ${MY_LOG_FILE}
+  cp -r $DCS_BLD $MY_SW_ROOT/$(basename $DCS_BLD)
   DCS_HOME=$(/bin/ls -d $MY_SW_ROOT/dcs-*)
 
 # Configure DCS
@@ -201,31 +202,31 @@ echo | tee -a ${MY_LOG_FILE}
 if [ -d rest-* ]; then
   echo "REST files already exist, skipping REST setup"
 else
-  if [[ -f $REST_TAR ]]; then
-        echo "Using REST Tar: $REST_TAR" | tee -a ${MY_LOG_FILE}
+  if [[ -d $REST_BLD ]]; then
+        echo "Using REST Build: $REST_BLD" | tee -a ${MY_LOG_FILE}
   elif [[ -d $REST_SRC ]]; then
-      echo "REST tar file was not found in $TRAF_TARS" | tee -a ${MY_LOG_FILE}
-      echo "Building REST tar file" | tee -a ${MY_LOG_FILE}
+      echo "REST built target was not found in $REST_SRC" | tee -a ${MY_LOG_FILE}
+      echo "Building REST" | tee -a ${MY_LOG_FILE}
       if [[ -f $MY_SQROOT/export/lib/jdbcT4-${TRAFODION_VER}.jar ]]; then
          echo "JDBCT4 jar file exist. Proceeding to build REST from $REST_SRC" | tee -a ${MY_LOG_FILE}
          cd $REST_SRC
          ${MAVEN:-mvn} clean site package >>${MY_LOG_FILE} 2>&1
-         mv $REST_SRC/target/rest*.gz $TRAF_TARS
          cd $MY_SW_ROOT
        else
          echo "JDBCT4 jar file does not exist $MY_SQROOT/export/lib folder. Please build the core Trafodion components" | tee -a ${MY_LOG_FILE}
        exit 2
       fi
+      REST_BLD=$(ls -d $REST_SRC/target/rest-*/rest-* 2>/dev/null)
   fi
 
-  if [[ ! -f $REST_TAR ]]; then
-    echo "**** ERROR: REST tar file not found"  | tee -a ${MY_LOG_FILE}
+  if [[ ! -d $REST_BLD ]]; then
+    echo "**** ERROR: REST build target not found"  | tee -a ${MY_LOG_FILE}
     exit 2
   fi
 
 # Install REST
-  echo "Installing REST from: $REST_TAR"  | tee -a ${MY_LOG_FILE}
-  tar xzf $REST_TAR | tee -a ${MY_LOG_FILE}
+  echo "Installing REST from: $REST_BLD"  | tee -a ${MY_LOG_FILE}
+  cp -r $REST_BLD $MY_SW_ROOT/$(basename $REST_BLD)
   REST_HOME=$(/bin/ls -d $MY_SW_ROOT/rest-*)
 
 # Configure REST
@@ -345,7 +346,7 @@ then
      --targettype=TR --javahome=\$JAVA_HOME --jdbccp=\$MY_SQROOT/export/lib/jdbcT4-${TRAFODION_VER}.jar
 elif [[ \$1 == "t2" ]]
 then
-  export LD_PRELOAD=\$JAVA_HOME/jre/lib/amd64/libjsig.so:\$MY_SQROOT/export/lib\$SQ_MBTYPE/libseabasesig.so
+  export LD_PRELOAD=\$JAVA_HOME/jre/lib/${JRE_LIB_DIR}/libjsig.so:\$MY_SQROOT/export/lib\$SQ_MBTYPE/libseabasesig.so
   ./phoenix_test.py --targettype=TR --javahome=\$JAVA_HOME \\
      --jdbccp=\$MY_SQROOT/export/lib/jdbcT2.jar --jdbctype=T2 \\
      --nomvntest --tests="AlterTableTest,ArithmeticQueryTest,BinaryRowKeyTest,CoalesceFunctionTest,CompareDecimalToLongTest,CustomEntityDataTest,DeleteRangeTest,DescColumnSortOrderTest,DistinctCountTest,ExtendedQueryExecTest,FunkyNamesTest,IsNullTest,OrderByTest,QueryExecTest,SaltedTableTest,SaltedTableUpsertSelectTest,SaltedTableVarLengthRowKeyTest,SkipScanQueryTest,UpsertSelectAutoCommitTest,UpsertSelectTest,UpsertValuesTest],AutoCommitTest,CreateTableTest,ExecuteStatementsTest,GroupByCaseTest,IndexTest,KeyOnlyTest,MultiCfQueryExecTest,ProductMetricsTest,QueryExecWithoutSCNTest,QueryPlanTest,ReadIsolationLevelTest,ServerExceptionTest,StatementHintsTest,StddevTest,ToCharFunctionTest,ToNumberFunctionTest,TopNTest,UpsertBigValuesTest,VariableLengthPKTest,SaltedTableUpsertSelectTest"
@@ -545,12 +546,12 @@ TIME_ZONE=$($MY_SQROOT/tools/gettimezone.sh  | awk '{print $1}'| head -1)
 if [ -d mgblty* ]; then
   echo "Manageability tools already exist, skipping manageability tools setup" | tee -a ${MY_LOG_FILE}
 else
-  if [[ -f $MGBLTY_TAR ]]; then
-      echo "Using Managebility Tar: $MGBLTY_TAR" | tee -a ${MY_LOG_FILE}
+  if [[ -d $MGBLTY_BLD ]]; then
+      echo "Using Managebility Build: $MGBLTY_BLD" | tee -a ${MY_LOG_FILE}
       # Install Mgblty Tools
-      echo "Installing Manageability Tools from: $MGBLTY_TAR"  | tee -a ${MY_LOG_FILE}
-      tar xzf $MGBLTY_TAR | tee -a ${MY_LOG_FILE}
-      MGBLTY_HOME=$(/bin/ls -d $MY_SW_ROOT/mgblty*)
+      echo "Installing Manageability Tools from: $MGBLTY_BLD"  | tee -a ${MY_LOG_FILE}
+      cp -r $MGBLTY_BLD $MY_SW_ROOT/mgblty
+      MGBLTY_HOME=$MY_SW_ROOT/mgblty
       if [[ -f ~/.trafodion ]]
       then
         mv -f ~/.trafodion ~/.trafodion.orig
@@ -615,11 +616,11 @@ echo | tee -a ${MY_LOG_FILE}
 if [ -d dbmgr-* ]; then
   echo "DBMGR files already exist, skipping DBMGR setup" | tee -a ${MY_LOG_FILE}
 else
-  if [[ -f $DBMGR_TAR ]]; then
-      echo "Using Database Manageability Tar: $DBMGR_TAR" | tee -a ${MY_LOG_FILE}
+  if [[ -d $DBMGR_BLD ]]; then
+      echo "Using Database Manageability Build: $DBMGR_BLD" | tee -a ${MY_LOG_FILE}
       # Install DBMGR
-      echo "Installing DBMGR from: $DBMGR_TAR"  | tee -a ${MY_LOG_FILE}
-      tar xzf $DBMGR_TAR | tee -a ${MY_LOG_FILE}
+      echo "Installing DBMGR from: $DBMGR_BLD"  | tee -a ${MY_LOG_FILE}
+      cp -r $DBMGR_BLD $MY_SW_ROOT/$(basename $DBMGR_BLD)
       DBMGR_HOME=$(/bin/ls -d $MY_SW_ROOT/dbmgr-*)
       
       if [[ -f ~/.trafodion ]]
@@ -637,7 +638,7 @@ else
       cd $DBMGR_HOME/bin
       ./configure.py --httpport $MY_DB_MGR_PORT --httpsport $MY_DB_MGR_SECURE_PORT --dcshost localhost --dcsport $MY_DCS_MASTER_PORT --password traf123 --dcsinfoport $MY_DCS_MASTER_INFO_PORT --resthost localhost --restport $MY_REST_SERVER_PORT --tsdhost localhost --tsdport $MY_OPEN_TSDB_PORT --bosunhost localhost --bosunport $MY_BOSUN_PORT --timezone $TIME_ZONE --adminuser DB__ADMINUSER --adminpassword traf123
   else
-      echo "DBMGR Tar file does not exist" | tee -a ${MY_LOG_FILE}
+      echo "DBMGR build target does not exist" | tee -a ${MY_LOG_FILE}
   fi
 fi
 

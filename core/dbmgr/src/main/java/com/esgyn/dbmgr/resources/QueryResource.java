@@ -7,7 +7,6 @@
 package com.esgyn.dbmgr.resources;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -66,7 +65,7 @@ public class QueryResource {
 		Connection connection = null;
 		try {
 			Class.forName(ConfigurationResource.getInstance().getJdbcDriverClass());
-			connection = DriverManager.getConnection(url, user, password);
+			connection = JdbcHelper.getInstance().getConnection(user, password);
 			return executeQuery(connection, queryText, sControlStmts);
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
@@ -86,8 +85,7 @@ public class QueryResource {
 			throws EsgynDBMgrException {
 
 		TabularResult js = new TabularResult();
-		PreparedStatement pstmt = null;
-
+		Statement stmt = null;
 		try {
 			String[] controlStatements = new String[0];
 			if (sControlStmts != null && sControlStmts.length() > 0) {
@@ -99,16 +97,20 @@ public class QueryResource {
 			}
 			stmt1.close();
 
-			pstmt = connection.prepareStatement(queryText);
+			if (queryText != null && queryText.trim().toLowerCase().equals("info system")) {
+				stmt = connection.createStatement();
+			} else {
+				stmt = connection.prepareStatement(queryText);
+			}
 
-			js = executeQuery(pstmt, queryText);
+			js = executeQuery(stmt, queryText);
 		} catch (Exception e) {
 			_LOG.error("Failed to execute query : " + e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());
 		} finally {
-			if (pstmt != null) {
+			if (stmt != null) {
 				try {
-					pstmt.close();
+					stmt.close();
 				} catch (SQLException e) {
 
 				}
@@ -117,16 +119,19 @@ public class QueryResource {
 		return js;
 	}
 
-	public static TabularResult executeQuery(PreparedStatement pStmt, String queryText) throws EsgynDBMgrException {
+	public static TabularResult executeQuery(Statement stmt, String queryText) throws EsgynDBMgrException {
 		ResultSet rs;
 		TabularResult tResult = new TabularResult();
 		_LOG.debug(queryText);
-
 		try {
-
-			boolean hasResultSet = pStmt.execute();
+			boolean hasResultSet = false;
+			if (stmt instanceof PreparedStatement) {
+				hasResultSet = ((PreparedStatement) stmt).execute();
+			} else {
+				hasResultSet = stmt.execute(queryText);
+			}
 			if (hasResultSet) {
-				rs = pStmt.getResultSet();
+				rs = stmt.getResultSet();
 				if (queryText.trim().toLowerCase().startsWith("select") || rs.getMetaData().getColumnCount() > 1) {
 					tResult = Helper.convertResultSetToTabularResult(rs);
 				} else {
@@ -137,12 +142,15 @@ public class QueryResource {
 					while (rs.next()) {
 						sb.append(rs.getString(1) + System.getProperty("line.separator"));
 					}
+					if (sb.length() == 0) {
+						sb.append("The statement completed successfully.");
+					}
 					Object[] output = new Object[] { sb.toString() };
 					tResult.resultArray.add(output);
 				}
 				rs.close();
 			} else {
-				int count = pStmt.getUpdateCount();
+				int count = stmt.getUpdateCount();
 				tResult.isScalarResult = true;
 				tResult.columnNames = new String[] { "Status" };
 				tResult.resultArray = new ArrayList<Object[]>();
@@ -159,6 +167,10 @@ public class QueryResource {
 		} catch (Exception e) {
 			_LOG.error("Failed to execute query : " + e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());
+		}
+		catch (OutOfMemoryError ex) {
+			_LOG.error("Failed to execute query : " + ex.getMessage());
+			throw new EsgynDBMgrException(ex.getMessage());
 		}
 		return tResult;
 	}

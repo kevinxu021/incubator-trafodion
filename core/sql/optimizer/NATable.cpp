@@ -85,7 +85,7 @@
 #include "ComUser.h"
 #include "ComSmallDefs.h"
 #include "CmpMain.h"
-
+#include "CompException.h"
 #define MAX_NODE_NAME 9
 
 #include "SqlParserGlobals.h"
@@ -4726,14 +4726,21 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
       const hive_sd_desc *sd_desc = hvt_desc->getSDs();
 
       HHDFSTableStats * hiveHDFSTableStats = NULL;
-      if(OSIM_runningSimulation())
-              hiveHDFSTableStats = OSIM_restoreHiveTableStats(table->getTableName(), heap, hvt_desc);
+      if(OSIM_runningSimulation()){
+              try {
+                  hiveHDFSTableStats = OSIM_restoreHiveTableStats(table->getTableName(), heap, hvt_desc);
+              }
+              catch(OsimLogException & e)
+              {//table is not referred in capture mode, issue osim error
+                  OSIM_errorMessage(e.getErrMessage());
+                  return TRUE;
+              }
+      }
       else
       {
               hiveHDFSTableStats = new(heap) HHDFSTableStats(heap);
               hiveHDFSTableStats->
                 setPortOverride(CmpCommon::getDefaultLong(HIVE_LIB_HDFS_PORT_OVERRIDE));
-        
               // create file-level statistics and estimate total row count and record length
               hiveHDFSTableStats->populate(hvt_desc);
       }
@@ -4746,9 +4753,16 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
           return TRUE;
         }
 
-      if(OSIM_runningInCaptureMode())
-              OSIM_captureHiveTableStats(hiveHDFSTableStats, table);
-
+      if(OSIM_runningInCaptureMode()){
+              try {
+                  OSIM_captureHiveTableStats(hiveHDFSTableStats, table);
+              }
+              catch(OsimLogException & e)
+              {//table is not referred in capture mode, issue osim error
+                  OSIM_errorMessage(e.getErrMessage());
+                  return TRUE;
+              }
+      }
       // for partitioned Hive tables, create a RangePartitioningFunction with
       // start key values that represent the Hive partition values (note that
       // there are no other allowed values than the start values and that the
@@ -4876,8 +4890,19 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
       Int64 estimatedRecordLength = 0;
 
       if ( isORC ) {
-         estimatedRecordLength = colArray.getTotalStorageSize();
+         // We cannot use colArray.getTotalStorageSize() for estimating row length,
+         // since we make worst-case assumptions about string column sizes. 
+         // (Typically, we assume VARCHAR(31999), which grossly overestimates.)
+         // Instead we use the total storage size for non-string columns, then
+         // use the average string length as computed from the ORC file statistics.
          estimatedRC = hiveHDFSTableStats->getTotalRows();
+         Int64 totalStringLengths = hiveHDFSTableStats->getTotalStringLengths();
+         Int64 nonStringsPart = colArray.getTotalStorageSizeForNonChars();
+         if (estimatedRC > 0)
+           estimatedRecordLength = nonStringsPart + (totalStringLengths / estimatedRC);
+         else
+           // we think the table is empty so there are no strings! avoid divide by zero
+           estimatedRecordLength = nonStringsPart;
       } else if ( !sd_desc->isTrulyText() ) {
          //
          // Poor man's estimation by assuming the record length in hive is the 
@@ -4893,7 +4918,10 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
            Lng32(MINOF(hiveHDFSTableStats->getEstimatedRecordLength(),
                        hiveHDFSTableStats->getEstimatedBlockSize()-100));
       }
-
+		  
+      Lng32 blockSize = MAXOF((Lng32)hiveHDFSTableStats->getEstimatedBlockSize(),
+                              (Lng32)estimatedRecordLength);
+      
       ((NATable*)table)-> setOriginalRowCount((double)estimatedRC);
 
       newIndex = new (heap)
@@ -4914,9 +4942,7 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
                   // HIVE-TBD
 		  Cardinality(estimatedRC),
                   Lng32(estimatedRecordLength),
-
-		  //hvt_desc->getBlockSize(), 
-		  (Lng32)hiveHDFSTableStats->getEstimatedBlockSize(), 
+		  blockSize,
 
 		  indexLevels, // HIVE-TBD
 		  allColumns,
@@ -7636,6 +7662,16 @@ NATable * NATableDB::get(const ExtendedQualName* key, BindWA* bindWA, NABoolean 
      }
   }
 
+  // the reload cqd will be set during aqr after compiletime and runtime
+  // timestamp mismatch is detected.
+  // If set, reload hive metadata.
+  if ((cachedNATable->isHiveTable()) &&
+      (CmpCommon::getDefault(HIVE_DATA_MOD_CHECK) == DF_ON) &&
+      (CmpCommon::getDefault(TRAF_RELOAD_NATABLE_CACHE) == DF_ON))
+    {
+      removeEntry = TRUE;
+    }
+
   //Found in cache.  If that's all the caller wanted, return now.
   if ( !removeEntry && findInCacheOnly )
      return cachedNATable;
@@ -8130,6 +8166,9 @@ short NATable::updateExtTableAttrs(NATable *etTable)
   NAFileSet *fileset = this->getClusteringIndex();
   NAFileSet *etFileset = etTable->getClusteringIndex();
 
+  if (getUserColumnCount() != etTable->getUserColumnCount())
+    return -1;
+
   colcount_ = etTable->getColumnCount();
   colArray_ = etTable->getNAColumnArray();
 
@@ -8267,7 +8306,8 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
       table = NULL;
     }
 
-  if (table && ((table->isHbaseTable() || table->isSeabaseTable()) && !(table->isSeabaseMDTable())))
+  if (table && ((table->isHbaseTable() || table->isSeabaseTable()) && 
+                !(table->isSeabaseMDTable())))
     {
       if ((CmpCommon::getDefault(TRAF_RELOAD_NATABLE_CACHE) == DF_ON))
 	{
@@ -8554,7 +8594,15 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
                    NATable * etTable = new (naTableHeap) NATable
                      (bindWA, cn, naTableHeap, etDesc);
                    
-                   table->updateExtTableAttrs(etTable);
+                   short rc = table->updateExtTableAttrs(etTable);
+                   if ((rc) && (NOT bindWA->externalTableDrop()))
+                     {
+                       *CmpCommon::diags()
+                         << DgSqlCode(-8437);
+
+                       bindWA->setErrStatus();
+                       return NULL;
+                     }
 
                    table->setHasHiveExtTable(TRUE);
                  }
@@ -9054,6 +9102,12 @@ NABoolean NATableDB::enforceMemorySpaceConstraints()
         if(!table->accessedInCurrentStatement_)
         {
            RemoveFromNATableCache( table , replacementCursor_ );
+
+           // Since the above call can reduce the length of cachedTableList_ by 1,
+           // we need to make sure the start position never falls out of the valid
+           // range in cachedTableList_.
+           if( startingCursorPosition >= cachedTableList_.entries() )
+             startingCursorPosition = cachedTableList_.entries()-1;
         }
       }
       else{

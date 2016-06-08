@@ -105,7 +105,7 @@ public :
     targetName_(*targName, oHeap),
     hdfsHostName_(oHeap),
     hdfsPort_(0),
-    isHiveInsert_(FALSE),
+    hiveTableDesc_(NULL),
     delimiter_(*delim, oHeap),
     isAppend_(isAppend),
     includeHeader_(needsHeader),
@@ -127,7 +127,7 @@ public :
     targetName_(*targName, oHeap),
     hdfsHostName_(oHeap),
     hdfsPort_(0),
-    isHiveInsert_(FALSE),
+    hiveTableDesc_(NULL),
     delimiter_(oHeap),
     isAppend_(FALSE),
     includeHeader_(FALSE),
@@ -148,7 +148,7 @@ public :
     targetName_(oHeap),
     hdfsHostName_(oHeap),
     hdfsPort_(0),
-    isHiveInsert_(FALSE),
+    hiveTableDesc_(NULL),
     delimiter_(oHeap),
     isAppend_(FALSE),
     includeHeader_(FALSE),
@@ -165,7 +165,7 @@ public :
       NAString* targName,
       NAString* hostName,
       Int32 portNum,
-      NABoolean isHiveInsert,
+      TableDesc *hiveTableDesc,
       NAString* hiveTableName,
       ExtractDest targType,
       CollHeap *oHeap = CmpCommon::statementHeap())
@@ -174,7 +174,7 @@ public :
     targetName_(*targName, oHeap),
     hdfsHostName_(*hostName, oHeap),
     hdfsPort_(portNum),
-    isHiveInsert_(isHiveInsert),
+    hiveTableDesc_(hiveTableDesc),
     hiveTableName_(*hiveTableName, oHeap),
     delimiter_(oHeap),
     isAppend_(FALSE),
@@ -273,7 +273,8 @@ public :
   const NAString& getHdfsHostName() const {return hdfsHostName_;}
   Int32 getHdfsPort() const {return hdfsPort_;}
   const NAString& getHiveTableName() const {return hiveTableName_;}
-  NABoolean isHiveInsert() const {return isHiveInsert_;}
+  NABoolean isHiveInsert() const {return (hiveTableDesc_ != NULL);}
+  const TableDesc* getHiveTableDesc() const { return hiveTableDesc_; }
   const NATable *getHiveNATable() const {return hiveNATable_;}
   const NAString& getDelimiter() const {return delimiter_;}
   NABoolean isAppend() const {return isAppend_;}
@@ -321,6 +322,10 @@ public :
     partStringExpr_ += vid;
   }
 
+  const NATable * hiveNATable() { return hiveNATable_; }
+
+  ValueIdList   &reqdOrder()            { return reqdOrder_; }
+
 private:
   
   
@@ -336,12 +341,14 @@ private:
   NAString nullString_;
   NAString recordSeparator_;
   NABoolean isAppend_;
-  NABoolean isHiveInsert_;
+  TableDesc *hiveTableDesc_;
   NAString hiveTableName_;
   NABoolean overwriteHiveTable_;
   NABoolean isSequenceFile_;
   const NATable *hiveNATable_;
   ValueIdSet partStringExpr_; // set in codeGen()
+
+  ValueIdList      reqdOrder_;                  // ORDER BY list
 
 }; // class FastExtract
 

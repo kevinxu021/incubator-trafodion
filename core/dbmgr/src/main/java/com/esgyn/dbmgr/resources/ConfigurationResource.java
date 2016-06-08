@@ -36,6 +36,7 @@ public class ConfigurationResource {
 	private static String databaseVersion = null;
 	private static boolean authorizationEnabled = false;
 	private static boolean authenticationEnabled = false;
+	private static boolean systemPropertiesLoaded = false;
 
 	public static int getMaxPoolSize() {
 		String maxSize = xmlConfig.getProperty("maxPoolSize", "2");
@@ -125,7 +126,9 @@ public class ConfigurationResource {
 	}
 
 	public static long getServerUTCOffset() {
-		// return serverUTCOffset;
+		if (!ConfigurationResource.systemPropertiesLoaded) {
+			loadEsgynDBSystemProperties();
+		}
 		DateTimeZone est = DateTimeZone.forID(getServerTimeZone());
 		return est.getOffset(null);
 	}
@@ -148,7 +151,7 @@ public class ConfigurationResource {
 		return alertsEnabled;
 	}
 	public static String getDatabaseVersion() {
-		if (ConfigurationResource.databaseVersion == null) {
+		if (!ConfigurationResource.systemPropertiesLoaded) {
 			loadEsgynDBSystemProperties();
 		}
 		return ConfigurationResource.databaseVersion;
@@ -183,7 +186,11 @@ public class ConfigurationResource {
 	}
 
 	public String getAdminPassword() {
-		return xmlConfig.getProperty("adminPassword", "adminpass");
+		String adminPass = xmlConfig.getProperty("adminPassword", "adminpass");
+		if (adminPass.startsWith("OBF:")) {
+			adminPass = org.eclipse.jetty.util.security.Password.deobfuscate(adminPass);
+		}
+		return adminPass;
 	}
 
 	public int getSessionTimeoutMinutes() {
@@ -198,6 +205,9 @@ public class ConfigurationResource {
 	}
 
 	public static boolean isAuthorizationEnabled() {
+		if (!ConfigurationResource.systemPropertiesLoaded) {
+			loadEsgynDBSystemProperties();
+		}
 		return authorizationEnabled;
 	}
 
@@ -206,6 +216,9 @@ public class ConfigurationResource {
 	}
 
 	public static boolean isAuthenticationEnabled() {
+		if (!ConfigurationResource.systemPropertiesLoaded) {
+			loadEsgynDBSystemProperties();
+		}
 		return authenticationEnabled;
 	}
 
@@ -214,6 +227,9 @@ public class ConfigurationResource {
 	}
 
 	public static String getDatabaseEdition() {
+		if (!ConfigurationResource.systemPropertiesLoaded) {
+			loadEsgynDBSystemProperties();
+		}
 		return databaseEdition;
 	}
 
@@ -305,8 +321,8 @@ public class ConfigurationResource {
 		Connection connection = null;
 
 		try {
+			_LOG.info("Loading system information...");
 			connection = JdbcHelper.getInstance().getAdminConnection();
-
 			Statement stmt = connection.createStatement();
 			ResultSet rs = stmt.executeQuery(SystemQueryCache.getQueryText(SystemQueryCache.GET_SYSTEM_INFO));
 			while (rs.next()) {
@@ -316,16 +332,10 @@ public class ConfigurationResource {
 				ConfigurationResource.setDatabaseEdition(rs.getString("DATABASE_EDITION"));
 				ConfigurationResource.setAuthenticationEnabled(rs.getBoolean("AUTHENTICATION_ENABLED"));
 				ConfigurationResource.setAuthorizationEnabled(rs.getBoolean("AUTHORIZATION_ENABLED"));
+				systemPropertiesLoaded = true;
 				break;
 			}
-			/*
-			 * rs =
-			 * stmt.executeQuery(SystemQueryCache.getQueryText(SystemQueryCache.
-			 * GET_SYSTEM_VERSION)); if (rs.next()) { String version =
-			 * rs.getString(1); String[] versionparts = version.split(":");
-			 * ConfigurationResource .setDatabaseVersion(versionparts.length > 1
-			 * ? versionparts[1].trim() : versionparts[0]); }
-			 */
+
 			rs.close();
 			stmt.close();
 

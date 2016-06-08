@@ -19,6 +19,9 @@
 >>cqd hive_use_ext_table_attrs 'ON';
 
 --- SQL operation complete.
+>>cqd hist_missing_stats_warning_level '0';
+
+--- SQL operation complete.
 >>
 >>prepare explainIt from
 +>  select substring(cast(SEQ_NUM+100 as char(3)),2,2) s,
@@ -41,7 +44,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Wed Apr 27 02:45:01 2016
+-- Definition current  Sun Jun  5 05:50:17 2016
 
   (
     S_STORE_SK                       INT
@@ -238,7 +241,7 @@ Suite 100             College
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 12472
+Fragment ID: 0, Length: 12576
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -254,14 +257,14 @@ Flag = 0000000000101001
 For ComTdbRoot :
 FirstNRows = -1, baseTablenamePosition = -1
 queryType_ = 2, planVersion_ = 2600
-rtFlags1_ = 00000000001100000100101000000000
+rtFlags1_ = 00100000001100000000101000000000
 rtFlags2_ = 00000000000000000000000000000000
 rtFlags3_ = 0000000000000000
 rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 2632
+explain_plan_size = 5040
 
 # of Expressions = 4
 
@@ -273,16 +276,16 @@ Contents of EX_ORC_SCAN [1]:
 ----------------------------
 
 For ComTdb :
-Class Version = 1, Class Size = 416
+Class Version = 1, Class Size = 448
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 41032
-estimatedRowUsed = 0, estimatedRowsAccessed = 0, expressionMode = 0
+estimatedRowUsed = 100, estimatedRowsAccessed = 100, expressionMode = 0
 Flag = 0000000000001001
 
 For ComTdbOrcScan :
 tableName_ = HIVE.STORE_ORC
-hostName_ = NULL (empty scan)
+hostName_ = localhost, port_ = 36000
 recordDelimiter_ = 10, columnDelimiter_ = 1
 hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 8
 tuppIndex_ = 2, workAtpIndex_ = 3
@@ -334,6 +337,8 @@ ColNumber: 26, ColName: S_ZIP
 ColNumber: 27, ColName: S_COUNTRY
 ColNumber: 28, ColName: S_GMT_OFFSET
 ColNumber: 29, ColName: S_TAX_PRECENTAGE
+hdfsRootDir: hdfs://localhost:36000/user/hive/warehouse/store_orc
+modTSforDir_ = 1463160509, numOfPartCols_ = 0
 
 # of Expressions = 6
 
@@ -371,7 +376,7 @@ S_STORE_SK
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 9992
+Fragment ID: 0, Length: 10096
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -387,14 +392,14 @@ Flag = 0000000000101001
 For ComTdbRoot :
 FirstNRows = -1, baseTablenamePosition = -1
 queryType_ = 2, planVersion_ = 2600
-rtFlags1_ = 00000000001100000100101000000000
+rtFlags1_ = 00100000001100000000101000000000
 rtFlags2_ = 00000000000000000000000000000000
 rtFlags3_ = 0000000000000000
 rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 2632
+explain_plan_size = 5032
 
 # of Expressions = 4
 
@@ -406,16 +411,16 @@ Contents of EX_ORC_SCAN [1]:
 ----------------------------
 
 For ComTdb :
-Class Version = 1, Class Size = 416
+Class Version = 1, Class Size = 448
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 41032
-estimatedRowUsed = 0, estimatedRowsAccessed = 0, expressionMode = 0
+estimatedRowUsed = 100, estimatedRowsAccessed = 100, expressionMode = 0
 Flag = 0000000000001001
 
 For ComTdbOrcScan :
 tableName_ = HIVE.STORE_ORC
-hostName_ = NULL (empty scan)
+hostName_ = localhost, port_ = 36000
 recordDelimiter_ = 10, columnDelimiter_ = 1
 hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 8
 tuppIndex_ = 2, workAtpIndex_ = 3
@@ -439,6 +444,8 @@ ESP    0 reads               4288 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
+hdfsRootDir: hdfs://localhost:36000/user/hive/warehouse/store_orc
+modTSforDir_ = 1463160509, numOfPartCols_ = 0
 
 # of Expressions = 6
 
@@ -522,7 +529,7 @@ S_STORE_SK
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 10168
+Fragment ID: 0, Length: 10272
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -538,14 +545,14 @@ Flag = 0000000000101001
 For ComTdbRoot :
 FirstNRows = -1, baseTablenamePosition = -1
 queryType_ = 2, planVersion_ = 2600
-rtFlags1_ = 00000000001100000100101000000000
+rtFlags1_ = 00100000001100000000101000000000
 rtFlags2_ = 00000000000000000000000000000000
 rtFlags3_ = 0000000000000000
 rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 2728
+explain_plan_size = 5136
 
 # of Expressions = 4
 
@@ -557,16 +564,16 @@ Contents of EX_ORC_SCAN [1]:
 ----------------------------
 
 For ComTdb :
-Class Version = 1, Class Size = 416
+Class Version = 1, Class Size = 448
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 32840
-estimatedRowUsed = 0, estimatedRowsAccessed = 0, expressionMode = 0
+estimatedRowUsed = 10, estimatedRowsAccessed = 10, expressionMode = 0
 Flag = 0000000000001001
 
 For ComTdbOrcScan :
 tableName_ = HIVE.STORE_ORC
-hostName_ = NULL (empty scan)
+hostName_ = localhost, port_ = 36000
 recordDelimiter_ = 10, columnDelimiter_ = 1
 hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 16
 tuppIndex_ = 3, workAtpIndex_ = 3
@@ -590,6 +597,8 @@ ESP    0 reads               4288 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
+hdfsRootDir: hdfs://localhost:36000/user/hive/warehouse/store_orc
+modTSforDir_ = 1463160509, numOfPartCols_ = 0
 
 # of Expressions = 6
 
@@ -653,7 +662,7 @@ S_STORE_SK
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 15168
+Fragment ID: 0, Length: 15272
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -669,14 +678,14 @@ Flag = 0000000000101001
 For ComTdbRoot :
 FirstNRows = -1, baseTablenamePosition = -1
 queryType_ = 2, planVersion_ = 2600
-rtFlags1_ = 00000000001100000100101000000000
+rtFlags1_ = 00100000001100000000101000000000
 rtFlags2_ = 00000000000000000000000000000000
 rtFlags3_ = 0000000000000000
 rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 2816
+explain_plan_size = 5224
 
 # of Expressions = 4
 
@@ -688,16 +697,16 @@ Contents of EX_ORC_SCAN [1]:
 ----------------------------
 
 For ComTdb :
-Class Version = 1, Class Size = 416
+Class Version = 1, Class Size = 448
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 32840
-estimatedRowUsed = 0, estimatedRowsAccessed = 0, expressionMode = 0
+estimatedRowUsed = 10, estimatedRowsAccessed = 10, expressionMode = 0
 Flag = 0000000000001001
 
 For ComTdbOrcScan :
 tableName_ = HIVE.STORE_ORC
-hostName_ = NULL (empty scan)
+hostName_ = localhost, port_ = 36000
 recordDelimiter_ = 10, columnDelimiter_ = 1
 hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 16
 tuppIndex_ = 3, workAtpIndex_ = 3
@@ -721,6 +730,8 @@ ESP    0 reads               4288 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
+hdfsRootDir: hdfs://localhost:36000/user/hive/warehouse/store_orc
+modTSforDir_ = 1463160509, numOfPartCols_ = 0
 
 Number of PPI entries: 3
 PPI: #1
@@ -934,8 +945,6 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>-- test query cache 
 >>prepare xx from select cd_gender from customer_demographics_orc where cd_gender = 'male' ;
 
-*** WARNING[6008] Statistics for column (CD_GENDER) from table HIVE.HIVE.CUSTOMER_DEMOGRAPHICS_ORC were not available. As a result, the access path chosen might not be the best possible.
-
 --- SQL command prepared.
 >>select num_hits, num_params from table(querycacheentries('user', 'local')) 
 +>where substring(text, 1, 16) = 'select cd_gender' order by 1,2;
@@ -948,8 +957,6 @@ NUM_HITS    NUM_PARAMS
 --- 1 row(s) selected.
 >>
 >>prepare xx from select cd_gender from customer_demographics_orc where cd_gender = 'female' ;
-
-*** WARNING[6008] Statistics for column (CD_GENDER) from table HIVE.HIVE.CUSTOMER_DEMOGRAPHICS_ORC were not available. As a result, the access path chosen might not be the best possible.
 
 --- SQL command prepared.
 >>select num_hits, num_params from table(querycacheentries('user', 'local')) 
@@ -977,7 +984,7 @@ NUM_HITS    NUM_PARAMS
 >>invoke hive.hive.store_sales_orc;
 
 -- Definition of hive table STORE_SALES_ORC
--- Definition current  Wed Apr 27 02:45:27 2016
+-- Definition current  Sun Jun  5 05:51:03 2016
 
   (
     SS_SOLD_DATE_SK                  INT
@@ -1014,17 +1021,15 @@ NUM_HITS    NUM_PARAMS
 --- SQL operation complete.
 >>prepare s from select * from store_sales_orc where ss_item_sk = 1;
 
-*** WARNING[6008] Statistics for column (SS_ITEM_SK) from table HIVE.HIVE.STORE_SALES_ORC were not available. As a result, the access path chosen might not be the best possible.
-
 --- SQL command prepared.
 >>explain s;
 
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212328485127242247
-ROWS_OUT ............. 1,698
-EST_TOTAL_COST ........... 1.21
+PLAN_ID .................. 212331865865080072
+ROWS_OUT ................ 20
+EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from store_sales_orc where ss_item_sk = 1;
 
 
@@ -1033,7 +1038,7 @@ ROOT ======================================  SEQ_NO 2        ONLY CHILD 1
 REQUESTS_IN .............. 1
 ROWS_OUT ................ 20
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 1.21
+EST_TOTAL_COST ........... 0.01
 DESCRIPTION
   max_card_est .......... 20
   fragment_id ............ 0
@@ -1055,6 +1060,7 @@ DESCRIPTION
   TRAF_ENABLE_ORC_FORMAT   ON
   HIST_ROWCOUNT_REQU  50,000
   HIVE_USE_EXT_TABLE_ATTR  ON
+  HIST_MISSING_STATS_WARN  0
   ORC_COLUMNS_PUSHDOWN ... ON
   ORC_PRED_PUSHDOWN ...... ON
   ORC_AGGR_PUSHDOWN ...... OFF
@@ -1088,8 +1094,8 @@ ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.STORE_SALES_ORC
 REQUESTS_IN .............. 1
 ROWS_OUT ................ 20
-EST_OPER_COST ............ 1.21
-EST_TOTAL_COST ........... 1.21
+EST_OPER_COST ............ 0.01
+EST_TOTAL_COST ........... 0.01
 DESCRIPTION
   max_card_est .......... 20
   fragment_id ............ 0
@@ -1101,23 +1107,26 @@ DESCRIPTION
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
   columns_retrieved ..... 27
+  probes ................. 1
+  rows_accessed .......... 1
   orc_pred_pushdown ...... yes
   orc_search_arguments ... and( HIVE.STORE_SALES_ORC.SS_ITEM_SK = cast(%(1)) )
   executor_predicates .... (HIVE.STORE_SALES_ORC.SS_ITEM_SK = %(1))
+  begin_key .............. (HIVE.STORE_SALES_ORC.SS_ITEM_SK = %(1))
+  end_key ................ (HIVE.STORE_SALES_ORC.SS_ITEM_SK = %(1))
 
 --- SQL operation complete.
 >>
 >>-- join with nested join
+>>cqd orc_njs 'on';
+
+--- SQL operation complete.
 >>control query shape nested_join(scan(path 'CUSTOMER_ORC'), 
 +>      scan(path 'STORE_SALES_ORC'));
 
 --- SQL operation complete.
 >>prepare s from select * from customer_orc, store_sales_orc 
 +>    where store_sales_orc.ss_item_sk = customer_orc.c_customer_sk;
-
-*** WARNING[6008] Statistics for column (C_CUSTOMER_SK) from table HIVE.HIVE.CUSTOMER_ORC were not available. As a result, the access path chosen might not be the best possible.
-
-*** WARNING[6008] Statistics for column (SS_ITEM_SK) from table HIVE.HIVE.STORE_SALES_ORC were not available. As a result, the access path chosen might not be the best possible.
 
 --- SQL command prepared.
 >>explain options 'f' s;
@@ -1136,9 +1145,9 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212328485127908119
+PLAN_ID .................. 212331865867170530
 ROWS_OUT ......... 2,880,401
-EST_TOTAL_COST ........... 1.77
+EST_TOTAL_COST ........... 0.56
 STATEMENT ................ select *
                            from customer_orc, store_sales_orc
                            where store_sales_orc.ss_item_sk =
@@ -1151,7 +1160,7 @@ ROOT ======================================  SEQ_NO 4        ONLY CHILD 3
 REQUESTS_IN .............. 1
 ROWS_OUT ......... 2,880,401
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 1.77
+EST_TOTAL_COST ........... 0.56
 DESCRIPTION
   max_card_est ........... 2.8804e+06
   fragment_id ............ 0
@@ -1173,10 +1182,12 @@ DESCRIPTION
   TRAF_ENABLE_ORC_FORMAT   ON
   HIST_ROWCOUNT_REQU  50,000
   HIVE_USE_EXT_TABLE_ATTR  ON
+  HIST_MISSING_STATS_WARN  0
   ORC_COLUMNS_PUSHDOWN ... ON
   ORC_PRED_PUSHDOWN ...... ON
   ORC_AGGR_PUSHDOWN ...... OFF
   SCHEMA ................. HIVE.HIVE
+  ORC_NJS ................ ON
   select_list ............ HIVE.CUSTOMER_ORC.C_CUSTOMER_SK,
                              HIVE.CUSTOMER_ORC.C_CUSTOMER_ID,
                              HIVE.CUSTOMER_ORC.C_CURRENT_CDEMO_SK,
@@ -1224,7 +1235,7 @@ NESTED_JOIN ===============================  SEQ_NO 3        CHILDREN 1, 2
 REQUESTS_IN .............. 1
 ROWS_OUT ......... 2,880,401
 EST_OPER_COST ............ 0.5
-EST_TOTAL_COST ........... 1.77
+EST_TOTAL_COST ........... 0.56
 DESCRIPTION
   max_card_est ........... 2.8804e+06
   fragment_id ............ 0
@@ -1238,8 +1249,8 @@ ORC_SCAN ==================================  SEQ_NO 2        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.STORE_SALES_ORC
 REQUESTS_IN ......... 99,997
 ROWS/REQUEST ............ 28.8
-EST_OPER_COST ............ 1.24
-EST_TOTAL_COST ........... 1.24
+EST_OPER_COST ............ 0.03
+EST_TOTAL_COST ........... 0.03
 DESCRIPTION
   max_card_est ........... 2.8804e+06
   fragment_id ............ 0
@@ -1251,10 +1262,19 @@ DESCRIPTION
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
   columns_retrieved ..... 27
+  probes ............ 99,997
+  successful_probes   99,997
+  unique_probes ...... 5,000
+  duplicated_succ_pr  94,997
+  rows_accessed .......... 1.99994e+06
   orc_pred_pushdown ...... yes
   orc_search_arguments ... and( HIVE.STORE_SALES_ORC.SS_ITEM_SK =
                              cast(HIVE.CUSTOMER_ORC.C_CUSTOMER_SK) )
   executor_predicates .... (HIVE.STORE_SALES_ORC.SS_ITEM_SK =
+                             HIVE.CUSTOMER_ORC.C_CUSTOMER_SK)
+  begin_key .............. (HIVE.STORE_SALES_ORC.SS_ITEM_SK =
+                             HIVE.CUSTOMER_ORC.C_CUSTOMER_SK)
+  end_key ................ (HIVE.STORE_SALES_ORC.SS_ITEM_SK =
                              HIVE.CUSTOMER_ORC.C_CUSTOMER_SK)
 
 
@@ -1269,16 +1289,57 @@ DESCRIPTION
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
-  scan_type .............. subset scan of table HIVE.HIVE.CUSTOMER_ORC
+  scan_type .............. full scan of table HIVE.HIVE.CUSTOMER_ORC
   object_type ............ Hive_Orc
   scan_direction ......... forward
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
   columns_retrieved ..... 22
+  probes ................. 1
+  rows_accessed ..... 99,997
   orc_pred_pushdown ...... yes
   orc_search_arguments ... and( not( HIVE.CUSTOMER_ORC.C_CUSTOMER_SK is null )
                              )
   executor_predicates .... HIVE.CUSTOMER_ORC.C_CUSTOMER_SK is not null
+  begin_key .............. (HIVE.CUSTOMER_ORC.C_CUSTOMER_SK = <min>),
+                             (HIVE.CUSTOMER_ORC.C_CUSTOMER_ID = '<min>'),
+                             (HIVE.CUSTOMER_ORC.C_CURRENT_CDEMO_SK = <min>),
+                             (HIVE.CUSTOMER_ORC.C_CURRENT_HDEMO_SK = <min>),
+                             (HIVE.CUSTOMER_ORC.C_CURRENT_ADDR_SK = <min>),
+                             (HIVE.CUSTOMER_ORC.C_FIRST_SHIPTO_DATE_SK =
+                             <min>), (HIVE.CUSTOMER_ORC.C_FIRST_SALES_DATE_SK =
+                             <min>), (HIVE.CUSTOMER_ORC.C_SALUTATION =
+                             '<min>'), (HIVE.CUSTOMER_ORC.C_FIRST_NAME =
+                             '<min>'), (HIVE.CUSTOMER_ORC.C_LAST_NAME =
+                             '<min>'), (HIVE.CUSTOMER_ORC.C_PREFERRED_CUST_FLAG
+                             = '<min>'), (HIVE.CUSTOMER_ORC.C_BIRTH_DAY =
+                             <min>), (HIVE.CUSTOMER_ORC.C_BIRTH_MONTH = <min>),
+                             (HIVE.CUSTOMER_ORC.C_BIRTH_YEAR = <min>),
+                             (HIVE.CUSTOMER_ORC.C_BIRTH_COUNTRY = '<min>'),
+                             (HIVE.CUSTOMER_ORC.C_LOGIN = '<min>'),
+                             (HIVE.CUSTOMER_ORC.C_EMAIL_ADDRESS = '<min>'),
+                             (HIVE.CUSTOMER_ORC.C_LAST_REVIEW_DATE = '<min>')
+  end_key ................ (HIVE.CUSTOMER_ORC.C_CUSTOMER_SK = <max>),
+                             (HIVE.CUSTOMER_ORC.C_CUSTOMER_ID = '<max>'),
+                             (HIVE.CUSTOMER_ORC.C_CURRENT_CDEMO_SK = <max>),
+                             (HIVE.CUSTOMER_ORC.C_CURRENT_HDEMO_SK = <max>),
+                             (HIVE.CUSTOMER_ORC.C_CURRENT_ADDR_SK = <max>),
+                             (HIVE.CUSTOMER_ORC.C_FIRST_SHIPTO_DATE_SK =
+                             <max>), (HIVE.CUSTOMER_ORC.C_FIRST_SALES_DATE_SK =
+                             <max>), (HIVE.CUSTOMER_ORC.C_SALUTATION =
+                             '<max>'), (HIVE.CUSTOMER_ORC.C_FIRST_NAME =
+                             '<max>'), (HIVE.CUSTOMER_ORC.C_LAST_NAME =
+                             '<max>'), (HIVE.CUSTOMER_ORC.C_PREFERRED_CUST_FLAG
+                             = '<max>'), (HIVE.CUSTOMER_ORC.C_BIRTH_DAY =
+                             <max>), (HIVE.CUSTOMER_ORC.C_BIRTH_MONTH = <max>),
+                             (HIVE.CUSTOMER_ORC.C_BIRTH_YEAR = <max>),
+                             (HIVE.CUSTOMER_ORC.C_BIRTH_COUNTRY = '<max>'),
+                             (HIVE.CUSTOMER_ORC.C_LOGIN = '<max>'),
+                             (HIVE.CUSTOMER_ORC.C_EMAIL_ADDRESS = '<max>'),
+                             (HIVE.CUSTOMER_ORC.C_LAST_REVIEW_DATE = '<max>')
+
+--- SQL operation complete.
+>>cqd orc_njs reset;
 
 --- SQL operation complete.
 >>
@@ -1311,7 +1372,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Wed Apr 27 02:45:29 2016
+-- Definition current  Sun Jun  5 05:51:10 2016
 
   (
     D_DATE_SK                        INT
@@ -1361,7 +1422,7 @@ DESCRIPTION
 >>showddl hive.hive.date_dim_orc;
 
 /* Hive DDL */
-CREATE TABLE DATE_DIM_ORC
+CREATE TABLE DEFAULT.DATE_DIM_ORC
   (
     D_DATE_SK                        int
   , D_DATE_ID                        string
@@ -1397,7 +1458,7 @@ CREATE TABLE DATE_DIM_ORC
 
 /* Trafodion DDL */
 
-CREATE EXTERNAL TABLE DATE_DIM_ORC
+CREATE EXTERNAL TABLE HIVE.HIVE.DATE_DIM_ORC
   (
     D_DATE_SK                        INT DEFAULT NULL
   , D_DATE_ID                        VARCHAR(100 BYTES) CHARACTER SET UTF8
@@ -1446,16 +1507,14 @@ CREATE EXTERNAL TABLE DATE_DIM_ORC
 --- SQL operation complete.
 >>prepare s from select * from hive.hive.date_dim_orc where d_date = date '2016-01-27';
 
-*** WARNING[6008] Statistics for column (D_DATE) from table HIVE.HIVE.DATE_DIM_ORC were not available. As a result, the access path chosen might not be the best possible.
-
 --- SQL command prepared.
 >>explain s;
 
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212328485131173471
-ROWS_OUT ............... 271
+PLAN_ID .................. 212331865873112657
+ROWS_OUT ................ 20
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
                            from hive.hive.date_dim_orc
@@ -1489,6 +1548,7 @@ DESCRIPTION
   TRAF_ENABLE_ORC_FORMAT   ON
   HIST_ROWCOUNT_REQU  50,000
   HIVE_USE_EXT_TABLE_ATTR  ON
+  HIST_MISSING_STATS_WARN  0
   ORC_COLUMNS_PUSHDOWN ... ON
   ORC_PRED_PUSHDOWN ...... ON
   ORC_AGGR_PUSHDOWN ...... OFF
@@ -1539,10 +1599,14 @@ DESCRIPTION
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
   columns_retrieved ..... 32
+  probes ................. 1
+  rows_accessed .......... 1
   orc_pred_pushdown ...... yes
   orc_search_arguments ... and( HIVE.DATE_DIM_ORC.D_DATE = cast(%(2016-01-27))
                              )
   executor_predicates .... (HIVE.DATE_DIM_ORC.D_DATE = %(2016-01-27))
+  begin_key .............. (HIVE.DATE_DIM_ORC.D_DATE = %(2016-01-27))
+  end_key ................ (HIVE.DATE_DIM_ORC.D_DATE = %(2016-01-27))
 
 --- SQL operation complete.
 >>
@@ -1557,7 +1621,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Wed Apr 27 02:45:36 2016
+-- Definition current  Sun Jun  5 05:51:19 2016
 
   (
     D_DATE_SK                        INT
@@ -1607,7 +1671,7 @@ DESCRIPTION
 >>showddl hive.hive.date_dim_orc;
 
 /* Hive DDL */
-CREATE TABLE DATE_DIM_ORC
+CREATE TABLE DEFAULT.DATE_DIM_ORC
   (
     D_DATE_SK                        int
   , D_DATE_ID                        string
@@ -1643,7 +1707,7 @@ CREATE TABLE DATE_DIM_ORC
 
 /* Trafodion DDL */
 
-CREATE EXTERNAL TABLE DATE_DIM_ORC
+CREATE EXTERNAL TABLE HIVE.HIVE.DATE_DIM_ORC
   (
     D_DATE_SK                        INT DEFAULT NULL
   , D_DATE_ID                        VARCHAR(100 BYTES) CHARACTER SET UTF8
@@ -1692,16 +1756,14 @@ CREATE EXTERNAL TABLE DATE_DIM_ORC
 --- SQL operation complete.
 >>prepare s from select * from hive.hive.date_dim_orc where d_date = date '2016-01-27';
 
-*** WARNING[6008] Statistics for column (D_DATE) from table HIVE.HIVE.DATE_DIM_ORC were not available. As a result, the access path chosen might not be the best possible.
-
 --- SQL command prepared.
 >>explain s;
 
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212328485137674831
-ROWS_OUT ............... 271
+PLAN_ID .................. 212331865881732393
+ROWS_OUT ................ 20
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
                            from hive.hive.date_dim_orc
@@ -1735,6 +1797,7 @@ DESCRIPTION
   TRAF_ENABLE_ORC_FORMAT   ON
   HIST_ROWCOUNT_REQU  50,000
   HIVE_USE_EXT_TABLE_ATTR  ON
+  HIST_MISSING_STATS_WARN  0
   ORC_COLUMNS_PUSHDOWN ... ON
   ORC_PRED_PUSHDOWN ...... ON
   ORC_AGGR_PUSHDOWN ...... OFF
@@ -1785,10 +1848,14 @@ DESCRIPTION
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
   columns_retrieved ..... 32
+  probes ................. 1
+  rows_accessed .......... 1
   orc_pred_pushdown ...... yes
   orc_search_arguments ... and( HIVE.DATE_DIM_ORC.D_DATE = cast(%(2016-01-27))
                              )
   executor_predicates .... (HIVE.DATE_DIM_ORC.D_DATE = %(2016-01-27))
+  begin_key .............. (HIVE.DATE_DIM_ORC.D_DATE = %(2016-01-27))
+  end_key ................ (HIVE.DATE_DIM_ORC.D_DATE = %(2016-01-27))
 
 --- SQL operation complete.
 >>
@@ -1807,13 +1874,6 @@ DESCRIPTION
 
 --- SQL operation failed with errors.
 >>
->>-- column d_date_sk has incompatible type
->>create external table date_dim_orc 
-+>  (d_date_sk date)
-+>  for hive.hive.date_dim_orc;
-
---- SQL operation complete.
->>
 >>-- upsert/insert/del/update not supported on orc
 >>prepare s from delete from hive.hive.store2_sales_orc;
 
@@ -1823,19 +1883,19 @@ DESCRIPTION
 
 >>prepare s from upsert into hive.hive.store2_sales_orc values (1);
 
-*** ERROR[4223] Upsert/Insert/Update/Delete on ORC table is not supported in this software version.
+*** ERROR[4023] The degree of each row value constructor (1) must equal the degree of the target table column list (23).
 
 *** ERROR[8822] The statement was not prepared.
 
 >>prepare s from upsert using load into hive.hive.store2_sales_orc values (1);
 
-*** ERROR[4223] Upsert/Insert/Update/Delete on ORC table is not supported in this software version.
+*** ERROR[4023] The degree of each row value constructor (1) must equal the degree of the target table column list (23).
 
 *** ERROR[8822] The statement was not prepared.
 
 >>prepare s from insert into hive.hive.store2_sales_orc values (1);
 
-*** ERROR[4223] Upsert/Insert/Update/Delete on ORC table is not supported in this software version.
+*** ERROR[4023] The degree of each row value constructor (1) must equal the degree of the target table column list (23).
 
 *** ERROR[8822] The statement was not prepared.
 
@@ -1867,16 +1927,6 @@ DESCRIPTION
 +>hive.hive.time_dim
 +> where ss_sold_date_sk = d_date_sk and
 +>       ss_sold_date_sk = t_time_sk and d_year = 2001 and t_hour = 10 ;
-
-*** WARNING[6008] Statistics for column (D_DATE_SK) from table HIVE.HIVE.DATE_DIM were not available. As a result, the access path chosen might not be the best possible.
-
-*** WARNING[6008] Statistics for column (D_YEAR) from table HIVE.HIVE.DATE_DIM were not available. As a result, the access path chosen might not be the best possible.
-
-*** WARNING[6008] Statistics for column (T_TIME_SK) from table HIVE.HIVE.TIME_DIM were not available. As a result, the access path chosen might not be the best possible.
-
-*** WARNING[6008] Statistics for column (T_HOUR) from table HIVE.HIVE.TIME_DIM were not available. As a result, the access path chosen might not be the best possible.
-
-*** WARNING[6008] Statistics for column (SS_SOLD_DATE_SK) from table HIVE.HIVE.STORE2_SALES_ORC were not available. As a result, the access path chosen might not be the best possible.
 
 --- SQL command prepared.
 >>
@@ -1931,12 +1981,6 @@ orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK is null ) 
 +>    where ss_sold_date_sk = c_customer_sk
 +>   and c_first_sales_date_sk = 4;
 
-*** WARNING[6008] Statistics for column (C_CUSTOMER_SK) from table HIVE.HIVE.CUSTOMER_ORC were not available. As a result, the access path chosen might not be the best possible.
-
-*** WARNING[6008] Statistics for column (C_FIRST_SALES_DATE_SK) from table HIVE.HIVE.CUSTOMER_ORC were not available. As a result, the access path chosen might not be the best possible.
-
-*** WARNING[6008] Statistics for column (SS_SOLD_DATE_SK) from table HIVE.HIVE.STORE_SALES_SORTED_ORC were not available. As a result, the access path chosen might not be the best possible.
-
 --- SQL command prepared.
 >>
 >>explain xx;
@@ -1944,9 +1988,9 @@ orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK is null ) 
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-PLAN_ID .................. 212328485148035000
+PLAN_ID .................. 212331865906785902
 ROWS_OUT ................. 1
-EST_TOTAL_COST ........... 1.12
+EST_TOTAL_COST ........... 0.05
 STATEMENT ................ select count(*)
                            from hive.hive.customer_orc,
                              hive.hive.store_sales_sorted_orc
@@ -1959,7 +2003,7 @@ ROOT ======================================  SEQ_NO 7        ONLY CHILD 6
 REQUESTS_IN .............. 1
 ROWS_OUT ................. 1
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 1.12
+EST_TOTAL_COST ........... 0.05
 DESCRIPTION
   max_card_est ........... 1
   fragment_id ............ 0
@@ -1982,6 +2026,7 @@ DESCRIPTION
   TRAF_ENABLE_ORC_FORMAT   ON
   HIST_ROWCOUNT_REQU  50,000
   HIVE_USE_EXT_TABLE_ATTR  ON
+  HIST_MISSING_STATS_WARN  0
   ORC_COLUMNS_PUSHDOWN ... ON
   ORC_AGGR_PUSHDOWN ...... OFF
   SCHEMA ................. TRAFODION.SCH
@@ -1998,7 +2043,7 @@ SORT_PARTIAL_AGGR_ROOT ====================  SEQ_NO 6        ONLY CHILD 5
 REQUESTS_IN .............. 1
 ROWS_OUT ................. 1
 EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 1.12
+EST_TOTAL_COST ........... 0.05
 DESCRIPTION
   max_card_est ........... 1
   fragment_id ............ 0
@@ -2011,7 +2056,7 @@ ESP_EXCHANGE ==============================  SEQ_NO 5        ONLY CHILD 4
 REQUESTS_IN .............. 1
 ROWS_OUT ................. 1
 EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 1.12
+EST_TOTAL_COST ........... 0.05
 DESCRIPTION
   max_card_est ........... 1
   fragment_id ............ 2
@@ -2030,7 +2075,7 @@ SORT_PARTIAL_AGGR_LEAF ====================  SEQ_NO 4        ONLY CHILD 3
 REQUESTS_IN .............. 1
 ROWS_OUT ................. 1
 EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 1.12
+EST_TOTAL_COST ........... 0.05
 DESCRIPTION
   max_card_est ........... 1
   fragment_id ............ 2
@@ -2043,7 +2088,7 @@ NESTED_JOIN ===============================  SEQ_NO 3        CHILDREN 1, 2
 REQUESTS_IN .............. 1
 ROWS_OUT ......... 2,880,394
 EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 1.12
+EST_TOTAL_COST ........... 0.04
 DESCRIPTION
   max_card_est ........... 2.88039e+06
   fragment_id ............ 2
@@ -2058,8 +2103,8 @@ ORC_SCAN ==================================  SEQ_NO 2        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.STORE_SALES_SORTED_ORC
 REQUESTS_IN ............ 317
 ROWS/REQUEST ......... 9,086.42
-EST_OPER_COST ............ 1.08
-EST_TOTAL_COST ........... 1.08
+EST_OPER_COST ............ 0.03
+EST_TOTAL_COST ........... 0.03
 DESCRIPTION
   max_card_est ........... 2.88039e+06
   fragment_id ............ 2
@@ -2078,16 +2123,8 @@ DESCRIPTION
   rows_accessed ...... 6,340
   orc_pred_pushdown ...... yes
   orc_search_arguments ... and( HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK =
-                             cast(HIVE.CUSTOMER_ORC.C_CUSTOMER_SK) not(
-                             HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK
-                             <cast(HIVE.CUSTOMER_ORC.C_CUSTOMER_SK) )
-                             HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK <=
                              cast(HIVE.CUSTOMER_ORC.C_CUSTOMER_SK) )
   executor_predicates .... (HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK =
-                             HIVE.CUSTOMER_ORC.C_CUSTOMER_SK) and
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK >=
-                             HIVE.CUSTOMER_ORC.C_CUSTOMER_SK) and
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK <=
                              HIVE.CUSTOMER_ORC.C_CUSTOMER_SK)
   part_key_predicates .... (HIVE.HIVE.CUSTOMER_ORC.C_CUSTOMER_SK =
                              SS_SOLD_DATE_SK)
@@ -2153,8 +2190,8 @@ ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.CUSTOMER_ORC
 REQUESTS_IN .............. 1
 ROWS_OUT ............... 317
-EST_OPER_COST ............ 0.03
-EST_TOTAL_COST ........... 0.03
+EST_OPER_COST ............ 0.01
+EST_TOTAL_COST ........... 0.01
 DESCRIPTION
   max_card_est ...... 94,998.1
   fragment_id ............ 2
@@ -2166,12 +2203,51 @@ DESCRIPTION
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
   columns_retrieved ..... 22
+  probes ................. 1
+  rows_accessed ..... 99,997
   orc_pred_pushdown ...... yes
   orc_search_arguments ... and( HIVE.CUSTOMER_ORC.C_FIRST_SALES_DATE_SK =
                              cast(%(4)) not( HIVE.CUSTOMER_ORC.C_CUSTOMER_SK is
                              null ) )
   executor_predicates .... (HIVE.CUSTOMER_ORC.C_FIRST_SALES_DATE_SK = %(4)) and
                              HIVE.CUSTOMER_ORC.C_CUSTOMER_SK is not null
+  part_key_predicates .... (C_FIRST_SALES_DATE_SK = %(4))
+  begin_key .............. (HIVE.CUSTOMER_ORC.C_CUSTOMER_SK = <min>),
+                             (HIVE.CUSTOMER_ORC.C_CUSTOMER_ID = '<min>'),
+                             (HIVE.CUSTOMER_ORC.C_CURRENT_CDEMO_SK = <min>),
+                             (HIVE.CUSTOMER_ORC.C_CURRENT_HDEMO_SK = <min>),
+                             (HIVE.CUSTOMER_ORC.C_CURRENT_ADDR_SK = <min>),
+                             (HIVE.CUSTOMER_ORC.C_FIRST_SHIPTO_DATE_SK =
+                             <min>), (HIVE.CUSTOMER_ORC.C_FIRST_SALES_DATE_SK =
+                             %(4)), (HIVE.CUSTOMER_ORC.C_SALUTATION = '<min>'),
+                             (HIVE.CUSTOMER_ORC.C_FIRST_NAME = '<min>'),
+                             (HIVE.CUSTOMER_ORC.C_LAST_NAME = '<min>'),
+                             (HIVE.CUSTOMER_ORC.C_PREFERRED_CUST_FLAG =
+                             '<min>'), (HIVE.CUSTOMER_ORC.C_BIRTH_DAY = <min>),
+                             (HIVE.CUSTOMER_ORC.C_BIRTH_MONTH = <min>),
+                             (HIVE.CUSTOMER_ORC.C_BIRTH_YEAR = <min>),
+                             (HIVE.CUSTOMER_ORC.C_BIRTH_COUNTRY = '<min>'),
+                             (HIVE.CUSTOMER_ORC.C_LOGIN = '<min>'),
+                             (HIVE.CUSTOMER_ORC.C_EMAIL_ADDRESS = '<min>'),
+                             (HIVE.CUSTOMER_ORC.C_LAST_REVIEW_DATE = '<min>')
+  end_key ................ (HIVE.CUSTOMER_ORC.C_CUSTOMER_SK = <max>),
+                             (HIVE.CUSTOMER_ORC.C_CUSTOMER_ID = '<max>'),
+                             (HIVE.CUSTOMER_ORC.C_CURRENT_CDEMO_SK = <max>),
+                             (HIVE.CUSTOMER_ORC.C_CURRENT_HDEMO_SK = <max>),
+                             (HIVE.CUSTOMER_ORC.C_CURRENT_ADDR_SK = <max>),
+                             (HIVE.CUSTOMER_ORC.C_FIRST_SHIPTO_DATE_SK =
+                             <max>), (HIVE.CUSTOMER_ORC.C_FIRST_SALES_DATE_SK =
+                             %(4)), (HIVE.CUSTOMER_ORC.C_SALUTATION = '<max>'),
+                             (HIVE.CUSTOMER_ORC.C_FIRST_NAME = '<max>'),
+                             (HIVE.CUSTOMER_ORC.C_LAST_NAME = '<max>'),
+                             (HIVE.CUSTOMER_ORC.C_PREFERRED_CUST_FLAG =
+                             '<max>'), (HIVE.CUSTOMER_ORC.C_BIRTH_DAY = <max>),
+                             (HIVE.CUSTOMER_ORC.C_BIRTH_MONTH = <max>),
+                             (HIVE.CUSTOMER_ORC.C_BIRTH_YEAR = <max>),
+                             (HIVE.CUSTOMER_ORC.C_BIRTH_COUNTRY = '<max>'),
+                             (HIVE.CUSTOMER_ORC.C_LOGIN = '<max>'),
+                             (HIVE.CUSTOMER_ORC.C_EMAIL_ADDRESS = '<max>'),
+                             (HIVE.CUSTOMER_ORC.C_LAST_REVIEW_DATE = '<max>')
 
 --- SQL operation complete.
 >>explain options 'f' xx;
@@ -2237,8 +2313,6 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 +>ss_sold_date_sk >
 +>(select count(*) from hive.hive.store2_sales_orc);
 
-*** WARNING[6008] Statistics for column (SS_SOLD_DATE_SK) from table HIVE.HIVE.STORE2_SALES_ORC were not available. As a result, the access path chosen might not be the best possible.
-
 --- SQL command prepared.
 >>
 >>explain options 'f' xx;
@@ -2247,8 +2321,8 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ---- ---- ---- --------------------  --------  --------------------  ---------
 
 3    .    4    root                                                  9.60E+005
-1    2    3    nested_join                                           9.60E+005
-.    .    2    orc_scan                        STORE2_SALES_ORC      9.60E+005
+2    1    3    hybrid_hash_join                                      9.60E+005
+.    .    2    orc_scan                        STORE2_SALES_ORC      2.88E+006
 .    .    1    orc_aggr                                              1.00E+000
 
 --- SQL operation complete.

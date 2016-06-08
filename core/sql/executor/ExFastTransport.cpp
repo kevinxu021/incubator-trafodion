@@ -48,7 +48,8 @@
 #include <pthread.h>
 #include "ComSysUtils.h"
 #include "SequenceFileReader.h" 
-#include  "cli_stdh.h"
+#include "OrcFileWriter.h"
+#include "cli_stdh.h"
 #include "HBaseClient_JNI.h"
 
 
@@ -89,6 +90,7 @@ ExFastExtractTcb::ExFastExtractTcb(
   , totalNumBuffers_(0)
   , totalNumOpens_(0)
   , lastEvicted_(-1)
+  , modTS_(-1)
 {
   
   ex_globals *stmtGlobals = getGlobals();
@@ -430,6 +432,7 @@ ExHdfsFastExtractPartition::ExHdfsFastExtractPartition(CollHeap *h)
   int numElements = sizeof(bufferPool_)/sizeof(bufferPool_[0]);
 
   sequenceFileWriter_ = NULL;
+  orcFileWriter_ = NULL;
   lobInterfaceCreated_ = FALSE;
   for (int i=0; i<numElements; i++)
     bufferPool_[i] = NULL;
@@ -493,6 +496,16 @@ Lng32 ExHdfsFastExtractTcb::lobInterfaceCreate(const char *fileName)
       0 //bloclSize --0 -->use default
       );
 
+}
+
+Lng32 ExHdfsFastExtractTcb::lobInterfaceDataModCheck()
+{
+  return ExpLOBinterfaceDataModCheck(lobGlob_,
+                                     (char *) myTdb().getTargetName(),
+                                     hdfsHost_,
+                                     hdfsPort_,
+                                     myTdb().getModTSforDir(),
+                                     0);
 }
 
 
@@ -605,23 +618,24 @@ Int32 ExHdfsFastExtractTcb::fixup()
 
   ex_tcb::fixup();
 
-
   if(!myTdb().getSkipWritingToFiles() &&
      !myTdb().getBypassLibhdfs())
 
     ExpLOBinterfaceInit
       (lobGlob_, getGlobals()->getDefaultHeap(),TRUE);
 
+  modTS_ = myTdb().getModTSforDir();
 
   return 0;
 }
 
 void ExHdfsFastExtractTcb::convertSQRowToString(ULng32 nullLen,
-                            ULng32 recSepLen,
-                            ULng32 delimLen,
-                            tupp_descriptor* dataDesc,
-                            char* targetData,
-                            NABoolean & convError) {
+                                                ULng32 recSepLen,
+                                                ULng32 delimLen,
+                                                tupp_descriptor* dataDesc,
+                                                char* targetData,
+                                                NABoolean orcRow,
+                                                NABoolean & convError) {
   char* childRow = dataDesc->getTupleAddress();
   ULng32 childRowLen = dataDesc->getAllocatedSize();
   UInt32 vcActualLen = 0;
@@ -633,23 +647,24 @@ void ExHdfsFastExtractTcb::convertSQRowToString(ULng32 nullLen,
     UInt32 childColLen = 0;
     UInt32 maxTargetColLen = attr2->getLength();
 
-    //format is aligned format--
+    //source format is aligned format--
     //----------
-    // field is varchar
-    if (attr->getVCIndicatorLength() > 0) {
+    if (attr->getVCIndicatorLength() > 0) { // source is varchar
       childColData = childRow + *((UInt32*) (childRow + attr->getVoaOffset()));
       childColLen = attr->getLength(childColData);
       childColData += attr->getVCIndicatorLength();
     } else {              //source is fixed length
       childColData = childRow + attr->getOffset();
       childColLen = attr->getLength();
-      if ((attr->getCharSet() == CharInfo::ISO88591
-          || attr->getCharSet() == CharInfo::UTF8) && childColLen > 0) {
+      if ((DFS2REC::isAnyCharacter(attr->getDatatype())) &&
+          ((attr->getCharSet() == CharInfo::ISO88591
+            || attr->getCharSet() == CharInfo::UTF8) && childColLen > 0)) {
         // trim trailing blanks
         while (childColLen > 0 && childColData[childColLen - 1] == ' ') {
           childColLen--;
         }
-      } else if (attr->getCharSet() == CharInfo::UCS2 && childColLen > 1) {
+      } else if ((DFS2REC::isAnyCharacter(attr->getDatatype())) &&
+                 (attr->getCharSet() == CharInfo::UCS2 && childColLen > 1)) {
         ex_assert(childColLen % 2 == 0, "invalid ucs2");
         NAWchar* wChildColData = (NAWchar*) childColData;
         Int32 wChildColLen = childColLen / 2;
@@ -660,21 +675,50 @@ void ExHdfsFastExtractTcb::convertSQRowToString(ULng32 nullLen,
       }
     }
 
-    if (attr->getNullFlag()
-        && ExpAlignedFormat::isNullValue(childRow + attr->getNullIndOffset(),
-            attr->getNullBitIndex())) {
-      if ( !getEmptyNullString()) // includes hive null which is empty string
-      {
-        memcpy(targetData, myTdb().getNullString(), nullLen);
+    // ORC nullable tgt have the format: 2-bytes nullval followed by data.
+    // If src is not nullable and src value is not null, then nullval contains 
+    // zero. Otherwise it contains -1.
+    short nullVal = 0;
+    if (orcRow) {
+      nullLen = sizeof(short);
+      Attributes * tgtAttr = myTdb().getTgtValsAttr(i);
+
+      if (tgtAttr->getNullFlag()) {
+        if (attr->getNullFlag() 
+            && ExpAlignedFormat::isNullValue(
+                 childRow + attr->getNullIndOffset(),
+                 attr->getNullBitIndex()))
+          nullVal = -1;
+        
+        memcpy(targetData, (char*)&nullVal, nullLen);
         targetData += nullLen;
-      }
+        currPartn_->currBuffer_->bytesLeft_ -= nullLen;
+      } // tgt nullable
+    } // orcRow 
+    else if (attr->getNullFlag()
+             && ExpAlignedFormat::isNullValue(
+                  childRow + attr->getNullIndOffset(),
+                  attr->getNullBitIndex())) {
+      if ( !getEmptyNullString()) // includes hive null which is empty string
+        {
+          memcpy(targetData, myTdb().getNullString(), nullLen);
+          targetData += nullLen;
+        }
       currPartn_->currBuffer_->bytesLeft_ -= nullLen;
-    } else {
+      nullVal = -1;
+    } // not orcRow
+    
+    if (! nullVal) {
       switch ((conv_case_index) sourceFieldsConvIndex_[i]) {
       case CONV_ASCII_V_V:
       case CONV_ASCII_F_V:
       case CONV_UNICODE_V_V:
       case CONV_UNICODE_F_V: {
+        if (orcRow) {
+          memcpy(targetData, (char*)&childColLen, sizeof(childColLen));
+          targetData += sizeof(childColLen);
+          currPartn_->currBuffer_->bytesLeft_ -= sizeof(childColLen);
+        }
         if (childColLen > 0) {
           memcpy(targetData, childColData, childColLen);
           targetData += childColLen;
@@ -684,6 +728,14 @@ void ExHdfsFastExtractTcb::convertSQRowToString(ULng32 nullLen,
         break;
 
       default:
+        char * targetLenPtr = NULL;
+        if (orcRow) {
+          // skip len bytes. Length will be filled in after conversion.
+          targetLenPtr = targetData;
+          targetData += sizeof(Lng32);
+          currPartn_->currBuffer_->bytesLeft_ -= sizeof(Lng32);
+        }
+
         ex_expr::exp_return_type err = convDoIt(childColData, childColLen,
             attr->getDatatype(), attr->getPrecision(), attr->getScale(),
             targetData, attr2->getLength(), attr2->getDatatype(),
@@ -696,23 +748,34 @@ void ExHdfsFastExtractTcb::convertSQRowToString(ULng32 nullLen,
           // not exit loop -- we will log the errenous row later
           // do not cancel processing for this type of error???
         }
+
+        if (orcRow && targetLenPtr) {
+          memcpy(targetLenPtr, (char*)&vcActualLen, sizeof(Lng32));
+        }
+
         targetData += vcActualLen;
         currPartn_->currBuffer_->bytesLeft_ -= vcActualLen;
         break;
       }                      //switch
     }
-
-    if (i == myTdb().getChildTuple()->numAttrs() - 1) {
-      strncpy(targetData, myTdb().getRecordSeparator(), recSepLen);
-      targetData += recSepLen;
-      currPartn_->currBuffer_->bytesLeft_ -= recSepLen;
-    } else {
-      strncpy(targetData, myTdb().getDelimiter(), delimLen);
-      targetData += delimLen;
-      currPartn_->currBuffer_->bytesLeft_ -= delimLen;
-    }
-
+    
+    // add delimiters for non-orc rows
+    if (NOT orcRow) {
+      if (i == myTdb().getChildTuple()->numAttrs() - 1) {
+        strncpy(targetData, myTdb().getRecordSeparator(), recSepLen);
+        targetData += recSepLen;
+        currPartn_->currBuffer_->bytesLeft_ -= recSepLen;
+      } else {
+        strncpy(targetData, myTdb().getDelimiter(), delimLen);
+        targetData += delimLen;
+        currPartn_->currBuffer_->bytesLeft_ -= delimLen;
+      }
+    } // not orcRow
   }
+
+  if (orcRow)
+    currPartn_->currBuffer_->numRows_++;
+
 }
 
 static void replaceInString(NAString &s, const char *pat, const char *subst)
@@ -746,10 +809,51 @@ void ExHdfsFastExtractTcb::encodeHivePartitionString(NAString &partString)
   replaceInString(partString, ":", "%3A");
 }
 
+void ExHdfsFastExtractTcb::createORCcolInfoLists
+(TextVec &colNameList,
+ TextVec &colTypeInfoList)
+{
+  if (myTdb().orcColNameList())
+    {
+      ((Queue*)myTdb().orcColNameList())->position();
+      char * cn = NULL;
+      while ((cn = (char*)((Queue*)myTdb().orcColNameList())->getNext()) != NULL)
+        {
+          Text t(cn);
+          colNameList.push_back(t);
+        }
+    }
+
+  ExpTupleDesc * rowTD = myTdb().getTgtValsTuple();
+  for (Lng32 i = 0; i <  rowTD->numAttrs(); i++) // for each col
+    {
+      Attributes * attr = rowTD->getAttr(i);
+      Text typeInfo;
+      Lng32 temp = attr->getDatatype();
+      typeInfo.append((char*)&temp, sizeof(temp));
+      temp = attr->getPrecision();
+      typeInfo.append((char*)&temp, sizeof(temp));
+
+#ifdef __ignore
+      temp = attr->getLength();
+      typeInfo.append((char*)&temp, sizeof(temp));
+      temp = attr->getPrecision();
+      typeInfo.append((char*)&temp, sizeof(temp));
+      temp = attr->getScale();
+      typeInfo.append((char*)&temp, sizeof(temp));
+      short temp2 = (attr->getNullFlag() ? -1 : 0);
+      typeInfo.append((char*)&temp2, sizeof(temp2));
+#endif
+
+      colTypeInfoList.push_back(typeInfo);
+    }  
+}
+
 ExWorkProcRetcode ExHdfsFastExtractTcb::work()
 {
   Lng32 retcode = 0;
   SFW_RetCode sfwRetCode = SFW_OK;
+  OFW_RetCode ofwRetCode = OFW_OK;
   ULng32 recSepLen = strlen(myTdb().getRecordSeparator());
   ULng32 delimLen = strlen(myTdb().getDelimiter());
   ULng32 nullLen = strlen(myTdb().getNullString());
@@ -778,10 +882,58 @@ ExWorkProcRetcode ExHdfsFastExtractTcb::work()
     {
     case EXTRACT_NOT_STARTED:
     {
+      pstate.step_= EXTRACT_CHECK_MOD_TS;
+    }
+    break;
+
+    case EXTRACT_CHECK_MOD_TS:
+    {
+      if ((! myTdb().getTargetFile()) ||
+          (myTdb().getModTSforDir() == -1) ||
+          (myTdb().getOverwriteHiveTable()))
+        {
+          pstate.step_ = EXTRACT_INITIALIZE;
+          break;
+        }
+
+      memset (hdfsHost_, '\0', sizeof(hdfsHost_));
+      strncpy(hdfsHost_, myTdb().getHdfsHostName(), sizeof(hdfsHost_));
+      hdfsPort_ = myTdb().getHdfsPortNum();
+
+      retcode = lobInterfaceDataModCheck();
+      if (retcode < 0)
+      {
+        Lng32 cliError = 0;
+        
+        Lng32 intParam1 = -retcode;
+        ComDiagsArea * diagsArea = NULL;
+        ExRaiseSqlError(getHeap(), &diagsArea, 
+                        (ExeErrorCode)(EXE_ERROR_FROM_LOB_INTERFACE),
+                        NULL, &intParam1, 
+                        &cliError, 
+                        NULL, 
+                        "HDFS",
+                        (char*)"ExpLOBInterfaceDataModCheck",
+                        getLobErrStr(intParam1));
+        pentry_down->setDiagsArea(diagsArea);
+        pstate.step_ = EXTRACT_ERROR;
+        break;
+      }
+      
+      if (retcode == 1) // check failed
+      {
+        ComDiagsArea * diagsArea = NULL;
+        ExRaiseSqlError(getHeap(), &diagsArea, 
+                        (ExeErrorCode)(EXE_HIVE_DATA_MOD_CHECK_ERROR));
+        pentry_down->setDiagsArea(diagsArea);
+        pstate.step_ = EXTRACT_ERROR;
+        break;
+      }
+      
       pstate.step_= EXTRACT_INITIALIZE;
     }
-    //  no break here
-
+    break;
+    
     case EXTRACT_INITIALIZE:
     {
       pstate.processingStarted_ = FALSE;
@@ -1073,7 +1225,50 @@ ExWorkProcRetcode ExHdfsFastExtractTcb::work()
         } // allocate a new partition object
 
       // open the file for writing
-      if (isSequenceFile() || myTdb().getBypassLibhdfs())
+      if (isOrcFile())
+      {
+        if (!currPartn_->orcFileWriter_)
+        {
+          NAString fullHDFSName(currPartn_->targetLocationAndPart_);
+
+          currPartn_->orcFileWriter_ = new(heap_)
+            OrcFileWriter((NAHeap *) heap_);
+          ofwRetCode = currPartn_->orcFileWriter_->init();
+          if (ofwRetCode != OFW_OK)
+            {
+              createOrcFileError(ofwRetCode);
+              delete currPartn_->orcFileWriter_;
+              currPartn_->orcFileWriter_ = NULL;
+              pstate.step_ = EXTRACT_ERROR;
+              break;
+            }
+
+          // create col name and typeinfo lists and pass to open. 
+          // These are used during orc inserts.
+          TextVec colNameList;
+          TextVec colTypeInfoList;
+          createORCcolInfoLists(colNameList, colTypeInfoList);
+
+          fullHDFSName += "/";
+          fullHDFSName += currPartn_->fileName_;
+          ofwRetCode = currPartn_->orcFileWriter_->open
+            (
+                 fullHDFSName.data(),
+                 &colNameList, &colTypeInfoList
+             );
+
+          if (ofwRetCode != OFW_OK)
+            {
+              createOrcFileError(ofwRetCode);
+              delete currPartn_->orcFileWriter_;
+              currPartn_->orcFileWriter_ = NULL;
+              pstate.step_ = EXTRACT_ERROR;
+              break;
+            }
+          totalNumOpens_++;
+        }
+      }
+      else if (isSequenceFile() || myTdb().getBypassLibhdfs())
       {
         if (!currPartn_->sequenceFileWriter_ &&
             !myTdb().getSkipWritingToFiles())
@@ -1262,6 +1457,7 @@ ExWorkProcRetcode ExHdfsFastExtractTcb::work()
         currPartn_->currBuffer_ = currPartn_->bufferPool_[0];
         memset(currPartn_->currBuffer_->data_, '\0',currPartn_->currBuffer_->bufSize_);
         currPartn_->currBuffer_->bytesLeft_ = currPartn_->currBuffer_->bufSize_;
+        currPartn_->currBuffer_->numRows_ = 0;
       }
 
       currPartn_->recentlyUsed_ = TRUE;
@@ -1325,7 +1521,8 @@ ExWorkProcRetcode ExHdfsFastExtractTcb::work()
       }
       NABoolean convError = FALSE;
       convertSQRowToString(nullLen, recSepLen, delimLen, dataDesc,
-                           targetData, convError);
+                           targetData, isOrcFile(), convError);
+
       ///////////////////////////////
       pstate.matchCount_++;
       qChild_.up->removeHead();
@@ -1584,11 +1781,12 @@ NABoolean ExHdfsFastExtractTcb::isHdfsCompressed()
 {
   return myTdb().getHdfsCompressed();
 }
-
-
+NABoolean ExHdfsFastExtractTcb::isOrcFile()
+{
+  return myTdb().isOrcFile();
+}
 void ExHdfsFastExtractTcb::createSequenceFileError(Int32 sfwRetCode)
 {
-#ifndef __EID 
   ContextCli *currContext = GetCliGlobals()->currContext();
 
   ComDiagsArea * diagsArea = NULL;
@@ -1602,19 +1800,52 @@ void ExHdfsFastExtractTcb::createSequenceFileError(Int32 sfwRetCode)
   //ex_queue_entry *pentry_down = qParent_.down->getHeadEntry();
   //pentry_down->setDiagsArea(diagsArea);
   updateWorkATPDiagsArea(diagsArea);
-#endif
+}
+
+void ExHdfsFastExtractTcb::createOrcFileError(Int32 ofwRetCode)
+{
+  ContextCli *currContext = GetCliGlobals()->currContext();
+
+  ComDiagsArea * diagsArea = NULL;
+  char* errorMsg = 
+    currPartn_->orcFileWriter_->getErrorText((OFW_RetCode)ofwRetCode);
+  ExRaiseSqlError(getHeap(),
+                  &diagsArea,
+                  (ExeErrorCode)(8447),
+                  NULL, NULL, NULL, NULL,
+                  errorMsg,
+                  (char *)currContext->getJniErrorStr().data());
+  //ex_queue_entry *pentry_down = qParent_.down->getHeadEntry();
+  //pentry_down->setDiagsArea(diagsArea);
+  updateWorkATPDiagsArea(diagsArea);
 }
 
 int ExHdfsFastExtractTcb::sendPartition(ExHdfsFastExtractPartition *part,
                                         ExFastExtractStats *feStats)
 {
   SFW_RetCode sfwRetCode = SFW_OK;
+  OFW_RetCode ofwRetCode = OFW_OK;
   int result = 0;
   ssize_t bytesToWrite =
     part->currBuffer_->bufSize_ - part->currBuffer_->bytesLeft_;
 
   if (!myTdb().getSkipWritingToFiles())
-    if (isSequenceFile())
+    if (isOrcFile())
+    {
+      ofwRetCode = part->orcFileWriter_->insertRows(
+           part->currBuffer_->data_,
+           //           currPartn_->currBuffer_->bufSize_,
+           //           currPartn_->currBuffer_->numRows_,
+           part->currBuffer_->bufSize_,
+           part->currBuffer_->numRows_,
+           bytesToWrite);
+      if (ofwRetCode != OFW_OK)
+      {
+        createOrcFileError(ofwRetCode);
+        result = -1;
+      }
+    }
+    else if (isSequenceFile())
     {
       sfwRetCode = part->sequenceFileWriter_->writeBuffer(
            part->currBuffer_->data_,
@@ -1626,7 +1857,7 @@ int ExHdfsFastExtractTcb::sendPartition(ExHdfsFastExtractPartition *part,
         result = -1;
       }
     }
-    else  if (myTdb().getBypassLibhdfs())
+     else  if (myTdb().getBypassLibhdfs())
     {
       sfwRetCode = part->sequenceFileWriter_->hdfsWrite(
            part->currBuffer_->data_, bytesToWrite);
@@ -1669,8 +1900,23 @@ int ExHdfsFastExtractTcb::closePartition(ExHdfsFastExtractPartition *part)
 {
   int result = 0;
 
+  // close the orc file writer
+  if (part->orcFileWriter_)
+    {
+      OFW_RetCode ofwRetCode =
+        part->orcFileWriter_->close();
+      if (!errorOccurred_ && ofwRetCode != OFW_OK )
+        {
+          createOrcFileError(ofwRetCode);
+          result = ofwRetCode;
+        }
+
+      delete part->orcFileWriter_;
+      part->orcFileWriter_ = NULL;
+      totalNumOpens_--;
+    }
   // close the sequence file writer or LOB interface
-  if (part->sequenceFileWriter_)
+  else if (part->sequenceFileWriter_)
     {
       if (isSequenceFile())
         {

@@ -33,12 +33,14 @@
 //
 class ComTdbHdfsScan : public ComTdb
 {
+  friend class ExHdfsAccessTcb;
   friend class ExHdfsScanTcb;
   friend class ExHdfsScanPrivateState;
   friend class ExOrcScanTcb;
   friend class ExOrcScanPrivateState;
   friend class ExOrcFastAggrTcb;
   friend class ExOrcFastAggrPrivateState;
+  friend class ExOrcInsertTcb;
 
  protected:
   enum
@@ -131,6 +133,7 @@ class ComTdbHdfsScan : public ComTdb
   NABasicPtr errCountTable_;                                  // 160 - 167
   NABasicPtr loggingLocation_;                                // 168 - 175
   NABasicPtr errCountRowId_;                                  // 176 - 183
+
   // list of retrieved cols. Each entry is "class HdfsColInfo".
   QueuePtr hdfsColInfoList_;                                  // 184 - 191
   UInt16 origTuppIndex_;                                      // 192 - 193
@@ -145,8 +148,17 @@ class ComTdbHdfsScan : public ComTdb
   UInt32 numCompressionInfos_;                                // 224 - 227
   NAVersionedObjectPtrTempl<ComCompressionInfo>
                                       compressionInfos_;      // 228 - 235
-  char fillersComTdbHdfsScan1_[12];                           // 236 - 247
+  char fillersComTdbHdfsScan1_[4];                            // 236 - 239
 
+  // next 4 params are used to check if data under hdfsFileDir
+  // was modified after query was compiled.
+  NABasicPtr hdfsRootDir_;                                     // 240 - 247
+  Int64  modTSforDir_;                                         // 248 - 255
+  Lng32  numOfPartCols_;                                       // 256 - 259
+  QueuePtr hdfsDirsToCheck_;                                   // 260 - 267
+
+  char fillersComTdbHdfsScan2_[4];                             // 268 - 271
+    
 public:
   enum HDFSFileType
   {
@@ -203,9 +215,16 @@ public:
 		 Cardinality estimatedRowCount,
                  Int32  numBuffers,
                  UInt32  bufferSize,
-                 char * errCountTable,
-                 char * loggingLocation,
-                 char * errCountId
+                 char * errCountTable = NULL,
+                 char * loggingLocation = NULL,
+                 char * errCountId = NULL,
+
+                 // next 4 params are used to check if data under hdfsFileDir
+                 // was modified after query was compiled.
+                 char * hdfsRootDir  = NULL,
+                 Int64  modTSforDir   = -1,
+                 Lng32  numOfPartCols = -1,
+                 Queue * hdfsDirsToCheck = NULL
                  );
 
   ~ComTdbHdfsScan();
@@ -354,7 +373,8 @@ public:
   {
     return workCriDesc_->getTupleDescriptor(moveExprColsTuppIndex_);
   }
-  
+
+  Queue * hdfsDirsToCheck() { return hdfsDirsToCheck_; }
 };
 
 inline ComTdb * ComTdbHdfsScan::getChildTdb()
@@ -392,263 +412,6 @@ struct ComTdbHdfsVirtCols
   Int32 filler2;                       // 4116
   Int64 row_number_in_range;           // 4120
                                        // 4128 total length
-};
-
-class ComTdbOrcPPI : public NAVersionedObject
-{
-public:
-  ComTdbOrcPPI(OrcPushdownOperatorType type, char * colName,
-               Lng32 operAttrIndex)
-       :  NAVersionedObject(-1),
-          type_((short)type),
-          colName_(colName),
-          operAttrIndex_(operAttrIndex)
-  {}
-  
-  virtual unsigned char getClassVersionID()
-  {
-    return 1;
-  }
-  
-  virtual void populateImageVersionIDArray()
-  {
-    setImageVersionID(0,getClassVersionID());
-  }
-  
-  virtual short getClassSize() { return (short)sizeof(ComTdbOrcPPI); }
-  
-  virtual Long pack(void * space);
-  
-  virtual Lng32 unpack(void * base, void * reallocator);
-  
-  OrcPushdownOperatorType type() { return (OrcPushdownOperatorType)type_; }
-  char * colName() { return colName_; }
-  Lng32 operAttrIndex() { return operAttrIndex_; }
-  //  Queue * operands() { return operands_; }
-  //private:
-  Lng32 type_;
-  Lng32 operAttrIndex_;
-  NABasicPtr colName_;
-
-  //  QueuePtr operands_;
-};
-
-// ComTdbOrcScan
-class ComTdbOrcScan : public ComTdbHdfsScan
-{
-  friend class ExHdfsScanTcb;
-  friend class ExHdfsScanPrivateState;
-  friend class ExOrcScanTcb;
-  friend class ExOrcScanPrivateState;
-
-public:
-
-  // Constructor
-  ComTdbOrcScan(); // dummy constructor. Used by 'unpack' routines.
-  
-  ComTdbOrcScan
-  (
-       char * tableName,
-       short type,
-       ex_expr * select_pred,
-       ex_expr * move_expr,
-       ex_expr * convert_expr,
-       ex_expr * move_convert_expr,
-       ex_expr * part_elim_expr,
-       ex_expr * orcOperExpr,
-       UInt16 convertSkipListSize,
-       Int16 * convertSkipList,
-       char * hdfsHostName,
-       tPort  hdfsPort, 
-       Queue * hdfsFileInfoList,
-       Queue * hdfsFileRangeBeginList,
-       Queue * hdfsFileRangeNumList,
-       Queue * hdfsColInfoList,
-       Queue * orcAllColInfoList,
-       char recordDelimiter,
-       char columnDelimiter,
-       Int64 hdfsBufSize,
-       UInt32 rangeTailIOSize,
-       Int32 numPartCols,
-       Queue * tdbListOfOrcPPI,
-       Int64 hdfsSqlMaxRecLen,
-       Int64 outputRowLength,
-       Int64 asciiRowLen,
-       Int64 moveColsRowLen,
-       Int32 partColsRowLength,
-       Int32 virtColsRowLength,
-       Int64 orcOperLength,
-       const unsigned short tuppIndex,
-       const unsigned short asciiTuppIndex,
-       const unsigned short workAtpIndex,
-       const unsigned short moveColsTuppIndex,
-       const unsigned short partColsTuppIndex,
-       const unsigned short virtColsTuppIndex,
-       const unsigned short orcOperTuppIndex,
-       ex_cri_desc * work_cri_desc,
-       ex_cri_desc * given_cri_desc,
-       ex_cri_desc * returned_cri_desc,
-       queue_index down,
-       queue_index up,
-       Cardinality estimatedRowCount,
-       Int32  numBuffers,
-       UInt32  bufferSize,
-       char * errCountTable,
-       char * loggingLocation,
-       char * errCountId
-   );
-  
-  ~ComTdbOrcScan();
-
-  Long pack(void *);
-
-  Lng32 unpack(void *, void * reallocator);
- 
-  virtual const char *getNodeName() const { return "EX_ORC_SCAN"; };
-
-  virtual Int32 numExpressions() const 
-  { return ComTdbHdfsScan::numExpressions() + 1; }
-
-  virtual ex_expr* getExpressionNode(Int32 pos) {
-    if (pos < ComTdbHdfsScan::numExpressions())
-      return ComTdbHdfsScan::getExpressionNode(pos);
-    else
-      return orcOperExpr_;
-  }
-  
-  virtual const char * getExpressionName(Int32 pos) const {
-    if (pos < ComTdbHdfsScan::numExpressions())
-      return ComTdbHdfsScan::getExpressionName(pos);
-    else
-      return "orcOperExpr_";
-  }
-
-  virtual void displayContents(Space *space,ULng32 flag);
-
-  Queue* listOfOrcPPI() const { return listOfOrcPPI_; }
-  Queue* orcAllColInfoList() { return orcAllColInfoList_; }
-
-  void setVectorizedScan(NABoolean v)
-  {(v ? flags_ |= VECTORIZED_SCAN : flags_ &= ~VECTORIZED_SCAN); };
-  NABoolean vectorizedScan() { return (flags_ & VECTORIZED_SCAN) != 0; };
-
-private:
-  enum
-  {
-    VECTORIZED_SCAN= 0x0001
-  };
-
-  QueuePtr listOfOrcPPI_;
-
-  ExExprPtr orcOperExpr_; 
-
-  QueuePtr orcAllColInfoList_;
-
-  UInt16 orcOperTuppIndex_;  
-
-  UInt16 flags_;
-
-  Int32 orcOperLength_;
-};
-
-// ComTdbOrcFastAggr 
-class ComTdbOrcFastAggr : public ComTdbOrcScan
-{
-  friend class ExOrcFastAggrTcb;
-  friend class ExOrcFastAggrPrivateState;
-
-public:
-  enum OrcAggrType
-  {
-    UNKNOWN_       = 0,
-    COUNT_         = 1,
-    COUNT_NONULL_  = 2,
-    MIN_           = 3,
-    MAX_           = 4,
-    SUM_           = 5,
-    ORC_NV_LOWER_BOUND_ = 6,
-    ORC_NV_UPPER_BOUND_ = 7
-  };
-
-  // Constructor
-  ComTdbOrcFastAggr(); // dummy constructor. Used by 'unpack' routines.
-  
-  ComTdbOrcFastAggr(
-                char * tableName,
-                Queue * hdfsFileInfoList,
-                Queue * hdfsFileRangeBeginList,
-                Queue * hdfsFileRangeNumList,
-                Queue * listOfAggrTypes,
-                Queue * listOfAggrColInfo,
-                ex_expr * aggr_expr,
-                Int32 finalAggrRowLen,
-                const unsigned short finalAggrTuppIndex,
-                Int32 orcAggrRowLen,
-                const unsigned short orcAggrTuppIndex,  
-                ex_expr * having_expr,
-                ex_expr * proj_expr,
-                Int64 projRowLen,
-                const unsigned short projTuppIndex,
-                const unsigned short returnedTuppIndex,
-                ex_cri_desc * work_cri_desc,
-                ex_cri_desc * given_cri_desc,
-                ex_cri_desc * returned_cri_desc,
-                queue_index down,
-                queue_index up,
-                Int32  numBuffers,
-                UInt32  bufferSize,
-                Int32 numPartCols
-                );
-  
-  ~ComTdbOrcFastAggr();
-
-  Queue* getAggrTypeList() {return aggrTypeList_;}
-
-  virtual short getClassSize() { return (short)sizeof(ComTdbOrcFastAggr); }  
-
-  virtual const char *getNodeName() const { return "EX_ORC_FAST_AGGR"; };
-
-  virtual Int32 numExpressions() const 
-  { return (ComTdbHdfsScan::numExpressions() + 1); }
-
-  virtual ex_expr* getExpressionNode(Int32 pos) {
-    if (pos < ComTdbHdfsScan::numExpressions())
-      return ComTdbHdfsScan::getExpressionNode(pos);
-
-    if (pos ==  ComTdbHdfsScan::numExpressions())
-      return aggrExpr_;
-
-    return NULL;
-  }
-  
-  virtual const char * getExpressionName(Int32 pos) const {
-    if (pos < ComTdbHdfsScan::numExpressions())
-      return ComTdbHdfsScan::getExpressionName(pos);
-
-    if (pos ==  ComTdbHdfsScan::numExpressions())
-      return "aggrExpr_";
-
-    return NULL;
-  }
-
-  virtual void displayContents(Space *space,ULng32 flag);
- 
-  Long pack(void *);
-
-  Lng32 unpack(void *, void * reallocator);
-
- private:
-  QueuePtr aggrTypeList_;   
-
-  ExExprPtr aggrExpr_;
-
-  // max length of orc aggr row.
-  Int32 orcAggrRowLength_;
-  Int32 finalAggrRowLength_;
-
-  UInt16 orcAggrTuppIndex_;
-
-  char filler_[6];
 };
 
 #endif

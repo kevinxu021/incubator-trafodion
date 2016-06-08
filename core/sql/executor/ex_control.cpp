@@ -439,8 +439,20 @@ short ExControlTcb::work()
                       currContext->getSessionDefaults()->
                         setEspIdleTimeout(lvl);
                    }
-		  }
+                   else if (strcmp(value[1], "ONLINE_BACKUP_TIMEOUT") == 0)
+                   {
+                      int lvl = (int) strtoul(value[2], NULL, 10);
+                      currContext->getSessionDefaults()->
+                        setOnlineBackupTimeout(lvl);
+                   } 
+                   else if (strcmp(value[1], "COMPILER_IDLE_TIMEOUT") == 0)
+                   {
+                      int lvl = (int) strtoul(value[2], NULL, 10);
+                      currContext->getSessionDefaults()->
+                        setCompilerIdleTimeout(lvl);
+                   }
 	      }
+        }
   }
   getHeap()->deallocateMemory(data);
   
@@ -516,6 +528,7 @@ short ExSetSessionDefaultTcb::work()
       (strcmp(defaultName, "ESP_ASSIGN_TIME_WINDOW") != 0) &&
       (strcmp(defaultName, "ESP_STOP_IDLE_TIMEOUT") != 0) &&
       (strcmp(defaultName, "ESP_IDLE_TIMEOUT") != 0) &&
+      (strcmp(defaultName, "COMPILER_IDLE_TIMEOUT") != 0) &&
       (strcmp(defaultName, "ESP_INACTIVE_TIMEOUT") != 0) &&
       (strcmp(defaultName, "ESP_RELEASE_WORK_TIMEOUT") != 0) &&
       (strcmp(defaultName, "MAX_POLLING_INTERVAL") != 0) &&
@@ -674,6 +687,16 @@ short ExSetSessionDefaultTcb::work()
     {
       currContext->getSessionDefaults()
                  ->setEspIdleTimeout(defaultValueAsLong);
+    }
+  else if (strcmp(defaultName, "ONLINE_BACKUP_TIMEOUT") == 0)
+  {
+    currContext->getSessionDefaults()
+               ->setOnlineBackupTimeout(defaultValueAsLong);
+  }
+  else if (strcmp(defaultName, "COMPILER_IDLE_TIMEOUT") == 0)
+    {
+      currContext->getSessionDefaults()
+                 ->setCompilerIdleTimeout(defaultValueAsLong);
     }
   else if (strcmp(defaultName, "ESP_INACTIVE_TIMEOUT") == 0)
     {

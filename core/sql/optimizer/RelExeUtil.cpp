@@ -83,6 +83,7 @@
 #include "StmtDDLAlterTableAttribute.h"
 #include "ParDDLFileAttrsAlterTable.h"
 #include "StmtDDLAlterSchemaHDFSCache.h"
+#include "StmtDDLAlterLibrary.h"
 
 #include <cextdecs/cextdecs.h>
 #include "wstr.h"
@@ -3728,6 +3729,27 @@ RelExpr * ExeUtilGetQID::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
   return ExeUtilExpr::copyTopNode(result, outHeap);
 }
 
+//-----------------------------------------------------------------------
+//Member functions for class ExeUtilBackupRestore
+//-----------------------------------------------------------------------
+ExeUtilBackupRestore::ExeUtilBackupRestore(CollHeap *oHeap)
+: ExeUtilExpr(GET_QID_, CorrName("dummy"), 
+             NULL, NULL, NULL, CharInfo::UnknownCharSet, oHeap)
+{
+}
+
+RelExpr * ExeUtilBackupRestore::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
+{
+  ExeUtilBackupRestore *result;
+
+  if (derivedNode == NULL)
+    result = new (outHeap) ExeUtilBackupRestore();
+  else
+    result = (ExeUtilBackupRestore *) derivedNode;
+
+  return ExeUtilExpr::copyTopNode(result, outHeap);
+}
+
 // -----------------------------------------------------------------------
 // Member functions for class ExeUtilPopulateInMemStats
 // -----------------------------------------------------------------------
@@ -3910,6 +3932,7 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
   NABoolean alterColDatatype = FALSE;
   NABoolean alterAttr = FALSE;
   NABoolean alterColRename = FALSE;
+  NABoolean alterLibrary = FALSE;
   NABoolean externalTable = FALSE;
   NABoolean alterHdfsCache = FALSE;  
   NABoolean isAlterSchemaHDFSCache = FALSE;  
@@ -3948,11 +3971,36 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
     }
   else if(backup())
   {
-	  isHbase_ = TRUE;
+     if ((NOT IsAdvancedLevel()))
+     {
+       *CmpCommon::diags() << DgSqlCode(-4222)
+                           << DgString0("Backup");
+       bindWA->setErrStatus();
+       return this;
+     }
+     isHbase_ = TRUE;
   }
   else if(restore())
   {
-      isHbase_ = TRUE;
+    if ((NOT IsAdvancedLevel()))
+     {
+       *CmpCommon::diags() << DgSqlCode(-4222)
+                           << DgString0("Restore");
+       bindWA->setErrStatus();
+       return this;
+     }
+     isHbase_ = TRUE;
+  }
+  else if(unlockTraf())
+  {
+    if ((NOT IsAdvancedLevel()))
+     {
+       *CmpCommon::diags() << DgSqlCode(-4222)
+                           << DgString0("UnLock");
+       bindWA->setErrStatus();
+       return this;
+     }
+     isHbase_ = TRUE;
   }
   else if (purgedataHbase_)
   {
@@ -4335,6 +4383,14 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
       qualObjName_ = getExprNode()->castToStmtDDLNode()->
         castToStmtDDLDropLibrary()->getLibraryNameAsQualifiedName();
     }
+    else if (getExprNode()->castToStmtDDLNode()->castToStmtDDLAlterLibrary())
+    {
+      isAlter_ = TRUE;
+      isLibrary_ = TRUE;
+      alterLibrary = TRUE ;
+      qualObjName_ = getExprNode()->castToStmtDDLNode()->
+        castToStmtDDLAlterLibrary()->getLibraryNameAsQualifiedName();
+    }
     else if (getExprNode()->castToStmtDDLNode()->castToStmtDDLCreateRoutine())
     {
       isCreate_ = TRUE;
@@ -4369,7 +4425,7 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
           (isAlter_ && (alterAddCol || alterDropCol || alterDisableIndex || alterEnableIndex || 
 			alterAddConstr || alterDropConstr || alterRenameTable ||
                         alterIdentityCol || alterColDatatype || alterColRename ||
-                        alterHdfsCache ||
+                        alterHdfsCache || alterLibrary || 
                         alterHBaseOptions || alterAttr | otherAlters)))))
       {
 	if (NOT isNative_)

@@ -20,6 +20,7 @@ define([
 	var oDataTable = null;
 	var _this = null;
 	var schemaName = null;
+	var isPaused = false;
 	
 	var BREAD_CRUMB = '#database-crumb';
 	var ERROR_CONTAINER = '#db-objects-error-text',
@@ -36,6 +37,7 @@ define([
 	var schemaName = null;
 	var bCrumbsArray = [];
 	var pageStatus = {};
+	var refreshLibraries = false;
 	
 	var SchemaObjectsView = BaseView.extend({
 		template:  _.template(DatabaseT),
@@ -45,7 +47,7 @@ define([
 			routeArgs = args;
 			prevRouteArgs = args;
 			pageStatus = {};
-			
+			isPaused = false;
 			schemaName = routeArgs.schema;
 			
 			$(ERROR_CONTAINER).hide();
@@ -55,11 +57,15 @@ define([
 			$(CREATE_LIBRARY_BUTTON).on('click', this.createLibrary);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayObjectList);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
+			common.on(common.LIBRARY_CREATED_EVENT, this.libraryCreatedEvent);
+			common.on(common.LIBRARY_ALTERED_EVENT, this.libraryAlteredEvent);
+			common.on(common.LIBRARY_DROPPED_EVENT, this.libraryDroppedEvent);
+
 			_this.processRequest();
 		},
 		doResume: function(args){
 			routeArgs = args;
-			
+			isPaused = false;
 			$(ERROR_CONTAINER).hide();
 			$(OBJECT_LIST_CONTAINER).hide();
 			
@@ -67,6 +73,11 @@ define([
 				prevRouteArgs.type != routeArgs.type){
 				schemaName = routeArgs.schema;
 				_this.doReset();
+			}else{
+				if(routeArgs.type == 'libraries' && _this.refreshLibraries == true){
+					_this.doReset();
+					_this.refreshLibraries = false;
+				}
 			}
 			prevRouteArgs = args;
 			$(REFRESH_ACTION).on('click', this.doRefresh);
@@ -76,6 +87,7 @@ define([
 			_this.processRequest();
 		},
 		doPause: function(){
+			isPaused = true;
 			$(REFRESH_ACTION).off('click', this.doRefresh);
 			$(CREATE_LIBRARY_BUTTON).off('click', this.createLibrary);
 			dbHandler.off(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayObjectList);
@@ -97,8 +109,26 @@ define([
 			_this.processRequest();
 			$(ERROR_CONTAINER).hide();
 		},
+		libraryCreatedEvent: function(){
+			_this.reloadLibraries();
+		},
+		libraryAlteredEvent: function() {
+			_this.reloadLibraries();			
+		},
+		libraryDroppedEvent: function(){
+			_this.reloadLibraries();
+		},
+		reloadLibraries: function(){
+			if(routeArgs.type == 'libraries'){
+				if(!isPaused){
+					_this.doRefresh();
+				}else{
+					_this.refreshLibraries = true;
+				}
+			}
+		},
 		createLibrary: function(){
-			window.location.hash = '/tools/createlibrary?schema='+schemaName;
+			window.location.hash = '/tools/createlibrary?schema='+common.ExternalDisplayName(schemaName);
 		},
 		fetchObjects: function(objectType, schemaName){
 			if(!pageStatus[objectType] || pageStatus[objectType] == false){
@@ -113,28 +143,28 @@ define([
 			if(routeArgs.type != null && routeArgs.type.length > 0) {
 				switch(routeArgs.type){
 					case 'tables': 
-						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+						bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 						bCrumbsArray.push({name: 'Tables', link: ''});
 						break;
 					case 'views': 
-						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+						bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 						bCrumbsArray.push({name: 'Views', link: ''});
 						break;
 					case 'indexes': 
-						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+						bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 						bCrumbsArray.push({name: 'Indexes', link: ''});
 						break;
 					case 'libraries': 
-						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+						bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 						bCrumbsArray.push({name: 'Libraries',  link: ''});
 						break;
 					case 'procedures': 
-						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+						bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 						bCrumbsArray.push({name: 'Procedures', link:  ''});
 						break;
-					case 'udfs': 
-						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
-						bCrumbsArray.push({name: 'UDFs', link:  ''});
+					case 'functions': 
+						bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
+						bCrumbsArray.push({name: 'Functions', link:  ''});
 						break;
 				}
 			}
@@ -158,12 +188,12 @@ define([
 					case 'indexes' :
 					case 'libraries' :
 					case 'procedures' :
-						var displayName = common.toProperCase(routeArgs.type) + ' in schema ' + routeArgs.schema;
+						var displayName = common.toProperCase(routeArgs.type) + ' in schema ' + common.ExternalDisplayName(routeArgs.schema);
 						$(OBJECT_NAME_CONTAINER).text(displayName);
 						_this.fetchObjects(routeArgs.type, routeArgs.schema);
 						break;
-					case 'udfs' :
-						var displayName = 'UDFs in schema ' + routeArgs.schema;
+					case 'functions' :
+						var displayName = 'Functions in schema ' + common.ExternalDisplayName(routeArgs.schema);
 						$(OBJECT_NAME_CONTAINER).text(displayName);
 						_this.fetchObjects(routeArgs.type, routeArgs.schema);
 						break;
@@ -233,7 +263,7 @@ define([
 			            			 if(schemaName != null)
 			            				 rowcontent += '&schema='+ schemaName;	            				 
 	
-			            			 rowcontent += "\">" + data + "</a>";
+			            			 rowcontent += "\">" + common.ExternalDisplayName(data) + "</a>";
 			            			 return rowcontent;                         
 			            		 }else { 
 			            			 return data;
@@ -280,7 +310,7 @@ define([
 			            			 if(schemaName != null)
 			            				 rowcontent += '&schema='+ routeArgs.schema;	            				 
 	
-			            			 rowcontent += '">' + data + '</a>';
+			            			 rowcontent += '">' + common.ExternalAnsiName(routeArgs.schema,data) + '</a>';
 			            			 return rowcontent;                         
 			            		 }else { 
 			            			 return data;
@@ -305,9 +335,9 @@ define([
 				            			 var rowcontent = '<a href="#/database/objdetail?type=library&name=' + data ;
 				            			 if(libSchema != null && libSchema.length > 0){
 				            				 rowcontent += '&schema='+ libSchema;
-				            				 rowcontent += '">' + libSchema+'.'+data + '</a>';		            				 
+				            				 rowcontent += '">' + common.ExternalAnsiName(libSchema,data) + '</a>';		            				 
 				            			 }else{
-				            				 rowcontent += '">' + libSchema+'.'+data + '</a>';	
+				            				 rowcontent += '">' + common.ExternalAnsiName(libSchema,data) + '</a>';	
 				            			 }
 				            			 return rowcontent; 
 			            			 }else{
@@ -319,7 +349,7 @@ define([
 			            	 }
 						});
 					}
-					if(routeArgs.type == 'udfs'){
+					if(routeArgs.type == 'functions'){
 						aoColumnDefs.push({
 							"aTargets": [ 7 ],
 							"mData": 7,
@@ -336,9 +366,9 @@ define([
 				            			 var rowcontent = '<a href="#/database/objdetail?type=library&name=' + data ;
 				            			 if(libSchema != null && libSchema.length > 0){
 				            				 rowcontent += '&schema='+ libSchema;
-				            				 rowcontent += '">' + libSchema+'.'+data + '</a>';		            				 
+				            				 rowcontent += '">' + common.ExternalAnsiName(libSchema,data)  + '</a>';		            				 
 				            			 }else{
-				            				 rowcontent += '">' + libSchema+'.'+data + '</a>';	
+				            				 rowcontent += '">' + common.ExternalAnsiName(libSchema,data) + '</a>';	
 				            			 }
 				            			 return rowcontent; 
 			            			 }else{

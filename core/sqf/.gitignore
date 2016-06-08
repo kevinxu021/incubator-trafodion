@@ -70,3 +70,9 @@ Linux-x86_64/
 /LICENSE
 /LICENSE_Esgyn
 /NOTICE
+
+# bundled component links
+/dcs-*
+/rest-*
+/dbmgr-*
+/mgblty

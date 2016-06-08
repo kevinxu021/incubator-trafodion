@@ -702,6 +702,9 @@ void copyCommonGenericUpdateFields(GenericUpdate *result,
   result->setPrecondition(bef->getPrecondition());
 
   result->setOptHbaseAccessOptions(bef->getOptHbaseAccessOptions());
+  result->flags() = bef->flags();
+
+  result->setFirstNRows(bef->getFirstNRows());
 }
 
 void copyCommonUpdateFields(Update *result,
@@ -1035,13 +1038,12 @@ void createAndInsertDP2Scan( const IndexDesc * idesc,
 
         if (fileScan->isHiveTable())
           {
-            ValueIdSet preds(bef->selectionPred());
             HivePartitionAndBucketKey *hpk =
               new(CmpCommon::statementHeap()) HivePartitionAndBucketKey(
                    bef->getTableDesc());
             hpk->computePartitionPredicates(
                  bef->getGroupAttr(),
-                 fileScan->getSelectionPred());
+                 fileScan->selectionPred());
             if (hpk->computeActivePartitions() < 0)
               return; // error encountered, diags are set
             fileScan->setHiveSearchKey(hpk);
@@ -2133,6 +2135,12 @@ NABoolean HbaseDeleteRule::topMatch(RelExpr * relExpr, Context *context)
   if (context->getReqdPhysicalProperty()->executeInDP2())
     return FALSE;
 
+  // if this delete was a 'first N' delete, then it needs to be
+  // run as a cursor select...delete where select returns N rows.
+  if ((del->wasFirstN()) ||
+      (del->isNoRollback()))
+    return FALSE;
+
   // Check for required physical properties that require an enforcer
   // operator to succeed.
   //  if (relExpr->rppRequiresEnforcer(context->getReqdPhysicalProperty()))
@@ -2149,7 +2157,6 @@ NABoolean HbaseDeleteRule::topMatch(RelExpr * relExpr, Context *context)
     return FALSE;
 
   return TRUE;
-
 }
 
 RelExpr * HbaseDeleteRule::nextSubstitute(RelExpr * before,
@@ -2804,17 +2811,6 @@ NABoolean NestedJoinRule::topMatch(RelExpr * relExpr,
   if ((rppForMe->getMustMatch() != NULL) AND
       (rppForMe->getMustMatch()->getOperatorType() == REL_FORCE_NESTED_JOIN))
     return TRUE;
-
-  // Nested join into non sorted ORC hive tables is not allowed.
-  if (joinExpr->child(1).getGroupAttr()->allHiveTables() )
-     {
-          if ( !(joinExpr->child(1).getGroupAttr()->allHiveORCTables()) ) {
-               return FALSE;
-          } else {
-             if ( CmpCommon::getDefault(ORC_NJS) != DF_ON ) 
-                 return FALSE;
-          }
-     }
 
   // Fix genesis case 10-040524-2077 "NE:RG:mxcmp internal error when stream
   // used with rowset in WHERE clause" by commenting out the following code on

@@ -89,7 +89,8 @@ public:
     HBASE_LOAD_              = 32,
     HBASE_UNLOAD_            = 33,
     HBASE_UNLOAD_TASK_       = 34,
-    GET_QID_                            = 35
+    GET_QID_                 = 35,
+    BACKUP_RESTORE_          = 36
   };
 
   ComTdbExeUtil()
@@ -1518,7 +1519,8 @@ public:
 			  NABoolean ishiveTruncate = FALSE,
 			  char * hiveTableLocation = NULL,
                           char * hiveHostName = NULL,
-                          Lng32 hivePortNum = 0
+                          Lng32 hivePortNum = 0,
+                          Int64 hiveModTS = -1
 			  );
 
   Long pack(void *);
@@ -1567,6 +1569,11 @@ public:
   Lng32 getHiveHdfsPort() const
   {
     return hiveHdfsPort_;
+  }
+
+  Lng32 getHiveModTS() const
+  {
+    return hiveModTS_;
   }
 
   // ---------------------------------------------------------------------
@@ -1645,7 +1652,9 @@ private:
   NABasicPtr  hiveTableLocation_;                    // 56-63
   NABasicPtr hiveHdfsHost_;                          // 64-71
   Int32 hiveHdfsPort_;                               // 72-75
-  char fillersComTdbExeUtilFastDelete_[52];          // 76-127
+  char fillers1_[4];                                 // 76-79
+  Int64 hiveModTS_;                                  // 80-87
+  char fillersComTdbExeUtilFastDelete_[40];          // 88-127
 };
 
 class ComTdbExeUtilGetStatistics : public ComTdbExeUtil
@@ -1747,6 +1756,52 @@ protected:
   short activeQueryNum_;                                       // 20-21
 
   char fillersComTdbExeUtilGetStatistics_[106];                // 22-127
+};
+
+class ComTdbExeUtilBackupRestore : public ComTdbExeUtil
+{
+  
+public:
+  ComTdbExeUtilBackupRestore()
+  : ComTdbExeUtil()
+  {}
+  
+  ComTdbExeUtilBackupRestore(
+      ex_cri_desc * work_cri_desc,
+      const unsigned short work_atp_index,
+      ex_cri_desc * given_cri_desc,
+       ex_cri_desc * returned_cri_desc,
+       queue_index down,
+       queue_index up,
+       Lng32 num_buffers,
+       ULng32 buffer_size,
+       char * server,
+       char * zkPort);
+  
+  Long pack(void *);
+  Lng32 unpack(void *, void * reallocator);
+
+  // ---------------------------------------------------------------------
+  // Redefine virtual functions required for Versioning.
+  //----------------------------------------------------------------------
+  virtual short getClassSize() {return (short)sizeof(ComTdbExeUtilBackupRestore);}
+
+  virtual const char *getNodeName() const
+  {
+    return "BACKUP_RESTORE";
+  };
+
+  // ---------------------------------------------------------------------
+  // Used by the internal SHOWPLAN command to get attributes of a TDB.
+  // ---------------------------------------------------------------------
+  NA_EIDPROC void displayContents(Space *space, ULng32 flag);
+  const char * server() const { return server_; }
+  const char * zkPort() const { return zkPort_;}
+  
+protected:
+  NABasicPtr server_;
+  NABasicPtr zkPort_;
+  char fillersComTdbExeUtilBackupRestore_[110];                // 22-127
 };
 
 class ComTdbExeUtilGetProcessStatistics : public ComTdbExeUtilGetStatistics

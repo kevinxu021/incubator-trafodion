@@ -168,21 +168,25 @@ public class HTableClient {
 	       return null;
 	     return snpDesc.getName();
 	   }
+
 	   void setSnapRestorePath() throws IOException
 	   {
 	     String restoreDirStr = tmpLocation + getSnapshotDescription().getName(); ;
 	     snapRestorePath = new Path(restoreDirStr);
 	     snapRestorePath = snapRestorePath.makeQualified(fs.getUri(), snapRestorePath);
 	   }
+
 	   Path getSnapRestorePath() throws IOException
 	   {
 	     return snapRestorePath;
 	   }
+
 	   boolean snapshotExists() throws IOException
 	   {
 	     if (logger.isTraceEnabled()) logger.trace("[Snapshot Scan] SnapshotScanHelper.snapshotExists() called. ");
 	     return !admin.listSnapshots(snpDesc.getName()).isEmpty();
 	   }
+
 	   void deleteSnapshot() throws IOException
 	   {
 	     if (logger.isTraceEnabled()) logger.trace("[Snapshot Scan] SnapshotScanHelper.deleteSnapshot() called. ");
@@ -210,20 +214,23 @@ public class HTableClient {
 	     }
 	   }
 	   
-	   void createTableSnapshotScanner(int timeout, int slp, long nbre, Scan scan) throws InterruptedException
+	   void createTableSnapshotScanner(int timeout, int slp, long nbre, Scan scan) throws InterruptedException, IOException
 	   {
 	     if (logger.isTraceEnabled()) logger.trace("[Snapshot Scan] SnapshotScanHelper.createTableSnapshotScanner() called. ");
 	     int xx=0;
+             IOException ioExc = null;
 	     while (xx < timeout)
 	     {
-         xx++;
+               xx++;
 	       scanner = null;
 	       try
 	       {
+                 ioExc = null;
 	         scanner = new TableSnapshotScanner(table.getConfiguration(), snapHelper.getSnapRestorePath(), snapHelper.getSnapshotName(), scan);
 	       }
 	       catch(IOException e )
 	       {
+                 ioExc = e;
 	         if (logger.isTraceEnabled()) logger.trace("[Snapshot Scan] SnapshotScanHelper.createTableSnapshotScanner(). espNumber: " + nbre  + 
 	             " snapshot " + snpDesc.getName() + " TableSnapshotScanner Exception :" + e);
 	         Thread.sleep(slp);
@@ -233,7 +240,10 @@ public class HTableClient {
 	           nbre + " snapshot " + snpDesc.getName() +  " TableSnapshotScanner Done - Scanner:" + scanner );
 	       break;
 	     }
+             if (ioExc != null)
+                throw ioExc;
 	   }
+
 	   void setSnapshotDescription( String snapName)
 	   {
        if (snapName == null )
@@ -1014,7 +1024,8 @@ public class HTableClient {
 	    } else {
           scanner = table.getScanner(scan,dopParallelScanner);
         }
-        if (logger.isTraceEnabled()) logger.trace("startScan(). After getScanner. Scanner: " + scanner+" dop:"+dopParallelScanner);
+        if (logger.isTraceEnabled()) logger.trace("startScan(). After getScanner. Scanner: " + scanner+ " dop:"+
+        		    dopParallelScanner + "TransID " + transID + " " + useTRexScanner + " " +  getTableName());
 	  }
 	  else
 	  {
@@ -1027,11 +1038,9 @@ public class HTableClient {
 	                   " snapshot name: " + snapHelper.getSnapshotName());
 	    
 	    if (!snapHelper.snapshotExists())
-	      throw new Exception ("Snapshot " + snapHelper.getSnapshotName() + " does not exist.");
+	      throw new IOException ("Snapshot " + snapHelper.getSnapshotName() + " does not exist.");
 
 	    snapHelper.createTableSnapshotScanner(snapTimeout, 5, espNum, scan);
-	    if (scanner==null)
-	      throw new Exception("Cannot create Table Snapshot Scanner");
 	  }
     
           if (useSnapshotScan)
@@ -2018,6 +2027,8 @@ public class HTableClient {
               future = null;
           }
 	  if (scanner != null) {
+	  	if (logger.isTraceEnabled()) logger.trace("scanner.close() " + tableName + " " + scanner + " " 
+	  			 + retcode );
 	    scanner.close();
 	    scanner = null;
 	  }

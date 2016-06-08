@@ -27,7 +27,6 @@
 #include "HBaseClient_JNI.h"
 #include "QRLogger.h"
 #include "pthread.h"
-                                   
 //
 // ===========================================================================
 // ===== Class HBaseClient_JNI
@@ -104,6 +103,7 @@ static const char* const hbcErrorEnumStr[] =
  ,"Pool does not exist."
  ,"Preparing parameters for listAll()."
  ,"Preparing parameters for getKeys()."
+ ,"Preparing parameters for listAll()."
  ,"Preparing parameters for getRegionStats()."
 };
 
@@ -1279,7 +1279,7 @@ NAArray<HbaseStr>* HBaseClient_JNI::listAll(NAHeap *heap, const char* pattern)
   jstring js_pattern = jenv_->NewStringUTF(pattern);
   if (js_pattern == NULL) 
   {
-    GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_DROP_PARAM));
+    GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_LISTALL));
     jenv_->PopLocalFrame(NULL);
     return NULL;
   }
@@ -2153,9 +2153,9 @@ pthread_mutex_t BackupRestoreClient_JNI::javaMethodsInitMutex_ = PTHREAD_MUTEX_I
 static const char* const brcErrorEnumStr[] = ///need to update content
 {
     "preparing parameters for init."
-   ,"java exception in init."
-   ,"java exception in cleanup."
-   ,"preparing parameters for init_brc()."
+   ,"Create Snapshot Exception."
+   ,"Restore Snapshot Exception."
+   ,"Exception in init_brc()."
    ,"java exception in init_brc()."
 };
 BRC_RetCode BackupRestoreClient_JNI::init()
@@ -2185,7 +2185,9 @@ BRC_RetCode BackupRestoreClient_JNI::init()
     JavaMethods_[JM_CREATE_SNAPSHOT].jm_name = "createSnapshot";
     JavaMethods_[JM_CREATE_SNAPSHOT].jm_signature = "([Ljava/lang/Object;Ljava/lang/String;)Z";
     JavaMethods_[JM_RESTORE_SNAPSHOTS].jm_name = "restoreSnapshots";
-    JavaMethods_[JM_RESTORE_SNAPSHOTS].jm_signature = "(Ljava/lang/String;)Z";
+    JavaMethods_[JM_RESTORE_SNAPSHOTS].jm_signature = "(Ljava/lang/String;Z)Z";
+    JavaMethods_[JM_LIST_ALL_BACKUPS].jm_name = "listAllBackups";
+    JavaMethods_[JM_LIST_ALL_BACKUPS].jm_signature = "()[[B";
     
     rc = (BRC_RetCode)JavaObjectInterface::init(className, javaClass_, JavaMethods_, (Int32)JM_LAST, javaMethodsInitialized_);
     javaMethodsInitialized_ = TRUE;
@@ -2263,7 +2265,8 @@ BRC_RetCode BackupRestoreClient_JNI::createSnapshot(const TextVec& tables, const
 //////////////////////////////////////////////////////////////////////////////
 //
 //////////////////////////////////////////////////////////////////////////////
-BRC_RetCode BackupRestoreClient_JNI::restoreSnapshots(const char* backuptag) 
+BRC_RetCode BackupRestoreClient_JNI::restoreSnapshots(const char* backuptag,
+                                                      NABoolean timestamp) 
 {
     QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "BackupRestoreClient_JNI::restoreSnapshots(%s) called.");
     if (jenv_ == NULL)
@@ -2283,9 +2286,11 @@ BRC_RetCode BackupRestoreClient_JNI::restoreSnapshots(const char* backuptag)
         return BRC_ERROR_RESTORE_SNAPSHOT_EXCEPTION;
     }
 
+    jboolean j_timestamp = timestamp;
+    
     tsRecentJMFromJNI = JavaMethods_[JM_RESTORE_SNAPSHOTS].jm_full_name;
     jboolean jresult = jenv_->CallBooleanMethod(
-            javaObj_, JavaMethods_[JM_RESTORE_SNAPSHOTS].methodID, js_backuptag);
+            javaObj_, JavaMethods_[JM_RESTORE_SNAPSHOTS].methodID, js_backuptag, j_timestamp);
 
     jenv_->DeleteLocalRef(js_backuptag);
 
@@ -2307,6 +2312,47 @@ BRC_RetCode BackupRestoreClient_JNI::restoreSnapshots(const char* backuptag)
     jenv_->PopLocalFrame(NULL);
     return BRC_OK;
 }
+
+NAArray<HbaseStr>* BackupRestoreClient_JNI::listAllBackups(NAHeap *heap)
+{
+  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "BackupRestoreClient_JNI::listAllBackups called.");
+
+  if (jenv_ == NULL)
+     if (initJVM() != JOI_OK)
+       return NULL;
+
+  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+     getExceptionDetails();
+     return NULL;
+  }
+  
+  tsRecentJMFromJNI = JavaMethods_[JM_LIST_ALL_BACKUPS].jm_full_name;
+  jarray j_backupList = 
+    (jarray)jenv_->CallObjectMethod(javaObj_, JavaMethods_[JM_LIST_ALL_BACKUPS].methodID);
+
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails(jenv_);
+    logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+    logError(CAT_SQL_HBASE, "BackupRestoreClient_JNI::listAllBackups()", getLastError());
+    jenv_->PopLocalFrame(NULL);
+    return NULL;
+  }
+
+  if (j_backupList == NULL) {
+    jenv_->PopLocalFrame(NULL);
+    return NULL;
+  }
+
+  NAArray<HbaseStr> *backupList;
+  jint retcode = convertByteArrayObjectArrayToNAArray(heap, j_backupList, &backupList);
+  jenv_->PopLocalFrame(NULL);
+  if(retcode == 0)
+    return NULL;
+  else
+    return backupList;
+}
+
 
 NAString BackupRestoreClient_JNI::getLastJavaError()
 {
@@ -4044,6 +4090,7 @@ NAArray<HbaseStr>* HBaseClient_JNI::getKeys(Int32 funcIndex, NAHeap *heap, const
     return NULL;
   }
   jboolean j_useTRex = useTRex;
+  tsRecentJMFromJNI = JavaMethods_[funcIndex].jm_full_name;
   jarray j_keyArray=
      (jarray)jenv_->CallObjectMethod(javaObj_, JavaMethods_[funcIndex].methodID, js_tblName, j_useTRex);
 
@@ -6358,4 +6405,3 @@ void deleteNAArray(CollHeap *heap, NAArray<HbaseStr> *array)
   }
   NADELETE(array, NAArray, heap);
 }
-                      

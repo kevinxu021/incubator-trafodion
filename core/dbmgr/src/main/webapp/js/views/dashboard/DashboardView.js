@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2016 Esgyn Corporation
+//(C) Copyright 2015-2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -137,6 +137,8 @@ define([
 			$('#nodes-error-text').hide();
 			if(common.commonTimeRange!=null&&common.commonTimeRange.isAutoRefresh!=null){
 				refreshTimer.setRefreshInterval(common.commonTimeRange.isAutoRefresh);
+			}else{
+				refreshTimer.setRefreshInterval(1);
 			}
 			$(window).on('resize', this.onResize);
 			refreshTimer.resume();
@@ -273,6 +275,7 @@ define([
 						xtimemultiplier: 1,
 						deltamultiplier: 300, //For delta rate/sec counters, multiply by seconds interval to get real delta
 						ylabels: ["#Aborts", "#Begins", "#Commits"], // 3series, so 3 labels
+						ymin: 0,
 						yunit: "",
 						ydecimals: 0,
 						yvalround: true,
@@ -288,6 +291,7 @@ define([
 						xtimemultiplier: 1000,
 						ylabels: ["IO Waits"],
 						yunit: "",
+						yLabelFormat: common.fortmat2Decimals,
 						spinner:"#iowaits-spinner",
 						graphcontainer:"iowaits-chart",
 						errorcontainer:"#iowaits-error-text"
@@ -322,6 +326,7 @@ define([
 						xtimemultiplier: 1,
 						ylabels: ["GC Time"],
 						yunit: "msec",
+						yLabelFormat: common.fortmat2Decimals,
 						spinner:"#jvmgctime-spinner",
 						graphcontainer:"jvmgctime-chart",
 						errorcontainer:"#jvmgctime-error-text"
@@ -383,7 +388,7 @@ define([
 						$("#"+chartConfig[v].graphcontainer + '-tooltip').remove();
 						var x = item.datapoint[0],
 						y = item.datapoint[1].toFixed(2);
-						var content = "Time :  " + common.toServerLocalDateFromMilliSeconds(x);
+						var content = "Time :  " + moment(x).tz(common.serverTimeZone).format('YYYY-MM-DD HH:mm:ss z');
 
 						var dataset = cPlot.getData();
 						var nDecimals = 2;
@@ -1005,6 +1010,7 @@ define([
 					drillDownChart.plotData.push(seriesData);
 				});
 
+				var yMinVal = -1;
 				$.each(keys, function(index, value){
 					var xVal = metricConfig.xtimemultiplier? value*metricConfig.xtimemultiplier: value;
 					//var dataPoint = [];
@@ -1021,12 +1027,19 @@ define([
 						if(metricConfig.yvalround == true){
 							yVal = Math.round(yVal);
 						}
+						if(yVal < yMinVal) {
+							yMinVal = yVal;
+						}
 						//dataPoint.push(yVal);
 						drillDownChart.plotData[i].data.push([xVal, yVal]);
 					});
 					//metricConfig.toolTipTexts[xVal] = dataPoint;
 				});
 
+				if(yMinVal == -1){
+					yMinVal = 0;
+				}
+				
 				$(DRILLDOWN_LEGEND).append("<br/><label id='x-time'></label>");
 				$.each(result.data.tags, function(key, val) {
 					$(DRILLDOWN_LEGEND).append("<br/><input type='checkbox' name='" + key +
@@ -1060,7 +1073,7 @@ define([
 							},
 						},
 						yaxis :{
-							min: metricConfig.ymin ? metricConfig.ymin : null,
+							min: metricConfig.ymin ? metricConfig.ymin : yMinVal,
 							max: metricConfig.ymax ? metricConfig.ymax : null,
 							show:true,
 							tickFormatter: function(val, axis){
@@ -1209,7 +1222,7 @@ define([
 				if(drillDownChart.metricConfig.yunit){
 					text += drillDownChart.metricConfig.yunit;
 				}
-				$(DRILLDOWN_LEGEND).find('#x-time').text("Time :  " + common.toServerLocalDateFromMilliSeconds(x));
+				$(DRILLDOWN_LEGEND).find('#x-time').text("Time :  " + moment(x).tz(common.serverTimeZone).format('YYYY-MM-DD HH:mm:ss z'));
 				$(DRILLDOWN_LEGEND).find('#'+series.labelID).text(text);
 			}
 		},

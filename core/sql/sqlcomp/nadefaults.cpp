@@ -78,7 +78,7 @@
 
 #include "seabed/ms.h"
 #include "seabed/fs.h"
-
+#include "CompException.h"
 
 #define   NADHEAP		 CTXTHEAP
 #define   ERRWARN(msg)		 ToErrorOrWarning(msg, errOrWarn)
@@ -370,6 +370,8 @@ SDDkwd__(ALLOW_AUDIT_ATTRIBUTE_CHANGE,	       "FALSE"), // Used to control if ro
 
 SDDkwd__(ALLOW_DP2_ROW_SAMPLING,               "SYSTEM"),
 
+ DDkwd__(ALLOW_FIRSTN_IN_IUD,	               "TRUE"),
+
  DDkwd__(ALLOW_FIRSTN_IN_SUBQUERIES,	       "FALSE"),
 
  // ON/OFF flag to invoke ghost objects from non-licensed process (non-super.super user) who can not use parserflags
@@ -417,6 +419,10 @@ SDDkwd__(ALLOW_DP2_ROW_SAMPLING,               "SYSTEM"),
   // if set to ON, then ORDER BY could be
   // specified in a regular CREATE VIEW (not a create MV) statement.
   DDkwd__(ALLOW_ORDER_BY_IN_CREATE_VIEW,	"ON"),
+
+  // if set to ON, then ORDER BY could be
+  // specified in a subquery
+  DDkwd__(ALLOW_ORDER_BY_IN_SUBQUERIES,	        "OFF"),
 
   // rand() function in sql is disabled unless this CQD is turned on
   DDkwd__(ALLOW_RAND_FUNCTION,			"OFF"),
@@ -592,6 +598,8 @@ SDDkwd__(CAT_ENABLE_QUERY_INVALIDATION, "ON"),
   DD_____(CMP_ERR_LOG_FILE,    "tdm_arkcmp_errors.log"),
 
   DDkwd__(COLLECT_REORG_STATS,                                  "ON"),
+
+  DDint__(COMPILER_IDLE_TIMEOUT,                    "1800"), // To match with set session defaults value
 
   // tracking compilers specific defaults
   DDint__(COMPILER_TRACKING_INTERVAL, "0"),
@@ -1962,6 +1970,8 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
 
   DD_____(HIVE_CATALOG,                                ""),
 
+  DDkwd__(HIVE_DATA_MOD_CHECK,                  "ON"),
+
   DDkwd__(HIVE_DEFAULT_CHARSET,            (char *)SQLCHARSETSTRING_UTF8),
   DD_____(HIVE_DEFAULT_SCHEMA,                  "HIVE"),
   DDkwd__(HIVE_DESCRIBE_VIRT_COLS,              "OFF"),
@@ -1970,7 +1980,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DD_____(HIVE_FILE_NAME,     "/hive/tpcds/customer/customer.dat" ),
   DD_____(HIVE_HDFS_STATS_LOG_FILE,             ""),
   DDint__(HIVE_HDFS_STATS_MAX_SAMPLE_FILES,     "10"),
-  DDkwd__(HIVE_HDFS_STATS_SAMPLE_LOB_INTFC,     "OFF"),
+  DDkwd__(HIVE_HDFS_STATS_SAMPLE_LOB_INTFC,     "ON"),
   DDint__(HIVE_LIB_HDFS_PORT_OVERRIDE,          "-1"),
   DDint__(HIVE_LOCALITY_BALANCE_LEVEL,          "3"),
   DDui___(HIVE_MAX_ESPS,                        "9999"),
@@ -1988,7 +1998,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDint__(HIVE_SCAN_SPECIAL_MODE,                "0"),
   DDkwd__(HIVE_SORT_HDFS_HOSTS,                 "ON"),
   DDkwd__(HIVE_TREAT_EMPTY_STRING_AS_NULL,      "OFF"),
-  DDkwd__(HIVE_USE_EXT_TABLE_ATTRS,             "OFF"),
+  DDkwd__(HIVE_USE_EXT_TABLE_ATTRS,             "ON"),
   DD_____(HIVE_USE_FAKE_SQ_NODE_NAMES,          "" ),
   DDkwd__(HIVE_USE_FAKE_TABLE_DESC,             "OFF"),
   DDkwd__(HIVE_USE_HASH2_AS_PARTFUNCTION,       "ON"),
@@ -2696,7 +2706,7 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
 
   DDkwd__(OLT_QUERY_OPT,			"ON"),
   DDkwd__(OLT_QUERY_OPT_LEAN,			"OFF"),
-
+  DDint__(ONLINE_BACKUP_TIMEOUT,                 "30"),
   // -----------------------------------------------------------------------
   // Optimizer pruning heuristics.
   // -----------------------------------------------------------------------
@@ -2763,8 +2773,9 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
 
   DDkwd__(ORC_AGGR_PUSHDOWN,                    "ON"),
   DDkwd__(ORC_COLUMNS_PUSHDOWN,                 "ON"),
-  DDkwd__(ORC_NJS,                              "ON"),
+  DDkwd__(ORC_NJS,                              "OFF"),
   DDkwd__(ORC_PRED_PUSHDOWN,                    "ON"),
+  DDkwd__(ORC_READ_NUM_ROWS,                    "ON"),
   DDkwd__(ORC_READ_STRIPE_INFO,                 "OFF"),
   DDkwd__(ORC_VECTORIZED_SCAN,                  "ON"),
 
@@ -2800,7 +2811,7 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   DDansi_(OUTPUT_DATE_FORMAT,		        ""),
 
   // Overflow mode for scratch files
-  DDkwd__(OVERFLOW_MODE,                  "MMAP"),
+  DDkwd__(OVERFLOW_MODE,                  "DISK"),
 
   // Sequence generator override identity values
   DDkwd__(OVERRIDE_GENERATED_IDENTITY_VALUES,	  "OFF"),
@@ -4272,8 +4283,14 @@ void NADefaults::updateSystemParameters(NABoolean reInit)
   //  Extract SMP node number and cluster number where this arkcmp is running.
   short nodeNum = 0;
   Int32   clusterNum = 0;
-  OSIM_getNodeAndClusterNumbers(nodeNum, clusterNum);
-
+  try {
+        OSIM_getNodeAndClusterNumbers(nodeNum, clusterNum);
+  }
+  catch(OsimLogException & e)
+  {
+        OSIM_errorMessage(e.getErrMessage());
+        return;
+  }
   // First (but only if NSK-LITE Services exist),
   // write system parameters (attributes DEF_*) into DefaultDefaults,
   // then copy DefaultDefaults into CurrentDefaults.

@@ -14647,8 +14647,9 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   NodeMap* myNodeMap = NULL;
 
   //
-  // Setup partKeys_, iff the hive table is clustered, sorted and in ORC format. 
-  // such tables are created with the DDL similar to the following.
+  // Setup partKeys_, iff the hive table is clustered, sorted and in ORC format, or
+  // indexKey is present. In the frst case, the tables are created with the DDL 
+  // similar to the following.
   //
   // create table store_sorted_orc
   // (
@@ -14667,7 +14668,11 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   //     clustering columns: IndexDesc::getPartitioningKey()
   //     sorted columns:     Indexdesc::getIndexKey()
   //
-  NABoolean canUseSearchKey = indexDesc_->isSortedORCHive();
+  //NABoolean canUseSearchKey =  indexDesc_->isSortedORCHive() ;
+
+  NABoolean canUseSearchKey = ( indexDesc_->isSortedORCHive() ||
+                                indexDesc_->getIndexKey().entries() > 0 );
+
  
   const RequireReplicateNoBroadcast* rpnb = NULL;
   // If the requirement is repN, produce a repN partition func to satisfy it.
@@ -14768,7 +14773,7 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
         SinglePartitionPartitioningFunction(myNodeMap);
     }
 
-  
+ 
   if ( !canUseSearchKey ) {
      // create a very simple physical property for now, no sort order
      // and no partitioning key for now
@@ -15285,36 +15290,56 @@ FileScan::synthPhysicalProperty(const Context* myContext,
 {
   PhysicalProperty *sppForMe;
   // synthesized order
-  ValueIdList sortOrderVEG = NULL;
+  ValueIdList sortOrderVEG;
 
-  sortOrderVEG = indexDesc_->getOrderOfKeyValues();
+  if (!getTableDesc()->getNATable()->isORC() &&
+      !(isHiveTable() && CmpCommon::getDefault(HIVE_USE_PERSISTENT_KEY) != DF_OFF))
+    {
+      sortOrderVEG = indexDesc_->getOrderOfKeyValues();
 
-  // ---------------------------------------------------------------------
-  // Remove from the sortOrder those columns that are equal to constants
-  // or input values.  Also, remove from sortOrder those columns that are
-  // not in the characteristic outputs.
-  //   It is possible that the characteristic outputs
-  // will not contain the base columns, but rather expressions
-  // involving the base columns. For example, if the user specified
-  // "select b+1 from t order by 1;", and "b" is the primary key,
-  // then the characteristic output will only contain the valueId for the
-  // expression "b+1" - it will not contain the value id for "b". So,
-  // even though "b" is the primary key, we will fail to find it in the
-  // characteristic outputs and thus we will not synthesize the sort key.
-  // To solve this, we first check for the base column in the
-  // characteristic outputs. If we find it, great. But if we don't, we
-  // need to see if the base column is included in the SIMPLIFIED form
-  // of the characteristic outputs. If it is, then we need to change
-  // the sort key to include the valueId for the expression "b+1" instead
-  // of "b". This is because we cannot synthesize anything in the sort
-  // key that is not in the characteristic outputs, but if something
-  // is sorted by "b" then it is surely sorted by "b+1". We have
-  // coined the expression "complify" to represent this operation.
-  // ---------------------------------------------------------------------
-  sortOrderVEG.removeCoveredExprs(getGroupAttr()->getCharacteristicInputs());
-  sortOrderVEG.complifyAndRemoveUncoveredSuffix(
-       getGroupAttr()->getCharacteristicOutputs(),
-       getGroupAttr());
+      // ---------------------------------------------------------------------
+      // Remove from the sortOrder those columns that are equal to constants
+      // or input values.  Also, remove from sortOrder those columns that are
+      // not in the characteristic outputs.
+      //   It is possible that the characteristic outputs
+      // will not contain the base columns, but rather expressions
+      // involving the base columns. For example, if the user specified
+      // "select b+1 from t order by 1;", and "b" is the primary key,
+      // then the characteristic output will only contain the valueId for the
+      // expression "b+1" - it will not contain the value id for "b". So,
+      // even though "b" is the primary key, we will fail to find it in the
+      // characteristic outputs and thus we will not synthesize the sort key.
+      // To solve this, we first check for the base column in the
+      // characteristic outputs. If we find it, great. But if we don't, we
+      // need to see if the base column is included in the SIMPLIFIED form
+      // of the characteristic outputs. If it is, then we need to change
+      // the sort key to include the valueId for the expression "b+1" instead
+      // of "b". This is because we cannot synthesize anything in the sort
+      // key that is not in the characteristic outputs, but if something
+      // is sorted by "b" then it is surely sorted by "b+1". We have
+      // coined the expression "complify" to represent this operation.
+      // ---------------------------------------------------------------------
+      sortOrderVEG.removeCoveredExprs(getGroupAttr()->getCharacteristicInputs());
+      sortOrderVEG.complifyAndRemoveUncoveredSuffix(
+           getGroupAttr()->getCharacteristicOutputs(),
+           getGroupAttr());
+    }
+
+  // Note on sort order for Hive tables:
+  //
+  // If the Hive table key is (INPUT__RANGE__NUMBER, ROW__NUMBER__IN__RANGE)
+  // then we can consider the key as sorted. This still has to be implemented
+  // for ORC tables.
+  //
+  // We could use also use sort orders, if the following conditions are met
+  // (this is still TBD, could be done in synthHiveScanPhysicalProperty()):
+  //
+  // - The table is bucketed and uses the SORTED BY clause
+  // - We use one ESP per file in the Hive table
+  //   (each individual file is sorted, the table isn't)
+  // - Sorting was enforced when the data was inserted into the Hive table
+  // - We know that Hive sorts the data in the same order we expect
+
 
   // ---------------------------------------------------------------------
   // if this is a reverse scan, apply an inversion function to

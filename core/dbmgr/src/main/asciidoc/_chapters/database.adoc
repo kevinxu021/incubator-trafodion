@@ -1,0 +1,352 @@
+////
+<!--
+/**
+  *(C) Copyright 2015-2016 Esgyn Corporation
+  *
+  * Confidential computer software. Valid license from Esgyn required for
+  * possession, use or copying. Consistent with FAR 12.211 and 12.212,
+  * Commercial Computer Software, Computer Software Documentation, and
+  * Technical Data for Commercial Items are licensed to the U.S. Government
+  * under vendor's standard commercial license.
+  *
+  */
+-->
+////
+[[database]]
+== Database
+:doctype: book
+:numbered:
+:toc: left
+:icons: font
+:experimental:
+
+The Database page allows you browse the EsgynDB schemas and view the database objects and their attributes.
+
+You can use the hyperlinks on the object names or the bread crumbs at the top of the page to navigate between the different sub-pages displaying database objects and their attributes.
+
+=== Schemas
+The schemas list displays all the EsgynDB schemas and their attributes.
+
+*Name*::
+The name of the schema. The schema name is displayed as a hyperlink and allows you drilldown into the schema details.
+
+*Owner*::
+The database user that owns the schema.
+
+*CreateTime*::
+The time the schema was created.
+
+*ModifiedTime*::
+The time the schema was last modified.
+
+=== Schema Details
+From the Schemas page, you can click on the hyperlink on a specific schema to view the details.
+
+==== Attributes
+The attributes tab displays the schema attributes like the name, the owner, create time and modified time.
+
+==== DDL
+The DDL tab displays the CREATE SCHEMA statement used to create this schema. This output is obtained using the SHOWDDL statement.
+
+=== Tables
+In the schema details page, you can click on the *Tables* link to view all the tables in that schema.
+
+*Table Name*::
+The name of the table. The table name is displayed as a hyperlink and allows you drilldown into the table details.
+
+*Owner*::
+The database user that owns the table.
+
+*CreateTime*::
+The time the table was created.
+
+*ModifiedTime*::
+The time the table was last modified.
+
+*KeyLength*::
+The length of the key columns.
+
+*RowTotalLength*::
+The total length of the table row. Indicates how wide the table is.
+
+*Number Salt Partitions*::
+For a partitioned table, it shows the number of salt partitions. For non-partitioned tables, this value is 0.
+
+*Region Count*::
+The total number of HBase regions for the table. This value can be higher than the number of salt partitions because of region splits.
+
+*Store File Size*::
+The size of the store files in MB.
+
+*MemStore Size*::
+The size of the memstore in MB.
+
+*Read Requests Count*::
+The cumulative count of read requests or scans since the last region flush or HBase restart.
+
+*Write Requests Count*::
+The cumulative count of write requests or puts since the last region flush or HBase restart.
+
+=== Table Details
+From the Tables page, you can click on the hyperlink on a specific table to view the details.
+
+==== Attributes
+The attributes tab displays the table attributes.
+
+==== Columns
+The Columns tab displays the details about the table columns.
+
+==== Regions
+The Regions tab displays the HBase region details for all the HBase regions that make up this table.
+
+==== Statistics
+The Statistics tab displays the histogram statistics for the table, if update statistics have been run on the table. You can use the last update stats timestamp column to see how outdated the table statistics are and choose to update the statistics for the table.
+
+==== DDL
+The DDL tab displays the CREATE TABLE statement used to create this table. This output is obtained using the SHOWDDL statement.
+
+==== Privileges
+The Privileges tab displays all the SQL privilege information for the table. It shows the grantee and grantor names and the list of privileges for the grantee.
+
+==== Indexes
+The Indexes tab displays all the indexes defined on the table.
+
+==== Usage
+The Usage tab displays all the SQL objects that use this table. For example, you can see all the SQL Views that use this table.
+
+=== Views
+In the schema details page, you can click on the *Views* link to view all the views in that schema.
+
+*View Name*::
+The name of the schema. The view name is displayed as a hyperlink and allows you drilldown into the view details.
+
+*Owner*::
+The database user that owns the view.
+
+*CreateTime*::
+The time the view was created.
+
+*ModifiedTime*::
+The time the view was last modified.
+
+*CheckOption*::
+Specifies that no row can be inserted or updated in the database through the view unless the row satisfies the view definition—that is, the search condition in the WHERE clause of the query expression must evaluate to true for any row that is inserted or updated. This option is only allowed for updatable views. Refer to the EsgynDB SQL Reference manual for more details.
+
+*Updateable*::
+Indicates if the view is updateable. Single table views can be updatable. Multi-table views cannot be updatable. Refer to the EsgynDB SQL Reference manual for more details.
+
+*Insertable*::
+Indicates if the view is insertable. Single table views can be insertable. Multi-table views cannot be insertable. Refer to the EsgynDB SQL Reference manual for more details.
+
+=== View Details
+From the Views page, you can click on the hyperlink on a specific view to see its details.
+
+==== Attributes
+The attributes tab displays the view attributes.
+
+==== Columns
+The Columns tab displays the details about the view columns.
+
+==== DDL
+The DDL tab displays the CREATE VIEW statement used to create this view. This output is obtained using the SHOWDDL statement.
+
+==== Privileges
+The Privileges tab displays all the SQL privilege information for the view. It shows the grantee and grantor names and the list of privileges for the grantee.
+
+==== Usage
+The Usage tab displays all the SQL objects that use this view and also all the SQL objects used by this view. For example, this view can have a child view. This page will display the parent base table as well as the child view. The Usage_Type column shows either 'Uses' or 'Used By' to indicate the relation of the view to the displayed object.
+
+=== Indexes
+In the schema details, page you can click on the *Indexes* link to view all the indexes in that schema.
+
+*Index Name*::
+The name of the index. The index name is displayed as a hyperlink and allows you drilldown into the index details.
+
+*Owner*::
+The database user that owns the index.
+
+*CreateTime*::
+The time the index was created.
+
+*ModifiedTime*::
+The time the index was last modified.
+
+*Table Name*::
+The name of the base table on which the index is defined. The table name is displayed as a hyperlink and allows you drilldown into the table details.
+
+*Is Unique*::
+Indicates if the index is a Unique or Non-Unique index.
+
+*Key Col. Count*::
+The number of columns that make up the key for the index. For non-unique index, this includes the columns defined in the index as well as the base table key columns.
+
+*Non Key Col. Count*::
+For a unique index, this count shows the number of base table key columns that are not part of the index key.
+
+=== Index Details
+From the Indexes page, you can click on the hyperlink on a specific index to view the details.
+
+==== Attributes
+The attributes tab displays the index attributes.
+
+==== Regions
+The Regions tab displays the HBase region details for all the HBase regions that make up this index.
+
+==== DDL
+The DDL tab displays the CREATE INDEX statement used to create this index. This output is obtained using the SHOWDDL statement.
+
+=== Libraries
+In the schema details, page you can click on the *Libraries* link to view all the libraries in that schema.
+
+*Library Name*::
+The name of the library. The library name is displayed as a hyperlink and allows you drilldown into the library details.
+
+*Owner*::
+The database user that owns the library.
+
+*CreateTime*::
+The time the library was created.
+
+*ModifiedTime*::
+The time the library was last modified.
+
+*Code File Name*::
+The name of the jar or dll that this library encapsulates. The library code file is stored under *$MY_SQROOT/udr/lib/<user>*.
+
+==== Create Library
+Creating a library is a two-step process. You first deploy the code file to the EsgynDB platform and then create a library.
+
+You can use the *Create Library* page to perform these two steps with a single click. You can access this page in two ways.
+
+* In the Libraries page, you can use the *Create Library* button to switch to the Create Library page.
+
+* Use the *Tools  +++->+++ Create Library* navigation menu
+
+To create a library, do the following:
+
+* Enter a valid schema name in the *Schema Name* field. If the schema name contains special characters or you need to preserve the case, you need to delimit the name within double quotes. The schema name is pre-filled when you navigate to the Create Library page from the Libraries page.
+
+* Enter a valid library name in the *Library Name* field. If the library name contains special characters or you need to preserve the case, you need to delimit the name within double quotes.
+
+* Use the browse button and select a .jar file or a .dll file on your workstation
+
+* If you are re-using an existing code file or if the create library fails with an error that the code file already exists, you can check the *Overwrite existing code file* option and the code file will be replaced by the selected code file.
+
+* Click on the Create button.
+
+* If you are in the same page, you'll see a success or failure message once the action completes. If you moved away from the create library page and navigated to a different page, then the results are shown via the notifications panel. See <<Notifications Panel, Notifications Panel>> for details.
+
+=== Library Details
+From the Libraries page, you can click on the hyperlink on a specific library to see its details.
+
+==== Attributes
+The attributes tab displays the library attributes.
+
+==== DDL
+The DDL tab displays the CREATE LIBRARY statement used to create this library. This output is obtained using the SHOWDDL statement.
+
+==== Privileges
+The Privileges tab displays all the SQL privilege information for the library. It shows the grantee and grantor names and the list of privileges for the grantee.
+
+==== Usage
+The Usage tab displays all the user defined routines (stored procedures and functions) that use this library.
+
+=== Alter Library
+You can alter a library to update the code file. For example, if you have modified the stored procedure java code and want to update the code file on the server, you can use the Alter library feature to update the code file.
+
+* Navigate to the Attributes tab of a specific library in the Library Details page.
+
+* Click on the *Alter* button. It will take to you the *Alter Library* page.
+
+* The schema name is pre-filled from the Library details page and cannot be changed.
+
+* The library name is pre-filled from the Library details page and cannot be changed.
+
+* Use the browse button and select a .jar file or a .dll file on your workstation.
+
+* If you are re-using an existing code file or if the create library fails with an error that the code file already exists, you can check the *Overwrite existing code file* option and the code file will be replaced by the selected code file.
+
+* Click on the Alter button.
+
+* If you are in the same page, you'll see a success or failure message once the action completes. If you moved away from the alter library page and navigated to a different page, then the results are shown via the notifications panel. See <<Notifications Panel, Notifications Panel>> for details.
+
+=== Drop Library
+You can drop a library and remove it from the EsgynDB metadata.
+
+* Navigate to the Attributes tab of a specific library in the Library Details page.
+
+* Click on the *Drop* button to drop the library.
+
+* A success or failure message is displayed.
+
+=== Procedures
+In the schema details, page you can click on the *Procedures* link to view all the java stored procedures in that schema.
+
+*Name*::
+The name of the procedure. The procedure name is displayed as a hyperlink and allows you drilldown into the procedure details.
+
+*Owner*::
+The database user that owns the procedure.
+
+*CreateTime*::
+The time the procedure was created.
+
+*ModifiedTime*::
+The time the procedure was last modified.
+
+*Library Name*::
+The name of the library object used by the procedure. The library name is displayed as a hyperlink and allows you drilldown into the library details.
+
+=== Procedure Details
+From the Procedures page, you can click on the hyperlink on a specific procedure to see its details.
+
+==== Attributes
+The attributes tab displays the procedure attributes.
+
+==== DDL
+The DDL tab displays the CREATE PROCEDURE statement used to create this procedure. This output is obtained using the SHOWDDL statement. The DDL output shows the number of IN and OUT parameters and their data types.
+
+==== Privileges
+The Privileges tab displays all the SQL privilege information for the procedure. It shows the grantee and grantor names and the list of privileges for the grantee.
+
+==== Usage
+The Usage tab displays the library used by this stored procedure.
+
+=== Functions
+In the schema details, page you can click on the *Functions* link to view all the user defined functions in that schema. This lists both the Scalar Functions and Table Mapping Functions.
+
+*Name*::
+The name of the function. The procedure name is displayed as a hyperlink and allows you drilldown into the function details.
+
+*Owner*::
+The database user that owns the function.
+
+*CreateTime*::
+The time the function was created.
+
+*ModifiedTime*::
+The time the function was last modified.
+
+*Function Type*::
+Identifies the type of the function. Scalar Function or Table Mapping Function.
+
+*Language Type*::
+Identifies the language in which the function is written.
+
+*Library Name*::
+The name of the library object used by the function. The library name is displayed as a hyperlink and allows you drilldown into the library details.
+
+=== Function Details
+From the Functions page, you can click on the hyperlink on a specific function to see its details.
+
+==== Attributes
+The attributes tab displays the function attributes.
+
+==== DDL
+The DDL tab displays the CREATE FUNCTION statement used to create this user defined function. This output is obtained using the SHOWDDL statement. The DDL output shows the number of IN and OUT parameters and their data types.
+
+==== Privileges
+The Privileges tab displays all the SQL privilege information for the function. It shows the grantee and grantor names and the list of privileges for the grantee.
+
+==== Usage
+The Usage tab displays the library used by this function.

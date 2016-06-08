@@ -131,7 +131,7 @@ void HSTableDef::setNATable()
     Scan scan(corrName, NULL, REL_SCAN, STMTHEAP);
     ULng32 savedParserFlags = Get_SqlParser_Flags(0xFFFFFFFF);
     if (CmpCommon::context()->sqlSession()->volatileSchemaInUse())
-      Set_SqlParser_Flags(ALLOW_VOLATILE_SCHEMA_IN_TABLE_NAME);
+      Set_SqlParser_Flags(ALLOW_VOLATILE_SCHEMA_IN_TABLE_NAME); // ORs in this bit
     scan.bindNode(&bindWA);
     if (!bindWA.errStatus())
       {
@@ -140,7 +140,7 @@ void HSTableDef::setNATable()
         objectType_ = naTbl_->getObjectType();
       }
     // Restore parser flags to prior settings.
-    Set_SqlParser_Flags (savedParserFlags);
+    Assign_SqlParser_Flags (savedParserFlags);
   }
 
 void HSSqTableDef::GetLabelInfo(labelDetail detail)
@@ -652,6 +652,19 @@ Lng32 HSTableDef::getColNum(const char *colName, NABoolean errIfNotFound) const
         if ((&colInfo_[i] != NULL) &&
             (ansiForm == *colInfo_[i].colname))
           {
+            // raise an error when a LOB column is explicitly specified
+            if (DFS2REC::isLOB(colInfo_[i].datatype))
+              {
+                if (LM->LogNeeded())
+                  {
+                    sprintf(LM->msg, "***[ERROR]:  Column (%s) is a LOB column.", colName);
+                    LM->Log(LM->msg);
+                  }
+                HSFuncMergeDiags(-UERR_LOB_STATS_NOT_SUPPORTED, colName);
+                HSHandleError(retcode);
+                return retcode;               
+              }
+
             return i;
           }
       }

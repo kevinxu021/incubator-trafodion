@@ -80,7 +80,7 @@
 #include "ExCancel.h"
 #include "ExHdfsScan.h"
 #include "ExHbaseAccess.h"
-
+#include "ExOrcAccess.h"
 
 #endif
 
@@ -531,6 +531,13 @@ case ex_LOB_INFO:
       break;
     }
 
+   case ex_BACKUP_RESTORE:
+   {
+     GetVTblPtr(vtblptr,ExExeUtilBackupRestoreTdb);
+
+     break;
+   }
+   
     case ex_POP_IN_MEM_STATS:
     {
 #pragma nowarn(1506)   // warning elimination 

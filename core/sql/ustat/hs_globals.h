@@ -1340,6 +1340,10 @@ public:
     // parser errors
     enum { ERROR_NONE = 0, ERROR_SYNTAX, ERROR_SEMANTICS};
 
+    // Set CQDs controlling min/max HBase cache size to minimize risk of
+    // scanner timeout.
+    static NABoolean setHBaseCacheSize(double sampleRatio);
+
     // Static fns for determining minimum table sizes for sampling, and for
     // using lowest sampling rate, under default sampling protocol.
     static Int64 getMinRowCountForSample();

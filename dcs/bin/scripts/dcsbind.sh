@@ -370,7 +370,7 @@ else
     dcsEcho "Using Instance id $INSTANCEID"
 
     # Get the network interface configured for the vpc
-    NETWORKINTERFACE=`$awscmd describe-network-interfaces| grep -i networkinterfaces| grep -i $gv_float_internal_ip|cut -f5`
+    NETWORKINTERFACE=`$awscmd describe-network-interfaces| grep -i networkinterfaces| grep -i -w $gv_float_internal_ip|cut -f5`
     dcsEcho "Using network interface $NETWORKINTERFACE"
 
     # Get the attachment id for the network interface

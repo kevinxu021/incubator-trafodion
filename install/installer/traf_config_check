@@ -32,8 +32,13 @@ source $TRAF_CONFIG
 
 function majorErrorFound {
    if [[ "$errorFound" == "1" ]]; then
+      echo
+      echo
+      echo "******************************************" 
       cat $ERROR_LOG
       echo
+      echo
+      echo "******************************************" 
       exit -1
    fi
 }
@@ -188,6 +193,7 @@ else
       echo "TRAFODION NODE LIST" >> $ERROR_LOG
       echo "***ERROR: Could not ssh to $ERROR_NODES." >> $ERROR_LOG
       echo "***ERROR: Check permissions and known hosts files." >> $ERROR_LOG
+      majorErrorFound
    fi
 
    node_count=$(echo $NODE_LIST | wc -w)
@@ -264,11 +270,12 @@ else
    done
 
    NODE_LIST=$NODES
- if [[ $error == "1" ]]; then
+   if [[ $error == "1" ]]; then
       errorFound=1
-       echo "MANAGEMENT NODE LIST" >> $ERROR_LOG
+      echo "MANAGEMENT NODE LIST" >> $ERROR_LOG
       echo "***ERROR: $ERROR_NODES does not have sudo access." >> $ERROR_LOG
       echo "***ERROR: Must have sudo access on all nodes." >> $ERROR_LOG
+      majorErrorFound
    fi
 
 
@@ -286,6 +293,7 @@ else
       echo "TRAFODION NODE LIST" >> $ERROR_LOG
       echo "***ERROR: Could not ssh to $ERROR_NODES." >> $ERROR_LOG
       echo "***ERROR: Check permissions and known hosts files." >> $ERROR_LOG
+      majorErrorFound
    fi
 
 
@@ -413,7 +421,13 @@ else
          #Checking if using 1.7.0_n
          if [[ "${THIS_JVM_VER:18:1}" -eq "0" ]] && [[ "$temp_JAVA" -eq "$JAVA7" ]]; then
             if [[ "${THIS_JVM_VER:20:1}" -eq "0" ]] || [[ "${THIS_JVM_VER:20:2}" -lt $JAVA65 ]]; then
-               error="true"
+               #If Java is **less** than than 1.7.0_65 the next command will fail.
+               #Install will fail anyways if less than 1.7.0_65
+               #Will not fail if Java is 1.7.0_100 or greater
+               #Temporary fix to support Java 7 upgrades greater than 100
+               if [[ "${THIS_JVM_VER:20:3}" -lt $JAVA_65 ]]; then
+                  error="true"
+               fi
             fi
          fi
 
@@ -602,6 +616,10 @@ function setPath {
 
 export PATH=$PATH:$HADOOP_PREFIX/bin:$HADOOP_PREFIX/sbin:$HBASE_HOME/bin
 
+if [ ! -z $HIVE_HOME ]; then
+   export PATH=$PATH:$HIVE_HOME/bin
+fi
+
 sudo chmod 777 $TRAF_CONFIG
 sed -i '/PATH\=/d' $TRAF_CONFIG
 echo "export PATH=\"$PATH\"" >> $TRAF_CONFIG
@@ -646,6 +664,9 @@ fi
 
 function checkHadoopVersion {
 count=0
+
+source $TRAF_CONFIG
+
 for node in $HADOOP_NODES;
 do
    ssh -q -n $node 'echo "exit" | hbase shell &> $HOME/hbaseVersion.txt'
@@ -905,19 +926,35 @@ fi
 
 function checkHadoopSupport {
 
-if [[ -z $TRAF_BUILD ]] || [[ ! -e $TRAF_BUILD ]] ; then
+if [[ "$ONE_TAR_INSTALL" == "N" ]] || [[ -z "$ONE_TAR_INSTALL" ]] ; then
    TRAF_BUILD=$(tar -tf $TRAF_PACKAGE | grep "trafodion_.*server")
    tar -xzf $TRAF_PACKAGE --directory $LOCAL_WORKDIR
    TRAF_BUILD_PATH=$LOCAL_WORKDIR/$TRAF_BUILD
+   install_features_path=$(tar -tf $TRAF_BUILD_PATH | grep "install_features")
+
 else
-   TRAF_BUILD_PATH=$TRAF_BUILD
+   TRAF_BUILD_PATH=$TRAF_PACKAGE
+   install_features_path=$(tar -tf $TRAF_PACKAGE | grep "install_features")
+
 fi
 
-install_features_path=$(tar -tf $TRAF_BUILD_PATH | grep "install_features")
 
 if [[ ! -z $install_features_path ]]; then
-   tar -xzf $TRAF_BUILD_PATH $install_features_path
+   if [[ "$ONE_TAR_INSTALL" == "N" ]]; then
+      tar -xzf $TRAF_BUILD_PATH $install_features_path
+      if [[ $? -ne "0" ]]; then
+         echo "***ERROR: Error with untar of $TRAF_BUILD_PATH"
+         exit -1
+      fi
+   else
+      tar -xzf $TRAF_PACKAGE $install_features_path
+      if [[ $? -ne "0" ]]; then
+         echo "***ERROR: Error with untar of $TRAF_BUILD_PATH"
+         exit -1
+      fi           
+   fi
    source $install_features_path
+
    sudo chmod 777 $TRAF_CONFIG
    echo "export CDH_5_3_HDP_2_2_SUPPORT=\"$CDH_5_3_HDP_2_2_SUPPORT\"" >> $TRAF_CONFIG
    sudo chmod 777 $TRAF_CONFIG

@@ -2764,7 +2764,7 @@ NABoolean HivePartitionAndBucketKey::convertHivePartColValsToSQL(
 
 NABoolean HivePartitionAndBucketKey::computePartitionPredicates(
      const GroupAttributes *ga,
-     const ValueIdSet &selectionPredicates)
+     ValueIdSet &selectionPredicates)
 {
   if (!selectionPredicates.isEmpty())
     {
@@ -2836,6 +2836,9 @@ NABoolean HivePartitionAndBucketKey::computePartitionPredicates(
         }
       if (CmpCommon::getDefault(HIVE_PARTITION_ELIMINATION_RT) == DF_OFF)
         partAndVirtColPreds_.clear();
+
+      selectionPredicates -= compileTimePartColPreds_;
+      selectionPredicates -= partAndVirtColPreds_;
     }
 
   return (!compileTimePartColPreds_.isEmpty() ||

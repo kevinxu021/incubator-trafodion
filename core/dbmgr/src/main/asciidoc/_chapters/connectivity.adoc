@@ -1,0 +1,42 @@
+////
+<!--
+/**
+  *(C) Copyright 2015-2016 Esgyn Corporation
+  *
+  * Confidential computer software. Valid license from Esgyn required for
+  * possession, use or copying. Consistent with FAR 12.211 and 12.212,
+  * Commercial Computer Software, Computer Software Documentation, and
+  * Technical Data for Commercial Items are licensed to the U.S. Government
+  * under vendor's standard commercial license.
+  *
+  */
+-->
+////
+[[connectivity]]
+== Connectivity
+:doctype: book
+:numbered:
+:toc: left
+:icons: font
+:experimental:
+
+The Connectivity page displays information about the Data Connectivity service (DCS) summary and the configured Master Executor processes.
+
+=== Summary
+
+The summary information displays information about the DCS Master. DCS Master is the master process that routes and assigns client connection requests to master executor processes (MXOSRVR).
+
+You can see how many DCS masters are configured and on what nodes the current active and primary DCS masters are running. You can also see the port on which the DCS Master is listening. This is the port that clients need to use in their JDBC/ODBC connections.
+
+=== Master Executor Processes
+The master executor processes execute the client queries. The list displays all the configured master executor processes that are running across all the nodes.
+
+This includes the master executor processes that are currently connected and the master executors that are available for new connections. If the master executor process is in a connected state, you will see the user name, the application name and client workstation that is connected.
+
+If a client connection is rejected with error message that no more servers are available, you can use this page to confirm that all master executor processes are used up.
+
+To increase the number of master executor processes, increase the number of configured servers in the *$DCS_INSTALL_DIR/conf/servers* file and restart the connectivity service (DCS).
+
+=== Process Stack
+
+You can look at the current execution process stack for a master executor process, by selecting the master executor process in the grid and then using the *Action +++->+++ Process Stack* menu. A new pop-up window displays the current process execution stack. This is helpful in analyzing if a query is stuck in processing and if the master executor is waiting for resources.

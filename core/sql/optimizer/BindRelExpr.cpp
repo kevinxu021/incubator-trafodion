@@ -102,7 +102,7 @@
 #include "PrivMgrComponentPrivileges.h"
 #include "PrivMgrDefs.h"
 #include "PrivMgrMD.h"
-
+#include "CompException.h"
   #define SLASH_C '/'
 
 NAWchar *SQLTEXTW();
@@ -1629,9 +1629,17 @@ NATable *BindWA::getNATable(CorrName& corrName,
       !getCurrentScope()->context()->inRIConstraint())
     table->incrReferenceCount();
 
-  if (table)
-    OSIM_captureTableOrView(table);
-
+  if (OSIM_runningInCaptureMode() && table)
+  {    
+      try{
+          OSIM_captureTableOrView(table);
+      }
+      catch(OsimLogException & e)
+      {
+          OSIM_errorMessage(e.getErrMessage());
+          return NULL;
+      }
+  }
   return table;
 } // BindWA::getNATable()
 
@@ -3496,7 +3504,8 @@ static NABoolean checkUnresolvedAggregates(BindWA *bindWA)
   // This is to avoid printing the aggregate functions more than once.
 
     if((agg->origOpType() != ITM_AVG || agg->getOperatorType() == ITM_SUM) &&
-       (!(agg->origOpType() == ITM_STDDEV || agg->origOpType() == ITM_VARIANCE)
+       (!(agg->origOpType() == ITM_STDDEV_SAMP || agg->origOpType() == ITM_VARIANCE_SAMP ||
+		  agg->origOpType() == ITM_STDDEV_POP || agg->origOpType() == ITM_VARIANCE_POP)
        || agg->getOperatorType() == ITM_COUNT_NONULL)){
 
       unparsed += ", ";
@@ -3579,7 +3588,7 @@ static short replaceRenamedColInHavingWithSelIndex(
   if (((expr->getOperatorType() >= ITM_ROW_SUBQUERY) &&
        (expr->getOperatorType() <= ITM_GREATER_EQ_ANY)) ||
       ((expr->getOperatorType() >= ITM_AVG) &&
-       (expr->getOperatorType() <= ITM_VARIANCE)) ||
+       (expr->getOperatorType() <= ITM_VARIANCE_SAMP)) ||
       ((expr->getOperatorType() >= ITM_DIFF1) &&
        (expr->getOperatorType() <= ITM_NOT_THIS)))
     {
@@ -3614,7 +3623,7 @@ static short setValueIdForRenamedColsInHaving(BindWA * bindWA,
   if (((expr->getOperatorType() >= ITM_ROW_SUBQUERY) &&
        (expr->getOperatorType() <= ITM_GREATER_EQ_ANY)) ||
       ((expr->getOperatorType() >= ITM_AVG) &&
-       (expr->getOperatorType() <= ITM_VARIANCE)) ||
+       (expr->getOperatorType() <= ITM_VARIANCE_SAMP)) ||
       ((expr->getOperatorType() >= ITM_DIFF1) &&
        (expr->getOperatorType() <= ITM_NOT_THIS)))
     {
@@ -9020,19 +9029,41 @@ RelExpr *Insert::bindNode(BindWA *bindWA)
         bindWA->setErrStatus();
         return this;
     }
+
+    // specifying a list of column names to insert to is not yet supported
+    if (insertColTree_) {
+      *CmpCommon::diags() << DgSqlCode(-4223)
+                          << DgString0("Target column list for insert into Hive table");
+      bindWA->setErrStatus();
+      return this;
+    }
      
     const NABoolean isSequenceFile = hTabStats->isSequenceFile();
     
-    RelExpr * unloadRelExpr =
+    FastExtract * unloadRelExpr =
                     new (bindWA->wHeap())
                     FastExtract( mychild,
                                  new (bindWA->wHeap()) NAString(hiveTablePath),
                                  new (bindWA->wHeap()) NAString(hostName),
                                  hdfsPort,
-                                 TRUE,
-                                 new (bindWA->wHeap()) NAString(getTableName().getQualifiedNameObj().getObjectName()),
+                                 getTableDesc(),
+                                 new (bindWA->wHeap()) 
+                                 NAString(getTableName().getQualifiedNameObj().
+                                          getObjectName()),
                                  FastExtract::FILE,
                                  bindWA->wHeap());
+    ItemExpr *orderByTree = removeOrderByTree();
+    if (orderByTree) {
+      bindWA->getCurrentScope()->context()->inOrderBy() = TRUE;
+      bindWA->getCurrentScope()->setRETDesc(mychild->getRETDesc());
+      orderByTree->convertToValueIdList(unloadRelExpr->reqdOrder(), 
+                                        bindWA, ITM_ITEM_LIST);
+      
+      bindWA->getCurrentScope()->context()->inOrderBy() = FALSE;
+      if (bindWA->errStatus()) return NULL;
+      bindWA->getCurrentScope()->setRETDesc(getRETDesc());
+    }
+
     RelExpr * boundUnloadRelExpr = unloadRelExpr->bindNode(bindWA);
     if (bindWA->errStatus())
       return NULL;
@@ -9072,7 +9103,8 @@ RelExpr *Insert::bindNode(BindWA *bindWA)
                           TRUE,
                           new (bindWA->wHeap()) NAString(tableDir),
                           new (bindWA->wHeap()) NAString(hostName),
-                          hdfsPort);
+                          hdfsPort,
+                          hTabStats->getModificationTS());
 
       //new root to prevent  error 4056 when binding
       newRelExpr = new (bindWA->wHeap()) RelRoot(newRelExpr);
@@ -10407,6 +10439,16 @@ RelExpr *Update::bindNode(BindWA *bindWA)
     bindWA->getCurrentScope()->setRETDesc(getRETDesc());
     return this;
   }
+
+  if (getFirstNRows() > 0)
+    {
+      *CmpCommon::diags() << DgSqlCode(-3242)
+                          << DgString0("[FIRST N] not allowed in update query.");
+      
+      bindWA->setErrStatus();
+      return this;      
+    }
+  
   // Set flag for firstN in context 
   if (child(0) && child(0)->getOperatorType() == REL_SCAN)
     if (child(0)->castToRelExpr() && 
@@ -10738,6 +10780,17 @@ RelExpr *Delete::bindNode(BindWA *bindWA)
     bindWA->getCurrentScope()->setRETDesc(getRETDesc());
     return this;
   }
+
+  if ((getFirstNRows() >= 0) &&
+      (CmpCommon::getDefault(ALLOW_FIRSTN_IN_IUD) == DF_OFF))
+    {
+      *CmpCommon::diags() << DgSqlCode(-3242)
+			  << DgString0("[FIRST N] not allowed in delete query.");
+      
+      bindWA->setErrStatus();
+      return this;      
+    }
+  
   // Save the current scope and node for children to peruse if necessary.
   BindContext *context = bindWA->getCurrentScope()->context();
   if (context) {
@@ -10847,80 +10900,6 @@ RelExpr *Delete::bindNode(BindWA *bindWA)
 
   RelRoot *root =  bindWA->getTopRoot();
 
-  if (getFirstNRows() >= 0)  // First N Delete
-  {
-    CMPASSERT(getOperatorType() == REL_UNARY_DELETE);
-
-    // First N Delete on a partitioned table. Not considered a MTS delete.
-    if (getTableDesc()->getClusteringIndex()->isPartitioned())
-    {
-
-      if (root->getCompExprTree() || inUnion ) // for unions we know there is a select
-      {  // outer selectnot allowed for "non-MTS" first N delete
-        *CmpCommon::diags() << DgSqlCode(-4216);
-        bindWA->setErrStatus();
-        return this;
-      }
-
-      RelExpr * childNode = child(0)->castToRelExpr();
-      FirstN * firstn = new(bindWA->wHeap())
-        FirstN(childNode, getFirstNRows(), NULL);
-      firstn->bindNode(bindWA);
-      if (bindWA->errStatus())
-        return NULL;
-
-      setChild(0, firstn);
-      setFirstNRows(-1);
-
-    }
-    else
-    {
-      // First N delete on a single partition. This is considered a MTS Delete.
-      if ((bindWA->getHostArraysArea()) &&
-          ((bindWA->getHostArraysArea()->hasHostArraysInWhereClause()) ||
-          (bindWA->getHostArraysArea()->getHasSelectIntoRowsets())))
-      { // MTS delete not supported with rowsets
-        *CmpCommon::diags() << DgSqlCode(-30037);
-        bindWA->setErrStatus();
-        return this;
-      }
-
-    
-      if (scanNode && scanNode->getSelectionPred().containsSubquery())
-      {
-        // MTS Delete not supported with subquery in where clause
-        *CmpCommon::diags() << DgSqlCode(-4138);
-
-        bindWA->setErrStatus();
-        return this;
-
-      }
-
-      if (root->hasOrderBy())
-      { // mts delete not supported with order by
-        *CmpCommon::diags() << DgSqlCode(-4189);
-        bindWA->setErrStatus();
-        return this;
-      }
-      if (root->getCompExprTree() || // MTS Delete has an outer select
-          bindWA->isInsertSelectStatement() || // Delete inside an Insert Select statement, Soln:10-061103-0274
-          inUnion )  // for unions we know there is a select
-      {                                                                 
-        if (root->getFirstNRows() < -1 || 
-            inUnion) // for unions we wish to raise a union 
-        {  // The outer select has a Last 1/0 clause      // specific error later, so set the flag now. 
-          setMtsStatement(TRUE);  
-        }
-        else
-        { // raise an error if no Last 1 clause is found.
-          *CmpCommon::diags() << DgSqlCode(-4136);
-          bindWA->setErrStatus();
-          return this;
-        }
-      }
-    }
-  }
-
   // Triggers --
   
   if ((NOT isFastDelete()) && (NOT noIMneeded()))
@@ -10945,21 +10924,11 @@ RelExpr *Delete::bindNode(BindWA *bindWA)
   if (isMtsStatement())
     bindWA->setEmbeddedIUDStatement(TRUE);
 
-   if (getFirstNRows() > 0) 
+  if (scanNode && (getFirstNRows() >= 0))
     {
-      // create a firstN node to delete FIRST N rows, if no such node was created
-      // during handleInlining. Occurs when DELETE FIRST N is used on table with no
-      // dependent objects. 
-      FirstN * firstn = new(bindWA->wHeap())
-        FirstN(boundExpr, getFirstNRows());
-      if (NOT(scanNode && scanNode->getSelectionPred().containsSubquery()))
-        firstn->setCanExecuteInDp2(TRUE);
-      firstn->bindNode(bindWA);
-      if (bindWA->errStatus())
-        return NULL;
-
+      scanNode->setFirstNRows(getFirstNRows());
       setFirstNRows(-1);
-      boundExpr = firstn;
+      setWasFirstN(TRUE);
     }
 
    if ((csl()) && (getTableDesc()->getNATable()->isSeabaseTable()) &&
@@ -11650,6 +11619,7 @@ RelExpr *GenericUpdate::bindNode(BindWA *bindWA)
 
   Int64 transId=-1;
   if ((isNoRollback() && 
+       (getOperatorType() != REL_UNARY_DELETE) &&
        (NOT (Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL)))) &&
       ((CmpCommon::transMode()->getAutoCommit() != TransMode::ON_ ) ||
        (NAExecTrans(0, transId)))) {
@@ -11907,7 +11877,9 @@ RelExpr *GenericUpdate::bindNode(BindWA *bindWA)
       return this;
      }
 
-  if (naTable->isORC())
+  if (naTable->isORC() &&
+      (getOperatorType() != REL_UNARY_INSERT) && 
+      (getOperatorType() != REL_LEAF_INSERT))
     {
       *CmpCommon::diags() << DgSqlCode(-4223)
 			  << DgString0("Upsert/Insert/Update/Delete on ORC table is");
@@ -12061,6 +12033,16 @@ RelExpr *GenericUpdate::bindNode(BindWA *bindWA)
   NABoolean isView = naTable->getViewText() != NULL;
   RelExpr *boundView = NULL;      // ## delete when done with it?
   Scan *scanNode = NULL;
+
+  if ((isView) &&
+      (getFirstNRows() >= 0))
+    {
+      *CmpCommon::diags() << DgSqlCode(-3242)
+			  << DgString0("[FIRST N] not allowed on delete from a view.");
+      
+      bindWA->setErrStatus();
+      return this;      
+    }
 
   if (getOperatorType() == REL_UNARY_INSERT ||
       getOperatorType() == REL_LEAF_INSERT) {
@@ -16602,6 +16584,40 @@ RelExpr * FastExtract::bindNode(BindWA *bindWA)
   // can also get from child Root compExpr
   ValueIdList vidList;
   childRETDesc->getValueIdList(vidList, USER_COLUMN);
+
+  if (isHiveInsert())
+    {
+      // validate number of columns and column types of the select list
+      ValueIdList tgtCols;
+
+      hiveTableDesc_->getUserColumnList(tgtCols);
+
+      if (vidList.entries() != tgtCols.entries())
+        {
+          // 4023 degree of row value constructor must equal that of target table
+          *CmpCommon::diags() << DgSqlCode(-4023)
+                              << DgInt0(vidList.entries())
+                              << DgInt1(tgtCols.entries());
+          bindWA->setErrStatus();
+          return NULL;
+        }
+
+      // Check that the source and target types are compatible.
+      for (CollIndex j=0; j<vidList.entries(); j++)
+        {
+          Assign *tmpAssign = new(bindWA->wHeap())
+            Assign(tgtCols[j].getItemExpr(), vidList[j].getItemExpr());
+
+          if ( CmpCommon::getDefault(ALLOW_IMPLICIT_CHAR_CASTING) == DF_ON )
+            tmpAssign->tryToDoImplicitCasting(bindWA);
+          const NAType *targetType = tmpAssign->synthesizeType();
+          if (!targetType) {
+            bindWA->setErrStatus();
+            return NULL;
+          }
+        }
+    }
+
   setSelectList(vidList);
 
   if (includeHeader())

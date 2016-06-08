@@ -77,6 +77,7 @@ drop schema "_HB__CELL__" cascade;
 reset parserflags 131072;
 
 cqd hive_use_ext_table_attrs 'ON';
+cqd auto_query_retry_warnings 'ON';
  
 ?section create_db
 
@@ -89,7 +90,7 @@ sh regrhbase.ksh $REGRTSTDIR/TEST009_create_hbase_objects.hbase &> $REGRRUNDIR/L
 ?section set_up
 prepare get_hv_schemas from
 select schema_name from "_MD_".objects
-where schema_name like '_HV_%' and object_type = 'PS';
+where schema_name in ('_HV_HIVE_', '_HV_SCH_T009_') and object_type = 'PS';
 
 prepare get_hb_schemas from
 select schema_name from "_MD_".objects
@@ -167,7 +168,6 @@ sh regrhive.ksh -v -f $REGRTSTDIR/TEST009_b.hive.sql &> $REGRRUNDIR/LOG009_b.hiv
 
 -- should fail - column mismatch
 select count(*) from hive.sch_t009.t009t1;
-
 sh sqlci -i "TEST009(select_stmts)";
 
 -- drop and recreate external table

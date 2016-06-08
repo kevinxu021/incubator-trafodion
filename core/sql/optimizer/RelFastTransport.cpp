@@ -49,7 +49,7 @@ FastExtract::FastExtract(const FastExtract & other)
   targetName_ = other.targetName_;
   hdfsHostName_ = other.hdfsHostName_;
   hdfsPort_ = other.hdfsPort_;
-  isHiveInsert_ = other.isHiveInsert_;
+  hiveTableDesc_ = other.hiveTableDesc_;
   hiveTableName_ = other.hiveTableName_;
   delimiter_ = other.delimiter_;
   isAppend_ = other.isAppend_;
@@ -88,7 +88,7 @@ RelExpr * FastExtract::copyTopNode(RelExpr *derivedNode,
   result->targetName_ = targetName_;
   result->hdfsHostName_ = hdfsHostName_;
   result->hdfsPort_ = hdfsPort_;
-  result->isHiveInsert_= isHiveInsert_;
+  result->hiveTableDesc_= hiveTableDesc_;
   result->hiveTableName_ = hiveTableName_;
   result->delimiter_ = delimiter_;
   result->isAppend_ = isAppend_;
@@ -100,6 +100,8 @@ RelExpr * FastExtract::copyTopNode(RelExpr *derivedNode,
   result->selectList_ = selectList_;
   result->isSequenceFile_ = isSequenceFile_;
   result->hiveNATable_ = hiveNATable_;
+  result->overwriteHiveTable_ = overwriteHiveTable_;
+  result->reqdOrder_ = reqdOrder_;
 
   return RelExpr::copyTopNode(result, outHeap);
 }
@@ -111,7 +113,10 @@ const NAString FastExtract::getText() const
   if (isHiveInsert())
   {
     NAString op(CmpCommon::statementHeap());
-    op = "hive_insert";
+    if (hiveNATable_->isORC())
+      op = "orc_insert";
+    else
+      op = "hive_insert";
     NAString tname(hiveTableName_,CmpCommon::statementHeap());
     return op + " " + tname;
   }
@@ -142,12 +147,21 @@ void FastExtract::transformNode(NormWA & normWARef,
 {
   RelExpr::transformNode(normWARef, locationOfPointerToMe);
 };
+
 void FastExtract::rewriteNode(NormWA & normWARef)
 {
   selectList_.normalizeNode(normWARef);
   // rewrite group attributes and selection pred
   RelExpr::rewriteNode(normWARef);
+
+  FastExtract * fe
+    = (FastExtract *)(this->castToRelExpr());
+  
+  if (fe->reqdOrder().normalizeNode(normWARef))
+    {
+    }
 } ;
+
 RelExpr * FastExtract::normalizeNode(NormWA & normWARef)
 {
   return RelExpr::normalizeNode(normWARef);

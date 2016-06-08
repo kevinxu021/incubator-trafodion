@@ -74,6 +74,7 @@
 #include "CmpSeabaseDDLroutine.h"
 #include "hdfs.h"
 #include "StmtDDLAlterTableHDFSCache.h"
+#include "StmtDDLAlterLibrary.h"
 
 void cleanupLOBDataDescFiles(const char*, int, const char *);
 
@@ -1154,13 +1155,11 @@ ExpHbaseInterface* CmpSeabaseDDL::allocBRCEHI(NADefaults * defs)
   (heap_, server, zkPort);
   
   Lng32 retcode = ehi->initBRC(NULL);
-  if (retcode < 0)
+  if (retcode != 0)
   {
       *CmpCommon::diags() << DgSqlCode(-8448)
-                        << DgString0((char*)"ExpHbaseInterface::initBRC()")
-                        << DgString1(getHbaseErrStr(-retcode))
-                        << DgInt0(-retcode)
-                        << DgString2((char*)GetCliGlobals()->getJniErrorStr().data());
+                        << DgString0((char*)"ExpHbaseInterface::initBRC()");
+                
     deallocEHI(ehi); 
     return NULL;
   }
@@ -7739,7 +7738,6 @@ void  CmpSeabaseDDL::alterSeabaseSequence(StmtDDLCreateSequence  * alterSequence
 
   return;
 }
-
 void  CmpSeabaseDDL::dropSeabaseSequence(StmtDDLDropSequence  * dropSequenceNode,
                                          NAString &currCatName, NAString &currSchName)
 {
@@ -8645,6 +8643,7 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
        (ddlExpr->addSchemaObjects()) ||
        (ddlExpr->createLibmgr()) ||
        (ddlExpr->restore()) ||
+       (ddlExpr->unlockTraf()) ||
        (ddlExpr->updateVersion())))
     ignoreUninitTrafErr = TRUE;
 
@@ -8789,11 +8788,39 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
     }
   else if (ddlExpr->backup())
     {
+	  if (xnInProgress(&cliInterface))
+	  {
+		  *CmpCommon::diags() << DgSqlCode(-20123)
+		  	<< DgString0("This operation");
+	  }
+	  else
+	  {
 	    backup(ddlExpr, &cliInterface);
+	  }
     }
   else if (ddlExpr->restore())
   {
-      restore(ddlExpr, &cliInterface);
+	  if (xnInProgress(&cliInterface))
+	  {
+		  *CmpCommon::diags() << DgSqlCode(-20123)
+		  	<< DgString0("This operation");
+	  }
+	  else
+	  {
+		  restore(ddlExpr, &cliInterface);
+	  }
+  }
+  else if (ddlExpr->unlockTraf())
+  {
+	  if (xnInProgress(&cliInterface))
+	  {
+		  *CmpCommon::diags() << DgSqlCode(-20123)
+		  << DgString0("This operation");
+	  }
+	  else
+	  {
+		  unlockAll();
+	  }
   }
   else
     {
@@ -9153,6 +9180,15 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
             ddlNode->castToStmtDDLNode()->castToStmtDDLDropLibrary();
           
           dropSeabaseLibrary(dropLibraryParseNode, currCatName, currSchName);
+        }
+      else if (ddlNode->getOperatorType() == DDL_ALTER_LIBRARY)
+        {
+          // create seabase library
+          StmtDDLAlterLibrary * alterLibraryParseNode =
+            ddlNode->castToStmtDDLNode()->castToStmtDDLAlterLibrary();
+          
+          alterSeabaseLibrary(alterLibraryParseNode, currCatName, 
+                              currSchName);
         }
       else if (ddlNode->getOperatorType() == DDL_CREATE_ROUTINE)
         {

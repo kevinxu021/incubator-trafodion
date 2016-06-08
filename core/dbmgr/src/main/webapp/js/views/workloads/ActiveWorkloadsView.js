@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2016 Esgyn Corporation
+//(C) Copyright 2015-2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -58,7 +58,8 @@ define([
 			this.fetchActiveQueries();
 		},
 		doPause: function(){
-			common.commonTimeRange.isAutoRefresh=$(REFRESH_INTERVAL).val();
+			if(common.commonTimeRange!=null)
+				common.commonTimeRange.isAutoRefresh=$(REFRESH_INTERVAL).val();
 			refreshTimer.pause();
 			wHandler.off(wHandler.FETCH_ACTIVE_SUCCESS, this.displayResults);
 			wHandler.off(wHandler.FETCH_ACTIVE_ERROR, this.showErrorMessage);			
@@ -130,7 +131,7 @@ define([
 								 "className" : "dbmgr-nowrap",
 					                	 "mRender": function ( data, type, full ) {
 					                		 if (type === 'display') {
-					                			 return common.toDateFromMilliSeconds(data);
+					                			 return common.toServerLocalDateFromMilliSeconds(data, 'YYYY-MM-DD HH:mm:ss');
 					                		 }
 					                		 else return data;
 					                	 }

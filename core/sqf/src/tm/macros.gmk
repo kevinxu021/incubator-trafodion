@@ -88,6 +88,10 @@ endif
 else
 CWARN		= -Wall -Werror -Wextra $(HPCWARN)  -Wno-long-long
 CXXWARN		= -Wall -Werror -Wextra $(HPCXXWARN)  -Wno-long-long
+ifeq ($(ARCH),ppc64le)
+     CXXWARN +=	-Wno-unused-but-set-variable
+endif
+
 endif
 ifeq ($(SQ_USE_INTC),0)
 HPCWARN		= -Wno-unused-parameter

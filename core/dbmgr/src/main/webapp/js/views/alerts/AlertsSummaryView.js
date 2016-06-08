@@ -49,7 +49,8 @@ define([
 	var _this = null;
 	var validator = null;
 	var lastAppliedFilters = null; //last set of filters applied by user explicitly
-
+	var lastUsedTimeRange = null;
+	
 	var AlertsSummaryView = BaseView.extend({
 		template:  _.template(AlertsT),
 
@@ -62,8 +63,6 @@ define([
 			this.initialTimeRangePicker();
 			$(START_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
 			$(END_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
-			$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
-			$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 
 			serverHandler.on(serverHandler.FETCH_ALERTS_LIST_SUCCESS, this.displayResults);
 			serverHandler.on(serverHandler.FETCH_ALERTS_LIST_ERROR, this.showErrorMessage);
@@ -73,7 +72,11 @@ define([
 			refreshTimerView.init();
 			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
-			refreshTimerView.setRefreshInterval(1);
+			if(common.commonTimeRange!=null&&common.commonTimeRange.isAutoRefresh!=null){
+				refreshTimerView.setRefreshInterval(common.commonTimeRange.isAutoRefresh);
+			}else{
+				refreshTimerView.setRefreshInterval(1);
+			}
 			this.fetchAlertsSummary();
 		},
 		doResume: function(){
@@ -85,7 +88,18 @@ define([
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
 			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
-			this.fetchAlertsSummary();
+			if(common.commonTimeRange!=null&&common.commonTimeRange.isAutoRefresh!=null){
+				refreshTimerView.setRefreshInterval(common.commonTimeRange.isAutoRefresh);
+			}else{
+				refreshTimerView.setRefreshInterval(1);
+			}
+			//this.fetchAlertsSummary();
+			if(lastUsedTimeRange != null){
+				var currTimeRange = $(FILTER_TIME_RANGE).val();
+				if(lastUsedTimeRange != currTimeRange){
+					this.fetchAlertsSummary();
+				}
+			}
 		},
 		doPause: function(){
 			this.storeCommonTimeRange();
@@ -216,6 +230,12 @@ define([
 					$('#filter-start-time').prop("disabled", true);
 					$('#filter-end-time').prop("disabled", true);
 					break;
+				case "128":
+					$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'week'));
+					$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
+					$('#filter-start-time').prop("disabled", true);
+					$('#filter-end-time').prop("disabled", true);
+					break;
 				case "0":
 					$('#filter-start-time').prop("disabled", false);
 					$('#filter-end-time').prop("disabled", false);
@@ -340,7 +360,7 @@ define([
 				return;
 			}
 			_this.updateTimeRangeLabel();
-
+			lastUsedTimeRange = $(FILTER_TIME_RANGE).val();
 			var param = _this.getFilterParams();
 
 			if(lastAppliedFilters == null || source != null){

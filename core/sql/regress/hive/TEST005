@@ -61,9 +61,9 @@ log LOG005 clear;
 set schema hive.hive;
 set terminal_charset utf8;
 
-cqd AUTO_QUERY_RETRY 'OFF';
+cqd AUTO_QUERY_RETRY_WARNINGS 'ON';
 cqd HIVE_MAX_STRING_LENGTH '32' ;
-cqd CALL_EMBEDDED_ARKCMP 'OFF';
+
 cqd HIST_ROWCOUNT_REQUIRING_STATS '50000';
 ------------------------------------------------------------
 -- Testing query plan invalidation in the compiler, but
@@ -142,8 +142,55 @@ where description like '%:_sys_MinVal0%'
 
 execute s;
 
+-- min/max optimization with an ESP exchange between the join and the scan
+
+-- force a parallel type 2 join with repartitioning on the left side
+control query shape esp_exchange(hash_join(esp_exchange(scan('P'), 2), cut, type2), 4);
+
+prepare s from
+select p.id, n.id, p.p1, n.p1
+from hive.hive.hivepi p join hive.hive.hivenonp n
+  on p.p1 = n.p1
+where n.id in (2, 22);
+
+explain options 'f' s;
+
+-- validate that the min/max values are actually used
+select operator, tname
+from table(explain(null, 'S'))
+where description like '%:_sys_MinVal0%'
+  and description like '%:_sys_MaxVal0%';
+-- still should do min/max optimization, since this is a type 2 join
+
+execute s;
+
+-- force a parallel type 2 join with repartitioning on the left side
+control query shape esp_exchange(hash_join(esp_exchange(scan('P'), 2), cut, type1), 4);
+
+prepare s from
+select p.id, n.id, p.p1, n.p1
+from hive.hive.hivepi p join hive.hive.hivenonp n
+  on p.p1 = n.p1
+where n.id in (2, 22);
+
+explain options 'f' s;
+
+-- validate that the min/max values are actually used
+select operator, tname
+from table(explain(null, 'S'))
+where description like '%:_sys_MinVal0%'
+  and description like '%:_sys_MaxVal0%';
+-- should not see min/max optimization, not supported
+-- for this kind of type 1 join and repartitioning
+
+execute s;
+
+control query shape cut;
+
 -- allow VEG between varchars
 cqd comp_bool_158 'on';
+
+control query shape hash_join(scan('P'), scan('N'));
 
 prepare s from
 select p.id, n.id, p.p1, n.p1, p.p2
@@ -255,10 +302,8 @@ execute s2part;
 select * from newtable;
 -- no rows, but should know the new table
 insert into newtable values ('abc');
-cqd query_cache '0';
 select * from newtable;
 -- expect to see the row, but only because query cache is off
-cqd query_cache reset;
 
 insert into hiveregr5.newtable2 values ('xyz');
 select * from hiveregr5.newtable2;
@@ -324,7 +369,6 @@ select a,b from newtable;
 -- overwrite customer_p and tbl_utf8p with auto-generated partitions
 sh regrhive.ksh -v -f $REGRTSTDIR/TEST005_d.hive.sql;
 
-cqd query_cache '0';
 prepare s4 from 
   select c_preferred_cust_flag,
          count(*) 
@@ -491,4 +535,36 @@ c8 smallint
 cqd HIVE_SCAN_SPECIAL_MODE '2';
 insert into trafodion.seabase.traf_tbl_bad select * from tbl_bad;
 cqd HIVE_SCAN_SPECIAL_MODE reset;
+
+-- tests for hive timestamp mismatch check
+cqd auto_query_retry_warnings 'ON';
+
+sh echo "drop table thive;" > TEST005_junk;
+sh regrhive.ksh -f TEST005_junk;
+
+sh echo "create table thive(a int);" > TEST005_junk;
+sh regrhive.ksh -f TEST005_junk;
+
+select a from hive.hive.thive;
+
+sh echo "insert into thive values (1);" > TEST005_junk;
+sh regrhive.ksh -f TEST005_junk;
+
+select a from hive.hive.thive;
+insert into hive.hive.thive values (2);
+select a from hive.hive.thive;
+
+sh echo "drop table thive;" > TEST005_junk;
+sh regrhive.ksh -f TEST005_junk;
+
+sh echo "create table thive(a int, b int);" > TEST005_junk;
+sh regrhive.ksh -f TEST005_junk;
+
+sh echo "insert into thive values (1,2);" > TEST005_junk;
+sh regrhive.ksh -f TEST005_junk;
+
+select a from hive.hive.thive;
+
+select * from hive.hive.thive;
+
 log;

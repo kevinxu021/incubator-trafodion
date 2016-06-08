@@ -73,9 +73,11 @@ ComTdbFastExtract::ComTdbFastExtract(
                      unsigned short childDataTuppIndex,
                      unsigned short cnvChildDataTuppIndex,
                      unsigned short partStringTuppIndex,
+                     unsigned short tgtValsTuppIndex,
                      ULng32 childDataRowLen,
                      Int64 hdfBuffSize,
-                     Int16 replication
+                     Int16 replication,
+                     Queue * orcColNameList
 
                      )
 : ComTdb(ex_FAST_EXTRACT, eye_FAST_EXTRACT, estimatedRowCount, criDescParent,
@@ -101,6 +103,7 @@ ComTdbFastExtract::ComTdbFastExtract(
   childDataTuppIndex_(childDataTuppIndex),
   cnvChildDataTuppIndex_(cnvChildDataTuppIndex),
   partStringTuppIndex_(partStringTuppIndex),
+  tgtValsTuppIndex_(tgtValsTuppIndex),
   numIOBuffers_(numIOBuffers),
   hiveSchemaName_(hiveSchemaName),
   hiveTableName_(hiveTableName),
@@ -108,7 +111,9 @@ ComTdbFastExtract::ComTdbFastExtract(
   hdfsReplication_(replication),
   ioTimeout_(ioTimeout),
   maxOpenPartitions_(maxOpenPartitions),
-  childDataRowLen_(childDataRowLen)
+  childDataRowLen_(childDataRowLen),
+  modTSforDir_(-1),
+  orcColNameList_(orcColNameList)
 {
 
 }
@@ -135,6 +140,12 @@ Long ComTdbFastExtract::pack(void *space)
   hiveTableName_.pack(space);
   hdfsHostName_.pack(space);
 
+  // pack elements in orcColNameList
+  if (orcColNameList())
+    {
+      orcColNameList_.pack(space);
+    }
+
   return ComTdb::pack(space);
 }
 
@@ -155,6 +166,7 @@ Lng32 ComTdbFastExtract::unpack(void *base, void *reallocator)
   if (hiveSchemaName_.unpack(base)) return -1;
   if (hiveTableName_.unpack(base)) return -1;
   if (hdfsHostName_.unpack(base)) return -1;
+  if (orcColNameList_.unpack(base, reallocator)) return -1;
 
   return ComTdb::unpack(base, reallocator);
 }
@@ -246,12 +258,18 @@ void ComTdbFastExtract::displayContents(Space *space, ULng32 flag)
    str_sprintf(buf,"numIOBuffers = %d", numIOBuffers_);
    space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(UInt16));
 
+   str_sprintf(buf,"hdfsIOBufferSize = %d", hdfsIOBufferSize_);
+   space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(UInt16));
+
    if (maxOpenPartitions_ > 0)
    {
          str_sprintf(buf,"maxOpenPartitions = %d", maxOpenPartitions_);
          space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sz);
    }
 
+   str_sprintf(buf, "modTSforDir_ = %Ld", modTSforDir_);
+   space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+   
   } // if (flag & 0x00000008)
 
    displayExpression(space,flag);

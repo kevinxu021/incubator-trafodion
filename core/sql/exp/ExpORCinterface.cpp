@@ -169,6 +169,11 @@ Lng32 ExpORCinterface::getColStats(Lng32 colNum, NAArray<HbaseStr> **colStats)
   return 0;
 }
 
+Lng32 ExpORCinterface::getSumStringLengths(Int64 & result)
+{
+  return ofr_->getSumStringLengths(result);
+}
+
 char * ExpORCinterface::getErrorText(Lng32 errEnum)
 {
   return ofr_->getErrorText((OFR_RetCode)errEnum);

@@ -41,6 +41,7 @@
 #include "ControlDB.h"
 #include "GenExpGenerator.h"
 #include "ComTdbHdfsScan.h"
+#include "ComTdbOrcAccess.h"
 #include "ComTdbDDL.h"                  // for describe
 #include "ComTdbHbaseAccess.h"
 #include "HashRow.h"                    // for sizeof(HashRow)
@@ -403,29 +404,16 @@ short FileScan::genForTextAndSeq(Generator * generator,
   const NABoolean isSequenceFile = hTabStats->isSequenceFile();
 
   HiveFileIterator hfi;
-  NABoolean firstFile = TRUE;
   hdfsPort = 0;
   hdfsHostName = NULL;
   
-  while (firstFile && getHiveSearchKey()->getNextFile(hfi))
-    {
-      const HHDFSFileStats * hFileStats = hfi.getFileStats();
-      if (firstFile)
-        {
-          // determine connection info (host and port) from the first file
-          NAString dummy, hostName;
-          NABoolean result;
-          result = ((HHDFSTableStats*)hTabStats)->splitLocation
-            (hFileStats->getFileName().data(), hostName, hdfsPort, dummy) ;
-          
-          GenAssert(result, "Invalid Hive directory name");
-
-          hdfsHostName = 
-            space->AllocateAndCopyToAlignedSpace(hostName, 0);
-
-          firstFile = FALSE;
-        }
-    }
+  // determine host and port from dir name
+  NAString dummy, hostName;
+  NABoolean result = ((HHDFSTableStats*)hTabStats)->splitLocation
+    (hTabStats->tableDir().data(), hostName, hdfsPort, dummy) ;
+  GenAssert(result, "Invalid Hive directory name");
+  hdfsHostName = 
+        space->AllocateAndCopyToAlignedSpace(hostName, 0);
 
   hdfsFileInfoList = new(space) Queue(space);
   hdfsFileRangeBeginList = new(space) Queue(space);
@@ -572,6 +560,14 @@ short FileScan::genForOrc(Generator * generator,
 
   hdfsPort = 0;
   hdfsHostName = NULL;
+
+  // determine host and port from dir name
+  NAString dummy, hostName;
+  NABoolean result = ((HHDFSTableStats*)hTabStats)->splitLocation
+    (hTabStats->tableDir().data(), hostName, hdfsPort, dummy) ;
+  GenAssert(result, "Invalid Hive directory name");
+  hdfsHostName = 
+        space->AllocateAndCopyToAlignedSpace(hostName, 0);
 
   hdfsFileInfoList = new(space) Queue(space);
   hdfsFileRangeBeginList = new(space) Queue(space);
@@ -1584,6 +1580,27 @@ if (hTabStats->isOrcFile())
   char * tablename = 
     space->AllocateAndCopyToAlignedSpace(GenGetQualifiedName(getIndexDesc()->getNAFileSet()->getFileSetName()), 0);
 
+  // info needed to validate hdfs file structs
+  char * hdfsRootDir = NULL;
+  Int64 modTS = -1;
+  Lng32 numOfPartLevels = -1;
+  Queue * hdfsDirsToCheck = NULL;
+  if (CmpCommon::getDefault(HIVE_DATA_MOD_CHECK) == DF_ON)
+    {
+      hdfsRootDir =
+        space->allocateAndCopyToAlignedSpace(hTabStats->tableDir().data(),
+                                             hTabStats->tableDir().length(),
+                                             0);
+      modTS = hTabStats->getModificationTS();
+      numOfPartLevels = hTabStats->numOfPartCols();
+
+      // if specific directories are to checked based on the query struct
+      // (for example, when certain partitions are explicitly specified), 
+      // add them to hdfsDirsToCheck.
+      // At runtime, only these dirs will be checked for data modification.
+      // ** TBD **
+    }
+
   // create hdfsscan_tdb
   ComTdbHdfsScan *hdfsscan_tdb = NULL;
   if (hTabStats->isOrcFile())
@@ -1637,7 +1654,8 @@ if (hTabStats->isOrcFile())
            buffersize,
            errCountTab,
            logLocation,
-           errCountRowId 
+           errCountRowId,
+           hdfsRootDir, modTS, numOfPartLevels, hdfsDirsToCheck
        );
   else
     hdfsscan_tdb = new(space)
@@ -1688,7 +1706,8 @@ if (hTabStats->isOrcFile())
            buffersize,
            errCountTab,
            logLocation,
-           errCountRowId 
+           errCountRowId,
+           hdfsRootDir, modTS, numOfPartLevels, hdfsDirsToCheck
        );
   
   generator->initTdbFields(hdfsscan_tdb);
@@ -3546,6 +3565,11 @@ short HbaseAccess::codeGen(Generator * generator)
       if (getTableDesc()->getNATable()->isEnabledForDDLQI())
         generator->objectUids().insert(
           getTableDesc()->getNATable()->objectUid().get_value());
+
+      if (getFirstNRows() > 0)
+        {
+          GenAssert(getFirstNRows() > 0, "first N rows must not be set.");
+        }
     }
  
   if (keyInfo && searchKey() && searchKey()->isUnique())

@@ -243,6 +243,7 @@ public:
     addSeqTable_(FALSE),
     addSchemaObjects_(FALSE),
     returnStatus_(FALSE),
+    backupTagTimeStamp_(FALSE),
     flags_(0)
   {
     if (explObjName)
@@ -281,6 +282,7 @@ public:
     addSeqTable_(addSeqTable),
     addSchemaObjects_(addSchemaObjects),
     returnStatus_(FALSE),
+    backupTagTimeStamp_(FALSE),
     flags_(0)
   {
     if (createMDviews)
@@ -319,6 +321,7 @@ public:
     addSeqTable_(FALSE),
     addSchemaObjects_(FALSE),
     returnStatus_(FALSE),
+    backupTagTimeStamp_(FALSE),
     flags_(0)
   {
     purgedataTableName_ = purgedataTableName;
@@ -438,8 +441,13 @@ public:
   void setBackup(NABoolean v)
   {(v ? flags_ |= BACKUP : flags_ &= ~BACKUP); }
   NABoolean backup() { return (flags_ & BACKUP) != 0;}
+  void setUnlockTraf(NABoolean v)
+  {(v ? flags_ |= UNLOCK_TRAF : flags_ &= ~UNLOCK_TRAF); }
+  NABoolean unlockTraf() { return (flags_ & UNLOCK_TRAF) != 0;}
   void setBackupTag(NAString v) { backupTag_ = v; }
   NAString getBackupTag() { return backupTag_; }
+  void setBackupTagTimeStamp(NABoolean v) { backupTagTimeStamp_ = v; }
+  NABoolean getBackupTagTimeStamp() { return backupTagTimeStamp_; }
   void setRestore(NABoolean v)
   {(v ? flags_ |= RESTORE : flags_ &= ~RESTORE); }
   NABoolean restore() { return (flags_ & RESTORE) != 0;}
@@ -459,8 +467,9 @@ public:
     CREATE_LIBMGR           = 0x0080,
     DROP_LIBMGR             = 0x0100,
     UPGRADE_LIBMGR          = 0x0200,
-    BACKUP		    		= 0x0400,
-    RESTORE                 = 0x0800
+    BACKUP		    		      = 0x0400,
+    RESTORE                 = 0x0800,
+    UNLOCK_TRAF             = 0x1000
   };
 
   // see method processSpecialDDL in sqlcomp/parser.cpp
@@ -518,7 +527,8 @@ public:
   
   //Specific to backup /restore
   NAString backupTag_;
-
+  NABoolean backupTagTimeStamp_;
+  
   // if TRUE, then status is returned during ddl operation.
   // Executor communicates with arkcmp and returns status rows.
   NABoolean returnStatus_;
@@ -1046,7 +1056,8 @@ public:
 		    NABoolean isHiveTable = FALSE,
 		    NAString * hiveTableLocation = NULL,
                     NAString * hiveHostName = NULL,
-                    Int32 hiveHdfsPort = 0)
+                    Int32 hiveHdfsPort = 0,
+                    Int64 hiveModTS = -1)
        : ExeUtilExpr(FAST_DELETE_, name, exprNode, NULL, stmtText, stmtTextCharSet, oHeap),
          doPurgedataCat_(doPurgedataCat),
          noLog_(noLog), ignoreTrigger_(ignoreTrigger),
@@ -1056,7 +1067,8 @@ public:
          offlineTable_(FALSE),
          doLabelPurgedata_(FALSE),
          numLOBs_(0),
-         isHiveTable_(isHiveTable)
+         isHiveTable_(isHiveTable),
+         hiveModTS_(hiveModTS)
   {
     if (isHiveTable )
       {
@@ -1135,6 +1147,9 @@ private:
   NAString  hiveTableLocation_;
   NAString hiveHostName_;
   Int32 hiveHdfsPort_;
+
+  // timestamp of hiveTableLocation. 
+  Int64 hiveModTS_;
 };
 
 class ExeUtilMaintainObject : public ExeUtilExpr
@@ -1966,6 +1981,30 @@ public:
 
 private:
   NAString statement_;
+};
+
+////////////////////////////////////////////////////////////////////
+//This class is used to backup restore operations.
+////////////////////////////////////////////////////////////////////
+class ExeUtilBackupRestore : public ExeUtilExpr
+{
+  public:
+    ExeUtilBackupRestore(CollHeap *oHeap = CmpCommon::statementHeap());
+
+    virtual RelExpr * copyTopNode(RelExpr *derivedNode = NULL,
+      CollHeap* outHeap = 0);
+
+    virtual NABoolean producesOutput() { return TRUE; }
+
+    //  virtual RelExpr * bindNode(BindWA *bindWAPtr);
+
+    virtual short codeGen(Generator*);
+
+    virtual const char  *getVirtualTableName();
+    virtual desc_struct   *createVirtualTableDesc();
+
+  private:
+    
 };
 
 //////////////////////////////////////////////////////////////////////////

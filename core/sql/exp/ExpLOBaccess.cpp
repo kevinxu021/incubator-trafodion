@@ -131,13 +131,15 @@ Ex_Lob_Error ExLob::initialize(char *lobFile, Ex_Lob_Mode mode,
 	  dir_ = string(dir);
 	}
 
-   
-      snprintf(lobDataFile_, MAX_LOB_FILE_NAME_LEN, "%s/%s", dir_.c_str(), lobFile);
+      if (lobFile)
+        snprintf(lobDataFile_, MAX_LOB_FILE_NAME_LEN, "%s/%s", dir_.c_str(), 
+                 lobFile);
       
     } 
   else 
     { 
-      snprintf(lobDataFile_, MAX_LOB_FILE_NAME_LEN, "%s", lobFile);
+      if (lobFile)
+        snprintf(lobDataFile_, MAX_LOB_FILE_NAME_LEN, "%s", lobFile);
       
     }
 
@@ -377,35 +379,138 @@ Ex_Lob_Error ExLob::writeDataSimple(char *data, Int64 size, LobsSubOper subOpera
 
     return LOB_OPER_OK;
 }
+
+Ex_Lob_Error ExLob::dataModCheck2(
+       char * dirPath, 
+       Int64  inputModTS,
+       Lng32  numOfPartLevels)
+{
+  if (numOfPartLevels == 0)
+    return LOB_OPER_OK;
+
+  Lng32 currNumFilesInDir = 0;
+  hdfsFileInfo * fileInfos = 
+    hdfsListDirectory(fs_, dirPath, &currNumFilesInDir);
+  if ((currNumFilesInDir > 0) && (fileInfos == NULL))
+    {
+      return LOB_DATA_FILE_NOT_FOUND_ERROR;
+    }
+
+  NABoolean failed = FALSE;
+  for (Lng32 i = 0; ((NOT failed) && (i < currNumFilesInDir)); i++)
+    {
+      hdfsFileInfo &fileInfo = fileInfos[i];
+      if (fileInfo.mKind == kObjectKindDirectory)
+        {
+          Int64 currModTS = fileInfo.mLastMod;
+          if ((inputModTS > 0) &&
+              (currModTS > inputModTS))
+            failed = TRUE;
+        }
+    }
+
+  if (failed)
+    {
+      hdfsFreeFileInfo(fileInfos, currNumFilesInDir);
+
+      return LOB_DATA_MOD_CHECK_ERROR;
+    }
+
+  numOfPartLevels--;
+  Ex_Lob_Error err = LOB_OPER_OK;
+  failed = FALSE;
+  if (numOfPartLevels > 0)
+    {
+      for (Lng32 i = 0; ((NOT failed) && (i < currNumFilesInDir)); i++)
+        {
+          hdfsFileInfo &fileInfo = fileInfos[i];
+          err = dataModCheck2(fileInfo.mName, inputModTS, numOfPartLevels);
+          if (err != LOB_OPER_OK)
+            {
+              failed = TRUE;
+            }
+        }
+    }
+
+  hdfsFreeFileInfo(fileInfos, currNumFilesInDir);
+
+  return err;
+}
+
+// numOfPartLevels: 0, if not partitioned
+//                  N, number of partitioning cols
+Ex_Lob_Error ExLob::dataModCheck(
+       char * dirPath, 
+       Int64  inputModTS,
+       Lng32  numOfPartLevels,
+       ExLobGlobals *lobGlobals)
+{
+  // find mod time of root dir
+  hdfsFileInfo *fileInfos = hdfsGetPathInfo(fs_, dirPath);
+  if (fileInfos == NULL)
+    {
+      hdfsDisconnect(fs_);
+      fs_ = hdfsConnect(hdfsServer_, hdfsPort_);
+      if (fs_ == NULL)
+        return LOB_HDFS_CONNECT_ERROR;
+
+      fileInfos = hdfsGetPathInfo(fs_, dirPath);
+      if (fileInfos == NULL)
+        return LOB_DIR_NAME_ERROR;
+
+      if (lobGlobals)
+        lobGlobals->setHdfsFs(fs_);
+    }
+
+  Int64 currModTS = fileInfos[0].mLastMod;
+  hdfsFreeFileInfo(fileInfos, 1);
+  if ((inputModTS > 0) &&
+      (currModTS > inputModTS))
+    return LOB_DATA_MOD_CHECK_ERROR;
+
+  if (numOfPartLevels > 0)
+    {
+      return dataModCheck2(dirPath, inputModTS, numOfPartLevels);
+    }
+
+  return LOB_OPER_OK;
+}
+
 Ex_Lob_Error ExLob::emptyDirectory()
 {
     Ex_Lob_Error err;
 
     int numExistingFiles=0;
-    hdfsFileInfo *fileInfos = hdfsListDirectory(fs_, lobDataFile_, &numExistingFiles);
+    hdfsFileInfo *fileInfos = hdfsGetPathInfo(fs_, lobDataFile_);
     if (fileInfos == NULL)
     {
-       return LOB_DATA_FILE_NOT_FOUND_ERROR; //here a directory
+      return LOB_DIR_NAME_ERROR;
     }
 
-    for (int i = 0; i < numExistingFiles; i++) 
+    fileInfos = hdfsListDirectory(fs_, lobDataFile_, &numExistingFiles);
+    if (fileInfos == NULL) // empty directory
     {
-#ifdef USE_HADOOP_1
-      int retCode = hdfsDelete(fs_, fileInfos[i].mName);
-#else
-      int retCode = hdfsDelete(fs_, fileInfos[i].mName, 0);
-#endif
+      return LOB_OPER_OK;
+    }
+
+    NABoolean error = FALSE;
+    for (int i = 0; ((NOT error) && (i < numExistingFiles)); i++) 
+    {
+      // if dir, recursively delete it and everything under it
+      int retCode = hdfsDelete(fs_, fileInfos[i].mName, 1);
       if (retCode !=0)
       {
-        //ex_assert(retCode == 0, "delete returned error");
-        return LOB_DATA_FILE_DELETE_ERROR;
+        error = TRUE;
       }
     }
+
     if (fileInfos)
     {
       hdfsFreeFileInfo(fileInfos, numExistingFiles);
     }
-    
+
+    if (error)
+      return LOB_DATA_FILE_DELETE_ERROR;
 
     return LOB_OPER_OK;
 }
@@ -2041,8 +2146,8 @@ Ex_Lob_Error ExLobsOper (
 			 LobsStorage storage,           // storage type
 			 char        *source,           // source (memory addr, filename, foreign lob etc)
 			 Int64       sourceLen,         // source len (memory len, foreign desc offset etc)
-			 Int64 cursorBytes,
-			 char *cursorId,
+			 Int64       cursorBytes,
+			 char        *cursorId,
 			 LobsOper    operation,         // LOB operation
 			 LobsSubOper subOperation,      // LOB sub operation
 			 Int64       waited,            // waited or nowaited
@@ -2080,7 +2185,9 @@ Ex_Lob_Error ExLobsOper (
 
   if (globPtr == NULL)
     {
-      if (operation == Lob_Init)
+      if ((operation == Lob_Init) ||
+          (operation == Lob_Empty_Directory) ||
+          (operation == Lob_Data_Mod_Check))
 	{
 	  globPtr = (void *) new ExLobGlobals();
 	  if (globPtr == NULL) 
@@ -2089,14 +2196,16 @@ Ex_Lob_Error ExLobsOper (
 	  lobGlobals = (ExLobGlobals *)globPtr;
 
 	  err = lobGlobals->initialize(); 
-	  return err;
+          if (err != LOB_OPER_OK)
+            return err;
 	}
       else
 	{
 	  return LOB_GLOB_PTR_ERROR;
 	}
     }
-  else
+
+  if ((globPtr != NULL) && (operation != Lob_Init))
     {
       lobGlobals = (ExLobGlobals *)globPtr;
 
@@ -2149,6 +2258,7 @@ Ex_Lob_Error ExLobsOper (
   */
   switch(operation)
     {
+    case Lob_Init:
     case Lob_Create:
       break;
 
@@ -2317,7 +2427,6 @@ Ex_Lob_Error ExLobsOper (
         lobDebugInfo("purgeLob failed ",err,__LINE__,lobGlobals->lobTrace_);
       break;
 
-
     case Lob_Stats:
       err = lobPtr->readStats(source);
       lobPtr->initStats(); // because file may remain open across cursors
@@ -2325,8 +2434,23 @@ Ex_Lob_Error ExLobsOper (
 
     case Lob_Empty_Directory:
       lobPtr->initialize(fileName, EX_LOB_RW,
-			 dir, storage, hdfsServer, hdfsPort, dir,bufferSize, replication, blockSize);
+			 dir, storage, hdfsServer, hdfsPort, dir, bufferSize, replication, blockSize);
       err = lobPtr->emptyDirectory();
+      break;
+
+    case Lob_Data_Mod_Check:
+      {
+        lobPtr->initialize(NULL, EX_LOB_RW,
+                           NULL, storage, hdfsServer, hdfsPort, NULL, 
+                           bufferSize, replication, blockSize, lobMaxSize, 
+                           lobGlobals);
+
+        Int64 inputModTS = *(Int64*)blackBox;
+        Int32 inputNumOfPartLevels = 
+          *(Lng32*)&((char*)blackBox)[sizeof(inputModTS)];
+        err = lobPtr->dataModCheck(dir, inputModTS, inputNumOfPartLevels,
+                                   lobGlobals);
+      }
       break;
 
     case Lob_Cleanup:
@@ -2501,6 +2625,7 @@ Ex_Lob_Error ExLob::readDataCursorSimple(char *file, char *tgt, Int64 tgtSize,
       // a buffer is available
       c_it = cursor->prefetchBufList_.begin();
       buf = *c_it;
+      lobGlobals->traceMessage("reading from buffer", buf->data_, __LINE__);
       lobGlobals->traceMessage("unlocking cursor",cursor,__LINE__);
       cursor->lock_.unlock();
 
@@ -2534,6 +2659,7 @@ Ex_Lob_Error ExLob::readDataCursorSimple(char *file, char *tgt, Int64 tgtSize,
         buf->bytesRemaining_ = -1;
         buf->bytesUsed_ = -1;
         lobGlobals->postfetchBufListLock_.lock();
+	lobGlobals->traceMessage("moving empty buffer to postfetch", buf->data_, __LINE__);
         lobGlobals->postfetchBufList_.push_back(buf);
         lobGlobals->postfetchBufListLock_.unlock();
 	lobGlobals->traceMessage("locking cursor",cursor,__LINE__);
@@ -2573,7 +2699,7 @@ Ex_Lob_Error ExLob::closeDataCursorSimple(char *fileName, ExLobGlobals *lobGloba
     if (it != lobCursors_.end())
     {
       cursor = &(it->second);
-      lobGlobals->traceMessage("locking cursor",cursor,__LINE__);
+      lobGlobals->traceMessage("locking cursor for close",cursor,__LINE__);
       cursor->lock_.lock();
 
       clock_gettime(CLOCK_MONOTONIC, &cursor->closeTime_);
@@ -2625,7 +2751,7 @@ Ex_Lob_Error ExLobGlobals::performRequest(ExLobHdfsRequest *request)
     case Lob_Hdfs_Cursor_Prefetch :
       lobPtr = request->lobPtr_;
       cursor = request->cursor_;
-      traceMessage("locking cursor",cursor,__LINE__);
+      traceMessage("locking cursor (prefetch request)",cursor,__LINE__);
       cursor->lock_.lock();
       while (!cursor->eod_ && !cursor->eor_ && !cursor->eol_) 
       {
@@ -2635,6 +2761,7 @@ Ex_Lob_Error ExLobGlobals::performRequest(ExLobHdfsRequest *request)
           buf = *c_it;
           postfetchBufList_.erase(c_it);
           postfetchBufListLock_.unlock();
+	  traceMessage("reusing postfetch buffer", buf->data_, __LINE__);
 	  traceMessage("unlocking cursor",cursor,__LINE__);
           cursor->lock_.unlock();
         } else { 
@@ -2657,10 +2784,15 @@ Ex_Lob_Error ExLobGlobals::performRequest(ExLobHdfsRequest *request)
           cursor->lock_.unlock();
           buf = new (getHeap()) ExLobCursorBuffer();
           buf->data_ = (char *) (getHeap())->allocateMemory( cursor->bufMaxSize_);
+          buf->size_ = cursor->bufMaxSize_;
+	  traceMessage("allocating new buffer", buf->data_,__LINE__, cursor->bufMaxSize_);
           lobPtr->stats_.buffersUsed++;
         }
         size = min(cursor->bufMaxSize_, (cursor->maxBytes_ - cursor->bytesRead_ + (16 * 1024)));
         if (buf->data_) {
+          // caller must make all the buffers the same size so they can be reused
+          assert(buf->size_ >= size);
+          traceMessage("hdfsRead", buf->data_, __LINE__, size);
           lobPtr->readCursorDataSimple(buf->data_, size, *cursor, buf->bytesRemaining_);
           buf->bytesUsed_ = 0;
 	  traceMessage("locking cursor",cursor,__LINE__);
@@ -2670,6 +2802,7 @@ Ex_Lob_Error ExLobGlobals::performRequest(ExLobHdfsRequest *request)
 	    seenEOR = true;
           }
           if (buf->bytesRemaining_) {
+            traceMessage("adding to prefetch list", buf->data_, __LINE__);
             cursor->prefetchBufList_.push_back(buf);
 	    traceMessage("signal condition cursor",cursor,__LINE__);
             cursor->lock_.wakeOne();
@@ -2678,11 +2811,12 @@ Ex_Lob_Error ExLobGlobals::performRequest(ExLobHdfsRequest *request)
           } else {
             cursor->eod_ = true;
             seenEOD = true;
-	    traceMessage("signal condition cursor",cursor,__LINE__);
+	    traceMessage("signal condition cursor (eod)",cursor,__LINE__);
             cursor->lock_.wakeOne();
 	    traceMessage("unlocking cursor",cursor,__LINE__);
             cursor->lock_.unlock();
             postfetchBufListLock_.lock();
+	    traceMessage("moving empty buffer to postfetch list", buf->data_, __LINE__);
             postfetchBufList_.push_back(buf);
             postfetchBufListLock_.unlock();
           }
@@ -2707,9 +2841,9 @@ Ex_Lob_Error ExLobGlobals::performRequest(ExLobHdfsRequest *request)
 
       if (!seenEOD && !seenEOR)
 	{
-          traceMessage("locking cursor",cursor,__LINE__);
+          traceMessage("unlocking cursor",cursor,__LINE__);
 	  cursor->lock_.unlock();
-	  if (cursor->eol_) { // never reaches here ??  
+	  if (cursor->eol_) {
 	    lobPtr->deleteCursor(cursor->name_, this);
 	  }
 	}
@@ -2795,6 +2929,7 @@ void ExLobCursor::emptyPrefetchList(ExLobGlobals *lobGlobals)
     {
       buf = *c_it;
       lobGlobals->postfetchBufListLock_.lock();
+      lobGlobals->traceMessage("emptying prefetch buffer", buf->data_, __LINE__);
       lobGlobals->postfetchBufList_.push_back(buf);
       lobGlobals->postfetchBufListLock_.unlock();
       c_it = prefetchBufList_.erase(c_it);
@@ -2814,7 +2949,7 @@ Ex_Lob_Error ExLob::deleteCursor(char *cursorName, ExLobGlobals *lobGlobals)
     if (it != lobCursors_.end())
     {
       cursor = &(it->second);
-      lobGlobals->traceMessage("locking cursor",cursor,__LINE__);
+      lobGlobals->traceMessage("locking cursor (delete cursor)",cursor,__LINE__);
       cursor->lock_.lock();
       cursor->emptyPrefetchList(lobGlobals);
       lobGlobals->traceMessage("unlocking cursor",cursor,__LINE__);
@@ -2886,6 +3021,7 @@ ExLobGlobals::~ExLobGlobals()
     }
 
     for (int i=0; i<NUM_WORKER_THREADS; i++) {
+      traceMessage("waiting for thread", NULL,__LINE__, (long) threadId_[i]);
       pthread_join(threadId_[i], NULL);
     }
     // Free the post fetch bugf list AFTER the worker threads have left to 
@@ -2897,6 +3033,7 @@ ExLobGlobals::~ExLobGlobals()
     while (c_it != postfetchBufList_.end()) {
       buf = *c_it;
       if (buf->data_) {
+        traceMessage("deleting postfetch buffer", buf->data_,__LINE__);
         heap_->deallocateMemory( buf->data_);
       }
       c_it = postfetchBufList_.erase(c_it);
@@ -3186,6 +3323,7 @@ Ex_Lob_Error ExLobGlobals::processPreOpens()
     {
         ExLob *lobPtr = preOpenObj->lobPtr_;
 
+        traceMessage("process pre-open", NULL, __LINE__, preOpenObj->maxBytes_);
         lobPtr->openDataCursor(preOpenObj->cursorName_, Lob_Cursor_Simple, preOpenObj->range_, 
                                preOpenObj->bufMaxSize_, preOpenObj->maxBytes_, 
                                preOpenObj->waited_, this);
@@ -3197,15 +3335,16 @@ Ex_Lob_Error ExLobGlobals::processPreOpens()
 //Enable envvar TRACE_HDFS_THREAD_ACTIONS to enable tracing. 
 //The output file will be named trace_threads.<pid> on ech node
 
-void ExLobGlobals::traceMessage(const char *logMessage, ExLobCursor *cursor,
-                                int line)
+void ExLobGlobals::realTraceMessage(const char *logMessage, void *cursor,
+                                    int line, long num)
 {
   if ( threadTraceFile_ && logMessage)
   {
     fprintf(threadTraceFile_, 
-    "Thread: 0x%lx Line:  %d %s 0x%lx\n" ,
+    "Thread: 0x%lx Line:  %d %s 0x%lx (%ld)\n" ,
        (unsigned long)pthread_self(), line, logMessage, 
-       (unsigned long) cursor);
+       (unsigned long) cursor,
+       num);
     fflush(threadTraceFile_);
   }
     

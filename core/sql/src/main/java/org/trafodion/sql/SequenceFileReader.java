@@ -263,7 +263,7 @@ public class SequenceFileReader {
 			  
 			boolean reachedEOF = (newRow == null || newRow == "");
 			
-			boolean reachedSize = (startingPosition > stopOffset);
+			boolean reachedSize = (startingPosition >= stopOffset);
 			boolean lastSyncSeen = (reachedSize && reader.syncSeen());
 			// Stop reading if there is no more data, or if we have read 
 			// enough bytes and have seen the Sync mark.
@@ -308,7 +308,7 @@ public class SequenceFileReader {
 		
 		// If we have already read past the stopOffset on a previous row, 
 		// and have seen the sync marker, then this row belongs to the next block.
-		if ((startingPosition > stopOffset) && reader.syncSeen())
+		if ((startingPosition >= stopOffset) && reader.syncSeen())
 			newRow = null;
 		
 		return newRow;

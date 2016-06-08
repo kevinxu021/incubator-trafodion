@@ -37,56 +37,114 @@
 #include "CmpSeabaseDDLincludes.h"
 #include "RelExeUtil.h"
 #include "Globals.h"
+#include "Context.h"
 #include "SqlStats.h"
 #include "fs/feerrors.h"
 #include "dtm/tm.h"
 
+
 short CmpSeabaseDDL::lockSQL()
 {
-	StatsGlobals *statsGlobals = GetCliGlobals()->getStatsGlobals();
-	if(statsGlobals == NULL)
-	{
-		*CmpCommon::diags() << DgSqlCode(-CAT_INTERNAL_EXCEPTION_ERROR);
-		return -1;
-	}
+  CliGlobals *cliGlobals = GetCliGlobals();
+  if (cliGlobals->getStatsGlobals() == NULL)
+  {
+    *CmpCommon::diags() << DgSqlCode(-CAT_INTERNAL_EXCEPTION_ERROR);
+    return -1;
+  }
+  
+  ExSsmpManager *ssmpManager = cliGlobals->currContext()->getSsmpManager();
+  if (ssmpManager == NULL)
+  {
+    *CmpCommon::diags() << DgSqlCode(-CAT_INTERNAL_EXCEPTION_ERROR);
+    return -1;
+  }
+  
+  ComDiagsArea *tempDiagsArea = CmpCommon::diags();
+  tempDiagsArea->clear();
+  
+  IpcServer *ssmpServer = ssmpManager->getSsmpServer(
+                            cliGlobals->myNodeName(), 
+                            cliGlobals->myCpu(), tempDiagsArea);
+  if (ssmpServer == NULL)
+  {
+    *CmpCommon::diags() << DgSqlCode(-CAT_INTERNAL_EXCEPTION_ERROR);
+    return -1;
+  }
+  
+  SsmpClientMsgStream *ssmpMsgStream  = new (cliGlobals->getIpcHeap())
+   SsmpClientMsgStream((NAHeap *)cliGlobals->getIpcHeap(), 
+                       ssmpManager, tempDiagsArea);
+  
+  ssmpMsgStream->addRecipient(ssmpServer->getControlConnection());
+  
+  SnapshotLockRequest *slMsg = 
+  new (cliGlobals->getIpcHeap()) SnapshotLockRequest(
+                                 cliGlobals->getIpcHeap());
+  
+  *ssmpMsgStream << *slMsg;
+  
+  // Call send with no timeout.  
+  ssmpMsgStream->send(); 
+  
+  // I/O is now complete.  
+  slMsg->decrRefCount();
+  
+  cliGlobals->getEnvironment()->deleteCompletedMessages();
+  ssmpManager->cleanupDeletedSsmpServers();
+  return 0;
 
-	//Set snapshot flag in shared memory.
-	short savedPriority, savedStopMode;
-	short error = statsGlobals->getStatsSemaphore(GetCliGlobals()->getSemId(),
-			GetCliGlobals()->myPin(), savedPriority, savedStopMode, FALSE);
-
-	CMPASSERT(error == 0);
-	
-	statsGlobals->setSnapshotInProgress();
-	
-	statsGlobals->releaseStatsSemaphore(GetCliGlobals()->getSemId(),GetCliGlobals()->myPin(),
-            savedPriority, savedStopMode);
-	
-
-	//propagate the snapshot flag to all nodes
-	//TODO
-	
-	return 0;
 }
 
 short CmpSeabaseDDL::unlockSQL()
 {
-	StatsGlobals *statsGlobals = GetCliGlobals()->getStatsGlobals();
-	CMPASSERT(statsGlobals != NULL);
-	
-	short savedPriority, savedStopMode;
-	//reset snapshotFlag
-	short error = statsGlobals->getStatsSemaphore(GetCliGlobals()->getSemId(),
-			GetCliGlobals()->myPin(), savedPriority, savedStopMode, FALSE);
+  CliGlobals *cliGlobals = GetCliGlobals();
+  if (cliGlobals->getStatsGlobals() == NULL)
+  {
+    *CmpCommon::diags() << DgSqlCode(-CAT_INTERNAL_EXCEPTION_ERROR);
+    return -1;
+  }
+  
+  ExSsmpManager *ssmpManager = cliGlobals->currContext()->getSsmpManager();
+  if (ssmpManager == NULL)
+  {
+    *CmpCommon::diags() << DgSqlCode(-CAT_INTERNAL_EXCEPTION_ERROR);
+    return -1;
+  }
+  
+  ComDiagsArea *tempDiagsArea = CmpCommon::diags();
+  tempDiagsArea->clear();
+  
+  IpcServer *ssmpServer = ssmpManager->getSsmpServer(
+                            cliGlobals->myNodeName(), 
+                            cliGlobals->myCpu(), tempDiagsArea);
+  if (ssmpServer == NULL)
+  {
+    *CmpCommon::diags() << DgSqlCode(-CAT_INTERNAL_EXCEPTION_ERROR);
+    return -1;
+  }
+  
+  SsmpClientMsgStream *ssmpMsgStream  = new (cliGlobals->getIpcHeap())
+   SsmpClientMsgStream((NAHeap *)cliGlobals->getIpcHeap(), 
+                       ssmpManager, tempDiagsArea);
+  
+  ssmpMsgStream->addRecipient(ssmpServer->getControlConnection());
+  
+  SnapshotUnLockRequest *sulMsg = 
+  new (cliGlobals->getIpcHeap()) SnapshotUnLockRequest(
+                                 cliGlobals->getIpcHeap());
+  
+  *ssmpMsgStream << *sulMsg;
+  
+  // Call send with no timeout.  
+  ssmpMsgStream->send(); 
+  
+  // I/O is now complete.  
+  sulMsg->decrRefCount();
+  
+  cliGlobals->getEnvironment()->deleteCompletedMessages();
+  ssmpManager->cleanupDeletedSsmpServers();
+  return 0;
 
-	CMPASSERT(error == 0);
-	
-	statsGlobals->resetSnapshotInProgress();
-	
-	statsGlobals->releaseStatsSemaphore(GetCliGlobals()->getSemId(),GetCliGlobals()->myPin(),
-            savedPriority, savedStopMode);
-	
-	return 0;
 }
 
 NABoolean CmpSeabaseDDL::isSQLLocked()
@@ -144,8 +202,7 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
 	short rc;
 	Lng32 retcode;
 	
-	
-	if(isSQLLocked())
+  if(isSQLLocked())
 	{
 		*CmpCommon::diags() << DgSqlCode(-CAT_BACKUP_IN_PROGRESS);
         return -1;
@@ -157,7 +214,7 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
 	
 	char query[1000];
 	Lng32 cliRC;
-	str_sprintf(query, "select catalog_name,schema_name,object_name from %s.\"%s\".%s where object_type in ('BT', 'IX' , 'MV') ",
+	str_sprintf(query, "select catalog_name,schema_name,object_name from %s.\"%s\".%s where object_type in ('BT', 'IX') ",
 				getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_OBJECTS);
 	  
 	Queue * tableQueue = NULL;
@@ -209,12 +266,8 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
 	    
 	    tableList.push_back(qtableName);
 	    //cout<<qtableName<<endl;
-	    
-	    //hbaseTable.val = qtableName;
-	    //hbaseTable.len = str_len(qtableName);
     }
-	    //retcode = ehi->createSnaphot(hbaseTable);
-	//retcode = ehi->createSnaphot(hbaseTable);
+
 	retcode = ehi->createSnaphot(tableList, ddlExpr->getBackupTag());
     if (retcode < 0)
 	{
@@ -227,9 +280,6 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
 	 // break;
 	}
 	    
-	//Register snapshot in snapshot meta.
-	//TODO
-	
 	
 	//deallocate, not needed anymore.
 	ehi->close();
@@ -237,9 +287,6 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
 	
 	//unlockAll 
 	unlockAll();
-	
-	//done phase 1 backup
-
 	return 0;
 	
 }
@@ -276,7 +323,8 @@ short CmpSeabaseDDL::restore(DDLExpr * ddlExpr,
         return -1;
     }
 
-    retcode = ehi->restoreSnapshots(ddlExpr->getBackupTag());
+    retcode = ehi->restoreSnapshots(ddlExpr->getBackupTag(),
+                                    ddlExpr->getBackupTagTimeStamp());
     if (retcode < 0)
     {
         *CmpCommon::diags() << DgSqlCode(-8448)

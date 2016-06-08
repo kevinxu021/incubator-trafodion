@@ -552,10 +552,10 @@ public class OrcFileReader
     // 
     //     total Num of entries (includes nulls and dups)
     //     type of aggr
-    //     unique entry count
+    //     not null count
     //     min value
     //     max value
-    //     sum value (for numeric datatypes)
+    //     sum value (for numeric datatypes) or sum string lengths (for strings)
     public Object[] getColStats(int colNum) throws IOException 
      {
 	if (logger.isTraceEnabled()) logger.trace("Enter getColStats");
@@ -591,12 +591,12 @@ public class OrcFileReader
             .putInt(ctInt).array();
         retColStats.add(bytes);
 
-        // num of uniq values (does not include dups and nulls)
-        long numUniqVals = columnStatistics.getNumberOfValues();
+        // num of not null values (does not include nulls)
+        long numNotNullVals = columnStatistics.getNumberOfValues();
         bytes = 
             ByteBuffer.allocate(8) //Long.BYTES)
             .order(ByteOrder.LITTLE_ENDIAN)
-            .putLong(numUniqVals).array();
+            .putLong(numNotNullVals).array();
         retColStats.add(bytes);
 
         switch (columnType.getKind())
@@ -681,6 +681,12 @@ public class OrcFileReader
                     bytes = max.getBytes();
                     retColStats.add(bytes);
 
+                    long sum = scs.getSum();
+                    bytes = 
+                        ByteBuffer.allocate(8) //Long.BYTES)
+                        .order(ByteOrder.LITTLE_ENDIAN)
+                        .putLong(sum).array();
+                    retColStats.add(bytes);              
                 }
                 break;
                 
@@ -726,6 +732,44 @@ public class OrcFileReader
  
      }
  
+    public long getSumStringLengths() throws IOException
+    {
+	if (logger.isTraceEnabled()) logger.trace("Enter getSumStringLengths");
+
+        long result = 0;
+        long numVals = m_reader.getNumberOfRows();
+
+        // oddly, the indexing into m_reader.getTypes() and m_reader.getStatistics()
+        // seems to be 1-based, though I can't find documentation to this effect;
+        // yet m_fields.get() seems to be 0-based
+
+        for (int colNum = 1; colNum <= m_fields.size(); colNum++) {
+
+            //int i = colNum;
+            //System.out.println("Column " + i + " name: " + m_fields.get(i-1).getFieldName());
+	    //ObjectInspector lv_foi = m_fields.get(i-1).getFieldObjectInspector();
+	    //System.out.println("Column " + i + " type category: " + lv_foi.getCategory());
+	    //System.out.println("Column " + i + " type name: " + lv_foi.getTypeName());
+           
+            List<Type> types = m_reader.getTypes();
+            Type[] arrayTypes = types.toArray(new Type[0]);
+            Type columnType = arrayTypes[colNum];
+         
+            if (columnType.getKind() == Kind.STRING) {
+ 
+                ColumnStatistics columnStatistics = 
+                     m_reader.getStatistics()[colNum];
+                StringColumnStatistics scs = 
+                     (StringColumnStatistics)columnStatistics;
+
+                result += scs.getSum();       
+                //System.out.println("result is now " + result);    
+            }
+        }
+
+	return result;
+    }
+   
 
     public long getPosition() throws IOException 
     {
@@ -1011,7 +1055,7 @@ public class OrcFileReader
 		break;
 	    case OrcProto.Type.Kind.STRING_VALUE:
 		String lv_string = ((WritableStringObjectInspector) m_foi).getPrimitiveJavaObject(lv_field_val);
-		p_row_bb.putInt(lv_string.length());
+		p_row_bb.putInt(lv_string.getBytes().length);
 		p_row_bb.put(lv_string.getBytes());
                 //                System.out.println("lv_string = " + lv_string);
 		break;

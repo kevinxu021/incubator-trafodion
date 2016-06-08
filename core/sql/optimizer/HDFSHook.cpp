@@ -30,6 +30,7 @@
 #include "NodeMap.h"
 #include "ExpLOBinterface.h"
 #include "OptimizerSimulator.h"
+#include "CompException.h"
 #include "ex_ex.h"
 #include "HBaseClient_JNI.h"
 // for DNS name resolution
@@ -46,11 +47,54 @@ HHDFSMasterHostList::~HHDFSMasterHostList()
 // translate a host name to a number (add host if needed)
 HostId HHDFSMasterHostList::getHostNum(const char *hostName)
 {
-  if (getHosts()->entries() == 0)
-    initializeWithSeaQuestNodes();
+  if (getHosts()->entries() == 0) {
+     NABoolean result = initializeWithSeaQuestNodes();
+     CMPASSERT(result);
+  }
 
   return getHostNumInternal(hostName);
 }
+
+CollIndex HHDFSMasterHostList::getNumSQNodes()
+{ 
+  if (getHosts()->entries() == 0) {
+     NABoolean result = initializeWithSeaQuestNodes();
+     CMPASSERT(result);
+  }
+
+   return numSQNodes_; 
+}
+
+CollIndex HHDFSMasterHostList::getNumNonSQNodes()
+{
+  if (getHosts()->entries() == 0) {
+     NABoolean result = initializeWithSeaQuestNodes();
+     CMPASSERT(result);
+  }
+
+  return getHosts()->entries()-numSQNodes_;
+}
+
+NABoolean HHDFSMasterHostList::hasVirtualSQNodes()          
+{ 
+  if (getHosts()->entries() == 0) {
+     NABoolean result = initializeWithSeaQuestNodes();
+     CMPASSERT(result);
+  }
+
+   return hasVirtualSQNodes_; 
+}
+
+CollIndex HHDFSMasterHostList::entries()                 
+{ 
+  if (getHosts()->entries() == 0) {
+     NABoolean result = initializeWithSeaQuestNodes();
+     CMPASSERT(result);
+  }
+
+  return getHosts()->entries(); 
+}
+
 
 // translate a host name to a number (add host if needed)
 HostId HHDFSMasterHostList::getHostNumInternal(const char *hostName)
@@ -74,6 +118,17 @@ const char * HHDFSMasterHostList::getHostName(HostId hostNum)
 
 NABoolean HHDFSMasterHostList::initializeWithSeaQuestNodes()
 {
+   if(OSIM_runningSimulation()){
+       try{
+           OSIM_restoreHHDFSMasterHostList();
+       }
+      catch(OsimLogException & e)
+      {//table is not referred in capture mode, issue osim error
+          OSIM_errorMessage(e.getErrMessage());
+          return FALSE;
+      }
+  }
+
   NABoolean result = FALSE;
   FILE *pp;
   NAString fakeNodeNames =
@@ -189,7 +244,8 @@ void HHDFSStatsBase::add(const HHDFSStatsBase *o)
 {
   numBlocks_ += o->numBlocks_;
   numFiles_ += o->numFiles_; 
-  totalRows_ += o->totalRows_; 
+  totalRows_ += o->totalRows_;
+  totalStringLengths_ += o->totalStringLengths_; 
   totalSize_ += o->totalSize_;
   if (o->modificationTS_ > modificationTS_)
     modificationTS_ = o->modificationTS_ ;
@@ -201,7 +257,8 @@ void HHDFSStatsBase::subtract(const HHDFSStatsBase *o)
 {
   numBlocks_ -= o->numBlocks_;
   numFiles_ -= o->numFiles_; 
-  totalRows_-= o->totalRows_; 
+  totalRows_-= o->totalRows_;
+  totalStringLengths_ -= o->totalStringLengths_;
   totalSize_ -= o->totalSize_;
   sampledBytes_ -= o->sampledBytes_;
   sampledRows_ -= o->sampledRows_;
@@ -346,7 +403,7 @@ void HHDFSFileStats::populate(hdfsFS fs, hdfsFileInfo *fileInfo,
                         "HHDFSFileStats::populate");
     }
 
-  if ( totalSize_ > 0 && diags.isSuccess())
+  if ( NodeMap::useLocalityForHiveScanInfo() && totalSize_ > 0 && diags.isSuccess())
     {
 
       blockHosts_ = new(heap_) HostId[replication_*numBlocks_];
@@ -397,21 +454,38 @@ void HHDFSFileStats::sampleFileWithLOBInterface(hdfsFileInfo *fileInfo,
                                                 HHDFSDiags &diags,
                                                 char recordTerminator)
 {
-  Int64 sampleBufferSize = MINOF(blockSize_, 65536);
-  sampleBufferSize = MAXOF(MINOF(sampleBufferSize,totalSize_/10), 10000);
-  // for now, we need a buffer at least the size of the compression scratch block size
-  sampleBufferSize = MAXOF(sampleBufferSize, compressionInfo_.getMinScratchBufferSize());
+  Int64 totalCompressedBytesToRead = MINOF(blockSize_, 65536);
+  totalCompressedBytesToRead =
+    MAXOF(MINOF(totalCompressedBytesToRead,totalSize_/10), 10000);
+
+  // make this constant (important for LOB interface - we share the
+  // same LOB globals for all files to be sampled!!) and reasonably
+  // big
+  Int64 sampleBufferSize = 100000;
   int retcode = 0;
   ExpCompressionWA *compressionWA =
     ExpCompressionWA::createCompressionWA(&compressionInfo_, heap_);
   char cursorId[10];
   Int64 dummyRequestTag;
-  Int64 totalCompressedBytesToRead = sampleBufferSize;
   Int64 offset = 0;
   Int64 compressedBytesRead = 0;
   Int64 uncompressedBytesRead = 0;
 
   snprintf(cursorId, sizeof(cursorId), "sampling");
+
+  if (compressionWA)
+    {
+      ExpCompressionWA::CompressionReturnCode r = 
+        compressionWA->initCompressionLib();
+
+      if (r != ExpCompressionWA::COMPRESS_SUCCESS)
+        {
+          diags.recordError(
+               NAString("Unable to initialize compression library for ") + compressionWA->getText(),
+               "HHDFSFileStats::sampleFileWithLOBInterface");
+          return;
+        }
+    }
 
   // open cursor
   retcode = ExpLOBInterfaceSelectCursor(
@@ -793,9 +867,10 @@ void HHDFSListPartitionStats::populate(hdfsFS fs,
                                        const char *partitionKeyValues,
                                        Int32 numOfBuckets,
                                        HHDFSDiags &diags,
-                                       NABoolean doEstimation,
+                                       NABoolean canDoEstimation,
                                        char recordTerminator, 
-                                       NABoolean isORC)
+                                       NABoolean isORC,
+                                       Int32& filesEstimated)
 {
   int numFiles = 0;
 
@@ -803,7 +878,6 @@ void HHDFSListPartitionStats::populate(hdfsFS fs,
   partitionDir_     = dir;
   partIndex_        = partIndex;
   defaultBucketIdx_ = (numOfBuckets >= 1) ? numOfBuckets : 0;
-  doEstimation_     = doEstimation;
   recordTerminator_ = recordTerminator;
   if (partitionKeyValues)
     partitionKeyValues_ = partitionKeyValues;
@@ -819,12 +893,20 @@ void HHDFSListPartitionStats::populate(hdfsFS fs,
     }
   else
     {
+      dirInfo_ = *dirInfo;
+
       // list all the files in this directory, they all belong
       // to this partition and either belong to a specific bucket
       // or to the default bucket
       hdfsFileInfo *fileInfos = hdfsListDirectory(fs,
                                                   dir.data(),
                                                   &numFiles);
+
+
+      // sample only a limited number of files
+      Int32 filesToEstimate = CmpCommon::getDefaultLong(HIVE_HDFS_STATS_MAX_SAMPLE_FILES);
+
+      NABoolean doEstimate = canDoEstimation;
 
       // populate partition stats
       for (int f=0; f<numFiles && diags.isSuccess(); f++)
@@ -843,8 +925,14 @@ void HHDFSListPartitionStats::populate(hdfsFS fs,
             else
               bucketStats = bucketStatsList_[bucketNum];
 
-            bucketStats->addFile(fs, &fileInfos[f], diags, doEstimation, 
+            if ( filesEstimated > filesToEstimate )
+               doEstimate = FALSE;
+            else
+               filesEstimated++;
+
+            bucketStats->addFile(fs, &fileInfos[f], diags, doEstimate, 
                                  recordTerminator, NULL_COLL_INDEX, isORC);
+
           }
 
       hdfsFreeFileInfo(fileInfos, numFiles);
@@ -981,7 +1069,7 @@ NABoolean HHDFSListPartitionStats::validateAndRefresh(hdfsFS fs, HHDFSDiags &dia
             bucketStats->addFile(fs,
                                  &fileInfos[f],
                                  diags,
-                                 doEstimation_,
+                                 TRUE, // do estimate for the new file
                                  recordTerminator_,
                                  fileNumInBucket[bucketNum], 
                                  isORC);
@@ -1106,6 +1194,8 @@ NABoolean HHDFSTableStats::populate(struct hive_tbl_desc *htd)
   Int32 hdfsPort = -1;
   NAString tableDir;
 
+  HHDFSORCFileStats::resetTotalAccumulatedRows();
+
   if (hsd)
     {
       if (hsd->isTextFile())
@@ -1120,6 +1210,9 @@ NABoolean HHDFSTableStats::populate(struct hive_tbl_desc *htd)
 
   initLOBInterface();
 
+  // sample only a limited number of files
+  Int32 filesEstimated = 0;
+
   while (hsd && diags_.isSuccess())
     {
       // split table URL into host, port and filename
@@ -1132,19 +1225,16 @@ NABoolean HHDFSTableStats::populate(struct hive_tbl_desc *htd)
       // put back fully qualified URI
       tableDir = hsd->location_;
 
-      NABoolean doEstimate = hsd->isTrulyText();
-
-      // sample only a limited number of files
-      if (getNumFiles() > CmpCommon::getDefaultLong(HIVE_HDFS_STATS_MAX_SAMPLE_FILES))
-        doEstimate = FALSE;
+      NABoolean canDoEstimate = hsd->isTrulyText() || hsd->isOrcFile();
 
       // visit the directory
       processDirectory(tableDir,
                        hsd->partitionColValues_,
                        hsd->buckets_, 
-                       doEstimate, 
+                       canDoEstimate, 
                        hsd->getRecordTerminator(), 
-                       type_==ORC_);
+                       type_==ORC_, 
+                       filesEstimated);
 
       hsd = hsd->next_;
     }
@@ -1288,15 +1378,17 @@ NABoolean HHDFSTableStats::splitLocation(const char *tableLocation,
 void HHDFSTableStats::processDirectory(const NAString &dir,
                                        const char *partColValues,
                                        Int32 numOfBuckets, 
-                                       NABoolean doEstimate,
+                                       NABoolean canDoEstimate,
                                        char recordTerminator,
-                                       NABoolean isORC)
+                                       NABoolean isORC, 
+                                       Int32& filesEstimated)
 {
   HHDFSListPartitionStats *partStats = new(heap_)
     HHDFSListPartitionStats(heap_, this);
   partStats->populate(fs_, dir, listPartitionStatsList_.entries(),
                       partColValues, numOfBuckets,
-                      diags_, doEstimate, recordTerminator, isORC);
+                      diags_, canDoEstimate, recordTerminator, isORC, 
+                      filesEstimated);
 
   if (diags_.isSuccess())
     {
@@ -1304,6 +1396,9 @@ void HHDFSTableStats::processDirectory(const NAString &dir,
       totalNumPartitions_++;
       // aggregate stats
       add(partStats);
+
+      if (partStats->dirInfo()->mLastMod > modificationTS_)
+        modificationTS_ = partStats->dirInfo()->mLastMod;
     }
 }
 
@@ -1560,10 +1655,11 @@ void HHDFSFileStats::assignToESPs(NodeMapIterator* nmi,
    }
 }
 
-void HHDFSFileStats::assignToESPsRepN(HiveNodeMapEntry*& entry)
+void HHDFSFileStats::assignToESPsRepN(HiveNodeMapEntry*& entry,
+                                      const HHDFSListPartitionStats* p)
 {
    Int64 filled = getTotalSize();
-   HiveScanInfo info(this, 0, (filled > 0) ? filled-1 : 0);
+   HiveScanInfo info(this, 0, (filled > 0) ? filled-1 : 0, FALSE, p);
    entry->addScanInfo(info, filled);
 }
 
@@ -1690,6 +1786,9 @@ void HHDFSORCFileStats::assignToESPs(NodeMapIterator* nmi,
    }
 } 
 
+THREAD_P Int64 HHDFSORCFileStats::totalAccumulatedRows_ = 0;
+THREAD_P Int64 HHDFSORCFileStats::totalAccumulatedTotalSize_ = 0;
+
 void HHDFSORCFileStats::populate(hdfsFS fs,
                 hdfsFileInfo *fileInfo,
                 Int32& samples,
@@ -1697,50 +1796,94 @@ void HHDFSORCFileStats::populate(hdfsFS fs,
                 NABoolean doEstimation,
                 char recordTerminator)
 {
-   HHDFSFileStats::populate(fs, fileInfo, samples, diags, doEstimation, recordTerminator);
-
-   ExpORCinterface* orci = ExpORCinterface::newInstance(heap_);
-   if (orci == NULL) {
-     diags.recordError(NAString("Could not allocate an object of class ExpORCInterface") +
-		       "HHDFSORCFileStats::populate");
-     return;
-   }
-
-   Lng32 rc = orci->open((char*)(getFileName().data()));
-   if (rc) {
-     diags.recordError(NAString("ORC interface open() failed"));
-     return;
-   }
+   // do not estimate # of records on ORC files
+   HHDFSFileStats::populate(fs, fileInfo, samples, diags, FALSE, recordTerminator);
 
    NABoolean readStripeInfo = (CmpCommon::getDefault(ORC_READ_STRIPE_INFO) == DF_ON);
+   NABoolean readNumRows = doEstimation || (CmpCommon::getDefault(ORC_READ_NUM_ROWS) == DF_ON);
+   NABoolean needToOpenORCI = (readStripeInfo || readNumRows );
 
-   if ( readStripeInfo ) {
-     orci->getStripeInfo(numOfRows_, offsets_, totalBytes_);
+   ExpORCinterface* orci = NULL;
+   Lng32 rc = 0;
+
+   if ( needToOpenORCI ) {
+     orci = ExpORCinterface::newInstance(heap_);
+     if (orci == NULL) {
+       diags.recordError(NAString("Could not allocate an object of class ExpORCInterface") +
+  		       "HHDFSORCFileStats::populate");
+       return;
+     }
+
+      rc = orci->open((char*)(getFileName().data()));
+      if (rc) {
+        diags.recordError(NAString("ORC interface open() failed"));
+        return;
+      }
    }
 
-   NAArray<HbaseStr> *colStats = NULL;
-   Lng32 colIndex = -1;
-   rc = orci->getColStats(colIndex, &colStats);
+   if ( readStripeInfo ) 
+      orci->getStripeInfo(numOfRows_, offsets_, totalBytes_);
 
-   if (rc) {
-     diags.recordError(NAString("ORC interface getColStats() failed"));
-     return;
-   }
+   if ( readNumRows ) {
+     NAArray<HbaseStr> *colStats = NULL;
+     Lng32 colIndex = -1;
+     rc = orci->getColStats(colIndex, &colStats);
 
-   // read the total # of rows
-   Lng32 len = 0;
-   HbaseStr *hbaseStr = &colStats->at(0);
-   ex_assert(hbaseStr->len <= sizeof(totalRows_), "Insufficient length");
-   memcpy(&totalRows_, hbaseStr->val, hbaseStr->len);
-   deleteNAArray((NAHeap *)heap_, colStats); 
+     if (rc) {
+       diags.recordError(NAString("ORC interface getColStats() failed"));
+       orci->close(); // ignore any error here
+       delete orci;
+       return;
+     }
+
+      // Read the total # of rows
+      Lng32 len = 0;
+      HbaseStr *hbaseStr = &colStats->at(0);
+      ex_assert(hbaseStr->len <= sizeof(totalRows_), "Insufficient length");
+      memcpy(&totalRows_, hbaseStr->val, hbaseStr->len);
+
+      // get sum of the lengths of the strings
+      Int64 sum = 0;
+      rc = orci->getSumStringLengths(sum /* out */);
+      if (rc) {
+        diags.recordError(NAString("ORC interface getSumStringLengths() failed"));
+        orci->close(); // ignore any error here
+        delete orci;
+        return;
+      }
+   totalStringLengths_ = sum;
+
    rc = orci->close();
    if (rc) {
      diags.recordError(NAString("ORC interface close() failed"));
-     return;
+     // fall through to delete orci and to return
    }
+      deleteNAArray((NAHeap *)heap_, colStats);
+      rc = orci->close();
+      if (rc) {
+        diags.recordError(NAString("ORC interface close() failed"));
+        return;
+      }
 
-   delete orci;
+      totalAccumulatedRows_ += totalRows_;
+      totalAccumulatedTotalSize_ += totalSize_;
 
+   } else {
+      if ( totalAccumulatedTotalSize_ > 0 ) {
+         float rowsPerByteRatio =  float(totalAccumulatedRows_) / totalAccumulatedTotalSize_;
+         totalRows_ = totalSize_ * rowsPerByteRatio;
+      } else
+         sampledRows_ = 100;
+   } 
+
+   if ( needToOpenORCI ) {
+      rc = orci->close();
+      if (rc) {
+        diags.recordError(NAString("ORC interface close() failed"));
+        return;
+      }
+      delete orci;
+   }
 }
 
 OsimHHDFSStatsBase* HHDFSORCFileStats::osimSnapShot()

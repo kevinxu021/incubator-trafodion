@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2016 Esgyn Corporation
+//(C) Copyright 2015-2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -20,21 +20,26 @@ define(['moment',
 
 			// var _isoDateFormat='yyyy-MM-dd HH:mm:ss'
 			var REFRESH_INTERVAL = '#refreshInterval';
-			this.MESSAGE_COUNT=0;
+			/*this.MESSAGE_COUNT=0;*/
 			var dispatcher = new EventDispatcher();
 			this.ISODateFormat = 'YYYY-MM-DD HH:mm:ss';
 			var _this = this;
 			this.serverTimeZone = null;
+			this.dbmgrTimeZone = null;
 			this.serverUtcOffset = 0;
+			this.dbmgrUtcOffset = 0;
 			this.dcsMasterInfoUri = "";
 			this.databaseVersion = "";
 			this.databaseEdition = "";
 			this.serverConfigLoaded = false;
+			this.LIBRARY_CREATED_EVENT = 'LIBRARY_CREATED_EVENT';
+			this.LIBRARY_DROPPED_EVENT = 'LIBRARY_DROPPED_EVENT';
+			this.LIBRARY_ALTERED_EVENT = 'LIBRARY_ALTERED_EVENT';
 			this.NOFITY_MESSAGE = 'nofigyMessage';
 			this.MESSAGE_LIST=new Array();
-			this.popupIndex;
+			/*this.popupIndex;
 			this.isAllNotificationInserted=false;
-			this.hideNotifications=null;
+			this.hideNotifications=null;*/
 			this.commonTimeRange=null;
 			this.START_TIME_PICKER = '#startdatetimepicker';
 			this.END_TIME_PICKER = '#enddatetimepicker';
@@ -42,7 +47,26 @@ define(['moment',
 			this.DATE_FORMAT_ZONE = this.DATE_FORMAT + ' z';
 
 			this.sqlKeywords = "alter and as asc between by count create cqd delete desc distinct drop from group having in insert into is join like not on or order select set table union update values where ";
-
+			
+			if (!String.prototype.startsWith) {
+				  String.prototype.startsWith = function(searchString, position) {
+				    position = position || 0;
+				    return this.indexOf(searchString, position) === position;
+				  };
+			}
+			
+			if (!String.prototype.endsWith) {
+				  String.prototype.endsWith = function(searchString, position) {
+				      var subjectString = this.toString();
+				      if (typeof position !== 'number' || !isFinite(position) || Math.floor(position) !== position || position > subjectString.length) {
+				        position = subjectString.length;
+				      }
+				      position -= searchString.length;
+				      var lastIndex = subjectString.indexOf(searchString, position);
+				      return lastIndex !== -1 && lastIndex === position;
+				  };
+			}
+			
 			this.storeSessionProperties = function(data){
 				_this.serverTimeZone = data.serverTimeZone;
 				_this.serverUtcOffset = data.serverUTCOffset;
@@ -50,17 +74,13 @@ define(['moment',
 				_this.serverConfigLoaded = true;
 				_this.databaseEdition = data.databaseEdition;
 				_this.databaseVersion = data.databaseVersion;
+				_this.dbmgrTimeZone = data.dbmgrTimeZone;
+				_this.dbmgrUtcOffset = data.dbmgrUTCOffset;
 				
 				if(_this.isAdvanced()){
 					$('.dbmgr-adv').show();
-					if(data.enableAlerts != null && data.enableAlerts == false){
-						$('#alerts-feature').hide();
-					}else{
-						$('#alerts-feature').show();
-					}
 				}else{
 					$('.dbmgr-adv').hide();
-					$('#alerts-feature').hide();
 				}
 			};
 
@@ -69,6 +89,47 @@ define(['moment',
 					return true;
 				}
 				return false;
+			};
+			
+			this.ExternalDisplayName = function (objName) {
+				var name = objName.trim();
+				var length=name.length;
+				// May be empty?
+				if (length == 0) {
+					return "";
+				}
+				// If it contains specials, it needs to be delimited.
+				if ((length > 1) && (name.startsWith("\"")) && (name.endsWith("\""))) {
+					return name;
+				}else if(!name.startsWith("_") && (name.match("^[A-Z0-9_]+$")!=null)) {
+					// No specials, it's itself
+					return name;
+				}
+				// It has specials; delimit it.
+				return "\"" + name + "\"";			
+			};
+			
+			this.ExternalAnsiName = function (schemaName, objectName) {
+				return _this.ExternalDisplayName(schemaName) + "." + _this.ExternalDisplayName(objectName);
+			};
+			
+			this.ExternalForm=function(internalName){
+				var name = internalName.trim();
+				var patern = new RegExp('\"',"g");
+				var length=name.length;
+				// May be empty?
+				if (length == 0) {
+					return "";
+				}
+				// If it contains specials, it needs to be delimited.
+				if ((length > 1) && (name.startsWith("\"")) && (name.endsWith("\""))) {
+					return name;
+				}else if(!name.startsWith("_") && (name.match("^[a-zA-Z0-9_]+$")!=null)) {
+					// No specials, it's itself
+					return name.toUpperCase();
+				}
+				// It has specials; delimit it.
+				return "\"" + name + "\"";
 			};
 			
 			this.isAdvanced = function(){
@@ -211,17 +272,7 @@ define(['moment',
 			  }
 			  return hash;
 			},
-			this.toServerLocalFromUTCMilliSeconds = function(utcMsec){
-				return utcMsec + _this.serverUtcOffset;
-			},
-
-			this.toDateFromMilliSeconds = function(milliSeconds) {
-				if (milliSeconds != null) {
-					return moment(milliSeconds).format(_this.ISODateFormat);
-				}
-				return "";
-			},
-
+			
 			this.formatGraphDateLabels = function(milliSeconds, interval, isUtc){
 				var offSetString = 'HH:mm';
 
@@ -246,7 +297,9 @@ define(['moment',
 				}
 				if(isUtc !=null && isUtc == true)
 					return _this.toServerLocalDateFromUtcMilliSeconds(milliSeconds, offSetString);
-				return _this.toServerLocalDateFromMilliSeconds(milliSeconds, offSetString);
+				
+				return moment(milliSeconds).tz(_this.serverTimeZone).format(offSetString );
+				//return _this.toServerLocalDateFromMilliSeconds(milliSeconds, offSetString);
 			},
 			this.toTimeDifferenceFromLocalDate=function(start,end){
 				var minute = 1000 * 60;
@@ -259,7 +312,7 @@ define(['moment',
 				var diff = end - start;
 				var timeAgo;
 				if(diff < 0){
-				 alert("end date could not be earlier than start date ！");
+				 alert("End date could not be earlier than start date");
 				 }
 				if(diff<minute){
 					timeAgo=(diff/minute).toFixed(0) +' minutes ago';
@@ -278,41 +331,49 @@ define(['moment',
 				}
 				return timeAgo;
 			},
+			
 			this.toServerLocalDateFromMilliSeconds = function(milliSeconds, formatString) {
 				if (milliSeconds != null) {
-					//return moment(utcMilliSeconds + (_this.serverUtcOffset)).local().format('YYYY-MM-DD HH:mm:ss');
 					if(formatString == null){
 						formatString = 'YYYY-MM-DD HH:mm:ss z';
 					}
-					return moment(milliSeconds).tz(_this.serverTimeZone).format(formatString);
+					if(_this.dbmgrTimeZone != null && _this.dbmgrTimeZone != _this.serverTimeZone){
+						return moment.tz(milliSeconds, _this.dbmgrTimeZone).format(formatString);
+					}
+					else{
+						return moment(milliSeconds).tz(_this.serverTimeZone).format(formatString);
+					}
 				}
 				return "";
 			},
 
 			this.toServerLocalDateFromUtcMilliSeconds = function(utcMilliSeconds, formatString) {
 				if (utcMilliSeconds != null) {
-					return moment(utcMilliSeconds + (_this.serverUtcOffset)).local().format('YYYY-MM-DD HH:mm:ss');
-					/*if(formatString == null){
-						formatString = 'YYYY-MM-DD HH:mm:ss z';
+					if(_this.dbmgrTimeZone != null && _this.dbmgrTimeZone != _this.serverTimeZone && _this.dbmgrUtcOffset != _this.serverUtcOffset){
+						return moment(utcMilliSeconds + (_this.serverUtcOffset)).format('YYYY-MM-DD HH:mm:ss');
 					}
-					return moment(utcMilliSeconds + _this.serverUtcOffset).tz(_this.serverTimeZone).format(formatString);*/
+					return moment.tz(utcMilliSeconds + (_this.serverUtcOffset) , _this.serverTimeZone).format('YYYY-MM-DD HH:mm:ss');
 				}
 				return "";
 			},
+			
 			this.getTimeZoneOffset = function(localeTimeZone) {
 				return moment().tz(localeTimeZone).zone() * 60 * 1000;
 			},
 
 			this.getBrowserTimeZoneOffset = function() {
-				return moment().zone() * 60 * 1000;
+				return moment().utcOffset();
 			},
+			
 			this.getCommonTimeRange=function(selection){
 				var isAutoRefresh;
 				if($(REFRESH_INTERVAL).val()!=null){
 					isAutoRefresh=$(REFRESH_INTERVAL).val();
 				}else{
-					if(_this.commonTimeRange.isAutoRefresh!=null){
+					if(_this.commonTimeRange && _this.commonTimeRange.isAutoRefresh!=null){
 						isAutoRefresh=_this.commonTimeRange.isAutoRefresh;
+					}else {
+						isAutoRefresh="";
 					}
 				}
 				switch (selection) {
@@ -321,7 +382,7 @@ define(['moment',
 					break;
 				default:
 					if(isAutoRefresh==""){
-						_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:"0",isAutoRefresh:isAutoRefresh};	
+						_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:selection,isAutoRefresh:isAutoRefresh};	
 					}else{
 						_this.commonTimeRange={startTime:null,endTime:null,timeRangeTag:selection,isAutoRefresh:isAutoRefresh};
 					}
