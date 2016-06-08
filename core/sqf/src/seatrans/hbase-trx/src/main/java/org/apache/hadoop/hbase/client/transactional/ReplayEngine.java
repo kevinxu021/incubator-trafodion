@@ -84,6 +84,8 @@ import org.apache.zookeeper.KeeperException;
 
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.NavigableMap;
+import java.util.Map.Entry;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -194,7 +196,8 @@ public class ReplayEngine {
             }
         }
         catch (Exception e) {
-            System.out.println("ReplayEngine Exception occurred during Replay");
+            System.out.println("ReplayEngine Exception occurred during Replay " + e);
+            e.printStackTrace();
             throw e;
        }
         System.out.println("ReplayEngine constructor EXIT");
