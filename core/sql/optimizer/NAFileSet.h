@@ -201,6 +201,7 @@ public:
   void setFileSetName(QualifiedName & rhs) {fileSetName_ = rhs;}
   void setEstimatedNumberOfRecords(Cardinality newEstimate)
                      { estimatedNumberOfRecords_ = newEstimate; }
+  void markAsHivePartitioningColumn(int colNum);
 
   // ---------------------------------------------------------------------
   // Query the file organization.
