@@ -20,14 +20,11 @@
 // @@@ END COPYRIGHT @@@
 
 //package org.apache.hadoop.hbase.client.transactional;
-package org.trafodion.sql;
+package org.trafodion.pit;
 
 import org.apache.hadoop.hbase.regionserver.transactional.IdTm;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTmException;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTmId;
-import org.apache.hadoop.hbase.client.transactional.SnapshotMeta;
-import org.apache.hadoop.hbase.client.transactional.SnapshotMetaRecord;
-import org.apache.hadoop.hbase.client.transactional.SnapshotMetaStartRecord;
 import org.apache.hadoop.hbase.client.transactional.RMInterface;
 
 import org.apache.hadoop.conf.Configuration;
@@ -41,6 +38,10 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.ArrayList;
+
+import org.trafodion.pit.SnapshotMeta;
+import org.trafodion.pit.SnapshotMetaRecord;
+import org.trafodion.pit.SnapshotMetaStartRecord;
 
 public class BackupRestoreClient
 {
