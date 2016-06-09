@@ -472,7 +472,7 @@ namespace EsgynDB.Data
                 Monitor.Exit(this._ds);
                 if (forceClose)
                 {
-                    this._connection.Close(true, OperationId.SRVR_API_SQLFREESTMT == id, true);
+                    this._connection.Close(true, true, true);
                 }
             }
         }
