@@ -44,7 +44,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Sun Jun  5 05:50:17 2016
+-- Definition current  Wed Jun  8 21:04:06 2016
 
   (
     S_STORE_SK                       INT
@@ -241,7 +241,7 @@ Suite 100             College
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 12576
+Fragment ID: 0, Length: 12568
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -276,7 +276,7 @@ Contents of EX_ORC_SCAN [1]:
 ----------------------------
 
 For ComTdb :
-Class Version = 1, Class Size = 448
+Class Version = 1, Class Size = 440
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 41032
@@ -338,7 +338,7 @@ ColNumber: 27, ColName: S_COUNTRY
 ColNumber: 28, ColName: S_GMT_OFFSET
 ColNumber: 29, ColName: S_TAX_PRECENTAGE
 hdfsRootDir: hdfs://localhost:36000/user/hive/warehouse/store_orc
-modTSforDir_ = 1463160509, numOfPartCols_ = 0
+modTSforDir_ = 1465418457, numOfPartCols_ = 0
 
 # of Expressions = 6
 
@@ -376,7 +376,7 @@ S_STORE_SK
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 10096
+Fragment ID: 0, Length: 10088
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -411,7 +411,7 @@ Contents of EX_ORC_SCAN [1]:
 ----------------------------
 
 For ComTdb :
-Class Version = 1, Class Size = 448
+Class Version = 1, Class Size = 440
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 41032
@@ -445,7 +445,7 @@ ESP    0 reads               4288 bytes ( 100 percent of avg)
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
 hdfsRootDir: hdfs://localhost:36000/user/hive/warehouse/store_orc
-modTSforDir_ = 1463160509, numOfPartCols_ = 0
+modTSforDir_ = 1465418457, numOfPartCols_ = 0
 
 # of Expressions = 6
 
@@ -529,7 +529,7 @@ S_STORE_SK
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 10272
+Fragment ID: 0, Length: 10264
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -564,7 +564,7 @@ Contents of EX_ORC_SCAN [1]:
 ----------------------------
 
 For ComTdb :
-Class Version = 1, Class Size = 448
+Class Version = 1, Class Size = 440
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 32840
@@ -598,7 +598,7 @@ ESP    0 reads               4288 bytes ( 100 percent of avg)
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
 hdfsRootDir: hdfs://localhost:36000/user/hive/warehouse/store_orc
-modTSforDir_ = 1463160509, numOfPartCols_ = 0
+modTSforDir_ = 1465418457, numOfPartCols_ = 0
 
 # of Expressions = 6
 
@@ -662,7 +662,7 @@ S_STORE_SK
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 15272
+Fragment ID: 0, Length: 15264
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -697,7 +697,7 @@ Contents of EX_ORC_SCAN [1]:
 ----------------------------
 
 For ComTdb :
-Class Version = 1, Class Size = 448
+Class Version = 1, Class Size = 440
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 32840
@@ -731,7 +731,7 @@ ESP    0 reads               4288 bytes ( 100 percent of avg)
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
 hdfsRootDir: hdfs://localhost:36000/user/hive/warehouse/store_orc
-modTSforDir_ = 1463160509, numOfPartCols_ = 0
+modTSforDir_ = 1465418457, numOfPartCols_ = 0
 
 Number of PPI entries: 3
 PPI: #1
@@ -984,7 +984,7 @@ NUM_HITS    NUM_PARAMS
 >>invoke hive.hive.store_sales_orc;
 
 -- Definition of hive table STORE_SALES_ORC
--- Definition current  Sun Jun  5 05:51:03 2016
+-- Definition current  Wed Jun  8 21:04:34 2016
 
   (
     SS_SOLD_DATE_SK                  INT
@@ -1027,7 +1027,7 @@ NUM_HITS    NUM_PARAMS
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212331865865080072
+PLAN_ID .................. 212332179874903710
 ROWS_OUT ................ 20
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from store_sales_orc where ss_item_sk = 1;
@@ -1145,7 +1145,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212331865867170530
+PLAN_ID .................. 212332179876030779
 ROWS_OUT ......... 2,880,401
 EST_TOTAL_COST ........... 0.56
 STATEMENT ................ select *
@@ -1372,7 +1372,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Sun Jun  5 05:51:10 2016
+-- Definition current  Wed Jun  8 21:04:38 2016
 
   (
     D_DATE_SK                        INT
@@ -1513,7 +1513,7 @@ CREATE EXTERNAL TABLE HIVE.HIVE.DATE_DIM_ORC
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212331865873112657
+PLAN_ID .................. 212332179881269629
 ROWS_OUT ................ 20
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1621,7 +1621,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Sun Jun  5 05:51:19 2016
+-- Definition current  Wed Jun  8 21:04:50 2016
 
   (
     D_DATE_SK                        INT
@@ -1762,7 +1762,7 @@ CREATE EXTERNAL TABLE HIVE.HIVE.DATE_DIM_ORC
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212331865881732393
+PLAN_ID .................. 212332179893066024
 ROWS_OUT ................ 20
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1988,7 +1988,7 @@ orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK is null ) 
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-PLAN_ID .................. 212331865906785902
+PLAN_ID .................. 212332179917411829
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 0.05
 STATEMENT ................ select count(*)

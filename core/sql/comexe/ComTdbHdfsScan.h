@@ -143,22 +143,22 @@ class ComTdbHdfsScan : public ComTdb
   Int32 partColsRowLength_;                                   // 200 - 203
   Int32 virtColsRowLength_;                                   // 204 - 207
   Int32 numPartCols_;                                         // 208 - 211
+  char fillersComTdbHdfsScan1_[4];                            // 236 - 239
   ExExprPtr partElimExpr_;                                    // 212 - 219
   UInt32  hiveScanMode_;                                      // 220 - 223
   UInt32 numCompressionInfos_;                                // 224 - 227
   NAVersionedObjectPtrTempl<ComCompressionInfo>
                                       compressionInfos_;      // 228 - 235
-  char fillersComTdbHdfsScan1_[4];                            // 236 - 239
 
   // next 4 params are used to check if data under hdfsFileDir
   // was modified after query was compiled.
   NABasicPtr hdfsRootDir_;                                     // 240 - 247
   Int64  modTSforDir_;                                         // 248 - 255
   Lng32  numOfPartCols_;                                       // 256 - 259
+  char fillersComTdbHdfsScan2_[4];                             // 276 - 279
   QueuePtr hdfsDirsToCheck_;                                   // 260 - 267
 
   NABasicPtr nullFormat_;                                      // 268 - 275
-  char fillersComTdbHdfsScan2_[4];                             // 276 - 279
     
 public:
   enum HDFSFileType

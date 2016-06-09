@@ -643,8 +643,8 @@ NABoolean populateSerDeParams(HiveMetaData *md, Int32 serdeID,
   NAText serdeStr = tblStr->substr(foundB, foundE-foundB);
 
   const char * nullStr = "serialization.null.format=";
-  const char * fieldStr = "field.delim" ;
-  const char * lineStr = "line.delim" ;
+  const char * fieldStr = "field.delim=" ;
+  const char * lineStr = "line.delim=" ;
 
   nullFormatSpec = FALSE;
   foundB = serdeStr.find(nullStr);

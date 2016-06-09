@@ -1608,11 +1608,6 @@ if (hTabStats->isOrcFile())
       // add them to hdfsDirsToCheck.
       // At runtime, only these dirs will be checked for data modification.
       // ** TBD **
-
-      // Right now, timestamp info is not being generated correctly for
-      // partitioned files. Skip data mod check for them.
-      if (numOfPartLevels > 0)
-        hdfsRootDir = NULL;
     }
 
 

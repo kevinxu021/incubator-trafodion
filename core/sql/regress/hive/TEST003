@@ -75,8 +75,6 @@ select operator
   ) as t
 order by s desc;
 
-log LOG003 clear;
-
 set schema hive.hive;
 --cqd attempt_esp_parallelism 'off';
 --cqd hive_max_esps  '1';

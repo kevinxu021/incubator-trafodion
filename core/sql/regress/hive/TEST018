@@ -81,7 +81,6 @@ drop table customer_address cascade;
 drop table customer_address_NOPK cascade;
 drop table customer_salt;
 drop table store_sales_salt;
-drop table nulls;
 drop table null_format_src;
 
 sh regrhadoop.ksh fs -rm   /bulkload/merged_customer_address.gz ;
@@ -92,7 +91,6 @@ sh regrhadoop.ksh fs -rm   /bulkload/merged_customer_demogs_2.gz ;
 sh  regrhbase.ksh $REGRTSTDIR/TEST018_drop_hbase_objects.hbase &> $REGRRUNDIR/TEST018_drop_hbase_objects.log ;
 ?section setup
 --------------------------------------------------------------------------
-create table nulls (a char(5), b char(10));
 create table null_format_src (a varchar(5), b varchar(5));
 
 create table customer_demographics
@@ -205,9 +203,6 @@ salt using 4 partitions
 ?section test_bulk_unload_simple
 --------------------------------------------------------------------------
 --nulls
-insert into nulls values ('aaa1','bbbbb1'),(null,'bbbbb2'),
-                         ('aaa3',null),(null,null),
-                          ('aaa5',null),(null,'bbbbb6');
 
 insert into null_format_src values 
    ('a', 'b'), ('a', null), (null, 'b'), ('a', ''), ('', 'b'),
@@ -245,11 +240,6 @@ select * from hive.hive.store_sales where ss_item_sk <= 1000;
 --select count(*) from hive.hive.store_sales  where ss_item_sk <= 1000;
 select count(*) from store_sales_salt;
 -------------------------------
-cqd hive_treat_empty_string_as_null 'on' ;
-select * from hive.hive.nulls order by a,b;
-cqd hive_treat_empty_string_as_null reset ;
-
-------------------------------------------
 -- handling of various null formats
 
 -- using insert
@@ -283,14 +273,6 @@ select * from hive.hive.null_format_colon;
 create index customer_idx1 on customer_salt(c_first_name, c_last_name);
 
 sh  regrhbase.ksh $REGRTSTDIR/TEST018_create_hbase_objects.hbase &> $REGRRUNDIR/LOG018_create_hbase_tables.log ;
-
-
-cqd hive_treat_empty_string_as_null 'on' ;
-unload with purgedata from target
-   into '/user/hive/exttables/nulls'
-   select * from nulls;
-select * from hive.hive.nulls order by a,b;
-cqd hive_treat_empty_string_as_null reset ;
 
 --exp1
 explain options 'f' 
