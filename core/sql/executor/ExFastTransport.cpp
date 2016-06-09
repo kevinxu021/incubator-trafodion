@@ -1281,7 +1281,9 @@ ExWorkProcRetcode ExHdfsFastExtractTcb::work()
           if (sfwRetCode != SFW_OK)
             {
               createSequenceFileError(sfwRetCode);
-              delete currPartn_->sequenceFileWriter_;
+              NADELETE(currPartn_->sequenceFileWriter_,
+                       SequenceFileWriter,
+                       heap_);
               currPartn_->sequenceFileWriter_ = NULL;
               pstate.step_ = EXTRACT_ERROR;
               break;
@@ -1299,7 +1301,9 @@ ExWorkProcRetcode ExHdfsFastExtractTcb::work()
           if (sfwRetCode != SFW_OK)
             {
               createSequenceFileError(sfwRetCode);
-              delete currPartn_->sequenceFileWriter_;
+              NADELETE(currPartn_->sequenceFileWriter_,
+                       SequenceFileWriter,
+                       heap_);
               currPartn_->sequenceFileWriter_ = NULL;
               pstate.step_ = EXTRACT_ERROR;
               break;
@@ -1938,7 +1942,9 @@ int ExHdfsFastExtractTcb::closePartition(ExHdfsFastExtractPartition *part)
               result = sfwRetCode;
             }
         }
-      delete part->sequenceFileWriter_;
+      NADELETE(part->sequenceFileWriter_,
+               SequenceFileWriter,
+               heap_);
       part->sequenceFileWriter_ = NULL;
       totalNumOpens_--;
     }

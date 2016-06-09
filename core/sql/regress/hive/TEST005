@@ -107,6 +107,10 @@ values -- partition 1,one
        (34,34,3,'four', timestamp '2004-04-04 04:56:18', date '2004-04-04');
 select * from hive.hive.hivenonp;
 
+set schema trafodion.sch;
+create external table hivepi for hive.hive.hivepi;
+set schema hive.hive;
+
 insert into hive.hive.hivepis select id, col2, p1, p2 from hive.hive.hivenonp;
 insert into hive.hive.hivepts select id, col2, p1t, p2 from hive.hive.hivenonp;
 insert into hive.hive.hivepi  select id, col2, p1 from hive.hive.hivepis;
@@ -463,9 +467,6 @@ execute display_rows_accessed;
 -- a partition elimination predicate
 select * from hive.hive.hivepio where p1=1 or col2<10;
 
-set catalog trafodion;
-create external table hivepi for hive.hive.hivepi;
-set schema hive.hive;
 update statistics for table hive.hive.hivepi on every column;
 update statistics for table hivepis on every column;
 update statistics for table hivepiso on every column;
