@@ -77,6 +77,7 @@ import org.apache.hadoop.io.compress.Compressor;
 import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.HConstants;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
@@ -206,7 +207,7 @@ public class HBulkLoadClient
                                  .withDataBlockEncoding(dataBlockEncoding)
                                  .build();
 
-      writer =    HFile.getWriterFactory(config, new CacheConfig(config))
+      writer =    HFile.getWriterFactoryNoCache(config)
                      .withPath(fileSys, hfilePath)
                      .withFileContext(hfileContext)
                      .withComparator(KeyValue.COMPARATOR)
