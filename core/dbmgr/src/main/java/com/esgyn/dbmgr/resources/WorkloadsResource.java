@@ -1,6 +1,6 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2015 Esgyn Corporation
+// (C) Copyright 2015-2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
@@ -234,8 +234,6 @@ public class WorkloadsResource {
 		qDetail.setQueryID(queryID);
 
 		HashMap<String, Object> metrics = new HashMap<String, Object>();
-
-		Session soc = SessionModel.getSession(servletRequest, servletResponse);
 		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_REPO_QUERY_DETAIL),
 				queryID);
 		_LOG.debug(sqlText);
@@ -243,8 +241,6 @@ public class WorkloadsResource {
 		Connection connection = null;
 		PreparedStatement stmt;
 		ResultSet rs;
-
-		String url = ConfigurationResource.getInstance().getJdbcUrl();
 
 		try {
 
@@ -391,7 +387,6 @@ public class WorkloadsResource {
 			@QueryParam("time") String time, @Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
 
-		Session soc = SessionModel.getSession(servletRequest, servletResponse);
 		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_ACTIVE_QUERY_DETAIL_NEW),
 				queryID);
 		_LOG.debug(sqlText);
@@ -406,14 +401,14 @@ public class WorkloadsResource {
 			TabularResult result1 = QueryResource.executeAdminSQLQuery(sqlText);
 			List<String> columnNames = Arrays.asList(result1.columnNames);
 			int vIndex = columnNames.indexOf("VARIABLE_INFO");
-			int tIndex = columnNames.indexOf("TDB_ID");
+			// int tIndex = columnNames.indexOf("TDB_ID");
 			ObjectNode summaryNode = resultObject.putObject("summary");
 			ArrayNode operatorNodes = mapper.createArrayNode();
 			resultObject.set("operators", operatorNodes);
 
 			for (Object[] rowData : result1.resultArray) {
 				Map<String, String> parsedMap = parseVariableInfo((String) rowData[vIndex]);
-				String tdbID = String.valueOf(rowData[tIndex]);
+				// String tdbID = String.valueOf(rowData[tIndex]);
 
 				String statsRowType = (String) parsedMap.get("statsRowType");
 				// parsedMap.remove("statsRowType");
@@ -547,7 +542,6 @@ public class WorkloadsResource {
 	public TabularResult getActiveQueriesFromRMS(@Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
 		try {
-			Session soc = SessionModel.getSession(servletRequest, servletResponse);
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_ACTIVE_QUERIES),
 					" sqlSrc: ", 30);
 			_LOG.debug(queryText);
@@ -571,8 +565,6 @@ public class WorkloadsResource {
 		Session soc = SessionModel.getSession(servletRequest, servletResponse);
 		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.CANCEL_QUERY),
 				JdbcHelper.EncloseInDoubleQuotes(queryID));
-
-		String url = ConfigurationResource.getInstance().getJdbcUrl();
 
 		try {
 			connection = JdbcHelper.getInstance().getConnection(soc.getUsername(), soc.getPassword());
@@ -816,14 +808,18 @@ public class WorkloadsResource {
 			if (obj.has("throughput")) {
 				throughput = obj.get("throughput").textValue();
 			}
-			String connProfile = "";
-			if (obj.has("connProfile")) {
-				connProfile = obj.get("connProfile").textValue();
+			String connectProfile = "";
+			if (obj.has("connectProfile")) {
+				connectProfile = obj.get("connectProfile").textValue();
 			}
-
+			String disconnectProfile = "";
+			if (obj.has("disconnectProfile")) {
+				disconnectProfile = obj.get("disconnectProfile").textValue();
+			}
 			if (trafRestUri != null && trafRestUri.length() > 0) {
 				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_ADD_ALTER_SLA);
-				uri = String.format(queryText, trafRestUri, slaName, priority, limit, throughput, connProfile);
+				uri = String.format(queryText, trafRestUri, slaName, priority, limit, throughput, connectProfile,
+						disconnectProfile);
 			}
 			System.out.println(uri);
 
