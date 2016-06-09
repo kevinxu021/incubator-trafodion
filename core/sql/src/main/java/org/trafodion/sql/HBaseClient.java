@@ -1539,13 +1539,13 @@ public class HBaseClient {
       hblc.release();
    }
   
-  public  BackupRestoreClient getBackupRestoreClient() throws IOException 
+  public  org.trafodion.pit.BackupRestoreClient getBackupRestoreClient() throws IOException 
   {
     if (logger.isDebugEnabled()) logger.debug("HBaseClient.getBackupRestoreClient() called.");
-    BackupRestoreClient brc = null;
+    org.trafodion.pit.BackupRestoreClient brc = null;
     try 
     {
-       brc = new BackupRestoreClient( config);
+       brc = new org.trafodion.pit.BackupRestoreClient( config);
     
     if (brc == null)
       throw new IOException ("brc is null");
@@ -1558,7 +1558,7 @@ public class HBaseClient {
     return brc;
     
   }
-  public void releaseBackupRestoreClient(BackupRestoreClient brc) 
+  public void releaseBackupRestoreClient(org.trafodion.pit.BackupRestoreClient brc) 
       throws IOException 
   {
      if (brc == null)
