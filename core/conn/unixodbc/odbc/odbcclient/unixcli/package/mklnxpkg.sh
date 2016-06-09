@@ -116,6 +116,8 @@ then
     ((err += $?))
     cp ../../connect_test.cpp   connect_test.cpp
     ((err += $?))
+    cp ../../runconnect_test.sh   runconnect_test.sh
+    ((err += $?))
     cp ../../license.txt license.txt
     ((err += $?))
     cd ..

@@ -105,7 +105,7 @@ ComTdbOrcAccess::ComTdbOrcAccess(
                    hdfsFileRangeNumList,
                    hdfsColInfoList,
                    NULL, 0, // no compression info
-                   recordDelimiter, columnDelimiter, hdfsBufSize, 
+                   recordDelimiter, columnDelimiter, NULL, hdfsBufSize, 
                    rangeTailIOSize,
                    numPartCols,
                    hdfsSqlMaxRecLen,

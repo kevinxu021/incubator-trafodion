@@ -3656,7 +3656,6 @@ enum DefaultConstants
   GROUP_BY_PARTIAL_ROOT_THRESHOLD,
   TRAF_UNLOAD_BYPASS_LIBHDFS,
   TRAF_UNLOAD_DEF_DELIMITER,
-  TRAF_UNLOAD_DEF_NULL_STRING,
   TRAF_UNLOAD_DEF_RECORD_SEPARATOR,
   TRAF_LOAD_FORCE_CIF,
   TRAF_ENABLE_ORC_FORMAT,
@@ -3881,11 +3880,11 @@ enum DefaultConstants
   //return error.
   ONLINE_BACKUP_TIMEOUT,
 
-  COMPILER_IDLE_TIMEOUT,
-
   // if set, data modification check is done at runtime before running
   // a query.
   HIVE_DATA_MOD_CHECK,
+
+  COMPILER_IDLE_TIMEOUT,
 
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!

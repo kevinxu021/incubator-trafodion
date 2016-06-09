@@ -51,6 +51,7 @@
 #include "OrcFileWriter.h"
 #include "cli_stdh.h"
 #include "HBaseClient_JNI.h"
+#include "ComSmallDefs.h"
 
 
 //----------------------------------------------------------------------
@@ -856,7 +857,8 @@ ExWorkProcRetcode ExHdfsFastExtractTcb::work()
   OFW_RetCode ofwRetCode = OFW_OK;
   ULng32 recSepLen = strlen(myTdb().getRecordSeparator());
   ULng32 delimLen = strlen(myTdb().getDelimiter());
-  ULng32 nullLen = strlen(myTdb().getNullString());
+  ULng32 nullLen = 
+    (myTdb().getNullString() ? strlen(myTdb().getNullString()) : 0);
   if (myTdb().getIsHiveInsert())
   {
     recSepLen = 1;

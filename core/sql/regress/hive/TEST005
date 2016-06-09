@@ -55,6 +55,8 @@ sh regrhadoop.ksh fs -put $REGRTSTDIR/tbl_bad.data /user/hive/exttables/tbl_bad;
 
 -- cleanup any left-over Trafodion objects
 drop external table hivepi for hive.hive.hivepi;
+drop external table hivepis for hive.hive.hivepis;
+drop external table hivepiso for hive.hive.hivepiso;
 
 log LOG005 clear;
 
