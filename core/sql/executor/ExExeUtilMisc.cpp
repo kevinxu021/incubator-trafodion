@@ -2258,7 +2258,7 @@ Int32 ExExeUtilHiveTruncateTcb::fixup()
   return 0;
 }
 //////////////////////////////////////////////////////
-// work() for ExExePurgedataUtilTcb
+// work() for ExExeUtilHiveTruncateTsb
 //////////////////////////////////////////////////////
 short ExExeUtilHiveTruncateTcb::work()
 {
@@ -2376,7 +2376,7 @@ short ExExeUtilHiveTruncateTcb::work()
         if (qparent_.up->isFull())
           return WORK_OK;
 
-        // Return EOF.
+        // Return Error 
         ex_queue_entry * up_entry = qparent_.up->getTailEntry();
         up_entry->copyAtp(pentry_down);
 

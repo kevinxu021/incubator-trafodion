@@ -2844,13 +2844,7 @@ short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
   // committed in the called methods.
   if ((ddlXns()) &&
       (
-           (initHbase()) ||
-           (dropHbase()) ||
            (purgedataHbase()) ||
-           (initHbase()) ||
-           (dropHbase()) ||
-           (initAuthorization()) ||
-           (dropAuthorization()) ||
            (backup()) ||
            (restore()) ||
            (unlockTraf()) ||
