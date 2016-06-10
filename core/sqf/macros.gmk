@@ -46,13 +46,6 @@ endif
   endif
   CC32             = $(GCC_TOOL_ROOT)/bin/gcc $(ARCH_SPECIFIC_OPTION) $(SCOPEFLAGS) $(PHVERIF)
   CXX32            = $(GCC_TOOL_ROOT)/bin/g++ $(ARCH_SPECIFIC_OPTION) $(SCOPEFLAGS) $(PHVERIF)
-  ifeq ($(ARCH),x86_64)
-    JRE_LIB_DIR=amd64
-  else
-    CC32 += -mcpu=power8 -mtune=power8
-    CXX32 += -mcpu=power8 -mtune=power8
-    JRE_LIB_DIR=ppc64le
-  endif
   CC64             = $(CC32)      # for gcc the toolsets are the same
   CXX64            = $(CXX32)
   GCCMODE32        = -m32
