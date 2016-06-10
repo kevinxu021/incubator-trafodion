@@ -60,7 +60,6 @@ short CmpSeabaseDDL::lockSQL()
   }
   
   ComDiagsArea *tempDiagsArea = CmpCommon::diags();
-  tempDiagsArea->clear();
   
   IpcServer *ssmpServer = ssmpManager->getSsmpServer(
                             cliGlobals->myNodeName(), 
@@ -112,7 +111,6 @@ short CmpSeabaseDDL::unlockSQL()
   }
   
   ComDiagsArea *tempDiagsArea = CmpCommon::diags();
-  tempDiagsArea->clear();
   
   IpcServer *ssmpServer = ssmpManager->getSsmpServer(
                             cliGlobals->myNodeName(), 
