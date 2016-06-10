@@ -5128,7 +5128,7 @@ Lng32 ExExeUtilHiveMDaccessTcb::getLengthFromHiveColType(const char* hiveType)
     //But HIVE_MAX_STRING_LENGTH_IN_BYTES will overwrite HIVE_MAX_STRING_LENGTH if changed
     Int32 hiveMaxLenInBytes = atoi(maxStrLenInBytes);
     Int32 hiveMaxLen = atoi(maxStrLen);
-    if( hiveMaxLenInBytes != 32000 ) //HIVE_MAX_STRING_LENGTH_IN_BYTES changed
+    if( hiveMaxLenInBytes != 31999 ) //HIVE_MAX_STRING_LENGTH_IN_BYTES changed
       return hiveMaxLenInBytes;
     else
       return hiveMaxLen;  

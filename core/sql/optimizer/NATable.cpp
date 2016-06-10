@@ -7782,7 +7782,7 @@ NATable * NATableDB::get(const ExtendedQualName* key, BindWA* bindWA, NABoolean 
               CmpCommon::getDefaultLong(HIVE_MAX_STRING_LENGTH);
             Int32 defaultStringLenInBytes = 
               CmpCommon::getDefaultLong(HIVE_MAX_STRING_LENGTH_IN_BYTES);
-            if(defaultStringLenInBytes != 32000)
+            if(defaultStringLenInBytes != 31999)
               defaultStringLen = defaultStringLenInBytes;
             Int64 expirationTimestamp = refreshInterval;
             NAString defSchema =
