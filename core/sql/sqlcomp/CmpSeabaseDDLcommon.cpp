@@ -6772,7 +6772,8 @@ short CmpSeabaseDDL::dropSeabaseObject(ExpHbaseInterface * ehi,
                                        const ComObjectType objType,
                                        NABoolean ddlXns,
                                        NABoolean dropFromMD,
-                                       NABoolean dropFromHbase)
+                                       NABoolean dropFromStorage,
+                                       NABoolean isMonarch)
 {
   Lng32 retcode = 0;
 
@@ -6820,21 +6821,22 @@ short CmpSeabaseDDL::dropSeabaseObject(ExpHbaseInterface * ehi,
                                    catalogNamePart, schemaNamePart, objectNamePart, objType ))
         return -1;
     }
-
-  if (dropFromHbase)
+  
+ 
+  if (dropFromStorage && objType != COM_VIEW_OBJECT)
     {
-      if (objType != COM_VIEW_OBJECT)
-        {
-          HbaseStr hbaseTable;
-          hbaseTable.val = (char*)extNameForHbase.data();
-          hbaseTable.len = extNameForHbase.length();
+      HbaseStr hbaseTable;
+      hbaseTable.val = (char*)extNameForHbase.data();
+      hbaseTable.len = extNameForHbase.length();
 
-          retcode = dropHbaseTable(ehi, &hbaseTable, FALSE, ddlXns);
-          if (retcode < 0)
-            {
-              return -1;
-            }
-        }
+      if (! isMonarch) 
+         retcode = dropHbaseTable(ehi, &hbaseTable, FALSE, ddlXns);
+/*
+      else
+         retcode = dropMonarchTable(&hbaseTable, FALSE, ddlXns); 
+*/
+      if (retcode < 0)
+         return -1;
     }
 
   return 0;

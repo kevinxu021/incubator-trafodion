@@ -319,7 +319,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL,
     CmpCommon::context()->sqlSession()->getParentQid());
   ExpHbaseInterface * ehi = NULL;
-
+  NABoolean isMonarch = FALSE;
   while (1)
     {
       switch (mdui->step())
@@ -1351,7 +1351,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 					    catName, schName,
                                             objectType,
                                             FALSE,
-					    TRUE, FALSE))
+					    TRUE, FALSE, isMonarch))
 			{
 			  deallocEHI(ehi); 
 
@@ -1397,7 +1397,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		      if (dropSeabaseObject(ehi, oldViewName,
 					    catName, schName,
 					    COM_VIEW_OBJECT,
-                                            FALSE))
+                                            FALSE, TRUE, TRUE, isMonarch))
 			{
 			  deallocEHI(ehi); 
 
@@ -1771,7 +1771,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 					    catName, schName,
 					    (mdti.isIndex ? COM_INDEX_OBJECT : COM_BASE_TABLE_OBJECT),
                                             FALSE,
-					    FALSE, TRUE))
+					    FALSE, TRUE, isMonarch))
 			{
 			  // ignore errors. Continue dropping old md tables.
 			}

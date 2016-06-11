@@ -1059,10 +1059,10 @@ void CmpSeabaseDDL::dropSeabaseView(
 	  
 	  if (dropSeabaseObject(ehi, viewName,
                                 currCatName, currSchName, COM_VIEW_OBJECT,
-                                dropViewNode->ddlXns(), monarchObject))
+                                dropViewNode->ddlXns(), TRUE, TRUE,monarchObject))
 	    {
-	      processReturn();
               deallocEHI(ehi);
+	      processReturn();
 	      return;
 	    }
 	}
@@ -1070,10 +1070,10 @@ void CmpSeabaseDDL::dropSeabaseView(
 
   if (dropSeabaseObject(ehi, tabName,
                         currCatName, currSchName, COM_VIEW_OBJECT,
-                        dropViewNode->ddlXns(), monarchObject))
+                        dropViewNode->ddlXns(), TRUE, TRUE, monarchObject))
     {
-      processReturn();
       deallocEHI(ehi);
+      processReturn();
       return;
     }
   deallocEHI(ehi);

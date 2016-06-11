@@ -1754,9 +1754,11 @@ void CmpSeabaseDDL::dropSeabaseIndex(
 	}
      }
 
+  NABoolean dropFromStorage = TRUE;
+  NABoolean dropFromMD = TRUE;
   if (dropSeabaseObject(ehi, idxName,
 			currCatName, currSchName, COM_INDEX_OBJECT,
-                        dropIndexNode->ddlXns()))
+                        dropIndexNode->ddlXns(), dropFromMD, dropFromStorage, naTable->isMonarch()))
     {
       processReturn();
 

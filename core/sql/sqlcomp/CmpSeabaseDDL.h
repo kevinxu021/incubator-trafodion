@@ -557,8 +557,9 @@ class CmpSeabaseDDL
 			  NAString &currCatName, NAString &currSchName,
 			  const ComObjectType objType,
                           NABoolean ddlXns,
-			  NABoolean dropFromMD = TRUE,
-			  NABoolean dropFromHbase = TRUE);
+			  NABoolean dropFromMD,
+			  NABoolean dropFromStorage,
+                          NABoolean isMonarch); 
   
   short dropSeabaseStats(ExeCliInterface *cliInterface,
                          const char * catName,

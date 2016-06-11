@@ -525,7 +525,7 @@ void CmpSeabaseDDL::dropSeabaseLibrary(StmtDDLDropLibrary * dropLibraryNode,
      if (dropSeabaseObject(ehi, routineName,
                            currCatName, currSchName, objectType,
                            dropLibraryNode->ddlXns(),
-                           TRUE, FALSE))
+                           TRUE, FALSE, FALSE))
      {
        deallocEHI(ehi); 
        processReturn();
@@ -553,7 +553,7 @@ void CmpSeabaseDDL::dropSeabaseLibrary(StmtDDLDropLibrary * dropLibraryNode,
   if (dropSeabaseObject(ehi, objName,
                         currCatName, currSchName, COM_LIBRARY_OBJECT,
                         dropLibraryNode->ddlXns(),
-                        TRUE, FALSE))
+                        TRUE, FALSE, FALSE))
     {
       deallocEHI(ehi); 
       processReturn();
@@ -1458,7 +1458,7 @@ void CmpSeabaseDDL::dropSeabaseRoutine(StmtDDLDropRoutine * dropRoutineNode,
                         currCatName, currSchName, 
                         COM_USER_DEFINED_ROUTINE_OBJECT,
                         dropRoutineNode->ddlXns(),
-                        TRUE, FALSE))
+                        TRUE, FALSE, FALSE))
     {
       deallocEHI(ehi); 
       processReturn();

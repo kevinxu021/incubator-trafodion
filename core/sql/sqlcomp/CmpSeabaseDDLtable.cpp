@@ -3605,7 +3605,7 @@ short CmpSeabaseDDL::dropSeabaseTable2(
       if (dropSeabaseObject(ehi, ansiName,
                             idxCatName, idxSchName, COM_INDEX_OBJECT, 
                             dropTableNode->ddlXns(),
-                            TRUE, FALSE))
+                            TRUE, FALSE, isMonarch))
         {
           NADELETEBASIC (qiKeys, STMTHEAP);
 
@@ -3710,7 +3710,7 @@ short CmpSeabaseDDL::dropSeabaseTable2(
       if (dropSeabaseObject(ehi, ansiName,
                             idxCatName, idxSchName, COM_INDEX_OBJECT, 
                             dropTableNode->ddlXns(),
-                            FALSE, TRUE))
+                            FALSE, TRUE, isMonarch))
         {
           deallocEHI(ehi); 
           processReturn();
@@ -3818,7 +3818,7 @@ short CmpSeabaseDDL::dropSeabaseTable2(
 
   if (dropSeabaseObject(ehi, tabName,
                         currCatName, currSchName, COM_BASE_TABLE_OBJECT,
-                        dropTableNode->ddlXns()))
+                        dropTableNode->ddlXns(), TRUE, TRUE, isMonarch))
     {
       deallocEHI(ehi); 
       processReturn();
