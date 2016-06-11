@@ -200,10 +200,29 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
 	short rc;
 	Lng32 retcode;
 	
-  if(isSQLLocked())
+	if(isSQLLocked())
 	{
 		*CmpCommon::diags() << DgSqlCode(-CAT_BACKUP_IN_PROGRESS);
         return -1;
+	}
+  
+	ExpHbaseInterface * ehi = allocBRCEHI();
+	if (ehi == NULL)
+	{
+		//Diagnostic already populated.
+		return -1;
+	}
+	
+	//Lock before getting the list of snapshot tables.
+	//This ensures we get a consistent list.
+	rc = lockAll();
+	if(rc != FEOK)
+	{
+		*CmpCommon::diags() << DgSqlCode(-CAT_BACKUP_LOCK_ERROR)
+        << DgInt0(rc);
+        
+		ehi->close();
+		return -1;
 	}
 	
 	//snapshot all trafodion tables
@@ -220,17 +239,11 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
 	if (cliRC < 0)
 	{
 		cliInterface->retrieveSQLDiagnostics(CmpCommon::diags());
+		ehi->close();
 		return -1;
     }
 	
-    
-	ExpHbaseInterface * ehi = allocBRCEHI();
-	if (ehi == NULL)
-    {
-		//Diagnostic already populated.
-        return -1;
-    }
-	
+  
 	char * cat = NULL;
 	char * sch = NULL;
 	char * tbl = NULL;
@@ -241,17 +254,7 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
     HbaseStr hbaseTable;
     TextVec tableList;
     
-    rc = lockAll();
-	if(rc != FEOK)
-	{
-		*CmpCommon::diags() << DgSqlCode(-CAT_BACKUP_LOCK_ERROR)
-        << DgInt0(rc);
-        
-		ehi->close();
-		return -1;
-	}
-	
-	
+  
 	for (Lng32 idx = 0; idx < tableQueue->numEntries(); idx++)
     {
 		OutputInfo * vi = (OutputInfo*)tableQueue->getNext();
