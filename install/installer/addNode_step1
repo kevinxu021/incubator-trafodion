@@ -273,8 +273,7 @@ function printMessage {
 
 source $TRAF_CONFIG
 echo
-echo "***IMPORTANT: HBase on $NODES is ready to be started..."
-echo "***IMPORTANT: HBase Start must be before running other scripts!"
+echo "***IMPORTANT: Ready to run addNode_step2"
 echo
 
 }
