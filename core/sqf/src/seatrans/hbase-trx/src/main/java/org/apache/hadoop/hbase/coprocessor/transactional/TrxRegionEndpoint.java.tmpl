@@ -112,10 +112,6 @@ import org.apache.hadoop.hbase.client.transactional.UnknownTransactionException;
 import org.apache.hadoop.hbase.client.transactional.BatchException;
 import org.apache.hadoop.hbase.client.transactional.TransState;
 import org.apache.hadoop.hbase.client.transactional.STRConfig;
-import org.apache.hadoop.hbase.client.transactional.MutationMeta;
-import org.apache.hadoop.hbase.client.transactional.MutationMetaRecord;
-import org.apache.hadoop.hbase.client.transactional.SnapshotMeta;
-import org.apache.hadoop.hbase.client.transactional.SnapshotMetaRecord;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
@@ -192,7 +188,6 @@ import org.apache.hadoop.hbase.protobuf.ResponseConverter;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.MutationType;
 import org.apache.hadoop.hbase.coprocessor.transactional.TrxRegionObserver;
-import org.apache.hadoop.hbase.coprocessor.transactional.MutationCapture;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.AbortTransactionRequest;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.AbortTransactionResponse;
@@ -256,6 +251,11 @@ import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
 import com.google.protobuf.ServiceException;
 
+import org.trafodion.pit.MutationCapture;
+import org.trafodion.pit.MutationMeta;
+import org.trafodion.pit.MutationMetaRecord;
+import org.trafodion.pit.SnapshotMeta;
+import org.trafodion.pit.SnapshotMetaRecord;
 
 @InterfaceAudience.LimitedPrivate(HBaseInterfaceAudience.COPROC)
 @InterfaceStability.Evolving

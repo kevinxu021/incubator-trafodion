@@ -206,7 +206,7 @@ public class HBulkLoadClient
                                  .withDataBlockEncoding(dataBlockEncoding)
                                  .build();
 
-      writer =    HFile.getWriterFactory(config, new CacheConfig(config))
+      writer =    HFile.getWriterFactoryNoCache(config)
                      .withPath(fileSys, hfilePath)
                      .withFileContext(hfileContext)
                      .withComparator(KeyValue.COMPARATOR)

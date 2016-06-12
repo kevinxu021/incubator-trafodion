@@ -466,13 +466,13 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_GET_HBLC   ].jm_name      = "getHBulkLoadClient";
     JavaMethods_[JM_GET_HBLC   ].jm_signature = "()Lorg/trafodion/sql/HBulkLoadClient;";
     JavaMethods_[JM_GET_BRC    ].jm_name      = "getBackupRestoreClient";
-    JavaMethods_[JM_GET_BRC    ].jm_signature = "()Lorg/trafodion/sql/BackupRestoreClient;";
+    JavaMethods_[JM_GET_BRC    ].jm_signature = "()Lorg/trafodion/pit/BackupRestoreClient;";
     JavaMethods_[JM_EST_RC     ].jm_name      = "estimateRowCount";
     JavaMethods_[JM_EST_RC     ].jm_signature = "(Ljava/lang/String;II[J)Z";
     JavaMethods_[JM_REL_HBLC   ].jm_name      = "releaseHBulkLoadClient";
     JavaMethods_[JM_REL_HBLC   ].jm_signature = "(Lorg/trafodion/sql/HBulkLoadClient;)V";
     JavaMethods_[JM_REL_BRC    ].jm_name      = "releaseBackupRestoreClient";
-    JavaMethods_[JM_REL_BRC    ].jm_signature = "(Lorg/trafodion/sql/BackupRestoreClient;)V";
+    JavaMethods_[JM_REL_BRC    ].jm_signature = "(Lorg/trafodion/pit/BackupRestoreClient;)V";
     JavaMethods_[JM_GET_CAC_FRC].jm_name      = "getBlockCacheFraction";
     JavaMethods_[JM_GET_CAC_FRC].jm_signature = "()F";
     JavaMethods_[JM_GET_LATEST_SNP].jm_name      = "getLatestSnapshot";
@@ -2379,7 +2379,7 @@ static const char* const brcErrorEnumStr[] = ///need to update content
 };
 BRC_RetCode BackupRestoreClient_JNI::init()
 {
-  static char className[]="org/trafodion/sql/BackupRestoreClient";
+  static char className[]="org/trafodion/pit/BackupRestoreClient";
   BRC_RetCode rc;
 
   if (isInitialized())
