@@ -231,8 +231,7 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
 	
 	char query[1000];
 	Lng32 cliRC;
-	str_sprintf(query, "select catalog_name,schema_name,object_name from %s.\"%s\".%s where object_type in ('BT', 'IX') ",
-				getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_OBJECTS);
+	str_sprintf(query, "select catalog_name,schema_name,object_name from %s.\"%s\".%s where schema_name not like '|_HV|_%%|_' escape '|' and schema_name not like '|_HB|_%%|_' escape '|' and object_type in ('BT', 'IX') ", getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_OBJECTS);
 	  
 	Queue * tableQueue = NULL;
 	cliRC = cliInterface->fetchAllRows(tableQueue, query, 0, FALSE, FALSE, TRUE);
