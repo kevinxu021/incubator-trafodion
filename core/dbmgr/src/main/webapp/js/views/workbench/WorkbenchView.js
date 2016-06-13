@@ -184,6 +184,7 @@ define([
 		                $(this).find('i').removeClass('fa-sort-up').addClass('fa-sort-down');
 		            }
 		        });
+			 
 			if(CodeMirror.mimeModes["text/x-esgyndb"] == null){
 				common.defineEsgynSQLMime(CodeMirror);
 			}
