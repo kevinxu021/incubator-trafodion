@@ -82,13 +82,13 @@
 
             if (this._conn == null)
             {
-                string msg = EsgynDBResources.FormatMessage(EsgynDBMessage.InvalidTransactionState);
+                string msg = EsgynDBResources.GetMessage(EsgynDBMessage.InvalidTransactionState);
                 EsgynDBException.ThrowException(this._conn, new InvalidOperationException(msg));
             }
 
             if (this._conn.State != ConnectionState.Open)
             {
-                string msg = EsgynDBResources.FormatMessage(EsgynDBMessage.InvalidConnectionState, this._conn.State);
+                string msg = EsgynDBResources.GetMessage(EsgynDBMessage.InvalidConnectionState, this._conn.State);
                 EsgynDBException.ThrowException(this._conn, new InvalidOperationException(msg));
             }
 
@@ -117,13 +117,13 @@
 
             if (this._conn == null)
             {
-                string msg = EsgynDBResources.FormatMessage(EsgynDBMessage.InvalidTransactionState);
+                string msg = EsgynDBResources.GetMessage(EsgynDBMessage.InvalidTransactionState);
                 EsgynDBException.ThrowException(this._conn, new InvalidOperationException(msg));
             }
 
             if (this._conn.State != ConnectionState.Open)
             {
-                string msg = EsgynDBResources.FormatMessage(EsgynDBMessage.InvalidConnectionState, this._conn.State);
+                string msg = EsgynDBResources.GetMessage(EsgynDBMessage.InvalidConnectionState, this._conn.State);
                 EsgynDBException.ThrowException(this._conn, new InvalidOperationException(msg));
             }
 
@@ -157,7 +157,7 @@
             }
             else if (reply.error != EndTransactionError.Success)
             {
-                string msg = EsgynDBResources.FormatMessage(
+                string msg = EsgynDBResources.GetMessage(
                     EsgynDBMessage.InternalError, 
                     "EndTransaction", 
                     reply.error.ToString() + " " + reply.errorDetail + " " + reply.errorText);
@@ -191,7 +191,7 @@
             }
             else if (reply.error != SetConnectionOptError.Success)
             {
-                string msg = EsgynDBResources.FormatMessage(
+                string msg = EsgynDBResources.GetMessage(
                     EsgynDBMessage.InternalError,
                     "SetAutoCommit",
                     reply.error.ToString() + " " + reply.errorDetail + " " + reply.errorText);
@@ -227,7 +227,7 @@
                     neoIl = TransactionIsolation.RepeatableRead;
                     break;
                 default:
-                    string msg = EsgynDBResources.FormatMessage(EsgynDBMessage.UnsupportedIsolationLevel, il.ToString());
+                    string msg = EsgynDBResources.GetMessage(EsgynDBMessage.UnsupportedIsolationLevel, il.ToString());
                     EsgynDBException.ThrowException(this._conn, new ArgumentException(msg));
                     break;
             }
@@ -243,11 +243,11 @@
 
             if (reply.error == SetConnectionOptError.SqlError)
             {
-                throw new EsgynDBException(reply.errorDesc);
+                EsgynDBException.ThrowException(this._conn, new EsgynDBException(reply.errorDesc));
             }
             else if (reply.error != SetConnectionOptError.Success)
             {
-                string msg = EsgynDBResources.FormatMessage(
+                string msg = EsgynDBResources.GetMessage(
                    EsgynDBMessage.InternalError,
                    "SetIsolationLevel",
                    reply.error.ToString() + " " + reply.errorDetail + " " + reply.errorText);
