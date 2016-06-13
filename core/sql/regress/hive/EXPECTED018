@@ -3,7 +3,7 @@
 >>
 >>obey TEST018(setup);
 >>--------------------------------------------------------------------------
->>create table nulls (a char(5), b char(10));
+>>create table null_format_src (a varchar(5), b varchar(5));
 
 --- SQL operation complete.
 >>
@@ -127,11 +127,13 @@
 >>obey TEST018(test_bulk_unload_simple);
 >>--------------------------------------------------------------------------
 >>--nulls
->>insert into nulls values ('aaa1','bbbbb1'),(null,'bbbbb2'),
-+>                         ('aaa3',null),(null,null),
-+>                          ('aaa5',null),(null,'bbbbb6');
+>>
+>>insert into null_format_src values 
++>   ('a', 'b'), ('a', null), (null, 'b'), ('a', ''), ('', 'b'),
++>   (null, ''), (':', null), ('', ''), (':', ':'), (null, null);
 
---- 6 row(s) inserted.
+--- 10 row(s) inserted.
+>>
 >>--load1
 >>load with no recovery into customer_address 
 +>select * from hive.hive.customer_address;
@@ -140,9 +142,9 @@ Task:  CLEANUP         Status: Started    Object: TRAFODION.HBASE.CUSTOMER_ADDRE
 Task:  CLEANUP         Status: Ended      Object: TRAFODION.HBASE.CUSTOMER_ADDRESS
 Task:  PREPARATION     Status: Started    Object: TRAFODION.HBASE.CUSTOMER_ADDRESS
        Rows Processed: 50000 
-Task:  PREPARATION     Status: Ended      ET: 00:00:06.864
+Task:  PREPARATION     Status: Ended      ET: 00:00:08.543
 Task:  COMPLETION      Status: Started    Object: TRAFODION.HBASE.CUSTOMER_ADDRESS
-Task:  COMPLETION      Status: Ended      ET: 00:00:00.262
+Task:  COMPLETION      Status: Ended      ET: 00:00:00.256
 
 --- 50000 row(s) loaded.
 >>--
@@ -171,15 +173,13 @@ Task:  CLEANUP         Status: Started    Object: TRAFODION.HBASE.CUSTOMER_DEMOG
 Task:  CLEANUP         Status: Ended      Object: TRAFODION.HBASE.CUSTOMER_DEMOGRAPHICS
 Task:  PREPARATION     Status: Started    Object: TRAFODION.HBASE.CUSTOMER_DEMOGRAPHICS
        Rows Processed: 20000 
-Task:  PREPARATION     Status: Ended      ET: 00:00:10.758
+Task:  PREPARATION     Status: Ended      ET: 00:00:11.022
 Task:  COMPLETION      Status: Started    Object: TRAFODION.HBASE.CUSTOMER_DEMOGRAPHICS
-Task:  COMPLETION      Status: Ended      ET: 00:00:00.234
+Task:  COMPLETION      Status: Ended      ET: 00:00:00.196
 
 --- 20000 row(s) loaded.
 >>--
 >>select count(*) from hive.hive.customer_demographics   where cd_demo_sk <= 20000;
-
-*** WARNING[6008] Statistics for column (CD_DEMO_SK) from table HIVE.HIVE.CUSTOMER_DEMOGRAPHICS were not available. As a result, the access path chosen might not be the best possible.
 
 (EXPR)              
 --------------------
@@ -203,9 +203,9 @@ Task:  CLEANUP         Status: Started    Object: TRAFODION.HBASE.CUSTOMER_DEMOG
 Task:  CLEANUP         Status: Ended      Object: TRAFODION.HBASE.CUSTOMER_DEMOGRAPHICS_SALT
 Task:  PREPARATION     Status: Started    Object: TRAFODION.HBASE.CUSTOMER_DEMOGRAPHICS_SALT
        Rows Processed: 20000 
-Task:  PREPARATION     Status: Ended      ET: 00:00:09.668
+Task:  PREPARATION     Status: Ended      ET: 00:00:07.143
 Task:  COMPLETION      Status: Started    Object: TRAFODION.HBASE.CUSTOMER_DEMOGRAPHICS_SALT
-Task:  COMPLETION      Status: Ended      ET: 00:00:00.208
+Task:  COMPLETION      Status: Ended      ET: 00:00:00.177
 
 --- 20000 row(s) loaded.
 >>--                                                                              
@@ -225,9 +225,9 @@ Task:  CLEANUP         Status: Started    Object: TRAFODION.HBASE.CUSTOMER_SALT
 Task:  CLEANUP         Status: Ended      Object: TRAFODION.HBASE.CUSTOMER_SALT
 Task:  PREPARATION     Status: Started    Object: TRAFODION.HBASE.CUSTOMER_SALT
        Rows Processed: 100000 
-Task:  PREPARATION     Status: Ended      ET: 00:00:07.549
+Task:  PREPARATION     Status: Ended      ET: 00:00:07.625
 Task:  COMPLETION      Status: Started    Object: TRAFODION.HBASE.CUSTOMER_SALT
-Task:  COMPLETION      Status: Ended      ET: 00:00:00.167
+Task:  COMPLETION      Status: Ended      ET: 00:00:00.199
 
 --- 100000 row(s) loaded.
 >>--
@@ -256,9 +256,9 @@ Task:  CLEANUP         Status: Started    Object: TRAFODION.HBASE.STORE_SALES_SA
 Task:  CLEANUP         Status: Ended      Object: TRAFODION.HBASE.STORE_SALES_SALT
 Task:  PREPARATION     Status: Started    Object: TRAFODION.HBASE.STORE_SALES_SALT
        Rows Processed: 160756 
-Task:  PREPARATION     Status: Ended      ET: 00:00:11.382
+Task:  PREPARATION     Status: Ended      ET: 00:00:10.636
 Task:  COMPLETION      Status: Started    Object: TRAFODION.HBASE.STORE_SALES_SALT
-Task:  COMPLETION      Status: Ended      ET: 00:00:00.180
+Task:  COMPLETION      Status: Ended      ET: 00:00:00.208
 
 --- 160756 row(s) loaded.
 >>--
@@ -272,107 +272,167 @@ Task:  COMPLETION      Status: Ended      ET: 00:00:00.180
 
 --- 1 row(s) selected.
 >>-------------------------------
->>--hive insert 0
->>insert overwrite table hive.hive.nulls select * from nulls;
+>>-- handling of various null formats
+>>
+>>-- using insert
+>>insert overwrite table hive.hive.null_format_default select * from null_format_src;
 
---- 6 row(s) inserted.
->>select * from hive.hive.nulls order by a,b;
+--- 10 row(s) inserted.
+>>select * from hive.hive.null_format_default;
 
 A                                                             B
 ------------------------------------------------------------  ------------------------------------------------------------
 
+a                                                             b                                                           
+a                                                             ?                                                           
+?                                                             b                                                           
+a                                                                                                                         
+                                                              b                                                           
+?                                                                                                                         
+:                                                             ?                                                           
                                                                                                                           
-                                                              bbbbb2                                                      
-                                                              bbbbb6                                                      
-aaa1                                                          bbbbb1                                                      
-aaa3                                                                                                                      
-aaa5                                                                                                                      
-
---- 6 row(s) selected.
->>cqd hive_treat_empty_string_as_null 'on' ;
-
---- SQL operation complete.
->>select * from hive.hive.nulls order by a,b;
-
-A                                                             B
-------------------------------------------------------------  ------------------------------------------------------------
-
-aaa1                                                          bbbbb1                                                      
-aaa3                                                          ?                                                           
-aaa5                                                          ?                                                           
-?                                                             bbbbb2                                                      
-?                                                             bbbbb6                                                      
+:                                                             :                                                           
 ?                                                             ?                                                           
 
---- 6 row(s) selected.
->>cqd hive_treat_empty_string_as_null reset ;
+--- 10 row(s) selected.
+>>
+>>insert overwrite table hive.hive.null_format_empty select * from null_format_src;
 
---- SQL operation complete.
+--- 10 row(s) inserted.
+>>select * from hive.hive.null_format_empty;
+
+A                                                             B
+------------------------------------------------------------  ------------------------------------------------------------
+
+a                                                             b                                                           
+a                                                             ?                                                           
+?                                                             b                                                           
+a                                                             ?                                                           
+?                                                             b                                                           
+?                                                             ?                                                           
+:                                                             ?                                                           
+?                                                             ?                                                           
+:                                                             :                                                           
+?                                                             ?                                                           
+
+--- 10 row(s) selected.
+>>
+>>insert overwrite table hive.hive.null_format_colon select * from null_format_src;
+
+--- 10 row(s) inserted.
+>>select * from hive.hive.null_format_colon;
+
+A                                                             B
+------------------------------------------------------------  ------------------------------------------------------------
+
+a                                                             b                                                           
+a                                                             ?                                                           
+?                                                             b                                                           
+a                                                                                                                         
+                                                              b                                                           
+?                                                                                                                         
+?                                                             ?                                                           
+                                                                                                                          
+?                                                             ?                                                           
+?                                                             ?                                                           
+
+--- 10 row(s) selected.
+>>
+>>
+>>-- using unload
+>>unload with purgedata from target
++>   into '/user/hive/exttables/null_format_default'
++>   select * from null_format_src;
+Task: UNLOAD           Status: Started
+Task:  EMPTY TARGET    Status: Started
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.002
+Task:  EXTRACT         Status: Started
+       Rows Processed: 10 
+Task:  EXTRACT         Status: Ended      ET: 00:00:00.238
+
+--- 10 row(s) unloaded.
+>>select * from hive.hive.null_format_default;
+
+A                                                             B
+------------------------------------------------------------  ------------------------------------------------------------
+
+a                                                             b                                                           
+a                                                             ?                                                           
+?                                                             b                                                           
+a                                                                                                                         
+                                                              b                                                           
+?                                                                                                                         
+:                                                             ?                                                           
+                                                                                                                          
+:                                                             :                                                           
+?                                                             ?                                                           
+
+--- 10 row(s) selected.
+>>
+>>unload with purgedata from target
++>   into '/user/hive/exttables/null_format_empty'
++>   select * from null_format_src;
+Task: UNLOAD           Status: Started
+Task:  EMPTY TARGET    Status: Started
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.001
+Task:  EXTRACT         Status: Started
+       Rows Processed: 10 
+Task:  EXTRACT         Status: Ended      ET: 00:00:00.369
+
+--- 10 row(s) unloaded.
+>>select * from hive.hive.null_format_empty;
+
+A                                                             B
+------------------------------------------------------------  ------------------------------------------------------------
+
+a                                                             b                                                           
+a                                                             ?                                                           
+?                                                             b                                                           
+a                                                             ?                                                           
+?                                                             b                                                           
+?                                                             ?                                                           
+:                                                             ?                                                           
+?                                                             ?                                                           
+:                                                             :                                                           
+?                                                             ?                                                           
+
+--- 10 row(s) selected.
+>>
+>>unload with purgedata from target
++>   into '/user/hive/exttables/null_format_colon'
++>   select * from null_format_src;
+Task: UNLOAD           Status: Started
+Task:  EMPTY TARGET    Status: Started
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.002
+Task:  EXTRACT         Status: Started
+       Rows Processed: 10 
+Task:  EXTRACT         Status: Ended      ET: 00:00:00.225
+
+--- 10 row(s) unloaded.
+>>select * from hive.hive.null_format_colon;
+
+A                                                             B
+------------------------------------------------------------  ------------------------------------------------------------
+
+a                                                             b                                                           
+a                                                             ?                                                           
+?                                                             b                                                           
+a                                                                                                                         
+                                                              b                                                           
+?                                                                                                                         
+?                                                             ?                                                           
+                                                                                                                          
+?                                                             ?                                                           
+?                                                             ?                                                           
+
+--- 10 row(s) selected.
 >>
 >>---index 0
 >>create index customer_idx1 on customer_salt(c_first_name, c_last_name);
 
 --- SQL operation complete.
 >>
->>
 >>sh  regrhbase.ksh $REGRTSTDIR/TEST018_create_hbase_objects.hbase &> $REGRRUNDIR/LOG018_create_hbase_tables.log ;
->>
->>---unload 0 -- nulls 
->>unload with purgedata from target
-+>   into '/user/hive/exttables/nulls'
-+>   select * from nulls;
-Task: UNLOAD           Status: Started
-Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.369
-Task:  EXTRACT         Status: Started
-       Rows Processed: 6 
-Task:  EXTRACT         Status: Ended      ET: 00:00:00.563
-
---- 6 row(s) unloaded.
->>select * from hive.hive.nulls order by a,b;
-
-A                                                             B
-------------------------------------------------------------  ------------------------------------------------------------
-
-                                                                                                                          
-                                                              bbbbb2                                                      
-                                                              bbbbb6                                                      
-aaa1                                                          bbbbb1                                                      
-aaa3                                                                                                                      
-aaa5                                                                                                                      
-
---- 6 row(s) selected.
->>
->>cqd hive_treat_empty_string_as_null 'on' ;
-
---- SQL operation complete.
->>unload with purgedata from target
-+>   into '/user/hive/exttables/nulls'
-+>   select * from nulls;
-Task: UNLOAD           Status: Started
-Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.007
-Task:  EXTRACT         Status: Started
-       Rows Processed: 6 
-Task:  EXTRACT         Status: Ended      ET: 00:00:00.250
-
---- 6 row(s) unloaded.
->>select * from hive.hive.nulls order by a,b;
-
-A                                                             B
-------------------------------------------------------------  ------------------------------------------------------------
-
-aaa1                                                          bbbbb1                                                      
-aaa3                                                          ?                                                           
-aaa5                                                          ?                                                           
-?                                                             bbbbb2                                                      
-?                                                             bbbbb6                                                      
-?                                                             ?                                                           
-
---- 6 row(s) selected.
->>cqd hive_treat_empty_string_as_null reset ;
-
---- SQL operation complete.
 >>
 >>--exp1
 >>explain options 'f' 
@@ -399,12 +459,12 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 +>;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.007
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.002
 Task:  EXTRACT         Status: Started
        Rows Processed: 50000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:03.805
+Task:  EXTRACT         Status: Ended      ET: 00:00:02.759
 Task:  MERGE FILES     Status: Started
-Task:  MERGE FILES     Status: Ended      ET: 00:00:00.034
+Task:  MERGE FILES     Status: Ended      ET: 00:00:00.027
 
 --- 50000 row(s) unloaded.
 >>log;
@@ -437,12 +497,12 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 +><<+ cardinality 10e10 >>;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.005
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.002
 Task:  EXTRACT         Status: Started
        Rows Processed: 20000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:00.865
+Task:  EXTRACT         Status: Ended      ET: 00:00:01.075
 Task:  MERGE FILES     Status: Started
-Task:  MERGE FILES     Status: Ended      ET: 00:00:00.023
+Task:  MERGE FILES     Status: Ended      ET: 00:00:00.028
 
 --- 20000 row(s) unloaded.
 >>log;
@@ -461,12 +521,12 @@ cat /tmp/merged_customer_demogs | wc -l
 +><<+ cardinality 10e10 >>;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.006
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.005
 Task:  EXTRACT         Status: Started
        Rows Processed: 20000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:00.766
+Task:  EXTRACT         Status: Ended      ET: 00:00:01.282
 Task:  MERGE FILES     Status: Started
-Task:  MERGE FILES     Status: Ended      ET: 00:00:00.023
+Task:  MERGE FILES     Status: Ended      ET: 00:00:00.026
 
 --- 20000 row(s) unloaded.
 >>log;
@@ -498,12 +558,12 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 +><<+ cardinality 10e10 >>;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.005
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.003
 Task:  EXTRACT         Status: Started
        Rows Processed: 20000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:00.855
+Task:  EXTRACT         Status: Ended      ET: 00:00:00.850
 Task:  MERGE FILES     Status: Started
-Task:  MERGE FILES     Status: Ended      ET: 00:00:00.032
+Task:  MERGE FILES     Status: Ended      ET: 00:00:00.035
 
 --- 20000 row(s) unloaded.
 >>
@@ -521,12 +581,12 @@ regrhadoop.ksh fs -du -s /bulkload/customer_demographics_salt/merged_customer_de
 +><<+ cardinality 10e10 >>;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.004
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.006
 Task:  EXTRACT         Status: Started
        Rows Processed: 20000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:00.692
+Task:  EXTRACT         Status: Ended      ET: 00:00:00.673
 Task:  MERGE FILES     Status: Started
-Task:  MERGE FILES     Status: Ended      ET: 00:00:00.031
+Task:  MERGE FILES     Status: Ended      ET: 00:00:00.035
 
 --- 20000 row(s) unloaded.
 >>
@@ -559,10 +619,10 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 +><<+ cardinality 10e10 >>;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.005
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.004
 Task:  EXTRACT         Status: Started
        Rows Processed: 20000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:00.484
+Task:  EXTRACT         Status: Ended      ET: 00:00:00.671
 
 --- 20000 row(s) unloaded.
 >>
@@ -582,12 +642,12 @@ regrhadoop.ksh fs -ls /bulkload/customer_demographics_salt/file* |  grep file | 
 +><<+ cardinality 10e10 >>;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.010
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.011
 Task:  EXTRACT         Status: Started
        Rows Processed: 20000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:00.580
+Task:  EXTRACT         Status: Ended      ET: 00:00:00.683
 Task:  MERGE FILES     Status: Started
-Task:  MERGE FILES     Status: Ended      ET: 00:00:00.038
+Task:  MERGE FILES     Status: Ended      ET: 00:00:00.035
 
 --- 20000 row(s) unloaded.
 >>
@@ -720,12 +780,12 @@ CD_DEMO_SK   CD_GENDER                                                          
 +><<+ cardinality 10e10 >>;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.004
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.003
 Task:  EXTRACT         Status: Started
        Rows Processed: 20000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:00.487
+Task:  EXTRACT         Status: Ended      ET: 00:00:00.596
 Task:  MERGE FILES     Status: Started
-Task:  MERGE FILES     Status: Ended      ET: 00:00:00.030
+Task:  MERGE FILES     Status: Ended      ET: 00:00:00.047
 
 --- 20000 row(s) unloaded.
 >>log;
@@ -763,9 +823,9 @@ Task:  EMPTY TARGET    Status: Started
 Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.005
 Task:  EXTRACT         Status: Started
        Rows Processed: 20000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:00.492
+Task:  EXTRACT         Status: Ended      ET: 00:00:00.622
 Task:  MERGE FILES     Status: Started
-Task:  MERGE FILES     Status: Ended      ET: 00:00:00.033
+Task:  MERGE FILES     Status: Ended      ET: 00:00:00.037
 
 --- 20000 row(s) unloaded.
 >>
@@ -815,10 +875,10 @@ CD_DEMO_SK   CD_GENDER                                                          
 +><<+ cardinality 10e10 >>;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.004
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.005
 Task:  EXTRACT         Status: Started
        Rows Processed: 20000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:00.980
+Task:  EXTRACT         Status: Ended      ET: 00:00:00.594
 
 --- 20000 row(s) unloaded.
 >>
@@ -869,10 +929,10 @@ CD_DEMO_SK   CD_GENDER                                                          
 +>select * from trafodion.hbase.customer_address ;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.007
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.003
 Task:  EXTRACT         Status: Started
        Rows Processed: 50000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:02.111
+Task:  EXTRACT         Status: Ended      ET: 00:00:01.887
 
 --- 50000 row(s) unloaded.
 >>
@@ -885,8 +945,6 @@ Task:  EXTRACT         Status: Ended      ET: 00:00:02.111
 
 --- 1 row(s) selected.
 >>select [first 20] * from hive.hive.unload_customer_address where ca_address_sk <100 order by ca_address_sk;
-
-*** WARNING[6008] Statistics for column (CA_ADDRESS_SK) from table HIVE.HIVE.UNLOAD_CUSTOMER_ADDRESS were not available. As a result, the access path chosen might not be the best possible.
 
 CA_ADDRESS_SK  CA_ADDRESS_ID                                                                                         CA_STREET_NUMBER                                                                                      CA_STREET_NAME                                                                                        CA_STREET_TYPE                                                                                        CA_SUITE_NUMBER                                                                                       CA_CITY                                                                                               CA_COUNTY                                                                                             CA_STATE                                                                                              CA_ZIP                                                                                                CA_COUNTRY                                                                                            CA_GMT_OFFSET    CA_LOCATION_TYPE
 -------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ---------------  ----------------------------------------------------------------------------------------------------
@@ -922,10 +980,10 @@ CA_ADDRESS_SK  CA_ADDRESS_ID                                                    
 +>select * from trafodion.hbase.customer_address ;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.003
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.004
 Task:  EXTRACT         Status: Started
        Rows Processed: 50000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:02.075
+Task:  EXTRACT         Status: Ended      ET: 00:00:02.001
 
 --- 50000 row(s) unloaded.
 >>
@@ -942,8 +1000,6 @@ Task:  EXTRACT         Status: Ended      ET: 00:00:02.075
 
 --- 1 row(s) selected.
 >>select [first 20] * from hive.hive.unload_customer_address where ca_address_sk < 100 order by ca_address_sk;
-
-*** WARNING[6008] Statistics for column (CA_ADDRESS_SK) from table HIVE.HIVE.UNLOAD_CUSTOMER_ADDRESS were not available. As a result, the access path chosen might not be the best possible.
 
 CA_ADDRESS_SK  CA_ADDRESS_ID                                                                                         CA_STREET_NUMBER                                                                                      CA_STREET_NAME                                                                                        CA_STREET_TYPE                                                                                        CA_SUITE_NUMBER                                                                                       CA_CITY                                                                                               CA_COUNTY                                                                                             CA_STATE                                                                                              CA_ZIP                                                                                                CA_COUNTRY                                                                                            CA_GMT_OFFSET    CA_LOCATION_TYPE
 -------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ---------------  ----------------------------------------------------------------------------------------------------
@@ -988,10 +1044,10 @@ CA_ADDRESS_SK  CA_ADDRESS_ID                                                    
 +>select * from trafodion.hbase.customer_salt;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.005
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.002
 Task:  EXTRACT         Status: Started
        Rows Processed: 100000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:06.402
+Task:  EXTRACT         Status: Ended      ET: 00:00:06.708
 
 --- 100000 row(s) unloaded.
 >>select count(*) from hive.hive.unload_customer;
@@ -1003,8 +1059,6 @@ Task:  EXTRACT         Status: Ended      ET: 00:00:06.402
 
 --- 1 row(s) selected.
 >>select [first 20] * from hive.hive.unload_customer where c_customer_sk < 100 order by c_customer_sk;
-
-*** WARNING[6008] Statistics for column (C_CUSTOMER_SK) from table HIVE.HIVE.UNLOAD_CUSTOMER were not available. As a result, the access path chosen might not be the best possible.
 
 C_CUSTOMER_SK  C_CUSTOMER_ID                                                                                         C_CURRENT_CDEMO_SK  C_CURRENT_HDEMO_SK  C_CURRENT_ADDR_SK  C_FIRST_SHIPTO_DATE_SK  C_FIRST_SALES_DATE_SK  C_SALUTATION                                                                                          C_FIRST_NAME                                                                                          C_LAST_NAME                                                                                           C_PREFERRED_CUST_FLAG                                                                                 C_BIRTH_DAY  C_BIRTH_MONTH  C_BIRTH_YEAR  C_BIRTH_COUNTRY                                                                                       C_LOGIN                                                                                               C_EMAIL_ADDRESS                                                                                       C_LAST_REVIEW_DATE
 -------------  ----------------------------------------------------------------------------------------------------  ------------------  ------------------  -----------------  ----------------------  ---------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  -----------  -------------  ------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------
@@ -1041,10 +1095,10 @@ C_CUSTOMER_SK  C_CUSTOMER_ID                                                    
 +>select * from trafodion.hbase.customer_demographics_salt;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.008
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.007
 Task:  EXTRACT         Status: Started
        Rows Processed: 20000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:00.985
+Task:  EXTRACT         Status: Ended      ET: 00:00:01.046
 
 --- 20000 row(s) unloaded.
 >>
@@ -1094,12 +1148,12 @@ CD_DEMO_SK   CD_GENDER                                                          
 +>select * from trafodion.hbase.customer_address where ca_address_sk < 100;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.004
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.006
 Task:  EXTRACT         Status: Started
        Rows Processed: 99 
-Task:  EXTRACT         Status: Ended      ET: 00:00:00.203
+Task:  EXTRACT         Status: Ended      ET: 00:00:00.195
 Task:  MERGE FILES     Status: Started
-Task:  MERGE FILES     Status: Ended      ET: 00:00:00.021
+Task:  MERGE FILES     Status: Ended      ET: 00:00:00.019
 
 --- 99 row(s) unloaded.
 >>
@@ -1135,10 +1189,10 @@ regrhadoop.ksh fs -rm /user/hive/exttables/unload_customer_demographics/*
 +>select ss_sold_date_sk,ss_store_sk, sum (ss_quantity) from store_sales_salt group by  ss_sold_date_sk ,ss_store_sk;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.006
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.003
 Task:  EXTRACT         Status: Started
        Rows Processed: 12349 
-Task:  EXTRACT         Status: Ended      ET: 00:00:06.351
+Task:  EXTRACT         Status: Ended      ET: 00:00:06.194
 
 --- 12349 row(s) unloaded.
 >>
@@ -1257,10 +1311,10 @@ SS_SOLD_DATE_SK  SS_STORE_SK  SS_QUANTITY
 +>select * from trafodion.hbase.customer_salt c join trafodion.hbase.customer_address ca on c.c_current_addr_sk = ca.ca_address_sk ;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.005
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.002
 Task:  EXTRACT         Status: Started
        Rows Processed: 100000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:07.648
+Task:  EXTRACT         Status: Ended      ET: 00:00:08.079
 
 --- 100000 row(s) unloaded.
 >>
@@ -1308,10 +1362,10 @@ C_CUSTOMER_SK  C_CUSTOMER_ID                                                    
 +>select * from customer_address where ca_address_sk < 1000 union select * from customer_address where ca_address_sk > 40000  and ca_address_sk < 41000;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.008
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.009
 Task:  EXTRACT         Status: Started
        Rows Processed: 1998 
-Task:  EXTRACT         Status: Ended      ET: 00:00:00.490
+Task:  EXTRACT         Status: Ended      ET: 00:00:00.545
 
 --- 1998 row(s) unloaded.
 >>
@@ -1422,7 +1476,7 @@ ESP_EXCHANGE ==============================  SEQ_NO 3        ONLY CHILD 2
   use_snapshot_scan ...... TRUE
   full_table_name ........ TRAFODION.HBASE.CUSTOMER_DEMOGRAPHICS_SALT
   snapshot_name .......... TRAFODION.HBASE.CUSTOMER_DEMOGRAPHICS_SALT_SNAP111
-  snapshot_temp_location   /bulkload/20160530055515/
+  snapshot_temp_location   /bulkload/20160602095555/
 grep -i -e 'explain reg' -e snapshot -e full_table_name  -e esp_exchange  LOG018_REGULAR_SCAN_PLAN.TXT | grep -v snapshot_scan_run_id
 >>--no snapshot
 >>explain reg;
@@ -1502,7 +1556,7 @@ grep -i -e 'explain snp' -e snapshot -e full_table_name -e esp_exchange LOG018_S
   use_snapshot_scan ...... TRUE
   full_table_name ........ TRAFODION.HBASE.CUSTOMER_ADDRESS
   snapshot_name .......... TRAFODION.HBASE.CUSTOMER_ADDRESS_SNAP111
-  snapshot_temp_location   /bulkload/20160530055522/
+  snapshot_temp_location   /bulkload/20160602095603/
 grep -i -e 'explain reg' -e snapshot -e full_table_name  -e esp_exchange  LOG018_REGULAR_SCAN_PLAN.TXT | grep -v snapshot_scan_run_id
 >>--no snapshot
 >>explain reg;
@@ -1584,11 +1638,11 @@ grep -i -e 'explain snp' -e snapshot -e full_table_name -e esp_exchange LOG018_S
   use_snapshot_scan ...... TRUE
   full_table_name ........ TRAFODION.HBASE.CUSTOMER_SALT
   snapshot_name .......... TRAFODION.HBASE.CUSTOMER_SALT_SNAP111
-  snapshot_temp_location   /bulkload/20160530055545/
+  snapshot_temp_location   /bulkload/20160602095624/
   use_snapshot_scan ...... TRUE
   full_table_name ........ TRAFODION.HBASE.CUSTOMER_ADDRESS
   snapshot_name .......... TRAFODION.HBASE.CUSTOMER_ADDRESS_SNAP111
-  snapshot_temp_location   /bulkload/20160530055545/
+  snapshot_temp_location   /bulkload/20160602095624/
 grep -i -e 'explain reg' -e snapshot -e full_table_name  -e esp_exchange  LOG018_REGULAR_SCAN_PLAN.TXT | grep -v snapshot_scan_run_id
 >>--no snapshot
 >>explain reg;
@@ -1673,6 +1727,10 @@ C_CUSTOMER_SK  C_CUSTOMER_ID     C_CURRENT_CDEMO_SK  C_CURRENT_HDEMO_SK  C_CURRE
 >>--*********************BULK UNLOAD with SNAPSHOT SCAN
 >>--unload 20
 >>
+>>cqd comp_bool_226 'on';
+
+--- SQL operation complete.
+>>  -- allow the extract syntax
 >>explain options 'f' 
 +>UNLOAD EXTRACT TO '/bulkload/customer_address'
 +>select * from trafodion.hbase.customer_address <<+ cardinality 10e10 >>;
@@ -1685,6 +1743,9 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 .    .    1    trafodion_scan                  CUSTOMER_ADDRESS      1.00E+011
 
 --- SQL operation complete.
+>>cqd comp_bool_226 reset;
+
+--- SQL operation complete.
 >>
 >>UNLOAD
 +>WITH PURGEDATA FROM TARGET
@@ -1694,13 +1755,13 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 +><<+ cardinality 10e10 >>;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.006
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.003
 Task:  VERIFY SNAPSHO  Status: Started
        Snapshots verified: 1 
-Task:  VERIFY SNAPSHO  Status: Ended      ET: 00:00:00.294
+Task:  VERIFY SNAPSHO  Status: Ended      ET: 00:00:00.291
 Task:  EXTRACT         Status: Started
        Rows Processed: 50000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:02.144
+Task:  EXTRACT         Status: Ended      ET: 00:00:02.337
 
 --- 50000 row(s) unloaded.
 >>
@@ -1713,8 +1774,6 @@ Task:  EXTRACT         Status: Ended      ET: 00:00:02.144
 
 --- 1 row(s) selected.
 >>select [first 20] * from hive.hive.unload_customer_address  where ca_address_sk < 100 order by ca_address_sk;
-
-*** WARNING[6008] Statistics for column (CA_ADDRESS_SK) from table HIVE.HIVE.UNLOAD_CUSTOMER_ADDRESS were not available. As a result, the access path chosen might not be the best possible.
 
 CA_ADDRESS_SK  CA_ADDRESS_ID                                                                                         CA_STREET_NUMBER                                                                                      CA_STREET_NAME                                                                                        CA_STREET_TYPE                                                                                        CA_SUITE_NUMBER                                                                                       CA_CITY                                                                                               CA_COUNTY                                                                                             CA_STATE                                                                                              CA_ZIP                                                                                                CA_COUNTRY                                                                                            CA_GMT_OFFSET    CA_LOCATION_TYPE
 -------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ----------------------------------------------------------------------------------------------------  ---------------  ----------------------------------------------------------------------------------------------------
@@ -1744,6 +1803,10 @@ CA_ADDRESS_SK  CA_ADDRESS_ID                                                    
 >>
 >>--unload 21
 >>
+>>cqd comp_bool_226 'on';
+
+--- SQL operation complete.
+>>  -- allow the extract syntax
 >>explain options 'f' 
 +>UNLOAD EXTRACT TO '/user/hive/exttables/unload_customer_demographics'
 +>select * from trafodion.hbase.customer_demographics_salt <<+ cardinality 10e10 >>;
@@ -1757,6 +1820,9 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 .    .    1    trafodion_scan                  CUSTOMER_DEMOGRAPHIC  1.00E+011
 
 --- SQL operation complete.
+>>cqd comp_bool_226 reset;
+
+--- SQL operation complete.
 >>
 >>UNLOAD  
 +>WITH PURGEDATA FROM TARGET
@@ -1765,13 +1831,13 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 +>select * from trafodion.hbase.customer_demographics_salt <<+ cardinality 10e10 >>;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.003
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.002
 Task:  VERIFY SNAPSHO  Status: Started
        Snapshots verified: 1 
-Task:  VERIFY SNAPSHO  Status: Ended      ET: 00:00:00.311
+Task:  VERIFY SNAPSHO  Status: Ended      ET: 00:00:00.272
 Task:  EXTRACT         Status: Started
        Rows Processed: 20000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:02.081
+Task:  EXTRACT         Status: Ended      ET: 00:00:02.527
 
 --- 20000 row(s) unloaded.
 >>
@@ -1819,16 +1885,16 @@ CD_DEMO_SK   CD_GENDER                                                          
 +>select * from trafodion.hbase.customer_demographics_salt <<+ cardinality 10e10 >>;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.010
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.006
 Task:  CREATE SNAPSHO  Status: Started
        Snapshots created: 1 
-Task:  CREATE SNAPSHO  Status: Ended      ET: 00:00:01.416
+Task:  CREATE SNAPSHO  Status: Ended      ET: 00:00:02.385
 Task:  EXTRACT         Status: Started
        Rows Processed: 20000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:01.191
+Task:  EXTRACT         Status: Ended      ET: 00:00:01.247
 Task:  DELETE SNAPSHO  Status: Started
        Snapshots deleted: 1 
-Task:  DELETE SNAPSHO  Status: Ended      ET: 00:00:00.010
+Task:  DELETE SNAPSHO  Status: Ended      ET: 00:00:00.009
 
 --- 20000 row(s) unloaded.
 >>
@@ -1880,16 +1946,16 @@ CD_DEMO_SK   CD_GENDER                                                          
 +>select * from trafodion.hbase.customer_demographics_salt <<+ cardinality 10e10 >>;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.009
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.006
 Task:  CREATE SNAPSHO  Status: Started
        Snapshots created: 1 
-Task:  CREATE SNAPSHO  Status: Ended      ET: 00:00:00.602
+Task:  CREATE SNAPSHO  Status: Ended      ET: 00:00:00.561
 Task:  EXTRACT         Status: Started
        Rows Processed: 20000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:01.481
+Task:  EXTRACT         Status: Ended      ET: 00:00:01.201
 Task:  DELETE SNAPSHO  Status: Started
        Snapshots deleted: 1 
-Task:  DELETE SNAPSHO  Status: Ended      ET: 00:00:00.005
+Task:  DELETE SNAPSHO  Status: Ended      ET: 00:00:00.004
 
 --- 20000 row(s) unloaded.
 >>
@@ -1945,10 +2011,10 @@ Task:  EMPTY TARGET    Status: Started
 Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.004
 Task:  CREATE SNAPSHO  Status: Started
        Snapshots created: 1 
-Task:  CREATE SNAPSHO  Status: Ended      ET: 00:00:00.627
+Task:  CREATE SNAPSHO  Status: Ended      ET: 00:00:00.958
 Task:  EXTRACT         Status: Started
        Rows Processed: 1998 
-Task:  EXTRACT         Status: Ended      ET: 00:00:00.648
+Task:  EXTRACT         Status: Ended      ET: 00:00:00.731
 Task:  DELETE SNAPSHO  Status: Started
        Snapshots deleted: 1 
 Task:  DELETE SNAPSHO  Status: Ended      ET: 00:00:00.004
@@ -2026,13 +2092,13 @@ CA_ADDRESS_SK  CA_ADDRESS_ID                                                    
 +>select * from trafodion.hbase.customer_salt c join trafodion.hbase.customer_address ca on c.c_current_addr_sk = ca.ca_address_sk ;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.005
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.004
 Task:  CREATE SNAPSHO  Status: Started
        Snapshots created: 2 
-Task:  CREATE SNAPSHO  Status: Ended      ET: 00:00:02.377
+Task:  CREATE SNAPSHO  Status: Ended      ET: 00:00:02.075
 Task:  EXTRACT         Status: Started
        Rows Processed: 100000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:08.169
+Task:  EXTRACT         Status: Ended      ET: 00:00:08.534
 Task:  DELETE SNAPSHO  Status: Started
        Snapshots deleted: 2 
 Task:  DELETE SNAPSHO  Status: Ended      ET: 00:00:00.007
@@ -2076,6 +2142,10 @@ C_CUSTOMER_SK  C_CUSTOMER_ID                                                    
 --- 20 row(s) selected.
 >>
 >>--unload 26 --test with index scan
+>>cqd comp_bool_226 'on';
+
+--- SQL operation complete.
+>>  -- allow the extract syntax
 >>explain options 'f' 
 +>UNLOAD EXTRACT TO '/bulkload/customer_name'
 +>select c_first_name,c_last_name from trafodion.hbase.customer_salt;
@@ -2088,6 +2158,9 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 .    .    1    trafodion_index_scan            CUSTOMER_IDX1         1.00E+002
 
 --- SQL operation complete.
+>>cqd comp_bool_226 reset;
+
+--- SQL operation complete.
 >>
 >>UNLOAD
 +>WITH PURGEDATA FROM TARGET
@@ -2096,16 +2169,16 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 +>select c_first_name,c_last_name from trafodion.hbase.customer_salt;
 Task: UNLOAD           Status: Started
 Task:  EMPTY TARGET    Status: Started
-Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.007
+Task:  EMPTY TARGET    Status: Ended      ET: 00:00:00.004
 Task:  CREATE SNAPSHO  Status: Started
        Snapshots created: 1 
-Task:  CREATE SNAPSHO  Status: Ended      ET: 00:00:00.420
+Task:  CREATE SNAPSHO  Status: Ended      ET: 00:00:00.415
 Task:  EXTRACT         Status: Started
        Rows Processed: 100000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:01.144
+Task:  EXTRACT         Status: Ended      ET: 00:00:01.417
 Task:  DELETE SNAPSHO  Status: Started
        Snapshots deleted: 1 
-Task:  DELETE SNAPSHO  Status: Ended      ET: 00:00:00.004
+Task:  DELETE SNAPSHO  Status: Ended      ET: 00:00:00.003
 
 --- 100000 row(s) unloaded.
 >>
@@ -2178,7 +2251,7 @@ unload with delimiter 0 into '/bulkload/test' select * from CUSTOMER_ADDRESS;
 Task: UNLOAD           Status: Started
 Task:  EXTRACT         Status: Started
        Rows Processed: 50000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:01.974
+Task:  EXTRACT         Status: Ended      ET: 00:00:01.957
 
 --- 50000 row(s) unloaded.
 >>--unload  24 -- should give an error
@@ -2243,7 +2316,7 @@ regrhadoop.ksh fs -rm /user/hive/exttables/unload_customer_demographics/*
 Task: UNLOAD           Status: Started
 Task:  EXTRACT         Status: Started
        Rows Processed but NOT Written to Disk: 20000 
-Task:  EXTRACT         Status: Ended      ET: 00:00:00.690
+Task:  EXTRACT         Status: Ended      ET: 00:00:00.806
 
 --- 20000 row(s) unloaded.
 >>select count(*) from hive.hive.unload_customer_demographics;

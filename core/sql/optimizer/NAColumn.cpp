@@ -885,7 +885,7 @@ Int32 NAColumnArray::getColumnPosition(NAColumn& nc) const
   return -1;
 }
 
-Int32 NAColumnArray::getColumnPosition(NAString& nc) const
+Int32 NAColumnArray::getColumnPosition(const NAString& nc) const
 {
   for (CollIndex j = 0; j < entries(); j++) {
     if ( (* at(j)) == nc )  // compare via NAColumn::operator==()

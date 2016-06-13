@@ -56,6 +56,7 @@ std::string CAT_SQL_HDFS_JNI_TOP              =  "SQL.HDFS.JniTop";
 std::string CAT_SQL_HDFS_SEQ_FILE_READER      =  "SQL.HDFS.SeqFileReader";
 std::string CAT_SQL_HDFS_SEQ_FILE_WRITER      =  "SQL.HDFS.SeqFileWriter";
 std::string CAT_SQL_HDFS_ORC_FILE_READER      =  "SQL.HDFS.OrcFileReader";
+std::string CAT_SQL_HDFS_ORC_FILE_WRITER      =  "SQL.HDFS.OrcFileWriter";
 std::string CAT_SQL_HBASE                     =  "SQL.HBase";
 
 // these categories are currently not used 

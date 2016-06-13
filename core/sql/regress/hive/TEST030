@@ -37,6 +37,7 @@ cqd mode_seahive 'ON';
 cqd traf_enable_orc_format 'ON';
 cqd HIST_ROWCOUNT_REQUIRING_STATS '50000';
 cqd hive_use_ext_table_attrs 'ON';
+cqd hist_missing_stats_warning_level '0';
 
 prepare explainIt from
   select substring(cast(SEQ_NUM+100 as char(3)),2,2) s,
@@ -219,11 +220,6 @@ drop external table if exists date_dim_orc for hive.hive.date_dim_orc;
 -- column d_date_skk doesn't exist in native hive table
 create external table date_dim_orc 
   (d_date_skk int)
-  for hive.hive.date_dim_orc;
-
--- column d_date_sk has incompatible type
-create external table date_dim_orc 
-  (d_date_sk date)
   for hive.hive.date_dim_orc;
 
 -- upsert/insert/del/update not supported on orc

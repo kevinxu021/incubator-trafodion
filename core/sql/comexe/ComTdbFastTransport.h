@@ -72,7 +72,8 @@ public:
     PRINT_DIAGS                 = 0x0100,
     HDFS_COMPRESSED             = 0x0200,
     SKIP_WRITING_TO_FILES       = 0x0400,
-    BYPASS_LIBHDFS              = 0x0800
+    BYPASS_LIBHDFS              = 0x0800,
+    ORC_FILE                    = 0x1000
   };
 
   ComTdbFastExtract ()
@@ -113,9 +114,11 @@ public:
     unsigned short childDataTuppIndex,
     unsigned short cnvChildDataTuppIndex,
     unsigned short partStringTuppIndex,
+    unsigned short tgtValsTuppIndex,
     ULng32 cnvChildDataRowLen,
     Int64 hdfBuffSize,
-    Int16 replication
+    Int16 replication,
+    Queue * orcColNameList
     );
 
   virtual ~ComTdbFastExtract();
@@ -251,7 +254,19 @@ public:
     else
       flags_ &= ~HIVE_INSERT;
   }
-  NABoolean getIncludeHeader() const
+  NABoolean isOrcFile() const
+  {
+    return ((flags_ & ORC_FILE) != 0);
+  }
+  ;
+  void setIsOrcFile(short value)
+  {
+    if (value)
+      flags_ |= ORC_FILE;
+    else
+      flags_ &= ~ORC_FILE;
+  }
+   NABoolean getIncludeHeader() const
   {
     return ((flags_ & INCLUDE_HEADER) != 0);
   }
@@ -421,6 +436,8 @@ public:
   void setModTSforDir(Int64 v) { modTSforDir_ = v; }
   Int64 getModTSforDir() const { return modTSforDir_; }
 
+  const Queue* orcColNameList() const { return orcColNameList_; }
+
 protected:
   NABasicPtr   targetName_;                                  // 00 - 07
   NABasicPtr   delimiter_;                                   // 08 - 15
@@ -451,9 +468,11 @@ protected:
   UInt32       maxOpenPartitions_;                           // 152 - 155
   UInt32       childDataRowLen_;                             // 156 - 159
   Int64        modTSforDir_;                                 // 160 - 167
-  
+  QueuePtr     orcColNameList_;                              // 168 - 175
+  UInt16       tgtValsTuppIndex_;                            // 176 - 177
+
   // Make sure class size is a multiple of 8
-  char fillerComTdbFastTransport_[8];                        // 168 - 175
+  char fillerComTdbFastTransport_[6];                        // 178 - 183
 };
 
 #endif // COM_TDB_FAST_TRANSPORT_H

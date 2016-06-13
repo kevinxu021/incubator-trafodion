@@ -1409,7 +1409,7 @@ namespace EsgynDB.Data
             if (!this.IsStmtValid)
             {
                 this.Dispose();
-                EsgynDBException.ThrowException(null,new EsgynDBException(EsgynDBMessage.StmtInvalid, null));
+                EsgynDBException.ThrowException(null, new EsgynDBException(EsgynDBMessage.StmtInvalid, null));
             }
 
             FetchReply reply;
