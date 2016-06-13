@@ -128,6 +128,9 @@ define([
 
 		},
 		initialTimeRangePicker:function(){
+			$('#severity-fatal').prop('checked',true);
+			$('#severity-error').prop('checked', true);
+			$('#severity-warn').prop('checked', true);
 			if(common.commonTimeRange==null){
 				$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
 				$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
@@ -529,6 +532,7 @@ define([
 					"aoColumns" : aoColumns,
 					stateSave: true,
 					"aoColumnDefs": [ {
+						"sWidth": "8%",
 						"aTargets": [ 0 ],
 						"mData": 0,
 						"className" : "dbmgr-nowrap",
@@ -541,6 +545,22 @@ define([
 						}
 					},
 					{
+						"sWidth": "5%",
+						"aTargets": [ 1 ],
+						"mData": 1
+					},
+					{
+						"sWidth": "5%",
+						"aTargets": [ 2 ],
+						"mData": 2
+					},
+					{
+						"sWidth": "5%",
+						"aTargets": [ 3 ],
+						"mData": 3
+					},
+					{
+						"sWidth": "5%",
 						"aTargets": [ 4 ],
 						"mData": 4,
 						"mRender": function ( data, type, full ) {
@@ -548,7 +568,12 @@ define([
 								return "";
 							else return data;
 						}
-					}
+					},
+					{
+						"sWidth": "30%",
+						"aTargets": [ 5 ],
+						"mData": 5
+					},
 					],
 					buttons: [
 	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
