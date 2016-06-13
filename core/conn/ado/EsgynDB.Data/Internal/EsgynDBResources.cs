@@ -11,8 +11,10 @@ namespace EsgynDB.Data
     {
         private static readonly ResourceManager Messages = new ResourceManager("EsgynDB.Data.Properties.Messages", Assembly.GetExecutingAssembly());
 
-        internal static string FormatMessage(EsgynDBMessage msg, params object [] p)
+        internal static string GetMessage(EsgynDBMessage msg, params object [] p)
         {
+            if (p == null || p.Length == 0)
+                return GetMessage(msg);
             return string.Format(EsgynDBResources.Messages.GetString(msg.ToString()), p);
         }
 

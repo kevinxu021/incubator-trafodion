@@ -51,7 +51,7 @@ namespace EsgynDB.Data
 
             if (!Enum.IsDefined(typeof(EsgynDBType), dataType))
             {
-                string msg = EsgynDBResources.FormatMessage(EsgynDBMessage.InvalidEsgyndbDbType, dataType);
+                string msg = EsgynDBResources.GetMessage(EsgynDBMessage.InvalidEsgyndbDbType, dataType);
                 EsgynDBException.ThrowException(null, new ArgumentException(msg));
             }
 
