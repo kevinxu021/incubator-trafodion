@@ -20,6 +20,7 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -94,9 +95,9 @@ public class RESTProcessor {
 			if (a.parameters != null && a.parameters.size() > 0) {
 				Object[] paramKeys = a.parameters.keySet().toArray();
 				for (int i = 0; i < paramKeys.length; i++) {
-					String value = a.parameters.get(paramKeys[i]);
+					Object value = a.parameters.get(paramKeys[i]);
 					parameterString += URLEncoder.encode(paramKeys[i].toString(), "UTF8") + "="
-							+ URLEncoder.encode(value, "UTF8");
+							+ URLEncoder.encode(value.toString(), "UTF8");
 					if (i < paramKeys.length - 1)
 						parameterString += "&";
 				}
@@ -125,6 +126,10 @@ public class RESTProcessor {
 				conn = (HttpURLConnection) url.openConnection();
 			conn.setReadTimeout(180000); // 3 minutes
 			conn.setRequestProperty("Accept", "application/json, application/text, text/plain");
+			if (a.contentType != null && a.contentType.length() > 0) {
+				conn.setRequestProperty("Content-Type", a.contentType);
+			}
+
 			if (a.authorization == null || a.authorization.length() == 0) {
 				a.authorization = userName + ":" + password;
 			}
@@ -159,7 +164,7 @@ public class RESTProcessor {
 				os.close();
 			}
 
-			if (conn.getResponseCode() != 200) {
+			if (conn.getResponseCode() != 200 && conn.getResponseCode() != 201) {
 				String message = conn.getResponseMessage();
 
 				InputStream es = conn.getErrorStream();
@@ -282,7 +287,7 @@ public class RESTProcessor {
 			}
 			if (arrayNodeFound && arrayNode != null) {
 				for (final JsonNode objNode : arrayNode) {
-					List<String> rowValues = new ArrayList<String>();
+					HashMap<String, String> rowValues = new HashMap<String, String>();
 					if (objNode instanceof ArrayNode) {
 						arrayNodeFound = true;
 						Iterator<JsonNode> valNodes = objNode.elements();
@@ -297,7 +302,7 @@ public class RESTProcessor {
 								valueString = valueString.replaceAll("\"", "");
 								valueString = valueString.replaceAll("\\\\n", "<br>");
 							}
-							rowValues.add(valueString);
+							rowValues.put("col" + i, valueString);
 						}
 					} else if (objNode instanceof ObjectNode) {
 						Iterator<String> names = objNode.fieldNames();
@@ -312,16 +317,20 @@ public class RESTProcessor {
 								valueString = valueString.replaceAll("\"", "");
 								valueString = valueString.replaceAll("\\\\n", "<br>");
 							}
-							rowValues.add(valueString);
+							rowValues.put(name, valueString);
 						}
 					}
 					if (rowValues.size() > 0) {
-						rows.add(rowValues.toArray());
+						String[] cells = new String[columns.size()];
+						for (int j = 0; j < columns.size(); j++) {
+							cells[j] = rowValues.get(columns.get(j));
+						}
+						rows.add(cells);
 						rowValues.clear();
 					}
 				}
 			} else {
-				List<String> rowValues = new ArrayList<String>();
+				HashMap<String, String> rowValues = new HashMap<String, String>();
 				if (node instanceof ObjectNode) {
 					Iterator<Map.Entry<String, JsonNode>> childNodes = node.fields();
 
@@ -343,7 +352,7 @@ public class RESTProcessor {
 											valueString = valueString.replaceAll("\"", "");
 											valueString = valueString.replaceAll("\\\\n", "<br>");
 										}
-										rowValues.add(valueString);
+										rowValues.put("col" + i, valueString);
 									}
 								} else if (objNode instanceof ObjectNode) {
 									Iterator<String> names = objNode.fieldNames();
@@ -358,7 +367,7 @@ public class RESTProcessor {
 											valueString = valueString.replaceAll("\"", "");
 											valueString = valueString.replaceAll("\\\\n", "<br>");
 										}
-										rowValues.add(valueString);
+										rowValues.put(name, valueString);
 									}
 								}
 
@@ -374,12 +383,16 @@ public class RESTProcessor {
 								valueString = valueString.replaceAll("\"", "");
 								valueString = valueString.replaceAll("\\\\n", "<br>");
 							}
-							rowValues.add(valueString);
+							rowValues.put(name, valueString);
 						}
 
 					}
 					if (rowValues.size() > 0) {
-						rows.add(rowValues.toArray());
+						String[] cells = new String[columns.size()];
+						for (int j = 0; j < columns.size(); j++) {
+							cells[j] = rowValues.get(columns.get(j));
+						}
+						rows.add(cells);
 						rowValues.clear();
 					}
 				}
