@@ -1575,6 +1575,13 @@ NABoolean HSColGroupStruct::allocateISMemory(Int64 rows,
 // avoid freeing strData when this fn is called to remove the old data array.
 void HSColGroupStruct::freeISMemory(NABoolean freeStrData, NABoolean freeMCData)
 {
+  HSLogMan *LM = HSLogMan::Instance();
+  if (LM->LogNeeded())
+    {
+      sprintf(LM->msg, "Freeing IS memory for column %s", colNames->data());
+      LM->Log(LM->msg);
+    }
+
   // used by MC in-memory since a column might have been processed but kept
   // in memory to be used by MCs
   mcis_memFreed = TRUE;
@@ -6815,6 +6822,8 @@ Lng32 HSGlobalsClass::selectIUSBatch(Int64 currentRows, Int64 futureRows, NABool
   HSLogMan *LM = HSLogMan::Instance();
 
   colsSelected = 0;
+  iusSampleDeletedInMem->depopulate();
+  iusSampleInsertedInMem->depopulate();
   Int64 memAllowed = getMaxMemory();
   Int64 memLeft = memAllowed;
 
@@ -7067,8 +7076,11 @@ Lng32 HSGlobalsClass::incrementHistograms()
          } else {
            if ( retcode == 0 ) {
               group->state = PROCESSED; // IUS successful. 
-              delGroup->state = PROCESSED; // IUS successful. 
-              insGroup->state = PROCESSED; // IUS successful. 
+              group->freeISMemory();
+              delGroup->state = PROCESSED; // IUS successful.
+              delGroup->freeISMemory();
+              insGroup->state = PROCESSED; // IUS successful.
+              insGroup->freeISMemory();
            } else
               HSHandleError(retcode);
          }

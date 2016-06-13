@@ -2499,6 +2499,16 @@ class HSInMemoryTable : public NABasicObject
    
     Lng32 populate(NAString& queryText);
 
+    // The data is actually deallocated by calling freeISMemory() from
+    // HSGlobalsClass::incrementHistograms() for each column as soon as the
+    // column is successfully handled by IUS (the data is preserved for use
+    // by RUS/IS if IUS can't be performed). This function just resets the
+    // flag that would cause assertion failure when populate() is called, as
+    // it must be to load data for the next batch of IUS columns.
+    void depopulate() {
+      isPopulated_ = FALSE;
+    }
+
     void logState(const char* title);
 
   private:
