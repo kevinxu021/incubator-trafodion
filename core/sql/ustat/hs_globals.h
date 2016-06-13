@@ -1951,6 +1951,13 @@ private:
     Int64 stmtStartTime;
     NABoolean jitLogOn;
 
+    // For IUS, was the SB_PERSISTENT_SAMPLES row for the source table updated?
+    // The change is undone by the HSGlobalsClass dtor, so we need to account for
+    // the possibility that an IUS statement failed prior to making the change.
+    // Otherwise, a concurrent IUS operation could have its changes to the row
+    // overwritten.
+    NABoolean PSRowUpdated;
+
     static THREAD_P NABoolean performISForMC_;
 
   };  // class HSGlobalsClass
