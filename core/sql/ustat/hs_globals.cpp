@@ -12386,11 +12386,10 @@ Int32 HSGlobalsClass::estimateAndTestIUSStats(HSColGroupStruct* group,
   HSLogMan *LM = HSLogMan::Instance();
 
   if (LM->LogNeeded()) {
-    sprintf(LM->msg, "IUS estimateAndTest() for column %s, the exist histogram is", 
-                   group->colSet[0].colname->data());
-    hist->logAll(LM->msg);
-
+    sprintf(LM->msg, "IUS: estimateAndTestIUSStats() for column %s",
+                     group->colSet[0].colname->data());
     LM->StartTimer(LM->msg);
+    hist->logAll("The existing histogram is:");
     sprintf(LM->msg, "Total #intervals=%d, scaleFactor=%f,nullCount=%d", 
                       numNonNullIntervals, scaleFactor, nullCount);
     LM->Log(LM->msg);
@@ -12655,6 +12654,7 @@ Int32 HSGlobalsClass::estimateAndTestIUSStats(HSColGroupStruct* group,
         }
      diagsArea << DgSqlCode(shapeTestError)
                << DgString0(group->colSet[0].colname->data());
+     LM->StopTimer();
      return shapeTestError;
      }
 
@@ -12694,6 +12694,7 @@ Int32 HSGlobalsClass::estimateAndTestIUSStats(HSColGroupStruct* group,
       delta((UInt64)origTotalRC, totalRC)/origTotalRC > rcTotalChangeThreshold )  {
      diagsArea << DgSqlCode(UERR_WARNING_IUS_TOO_MUCH_RC_CHANGE_TOTAL)
                << DgString0(group->colSet[0].colname->data());
+     LM->StopTimer();
      return UERR_WARNING_IUS_TOO_MUCH_RC_CHANGE_TOTAL;
   }
 
@@ -12707,6 +12708,7 @@ Int32 HSGlobalsClass::estimateAndTestIUSStats(HSColGroupStruct* group,
       delta((UInt64)origTotalUEC, totalUEC)/origTotalUEC > uecTotalChangeThreshold ) {
      diagsArea << DgSqlCode(UERR_WARNING_IUS_TOO_MUCH_UEC_CHANGE_TOTAL)
                << DgString0(group->colSet[0].colname->data());
+     LM->StopTimer();
      return UERR_WARNING_IUS_TOO_MUCH_UEC_CHANGE_TOTAL;
   }
 
