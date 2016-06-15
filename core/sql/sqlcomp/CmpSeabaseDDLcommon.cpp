@@ -2294,6 +2294,13 @@ short CmpSeabaseDDL::generateHbaseOptionsArray(
             isError = TRUE;
           hbaseCreateOptionsArray[HBASE_BLOCKSIZE] = hbaseOption->val();
         }
+      else if (hbaseOption->key() == "ENCRYPTION")
+        {
+          if (hbaseOption->val() != "AES")
+            isError = TRUE;
+          hbaseCreateOptionsArray[HBASE_ENCRYPTION] = 
+            hbaseOption->val();
+        }
       else if (hbaseOption->key() == "DATA_BLOCK_ENCODING")
         {
           if (hbaseOption->val() != "NONE" &&
@@ -2379,8 +2386,7 @@ short CmpSeabaseDDL::generateHbaseOptionsArray(
           // values, because specifying an invalid class gets us into
           // a hang situation in the region server
           if (valInOrigCase == "org.apache.hadoop.hbase.regionserver.ConstantSizeRegionSplitPolicy" ||
-              valInOrigCase == "org.apache.hadoop.hbase.regionserver.IncreasingToUpperBoundRegionSplitPolicy"
- ||
+              valInOrigCase == "org.apache.hadoop.hbase.regionserver.IncreasingToUpperBoundRegionSplitPolicy" ||
               valInOrigCase == "org.apache.hadoop.hbase.regionserver.KeyPrefixRegionSplitPolicy")
             hbaseCreateOptionsArray[HBASE_SPLIT_POLICY] = valInOrigCase;
           else
@@ -10620,8 +10626,10 @@ CmpSeabaseDDL::setupHbaseOptions(ElemDDLHbaseOptions * hbaseOptionsClause,
   const char *maxFileSizeOptionString = "MAX_FILESIZE";
   const char *splitPolicyOptionString = "SPLIT_POLICY";
 
+  NABoolean encryptionOptionSpecified = FALSE;
   NABoolean dataBlockEncodingOptionSpecified = FALSE;
   NABoolean compressionOptionSpecified = FALSE;
+  const char *encryptionOptionString = "ENCRYPTION";
   const char *dataBlockEncodingOptionString = "DATA_BLOCK_ENCODING";
   const char *compressionOptionString = "COMPRESSION";
 
@@ -10712,6 +10720,8 @@ CmpSeabaseDDL::setupHbaseOptions(ElemDDLHbaseOptions * hbaseOptionsClause,
     }  
   }
   
+  NAString encryption =
+    CmpCommon::getDefaultString(HBASE_ENCRYPTION_OPTION);
   NAString dataBlockEncoding =
     CmpCommon::getDefaultString(HBASE_DATA_BLOCK_ENCODING_OPTION);
   NAString compression = 
@@ -10719,6 +10729,20 @@ CmpSeabaseDDL::setupHbaseOptions(ElemDDLHbaseOptions * hbaseOptionsClause,
   HbaseCreateOption * hbaseOption = NULL;
   
   char optionStr[200];
+  if (!encryption.isNull() && !encryptionOptionSpecified)
+    {
+      hbaseOption = new(STMTHEAP) HbaseCreateOption("ENCRYPTION", 
+                                                    encryption.data());
+      hbaseCreateOptions.insert(hbaseOption);
+
+      if (ActiveSchemaDB()->getDefaults().userDefault
+          (HBASE_ENCRYPTION_OPTION) == TRUE)
+        {
+          numHbaseOptions += 1;
+          sprintf(optionStr, "ENCRYPTION='%s'|", encryption.data());
+          hbaseOptionsStr += optionStr;
+        }
+    }
   if (!dataBlockEncoding.isNull() && !dataBlockEncodingOptionSpecified)
     {
       hbaseOption = new(STMTHEAP) HbaseCreateOption("DATA_BLOCK_ENCODING", 
