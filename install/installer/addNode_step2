@@ -247,15 +247,16 @@ sudo mkdir -p $HOME/tmpTraf/
 $TRAF_NEW_PDSH sudo rm -rf $HOME_DIR/$TRAF_USER/.ssh
 $TRAF_NEW_PDSH sudo mkdir -p $HOME_DIR/$TRAF_USER/.ssh
 
-$TRAF_NEW_PDSH mkdir -p $HOME/tmpTraf/
+$TRAF_NEW_PDSH mkdir -p $HOME/tmpTraf
 sudo cp -r $HOME_DIR/$TRAF_USER/.bashrc $HOME/tmpTraf/.bashrc
-sudo cp -r $HOME_DIR/$TRAF_USER/.ssh $HOME/tmpTraf/
-sudo cp -r $SQ_ROOT $HOME/tmpTraf/
+sudo cp -r $HOME_DIR/$TRAF_USER/.ssh $HOME/tmpTraf
+sudo cp -r $SQ_ROOT $HOME/tmpTraf
 echo "***IMPORTANT: Keep waiting..."
 sudo chown -R $(whoami).$(whoami) $HOME/tmpTraf
-$TRAF_NEW_PDCP -r $HOME/tmpTraf/ $HOME/tmpTraf
+$TRAF_NEW_PDCP -r $HOME/tmpTraf $HOME
 echo "***IMPORTANT: Seriously, it's a lot of file"
 $TRAF_NEW_PDSH sudo cp -r $HOME/tmpTraf/* $HOME_DIR/$TRAF_USER
+$TRAF_NEW_PDSH sudo cp -r $HOME/tmpTraf/.ssh/* $HOME_DIR/$TRAF_USER/.ssh/
 echo "***IMPORTANT: Script got to this point, probably not a hung system."
 $TRAF_NEW_PDSH sudo chown -R $TRAF_USER.trafodion $HOME_DIR/$TRAF_USER
 $TRAF_NEW_PDSH sudo rm -rf $HOME/tmpTraf
