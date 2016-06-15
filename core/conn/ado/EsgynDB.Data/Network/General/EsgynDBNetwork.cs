@@ -343,7 +343,7 @@ namespace EsgynDB.Data
 
             if (this._isClosed)
             {
-                string msg = EsgynDBResources.FormatMessage(EsgynDBMessage.InvalidConnectionState, this._connection.State);
+                string msg = EsgynDBResources.GetMessage(EsgynDBMessage.InvalidConnectionState, this._connection.State);
                 EsgynDBException.ThrowException(this._connection, new InvalidOperationException(msg));
             }
 
@@ -450,10 +450,14 @@ namespace EsgynDB.Data
             }
             catch (EsgynDBException)
             {
-                forceClose = true;
                 throw;
             }
             catch (CommunicationsFailureException)
+            {
+                forceClose = true;
+                throw;
+            }
+            catch (InternalFailureException)
             {
                 forceClose = true;
                 throw;
@@ -468,7 +472,7 @@ namespace EsgynDB.Data
                 Monitor.Exit(this._ds);
                 if (forceClose)
                 {
-                    this._connection.Close(true, true);
+                    this._connection.Close(true, true, true);
                 }
             }
         }

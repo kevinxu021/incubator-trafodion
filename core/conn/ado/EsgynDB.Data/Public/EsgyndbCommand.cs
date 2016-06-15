@@ -197,7 +197,7 @@ namespace EsgynDB.Data
             {
                 if (value != CommandType.Text && value != CommandType.StoredProcedure)
                 {
-                    throw new EsgynDBException(EsgynDBMessage.UnsupportedCommandType, null, value.ToString());
+                    EsgynDBException.ThrowException(this._conn, new EsgynDBException(EsgynDBMessage.UnsupportedCommandType, null, value.ToString()));
                 }
 
                 this._type = value;
@@ -961,7 +961,7 @@ namespace EsgynDB.Data
 
                     if (i > desc.MaxLength)
                     {
-                        throw new EsgynDBException(rowId, "data too long for char column");
+                        EsgynDBException.ThrowException(this._conn, new EsgynDBException(rowId, "data too long for char column"));
                     }
 
                     System.Buffer.BlockCopy(temp, 0, buf, 0, i);
@@ -992,7 +992,7 @@ namespace EsgynDB.Data
                     buf = this._conn.Network.Encoder.GetBytes(str, desc.NdcsEncoding);
                     if (buf.Length > desc.MaxLength)
                     {
-                        throw new EsgynDBException(rowId, "varchar data too long");
+                        EsgynDBException.ThrowException(this._conn, new EsgynDBException(rowId, "varchar data too long"));
                     }
 
                     ds.WriteInt16((short)buf.Length);
@@ -1014,12 +1014,14 @@ namespace EsgynDB.Data
                             str = dt.ToString(EsgynDBUtility.TimestampFormat[desc.Precision]);
                             break;
                         default:
-                            throw new EsgynDBException(rowId, "internal error: bad datetime");
+                            str = "";
+                            EsgynDBException.ThrowException(this._conn, new EsgynDBException(rowId, "internal error: bad datetime"));
+                            break;
                     }
 
                     if (str.Length > desc.MaxLength)
                     {
-                        throw new EsgynDBException(rowId, "Internal Error: datetime data too long");
+                        EsgynDBException.ThrowException(this._conn,  new EsgynDBException(rowId, "Internal Error: datetime data too long"));
                     }
 
                     ds.WriteBytes(System.Text.ASCIIEncoding.ASCII.GetBytes(str));
@@ -1032,7 +1034,7 @@ namespace EsgynDB.Data
 
                     if (srcLen > targetLen)
                     {
-                        throw new EsgynDBException(rowId, "interval data too long");
+                        EsgynDBException.ThrowException(this._conn, new EsgynDBException(rowId, "interval data too long"));
                     }
 
                     ds.InsertBlank((targetLen - srcLen), System.Text.Encoding.ASCII);
@@ -1131,7 +1133,7 @@ namespace EsgynDB.Data
 
                     if (str.Length > desc.MaxLength)
                     {
-                        throw new EsgynDBException(rowId, "data too long for decimal column: " + value);
+                        EsgynDBException.ThrowException(this._conn, new EsgynDBException(rowId, "data too long for decimal column: " + value));
                     }
 
                     buf = System.Text.ASCIIEncoding.ASCII.GetBytes(str);
@@ -1150,7 +1152,7 @@ namespace EsgynDB.Data
                     // check for valid characters
                     if (!EsgynDBUtility.ValidateNumeric.IsMatch(str))
                     {
-                        throw new EsgynDBException(rowId, "invalid numeric string: " + str);
+                        EsgynDBException.ThrowException(this._conn, new EsgynDBException(rowId, "invalid numeric string: " + str));
                     }
 
                     // we need to unscale the value -- messy as we have to keep it as a string
@@ -1182,7 +1184,8 @@ namespace EsgynDB.Data
                     break;
 
                 default:
-                    throw new EsgynDBException(rowId, "Internal Error: Invalid FSType " + desc.FsType);
+                    EsgynDBException.ThrowException(this._conn, new EsgynDBException(rowId, "Internal Error: Invalid FSType " + desc.FsType));
+                    break;
             }
         }
 
@@ -1215,7 +1218,7 @@ namespace EsgynDB.Data
                         {
                             if (!desc.Nullable)
                             {
-                                throw new EsgynDBException(i, "cannot assign null to non nullable column");
+                                EsgynDBException.ThrowException(this._conn,  new EsgynDBException(i, "cannot assign null to non nullable column"));
                             }
 
                             ds.Position = (desc.NullOffset * batchCount) + (2 * i);
