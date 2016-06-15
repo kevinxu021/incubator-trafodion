@@ -54,6 +54,7 @@ import io.ampool.monarch.table.MServerLocation;
 import io.ampool.monarch.table.Pair;
 import io.ampool.monarch.table.exceptions.*;
 import io.ampool.monarch.table.client.*;
+import io.ampool.monarch.table.MDiskWritePolicy;
 
 import org.trafodion.sql.MTableClient;
 
@@ -455,7 +456,7 @@ public class MonarchClient {
       else
          desc.setMaxVersions(DtmConst.SSCC_MAX_DATA_VERSION);
 */
-      desc.setDiskPersistenceEnabled(true);
+      desc.enableDiskPersistence(MDiskWritePolicy.ASYNCHRONOUS);
       if (tableType == RANGE_PARTITIONED) {
          desc.setTotalNumOfSplits(numSplits+1);
          desc.setTableType(MTableType.ORDERED_VERSIONED);
