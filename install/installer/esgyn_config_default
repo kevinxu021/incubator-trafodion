@@ -179,4 +179,6 @@ export all_node_count=""
 #All nodes but specified in pdsh usable format
 export ALL_NODES=""
 
+#Ability to add nodes while trafodion is running
+export ELASTICITY_ENABLED="Y"
 
