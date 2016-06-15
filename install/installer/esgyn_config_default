@@ -180,5 +180,5 @@ export all_node_count=""
 export ALL_NODES=""
 
 #Ability to add nodes while trafodion is running
-export ELASTICITY_ENABLED="N"
+export ELASTICITY_ENABLED="Y"
 
