@@ -243,21 +243,21 @@ echo
 echo "***IMPORTANT: Copying files to $NEW_NODES"
 echo "***IMPORTANT: This will take some time, it's alot of file. Please wait...."
 echo 
-sudo mkdir -p $HOME/tmpTraf
+sudo mkdir -p $HOME/tmpTraf/
 $TRAF_NEW_PDSH sudo rm -rf $HOME_DIR/$TRAF_USER/.ssh
 $TRAF_NEW_PDSH sudo mkdir -p $HOME_DIR/$TRAF_USER/.ssh
 
-$TRAF_NEW_PDSH mkdir -p $HOME/tmpTraf
-
-sudo cp -r $HOME_DIR/$TRAF_USER $HOME/tmpTraf
+$TRAF_NEW_PDSH mkdir -p $HOME/tmpTraf/
+sudo cp -r $HOME_DIR/$TRAF_USER/.bashrc $HOME/tmpTraf/.bashrc
+sudo cp -r $HOME_DIR/$TRAF_USER/.ssh $HOME/tmpTraf/
+sudo cp -r $SQ_ROOT $HOME/tmpTraf/
 echo "***IMPORTANT: Keep waiting..."
 sudo chown -R $(whoami).$(whoami) $HOME/tmpTraf
-$TRAF_NEW_PDCP -r $HOME/tmpTraf/$TRAF_USER $HOME/tmpTraf
+$TRAF_NEW_PDCP -r $HOME/tmpTraf/ $HOME/tmpTraf
 echo "***IMPORTANT: Seriously, it's a lot of file"
-$TRAF_NEW_PDSH sudo cp -r $HOME/tmpTraf/$TRAF_USER $HOME_DIR
+$TRAF_NEW_PDSH sudo cp -r $HOME/tmpTraf/* $HOME_DIR/$TRAF_USER
 echo "***IMPORTANT: Script got to this point, probably not a hung system."
 $TRAF_NEW_PDSH sudo chown -R $TRAF_USER.trafodion $HOME_DIR/$TRAF_USER
-
 $TRAF_NEW_PDSH sudo rm -rf $HOME/tmpTraf
 sudo rm -r $HOME/tmpTraf
 
