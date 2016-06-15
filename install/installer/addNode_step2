@@ -138,18 +138,13 @@ fi
 
 function changeTrafPassword {
 
-echo 
-echo "***IMPORTANT: You need to set the $TRAF_USER password, set it to what you have on other nodes."
-echo "***IMPORTANT: This is a system call, the password is not saved"
-echo 
-echo 
-
 source $TRAF_CONFIG
-
-for node in $NEW_NODES
-do 
-   ssh $node sudo passwd $TRAF_USER
-done
+echo 
+echo "***IMPORTANT: You need to set the $TRAF_USER password on $NEW_NODES, set it to what you have on other nodes."
+echo "***IMPORTANT: sudo passwd $TRAF_USER"
+echo 
+echo 
+sleep 10
 
 }
 
@@ -187,10 +182,30 @@ echo
 sleep 5
 
 sudo cp $SQ_ROOT/tmp/cluster.conf $PWD
+sudo chown $(whoami).$(whoami) $PWD/cluster.conf
 $TRAF_PDCP $PWD/cluster.conf $HOME
 $TRAF_PDSH sudo cp $HOME/cluster.conf $SQ_ROOT/tmp/cluster.conf 2>&1 > /dev/null
 $TRAF_PDSH sudo chown $TRAF_USER.trafodion $SQ_ROOT/tmp/cluster.conf 2>&1 > /dev/null
 $TRAF_PDSH sudo rm $HOME/cluster.conf
+
+}
+
+function copySQconfig {
+
+source $TRAF_CONFIG
+echo "***INFO: Copying over new sqconfig file"
+
+echo "***IMPORTANT*** Ignore copy errors to new node."
+echo
+sleep 5
+
+sudo cp -r $SQ_ROOT/sql/scripts/sqconfig $PWD
+sudo chown $(whoami).$(whoami) $PWD/sqconfig
+$TRAF_PDCP $PWD/sqconfig $HOME
+$TRAF_PDSH sudo cp $HOME/sqconfig $SQ_ROOT/sql/scripts/sqconfig 2>&1 > /dev/null
+$TRAF_PDSH sudo chown $TRAF_USER.trafodion $SQ_ROOT/sql/scripts/sqconfig 2>&1 > /dev/null
+$TRAF_PDSH sudo rm $HOME/sqconfig
+
 
 }
 
@@ -306,6 +321,7 @@ function printMessage {
 
 source $TRAF_CONFIG
 echo
+echo "***IMPORTANT: EXIT OUT OF ALL EXISTING SHELLS, need to pick up new environment variables"
 echo "***IMPORTANT: Node is ready to be added"
 echo "***IMPORTANT: sudo su $TRAF_USER"
 echo "***IMPORTANT: sqshell -a"
@@ -328,11 +344,11 @@ createTrafUserId
 changeTrafPassword
 editTrafbashrc
 copyTrafbashrc
-copyClusterConf
 copyAll
 trafAcceptKeys
 editDCSServers
 addTraftoHBase
-
+copyClusterConf
+copySQconfig
 printMessage
 

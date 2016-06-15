@@ -212,6 +212,20 @@ else
       MY_NODES="$MY_NODES -w $node"
    done
 
+   if [[ "$ELASTICITY_ENABLED" == "Y" ]]; then
+      node_id="0"
+      for node in $NODE_LIST
+      do
+          TRAF_EXCLUDE_LIST="$TRAF_EXCLUDE_LIST node$node_id"
+          ((node_id++))
+      done
+      
+      sudo chmod 777 $TRAF_CONFIG
+      sed -i '/TRAF_EXCLUDE_LIST\=/d' $TRAF_CONFIG
+      echo "export TRAF_EXCLUDE_LIST=\"$TRAF_EXCLUDE_LIST\"" >> $TRAF_CONFIG
+      sudo chmod 777 $TRAF_CONFIG
+   fi
+
    sudo chmod 777 $TRAF_CONFIG
    sed -i '/MY_NODES\=/d' $TRAF_CONFIG
    echo "export MY_NODES=\"$MY_NODES\"" >> $TRAF_CONFIG
