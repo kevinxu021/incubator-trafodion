@@ -2869,6 +2869,7 @@ HSGlobalsClass::HSGlobalsClass(ComDiagsArea &diags)
     sampleRateAsPercetageForIUS(0),
     minRowCtPerPartition_(-1),
     sample_I_generated(FALSE),
+    PSRowUpdated(FALSE),
     jitLogThreshold(0),
     stmtStartTime(0),
     jitLogOn(FALSE),
@@ -2899,6 +2900,12 @@ HSGlobalsClass::HSGlobalsClass(ComDiagsArea &diags)
 
 HSGlobalsClass::~HSGlobalsClass()
 {
+  // If this was an IUS execution, make sure the row for the source table in
+  // SB_PERSISTENT_SAMPLES is modified to reflect that an IUS operation is no
+  // longer in progress.
+  if (PSRowUpdated)
+    end_IUS_work();
+
   // reset the parser flags that were set in the constructor
   SQL_EXEC_ResetParserFlagsForExSqlComp_Internal(savedParserFlags);
 
@@ -6008,9 +6015,10 @@ Lng32 HSGlobalsClass::begin_IUS_work(char* ius_update_history_buffer)
    HSHandleError(retcode);
 
    //
-   // If we reach here, it means we have successfully stored the bdt and our process info
-   // into the UPDATE_DATE and UPDATER_INFO column. We can return TRUE.
+   // If we reach here, we have successfully stored the bdt and our process info
+   // into the UPDATE_DATE and UPDATER_INFO columns of SB_PERSISTENT_SAMPLES.
    //
+   PSRowUpdated = TRUE;
    return 0;
 }
 
