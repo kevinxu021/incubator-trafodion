@@ -539,6 +539,9 @@ class CmpSeabaseDDL
 		       HbaseStr *table, NABoolean asyncDrop,
                        NABoolean ddlXns);
 
+  short dropMonarchTable(HbaseStr *table, NABoolean asyncDrop,
+                       NABoolean ddlXns);
+
   short copyHbaseTable(ExpHbaseInterface *ehi, 
 		       HbaseStr *currTable, HbaseStr* oldTable);
 

@@ -2731,6 +2731,49 @@ short CmpSeabaseDDL::dropHbaseTable(ExpHbaseInterface *ehi,
   return 0;
 }
 
+short CmpSeabaseDDL::dropMonarchTable(HbaseStr *table, NABoolean asyncDrop,
+                                    NABoolean ddlXns)
+{
+  
+  short retcode = 0;
+
+  NABoolean isMonarchTable = TRUE;
+  ExpHbaseInterface * ehi = allocEHI(isMonarchTable);
+  if (ehi == NULL)
+    return;
+
+  retcode = ehi->exists(*table);
+  if (retcode == -1) // exists
+    {    
+      retcode = ehi->drop(*table, TRUE, (NOT ddlXns));
+      deallocEHI(ehi);
+      if (retcode < 0)
+        {
+          *CmpCommon::diags() << DgSqlCode(-8448)
+                              << DgString0((char*)"ExpHbaseInterface::drop()")
+                              << DgString1(getHbaseErrStr(-retcode))
+                              << DgInt0(-retcode)
+                              << DgString2((char*)GetCliGlobals()->getJniErrorStr().data());
+          
+          return -1;
+        }
+    }
+
+  if (retcode != 0)
+    {
+      deallocEHI(ehi);
+      *CmpCommon::diags() << DgSqlCode(-8448)
+                          << DgString0((char*)"ExpHbaseInterface::exists()")
+                          << DgString1(getHbaseErrStr(-retcode))
+                          << DgInt0(-retcode)
+                          << DgString2((char*)GetCliGlobals()->getJniErrorStr().data());
+      
+      return -1;
+    }
+   deallocEHI(ehi);
+   return 0;
+}
+
 short CmpSeabaseDDL::copyHbaseTable(ExpHbaseInterface *ehi, 
                                     HbaseStr *currTable, HbaseStr* oldTable)
 {
@@ -6831,10 +6874,8 @@ short CmpSeabaseDDL::dropSeabaseObject(ExpHbaseInterface * ehi,
 
       if (! isMonarch) 
          retcode = dropHbaseTable(ehi, &hbaseTable, FALSE, ddlXns);
-/*
       else
          retcode = dropMonarchTable(&hbaseTable, FALSE, ddlXns); 
-*/
       if (retcode < 0)
          return -1;
     }
