@@ -1517,7 +1517,6 @@ short CmpSeabaseDDL::createSeabaseTable2(
   if (ehi == NULL)
     {
       processReturn();
-
       return -1;
     }
 
@@ -3180,7 +3179,6 @@ short CmpSeabaseDDL::dropSeabaseTable2(
   if (ehi == NULL)
     {
       processReturn();
-      
       return -1;
     }
 
@@ -4055,7 +4053,6 @@ void CmpSeabaseDDL::renameSeabaseTable(
   if (ehi == NULL)
     {
       processReturn();
-
       return;
     }
 
@@ -4630,6 +4627,11 @@ short CmpSeabaseDDL::cloneHbaseTable(
   NABoolean isMonarchTable = FALSE;
   ExpHbaseInterface * ehi = (inEHI ? inEHI : allocEHI(isMonarchTable));
 
+  if (ehi == NULL) {
+      processReturn();
+      return -1;
+  }
+
   // copy hbaseTable as clonedHbaseTable
   if (ehi->copy(hbaseTable, clonedHbaseTable, TRUE))
     {
@@ -4637,7 +4639,6 @@ short CmpSeabaseDDL::cloneHbaseTable(
         deallocEHI(ehi); 
       
       processReturn();
-      
       return -1;
     }
 
@@ -5454,6 +5455,8 @@ short CmpSeabaseDDL::alignedFormatTableDropColumn
   tempTable += str_ltoa(objUID, objUIDbuf);
 
   ExpHbaseInterface * ehi = allocEHI(naTable->isMonarch());
+  if (ehi == NULL)
+     return -1;
   ExeCliInterface cliInterface
     (STMTHEAP, NULL, NULL, 
      CmpCommon::context()->sqlSession()->getParentQid());
@@ -5775,7 +5778,6 @@ void CmpSeabaseDDL::alterSeabaseTableDropColumn(
   if (ehi == NULL)
     {
       processReturn();
-      
       return;
     }
 
@@ -6333,6 +6335,11 @@ short CmpSeabaseDDL::alignedFormatTableAlterColumnAttr
   tempTable += str_ltoa(objUID, objUIDbuf);
 
   ExpHbaseInterface * ehi = allocEHI(naTable->isMonarch());
+  if (ehi == NULL) {
+     cliRC = -1;
+     processReturn();
+     return;
+  }
   ExeCliInterface cliInterface
     (STMTHEAP, NULL, NULL, 
      CmpCommon::context()->sqlSession()->getParentQid());
@@ -9514,7 +9521,6 @@ void CmpSeabaseDDL::seabaseGrantRevokeHBase(
   if (ehi == NULL)
     {
       processReturn();
-
       return;
     }
 
@@ -9665,7 +9671,6 @@ void CmpSeabaseDDL::createNativeHbaseTable(
   if (ehi == NULL)
     {
       processReturn();
-
       return;
     }
 
@@ -9724,7 +9729,6 @@ void CmpSeabaseDDL::dropNativeHbaseTable(
   if (ehi == NULL)
     {
       processReturn();
-
       return;
     }
 
@@ -11296,8 +11300,13 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
   NABoolean isMonarchTable = (storageType == COM_STORAGE_MONARCH);
   if ( tableDesc ) {
 
-    ExpHbaseInterface* ehi = 
-      CmpSeabaseDDL::allocEHI(isMonarchTable);
+     ExpHbaseInterface* ehi = 
+       CmpSeabaseDDL::allocEHI(isMonarchTable);
+      
+     if (ehi == NULL) {
+        tableDesc = NULL;
+        return NULL;
+     }
 
       // Set the header.nodetype to either HASH2 or RANGE based on whether
       // the table is salted or not. 
