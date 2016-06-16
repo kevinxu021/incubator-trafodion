@@ -98,20 +98,24 @@ define(['handlers/EventDispatcher'],
 							403 : _this.sessionTimeout
 						},
 						success: function(data){
+							var result = {};
+							result.data = data;
+							result.queryID = queryID;
 							switch (pageIdentifier) {
 								case "active":
-									dispatcher.fire(_this.ACTIVE_CANCEL_QUERY_SUCCESS, data);
+									dispatcher.fire(_this.ACTIVE_CANCEL_QUERY_SUCCESS, result);
 									break;
 								case "historical":
-									dispatcher.fire(_this.HISTORICAL_CANCEL_QUERY_SUCCESS, data);
+									dispatcher.fire(_this.HISTORICAL_CANCEL_QUERY_SUCCESS, result);
 									break;
 								case "queryPlan":
-									dispatcher.fire(_this.PLAN_CANCEL_QUERY_SUCCESS, data);
+									dispatcher.fire(_this.PLAN_CANCEL_QUERY_SUCCESS, result);
 									break;
 								}
 							
 						},
 						error:function(jqXHR, res, error){
+							jqXHR.queryID=queryID;
 							switch (pageIdentifier) {
 							case "active":
 								dispatcher.fire(_this.ACTIVE_CANCEL_QUERY_ERROR, jqXHR, res, error);

@@ -186,10 +186,10 @@ define([
 				this.currentURL=window.location.hash;
 			}
 			common.on(common.NOFITY_MESSAGE, this.collectNewNotifyMessage);
-			$('#notifyMenu').unbind().on('click', this.hideOrDisplaySideBar);
+			$('#notification-btn').unbind().on('click', this.hideOrDisplaySideBar);
 		},
 		pause: function() {
-			$('#notifyMenu').off('click', this.hideOrDisplaySideBar);
+			$('#notification-btn').off('click', this.hideOrDisplaySideBar);
 			if(this.doPause){
 				this.doPause();
 			}
@@ -256,13 +256,13 @@ define([
 				});
 
 				//Delete the older messages from the UI, by matching the hash string
-				var itemList = $('#notifyMenu>ul.odd');
+				var itemList = $('#notifyMenu>ul.odd>li');
 				if(itemList.length > 0){
 					for(var i=0;i<itemList.length;i++){
-						if($(itemList[i]+">li").attr("hashstr") && $(itemList[i]).attr("hashstr") == hs){
-							$(itemList[i]+">li").remove();
-							if($(itemList[i+1]+">li").hasClass("divider")){
-								$(itemList[i+1]+">li").remove();
+						if($(itemList[i]).attr("hashstr") && $(itemList[i]).attr("hashstr") == hs){
+							$(itemList[i]).remove();
+							if($(itemList[i+1]).hasClass("divider")){
+								$(itemList[i+1]).remove();
 								i++;								
 							}
 						}
@@ -299,10 +299,10 @@ define([
 						+ 'style="color: black;font-size:small;margin-right:10px">x</button>'
 						+ '</div></li></ul>'
 						+ '<ul class="even" style="padding-left: 30px;display:none">'
-						+ '<li hashstr="" style="list-style: none"><a class="active">'
+						+ '<li hashstr="" style="list-style: none">'
 						+ '<div class="notifyDetail">'
 						+ '<i style="padding-left: 2px;color:black;font-size:small">'+obj.msg+'</i>'
-						+ '</div></a></li></ul><hr style="margin-top:6px;margin-bottom:0px"/>');	
+						+ '</div></li></ul><hr style="margin-top:6px;margin-bottom:0px"/>');	
 			}
 			common.MESSAGE_LIST.splice(0,0,{msg:obj.msg,tag:obj.tag,url:obj.url,time:currentTime});
 			$('#notifyMenu>ul.odd').unbind().on("click",_this.openCloseMessage);

@@ -59,7 +59,6 @@ define([
 	controlStmtEditor = null,
 	//scalarResultEditor = null,
 	resultsDataTable = null,
-	isPaused = false,
 	resultsAfterPause = false,
 	lastExecuteResult = null,
 	lastExplainResult = null,
@@ -103,7 +102,7 @@ define([
 			if(jsonData.requestor !=null && jsonData.requestor != _this) //error message is probably for different page
 				return;
 			
-			if(isPaused){
+			if(this.redirectFlag){
 				resultsAfterPause = true;
 				lastExplainResult = jsonData;
 				var msgObj={msg:'The workbench query explain completed successfully.',tag:"success",url:_this.currentURL,shortMsg:"Workbench explain succeeded.",lastMessageOnly:true};
@@ -145,6 +144,7 @@ define([
 		doInit: function () {
 			_this = this;
 			this.currentURL = window.location.hash;
+			this.redirectFlag=false;
 			$(TEXT_RESULT_CONTAINER).hide();
 			$(SCALAR_RESULT_CONTAINER).hide();
 			this.hideLoading();
@@ -156,7 +156,6 @@ define([
 			$(OPTIONS_BTN).on('click', this.openFilterDialog);
 
 			resultsDataTable = null;
-			isPaused = false;
 			resultsAfterPause = false;
 			lastExecuteResult = null;
 			lastExplainResult = null;
@@ -271,7 +270,6 @@ define([
 		doResume: function(){
 			this.currentURL = window.location.hash;
 			this.redirectFlag=false;
-			isPaused = false;
 			if(resultsAfterPause == true){
 				if(lastExecuteResult != null){
 					_this.displayResults(lastExecuteResult);
@@ -287,7 +285,7 @@ define([
 			//serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 		},
 		doPause:  function(){
-			isPaused = true;
+			this.redirectFlag=true;
 			//this.hideLoading();
 			//serverHandler.off(serverHandler.WRKBNCH_EXECUTE_SUCCESS, this.displayResults);
 			//serverHandler.off(serverHandler.WRKBNCH_EXECUTE_ERROR, this.showErrorMessage);
@@ -441,7 +439,7 @@ define([
 
 		displayResults: function (result){
 			
-			if(isPaused){
+			if(_this.redirectFlag){
 				resultsAfterPause = true;
 				lastExecuteResult = result;
 				var msgObj={msg:'The workbench query execution completed successfully.',tag:"success",url:_this.currentURL,shortMsg:"Workbench execute succeeded.",lastMessageOnly:true};
@@ -509,7 +507,7 @@ define([
 			if(jqXHR.requestor !=null && jqXHR.requestor != _this) //error message is probably for different page
 				return;
 			
-			if(isPaused){
+			if(_this.redirectFlag){
 				resultsAfterPause = true;
 				lastRawError = jqXHR;
 				var msgObj={msg:'The workbench operation failed.',tag:"danger",url:_this.currentURL,shortMsg:"Workbench operation failed.",lastMessageOnly:true};

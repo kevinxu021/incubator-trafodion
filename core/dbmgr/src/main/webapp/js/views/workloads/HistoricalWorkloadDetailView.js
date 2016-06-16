@@ -157,7 +157,7 @@ define([
 				wHandler.cancelQuery(queryID,_this.pageIdentifier);
 			}else {
 				/*alert("The query is not in executing state. Cannot cancel the query.");*/
-				var msgObj={msg:'The query is not in executing state. Cannot cancel the query.',tag:"warning",url:_this.currentURL,shortMsg:"The query is not in executing state."};
+				var msgObj={msg:'The query '+queryID+' is not in executing state. Cannot cancel the query.',tag:"warning",url:_this.currentURL,shortMsg:"The query is not in executing state."};
 				if(_this.redirectFlag==false){
 					_this.popupNotificationMessage(null,msgObj);
 				}else{
@@ -168,7 +168,7 @@ define([
 		},
 		cancelQuerySuccess:function(data){
 			/*alert('The cancel query request has been submitted');*/
-			var msgObj={msg:'The cancel query request has been submitted',tag:"success",url:_this.currentURL,shortMsg:"Cancel query successfully."};
+			var msgObj={msg:'The cancel query '+ data.queryID +' request has been submitted',tag:"success",url:_this.currentURL,shortMsg:"Cancel query successfully."};
 			if(_this.redirectFlag==false){
 				_this.popupNotificationMessage(null,msgObj);
 			}else{
@@ -182,11 +182,11 @@ define([
 			/*alert(jqXHR.responseText);*/
 			var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Cancel query failed."};
 			if(jqXHR.responseText==undefined){
-				msgObj.msg="the response was null."
+				msgObj.msg="the response for query "+jqXHR.queryID+" was null.";
 				msgObj.shortMsg="the response was null."
 			}
 			if(jqXHR.statusText=="abort"){
-				msgObj.msg="the request was aborted."
+				msgObj.msg="the request for query "+jqXHR.queryID+" was aborted."
 				msgObj.shortMsg="the request was aborted."
 			}
 			if(_this.redirectFlag==false){
