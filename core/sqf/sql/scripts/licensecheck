@@ -23,7 +23,7 @@ if [[ $encstring = "" ]]; then
   #no license file
   #print warning and continue
   echo "***  WARNING  *** "
-  echo "***Your license to use the ${TRAFODION_VER_PROD} Edition is either unavailable or the file is corrupt."
+  echo "***Your license to use the ${TRAFODION_VER_PROD} Edition is unavailable."
   if [[ silent -eq 0 ]];then
     echo -n " Do you want to continue [y/N]:"
     read answer
