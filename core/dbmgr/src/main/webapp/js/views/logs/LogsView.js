@@ -517,7 +517,8 @@ define([
 					"oLanguage": {
 						"sEmptyTable": "No log entries found for selected time range and/or filters."
 					},
-					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					//dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					dom: "<'row'<'col-md-8'lB><'col-md-4'f>>" +"<'row'<'col-md-12'<'datatable-scroll'tr>>><'row'<'col-md-12'ip>>",
 					processing: true,
 					paging: bPaging,
 					//autoWidth: true,
@@ -578,19 +579,8 @@ define([
 	                        	   title: 'Logs' } ,
 	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Logs' }
 				          ],
-					          aaSorting: [[ 0, "desc" ]],
-					          fnDrawCallback: function(){
-					        	  //$('#logs-query-results td').css("white-space","nowrap");
-					          }
+					          aaSorting: [[ 0, "desc" ]]
 				});
-
-				try{
-					oDataTable.columns.adjust().draw();
-				}catch(Error){
-					
-				}
-				
-				//$('#logs-query-results td').css("white-space","nowrap");
 			}
 
 		},
