@@ -137,14 +137,7 @@ define([
 		hideLoading: function () {
 			$(LOADING_SELECTOR).hide();
 		},
-		onRelayout: function () {
-			this.onResize();
-		},
-		onResize: function () {
-			clearTimeout(resizeTimer);
-			resizeTimer = setTimeout(this.doResize, 200);
-		},
-		doResize: function () {
+		handleWindowResize: function () {
 			if(st != null) {
 				st.canvas.resize($('#infovis').width(), ($(GRAPH_CONTAINER).height() + $(GRAPH_CONTAINER).scrollTop()));
 			}
@@ -199,7 +192,7 @@ define([
 			//emulate a click on the root node.
 			st.onClick(st.root);
 			_this.populateTablesList(jsonData.tableNames);
-			_this.doResize();	
+			_this.handleWindowResize();	
 		},
 		populateTablesList: function(tablesList){
 			if(tablesList == null || tablesList.length == 0){

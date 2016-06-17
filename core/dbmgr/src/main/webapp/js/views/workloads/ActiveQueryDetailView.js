@@ -210,6 +210,11 @@ define([
 				}
 				value = _this.formatSummary(k, summary[k]);
 				$(htmlTag).val(value);
+				if(htmlTag == '#childQid' || htmlTag == '#parentQid'){
+					if(value == null || value == '' || value == 'NONE'){
+						$(htmlTag + '-container').hide();
+					}
+				}
 			}
 			historySummary = result.summary;
 
@@ -254,15 +259,14 @@ define([
 
 			var statisticTable = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="statistic-results"></table>';
 			$('#statistic-container').html(statisticTable);
-			$('#statistic-results').dataTable({
-				"bAutoWidth" : true,
-				"bProcessing" : true,
-				"bFilter" : false,
-				"bPaginate" : false,
-				// "bAutoWidth": true,
+			$('#statistic-results').DataTable({
+				autoWidth : true,
+				processing : true,
+				paging : false,
+				dom: "<'row'<'col-md-8'B><'col-md-4'f>>" +"<'row'<'col-md-12'<'datatable-scroll'tr>>><'row'<'col-md-12'ip>>",
 				"scrollCollapse" : true,
 				"aaData" : statisticDataSet,
-				"aaSorting" :	[[2,"desc"]],
+				"order" :	[[2,"desc"]],
 				"columns" : [{"sTitle" : "LC"},{"sTitle" : "RC"},{"sTitle" : "Id"},
 				             {"sTitle" : "PaId"},{"sTitle" : "ExId"},{"sTitle" : "Frag"},
 				             {"sTitle" : "TDB Name"},{"sTitle" : "DOP"},{"sTitle" : "Oper Cpu Time"},
@@ -279,7 +283,14 @@ define([
 				            		 } 
 				            		 return "";
 				            	 }
-				             } ]
+				             } ],
+								buttons: [
+								          { extend : 'copy', exportOptions: { columns: ':visible', orthogonal: 'export'  } },
+								          { extend : 'csv', exportOptions: { columns: ':visible', orthogonal: 'export' } },
+								          //{ extend : 'excel', exportOptions: { columns: ':visible', orthogonal: 'export' } },
+								          { extend : 'pdfHtml5', exportOptions: { columns: ':visible', orthogonal: 'export'  }, title: "Operator Statistics", orientation: 'landscape' },
+								          { extend : 'print', exportOptions: { columns: ':visible', orthogonal: 'export' }, title: "Operator Statistics" }
+								          ]
 			});
 
 		},

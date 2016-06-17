@@ -117,7 +117,8 @@ define([
 					"oLanguage": {
 						"sEmptyTable": "There are no schemas"
 					},
-					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					//dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					dom: "<'row'<'col-md-8'lB><'col-md-4'f>>" +"<'row'<'col-md-12'<'datatable-scroll'tr>>><'row'<'col-md-12'ip>>",
 					processing: true,
 					paging: bPaging,
 					autoWidth: true,
@@ -172,10 +173,7 @@ define([
 	                          // { extend : 'excel', exportOptions: { columns: ':visible' } },
 	                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: 'Schemas' },
 	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Schemas' }
-	                           ],					             
-		             fnDrawCallback: function(){
-		            	 //$('#db-object-list-results td').css("white-space","nowrap");
-		             }
+	                           ]
 				});
 
 				$('#db-object-list-results tbody').on( 'click', 'td', function (e, a) {
