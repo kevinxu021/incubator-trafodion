@@ -19,7 +19,6 @@ define([
 		RESULT_CONTAINER = '#version-container',
 		ERROR_CONTAINER= '#errorText';
 
-	var _that = null;
 
 	var AboutView = BaseView.extend({
 		template:  _.template(aboutT),

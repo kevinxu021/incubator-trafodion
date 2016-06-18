@@ -13,7 +13,7 @@ define([
         'jqueryvalidate'
      ], function (BaseView, LoginT, session, sessionHandler, common) {
 	'use strict';
-	var _that = null;
+	var _this = null;
 	var _router = null;
 	var validator = null;
 	var LOGIN_FORM = '#login-form',
@@ -40,7 +40,7 @@ define([
 
 		init: function(){
 			$('#navbar').hide();
-			_that = this;
+			_this = this;
 			$(SPINNER).hide();
 			validator = $(LOGIN_FORM).validate({
 				rules: {
@@ -92,7 +92,7 @@ define([
 		passwordEnterKeyPressed: function (ev){
 			var keycode = (ev.keyCode ? ev.keyCode : ev.which);
 			if (keycode == '13') {
-				_that.loginClick(ev);
+				_this.loginClick(ev);
 			}
 		},
 		hideLoading: function () {
@@ -107,10 +107,10 @@ define([
 				this.$el.empty().append(this.child);
 				this.resume();
 			}
-			if(_that.sessionTimedOut == true){
+			if(_this.sessionTimedOut == true){
 				$(ERROR_TEXT).text("Your session timed out due to inactivity. Please login again.");
 				$(ERROR_TEXT).show();
-				_that.sessionTimedOut = false;
+				_this.sessionTimedOut = false;
 			}
 			return this;        	
 
@@ -131,7 +131,7 @@ define([
 			
 			var userName = $(USERNAME).val();
 			var password = $(PASSWORD).val();
-			_that.showLoading();
+			_this.showLoading();
 			var param = {username : userName, password: password};
 			sessionHandler.login(param);
 			e.preventDefault();
@@ -149,7 +149,7 @@ define([
 				//session.saveLoginTime(toISODateString(new Date()));
 				window.location.hash = '/dashboard';
 			}else{
-				_that.hideLoading();
+				_this.hideLoading();
 				$(ERROR_TEXT).show();
 				$(ERROR_TEXT).text(result.errorMessage);
 			}
@@ -169,7 +169,7 @@ define([
 
 		},
 		showErrorMessage: function (jqXHR, res, error) {
-			_that.hideLoading();
+			_this.hideLoading();
 			$(ERROR_TEXT).text("");
 			$(ERROR_TEXT).show();
 			if (jqXHR) {

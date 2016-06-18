@@ -17,6 +17,7 @@ define([
         'datetimepicker',
         'jqueryvalidate',
         'datatables.net-buttons',
+        'datatables.net-select',
         'buttonsflash',
         'buttonsprint',
         'buttonshtml',
@@ -26,7 +27,8 @@ define([
 	var LOADING_SELECTOR = "#loadingImg",
 	RESULT_CONTAINER = '#repo-result-container',
 	ERROR_CONTAINER = '#repo-error-text',
-	REFRESH_MENU = '#refreshAction';
+	REFRESH_MENU = '#refreshAction',
+	QCANCEL_MENU = '#cancelAction';
 
 	var DATE_FORMAT = 'YYYY-MM-DD HH:mm:ss',
 	DATE_FORMAT_ZONE = DATE_FORMAT + ' z',
@@ -47,6 +49,11 @@ define([
 	FILTER_QUERY_TEXT = '#filter-query-text',
 	FILTER_TIME_RANGE = '#filter-time-range',
 	FILTER_MAX_FETCH_ROWS = '#max-fetch-rows';
+	
+	var CANCEL_QUERY_DIALOG = '#cancel-query-dialog',
+	CANCEL_QUERY_ID = '#cancel-query-id',
+	CANCEL_QUERY_YES_BTN = '#cancel-query-yes-btn';
+
 
 	var oDataTable = null;
 	var _this = null;
@@ -59,6 +66,8 @@ define([
 		template:  _.template(WorkloadsT),
 
 		doInit: function (){
+			this.currentURL = window.location.hash;
+			this.redirectFlag=false;
 			_this = this;
 
 			$.validator.addMethod("validateStartAndEndTimes", function(value, element) {
@@ -149,19 +158,25 @@ define([
 
 			wHandler.on(wHandler.FETCH_REPO_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_ERROR, this.showErrorMessage);
+			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
 			$(REFRESH_MENU).on('click', this.fetchQueriesInRepository);
+			$(QCANCEL_MENU).on('click', this.cancelQuery);
+			$(CANCEL_QUERY_YES_BTN).on('click', this.cancelQueryConfirmed);
 			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
 			this.fetchQueriesInRepository();
 		},
 		doResume: function(){
+			this.redirectFlag=false;
 			this.initialTimeRangePicker();
 			wHandler.on(wHandler.FETCH_REPO_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_ERROR, this.showErrorMessage);			
 			$(REFRESH_MENU).on('click', this.fetchQueriesInRepository);
+			$(QCANCEL_MENU).on('click', this.cancelQuery);
+			$(CANCEL_QUERY_YES_BTN).on('click', this.cancelQueryConfirmed);
 			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
-			$(window).on('resize', this.onResize);
 			//this.fetchQueriesInRepository();
 			if(lastUsedTimeRange != null){
 				var currTimeRange = $(FILTER_TIME_RANGE).val();
@@ -171,10 +186,13 @@ define([
 			}
 		},
 		doPause: function(){
+			this.redirectFlag=true;
 			this.storeCommonTimeRange();
 			wHandler.off(wHandler.FETCH_REPO_SUCCESS, this.displayResults);
 			wHandler.off(wHandler.FETCH_REPO_ERROR, this.showErrorMessage);			
-			$(REFRESH_MENU).off('click', this.fetchLogs);
+			$(REFRESH_MENU).off('click', this.fetchQueriesInRepository);
+			$(QCANCEL_MENU).off('click', this.cancelQuery);
+			$(CANCEL_QUERY_YES_BTN).off('click', this.cancelQueryConfirmed);
 			$(FILTER_APPLY_BUTTON).off('click', this.filterApplyClicked);
 			$(OPEN_FILTER).off('click', this.filterButtonClicked);
 		},
@@ -386,6 +404,7 @@ define([
 					"iDisplayLength" : 25, 
 					"sPaginationType": "full_numbers",
 					stateSave: true,
+					select: {style: 'single', items: 'row', info: false},
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
 					"aoColumnDefs": [{
@@ -507,7 +526,53 @@ define([
 		},
 		parseInputDate:function(date){
 			return moment.tz(date, DATE_FORMAT_ZONE, common.serverTimeZone);
-		}	
+		},
+		cancelQuery: function(){
+			var selectedRows = oDataTable.rows( { selected: true } );
+			if(selectedRows && selectedRows.count() >0){
+				var qid = selectedRows.data()[0][0];
+				$(CANCEL_QUERY_ID).text(qid);
+				$(CANCEL_QUERY_DIALOG).modal('show');
+			}else{
+				alert("No queries were selected. Please select a query from the list.");
+			}
+		},
+		cancelQueryConfirmed: function(){
+			var qID = $(CANCEL_QUERY_ID).text();
+			wHandler.cancelQuery(qID, _this);			
+		},
+		cancelQuerySuccess:function(data){
+			if(data.requestor == _this){
+				var msgText = 'The request to cancel query ' + data.queryID + ' has been submitted successfully.';
+				var msgObj={msg:msgText, tag:"success", url:_this.currentURL, shortMsg:"Request to cancel query submitted successfully."};
+				
+				if(_this.redirectFlag==false){
+					_this.popupNotificationMessage(null,msgObj);
+				}else{
+					
+					common.fire(common.NOFITY_MESSAGE,msgObj);
+				}
+				_this.fetchQueriesInRepository();
+			}
+		},
+		cancelQueryError:function(jqXHR){
+			if(jqXHR.requestor == _this){
+				var msgObj={msg:jqXHR.responseText, tag:"danger", url:_this.currentURL, shortMsg:"Request to cancel query failed."};
+				if(jqXHR.responseText==undefined){
+					msgObj.msg="the response was null."
+					msgObj.shortMsg="the response was null."
+				}
+				if(jqXHR.statusText=="abort"){
+					msgObj.msg="the request was aborted."
+					msgObj.shortMsg="the request was aborted."
+				}
+				if(_this.redirectFlag==false){
+					_this.popupNotificationMessage(null,msgObj);
+				}else{
+					common.fire(common.NOFITY_MESSAGE,msgObj);
+				}
+			}
+		}
 	});
 
 

@@ -22,6 +22,7 @@
 						</button>
 						<ul class="dropdown-menu pull-right" role="menu">
 							<li><a id="refreshAction"> Refresh</a></li>
+							<li><a id="cancelAction">Cancel</a></li>
 						</ul>
 					</div>
 				</div>
@@ -144,6 +145,30 @@
 					<input id="filterApplyButton" class="submit btn btn-primary"
 						type="submit" value="Apply">
 					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="cancel-query-dialog" tabindex="-1" role="dialog"
+		aria-labelledby="cancel-query-dialog-label" data-backdrop="static"
+		data-keyboard="false">
+		<div class="modal-dialog" role="document" style="width:800px">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"
+						aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+					<h4 class="modal-title" id="cancel-query-dialog-label">Confirm Query Cancel Request</h4>
+				</div>
+				<div class="modal-body">
+					<form id="wprofile-delete-form">
+                    Are you sure you want to cancel the query <label id="cancel-query-id"></label>  ? 
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button id="cancel-query-yes-btn" type="button" class="btn btn-primary" data-dismiss="modal">Yes</button>
+					<button type="button" class="btn btn-primary" data-dismiss="modal">No</button>
 				</div>
 			</div>
 		</div>
