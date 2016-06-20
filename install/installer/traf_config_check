@@ -214,9 +214,10 @@ else
 
    if [[ "$ELASTICITY_ENABLED" == "Y" ]]; then
       node_id="0"
-      for node in $NODE_LIST
+      TRAF_EXCLUDE_LIST=""
+      while [[ "$node_id" -lt "$NUM_ELASTIC_NODES" ]]
       do
-          TRAF_EXCLUDE_LIST="$TRAF_EXCLUDE_LIST node$node_id"
+          TRAF_EXCLUDE_LIST="$TRAF_EXCLUDE_LIST trafnode$node_id"
           ((node_id++))
       done
       

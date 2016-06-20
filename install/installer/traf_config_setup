@@ -249,8 +249,15 @@ if [[ "${answer}" =~ ^[Nn]$ ]]; then
 else
    echo "export ELASTICITY_ENABLED=\"Y\"" >> $LOCAL_TRAF_CONFIG
    echo "***INFO: When elasticity is enabled, there will be copy errors"
-   echo "***INFO: When elasticity is enabled, sqcheck will show incorrectly"
    sleep 10
+   NUM_ELASTIC_NODES="$node_count"
+   echo -n "Number of elastic nodes, default is [ $NUM_ELASTIC_NODES ]: "
+   read answer
+   if [[ -z "$answer" ]]; then
+      echo "export NUM_ELASTIC_NODES=\"$NUM_ELASTIC_NODES\"" >> $LOCAL_TRAF_CONFIG 
+   else
+     echo "export NUM_ELASTIC_NODES=\"$answer\"" >> $LOCAL_TRAF_CONFIG 
+   fi
 fi
 
 #==============================================

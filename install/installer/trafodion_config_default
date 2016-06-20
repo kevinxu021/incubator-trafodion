@@ -169,3 +169,6 @@ export DCS_PRIMARY_MASTER_NODE=`hostname -f`
 
 #Ability to add nodes while trafodion is running
 export ELASTICITY_ENABLED="Y"
+
+#Default is number of nodes
+export NUM_ELASTIC_NODES=""
