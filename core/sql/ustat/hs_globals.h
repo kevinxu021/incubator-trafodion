@@ -73,7 +73,7 @@ class AbstractFastStatsHist;
 Lng32 AddNecessaryColumns();
 Lng32 AddAllColumnsForIUS();
 
-Lng32 createSampleOption(Lng32 sampleType, double samplePercent, NAString &sampleOpt,
+void createSampleOption(Lng32 sampleType, double samplePercent, NAString &sampleOpt,
                         Int64 sampleValue1=0, Int64 sampleValue2=0);
 Lng32 doubleToHSDataBuffer(const double dbl, HSDataBuffer& dbf);
 Lng32 managePersistentSamples();

@@ -8794,7 +8794,7 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
           //was not able to get cache size below
           //max allowed cache size
           #ifndef NDEBUG
-          CMPASSERT(FALSE);
+          //          CMPASSERT(FALSE);
           #endif
         }
       }
