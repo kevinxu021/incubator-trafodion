@@ -419,7 +419,7 @@ define([
 				});
 			});
 		},
-		doWindoResize: function () {
+		handleWindowResize: function () {
 			if(renderedFlotCharts !== null){
 				$.each(renderedFlotCharts, function(index, graph){
 					if (graph != null){
@@ -434,6 +434,9 @@ define([
 					}
 				});
 			}
+		},
+		handleSideBarToggle: function(){
+			_this.handleWindowResize();
 		},
 		storeCommonTimeRange:function(){
 			var selection = $(FILTER_TIME_RANGE).val();

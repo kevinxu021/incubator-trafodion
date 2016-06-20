@@ -72,9 +72,13 @@ define([
 			sessionHandler.on(sessionHandler.LOGIN_ERROR, this.showErrorMessage);
 			$(LOGIN_BUTTON).on('click', this.loginClick);
 			$(PASSWORD).on('keypress', this.passwordEnterKeyPressed);
+			$('body').css('padding-bottom','0px');
+			$('.login-content-wrapper').css('height','auto');
 		},
 
 		resume: function(){
+			$('body').css('padding-bottom','0px');
+			$('.login-content-wrapper').css('height','auto');
 			sessionHandler.on(sessionHandler.LOGIN_SUCCESS, this.loginSuccess);
 			sessionHandler.on(sessionHandler.LOGIN_ERROR, this.showErrorMessage);			
 			$(LOGIN_BUTTON).on('click', this.loginClick);
@@ -85,6 +89,8 @@ define([
 			sessionHandler.off(sessionHandler.LOGIN_ERROR, this.showErrorMessage);			
 			$(LOGIN_BUTTON).off('click', this.loginClick);
 			$(PASSWORD).off('keypress', this.passwordEnterKeyPressed);
+			$('body').css('padding-bottom','80px');
+			$('.login-content-wrapper').css('height','100%');
 		},
 		showLoading: function(){
 			$(SPINNER).show();
@@ -146,6 +152,7 @@ define([
 				}else{
 					$(ALERTS_FEATURE).show();
 				}
+				_this.pause();
 				//session.saveLoginTime(toISODateString(new Date()));
 				window.location.hash = '/dashboard';
 			}else{
