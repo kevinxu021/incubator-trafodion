@@ -230,8 +230,9 @@ public class SplitBalanceHelper {
                 // if even one transaction state does not have drop table recorded
                 // then pendingList is not yet clear.
                 if (!transactionState.dropTableRecorded()) {
-                    if (LOG.isDebugEnabled())
-                        LOG.debug("pendingListClear is false commitPendingTransactions is not empty "
+                        LOG.info("PendingListClear is false,  commitPendingTransactions is not empty "
+                                + "commitPendingTransactions size : " + commitPendingTransactions.size()
+                                + "Region : "
                                 + hri.getRegionNameAsString());
                     return false;
                 }
