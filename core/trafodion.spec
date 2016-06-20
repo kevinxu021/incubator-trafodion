@@ -54,6 +54,7 @@ Requires: keyutils-libs
 Requires: libcom_err
 Requires: libgcc
 Requires: libxml2
+Requires: lzo
 Requires: ncurses
 Requires: openssl
 Requires: pam
@@ -71,6 +72,7 @@ Requires: perl-version
 Requires: python
 Requires: readline
 Requires: sqlite
+Requires: snappy
 Requires: zlib
 
 %description
