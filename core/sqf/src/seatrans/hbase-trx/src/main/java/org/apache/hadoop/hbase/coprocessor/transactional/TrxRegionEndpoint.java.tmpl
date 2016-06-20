@@ -4045,6 +4045,13 @@ CoprocessorService, Coprocessor {
     synchronized (cleanScannersForTransactions) {
       cleanScannersForTransactions.add(transId);
     }
+    
+    synchronized (commitPendingTransactions) {
+         if (commitPendingTransactions.remove(state)) {
+            LOG.info("TrxRegionEndpoint coprocessor:retireTransaction: Detected and removed read only branch in commitPendingList. " + transId 
+                        + "Region: " + regionInfo.getRegionNameAsString());
+         }
+    }
 
     if (LOG.isTraceEnabled()) LOG.trace("retireTransaction calling remove entry for: " + key + " , from transactionById map ");
       transactionsById.remove(key);
@@ -4627,6 +4634,10 @@ CoprocessorService, Coprocessor {
             throw new IOException("commit failure");
          }
       }
+    }
+    else {
+      LOG.info("Commit: Did not delete ts commitPendingTransactions " + state.hasWrite() + " size " + state.writeSize() 
+                + " reinstated " + state.isReinstated() + "Region : " + regionInfo.getRegionNameAsString());
     }
 
     if (LOG.isDebugEnabled()) LOG.debug("commit(tstate) -- EXIT TrxTransactionState: " + 
@@ -5526,8 +5537,14 @@ CoprocessorService, Coprocessor {
    * @throws IOException 
    */
   public void commit(final long transactionId, final long commitId, final int participantNum, final boolean ignoreUnknownTransactionException) throws IOException {
-    if (LOG.isTraceEnabled()) LOG.trace("commit(txId) -- ENTRY txId: " + transactionId +
-              " commitId " + commitId + " ignoreUnknownTransaction: " + ignoreUnknownTransactionException);
+    if (ignoreUnknownTransactionException)
+    {
+     if(LOG.isDebugEnabled())
+     	LOG.debug("commit(txId) -- ENTRY txId: " + transactionId +
+              " commitId " + commitId + " ignoreUnknownTransaction: " + ignoreUnknownTransactionException
+              + "Region : " + m_Region.getRegionInfo().getRegionNameAsString());
+  	}
+  	
     CommitProgress commitStatus = CommitProgress.NONE;
     TrxTransactionState state;
 
@@ -5537,7 +5554,8 @@ CoprocessorService, Coprocessor {
       state = getTransactionState(transactionId);
     } catch (UnknownTransactionException e) {
       if (ignoreUnknownTransactionException == true) {
-         if (LOG.isTraceEnabled()) LOG.trace("ignoring UnknownTransactionException in commit : " + transactionId
+         if (LOG.isDebugEnabled())
+         	LOG.debug("ignoring UnknownTransactionException in commit : " + transactionId
                 + " in region "
                 + m_Region.getRegionInfo().getRegionNameAsString());
          return;

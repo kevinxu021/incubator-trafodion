@@ -24,15 +24,15 @@
 sqstop
 if [ -f $MY_SQROOT/sql/scripts/swhbase ]
 then swhbase <<EOF
-disable_all 'TRAFODION._DTM_.*'
+disable_all 'TRAFODION._DTM_.TLOG.*'
 y
-drop_all 'TRAFODION._DTM_.*'
+drop_all 'TRAFODION._DTM_.TLOG.*'
 y
 EOF
 else hbase shell <<EOF
-disable_all 'TRAFODION._DTM_.*'
+disable_all 'TRAFODION._DTM_.TLOG.*'
 y
-drop_all 'TRAFODION._DTM_.*'
+drop_all 'TRAFODION._DTM_.TLOG.*'
 y
 EOF
 fi
