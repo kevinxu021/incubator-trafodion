@@ -1766,6 +1766,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
  // exposure.
  DDkwd__(HBASE_DELETE_COSTING,		             "OFF"),
  DDflt0_(HBASE_DOP_PARALLEL_SCANNER,             "0."),
+ DDkwd__(HBASE_ENCRYPTION_OPTION,		             ""),
  DDkwd__(HBASE_FILTER_PREDS,		             "OFF"),
  DDkwd__(HBASE_HASH2_PARTITIONING,                   "ON"),
  DDui___(HBASE_INDEX_LEVEL,                          "0"),
@@ -6551,7 +6552,8 @@ DefaultToken NADefaults::token(Int32 attrEnum,
         (attrEnum == USE_HIVE_SOURCE) ||
         (attrEnum == HIVE_FILE_CHARSET) ||
         (attrEnum == HBASE_DATA_BLOCK_ENCODING_OPTION) ||
-        (attrEnum == HBASE_COMPRESSION_OPTION))
+        (attrEnum == HBASE_COMPRESSION_OPTION) ||
+        (attrEnum == HBASE_ENCRYPTION_OPTION))
       return DF_USER;
 
     if ( attrEnum == NATIONAL_CHARSET ||

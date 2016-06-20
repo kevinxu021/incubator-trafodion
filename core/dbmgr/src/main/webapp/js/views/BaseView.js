@@ -16,6 +16,8 @@ define([
 	'use strict';
 	var _this = null;
 	var __this=null;
+	var resizeTimer = null;
+
 	var BaseView = Backbone.View.extend({
 
 		el: $('#content-wrapper'),
@@ -127,6 +129,7 @@ define([
 		init: function(args){
 			__this=this;
 			common.on(common.NOFITY_MESSAGE, this.collectNewNotifyMessage);
+			common.on(common.SIDEBAR_TOGGLE_EVENT, this.onSideBarToggle);
 			if(this.doInit){
 				this.doInit(args);
 				this.currentURL=window.location.hash;
@@ -144,8 +147,10 @@ define([
 				$('#content-wrapper').removeClass('col-md-12').addClass('col-md-10');
 			}
 
+			$(window).on('resize', this.onWindowResize);
 			$('#content-wrapper').css('padding-top','60px');
 			$('#notification-btn').unbind().on('click', this.hideOrDisplaySideBar);
+			$('.notifyDetail').unbind().on('click', this.hideOrDisplaySideBar);
 			/*$('#notification-btn').on('shown.bs.dropdown', function(){
 				$('#notification-btn').find('.dbmgr-notify-icon').remove();
 			});*/
@@ -178,18 +183,27 @@ define([
 				//  $('#sidebar-wrapper').show();
 				$('#content-wrapper').removeClass('no-transition');
 				$('#content-wrapper').removeClass('col-md-12').addClass('col-md-10');
-			}			
+			}	
+			common.fire(common.SIDEBAR_TOGGLE_EVENT,'');
 		},
 		resume: function(args){
 			if(this.doResume){
 				this.doResume(args);
 				this.currentURL=window.location.hash;
 			}
+			$(window).on('resize', this.onWindowResize);
+			common.on(common.SIDEBAR_TOGGLE_EVENT, this.onSideBarToggle);
 			common.on(common.NOFITY_MESSAGE, this.collectNewNotifyMessage);
 			$('#notification-btn').unbind().on('click', this.hideOrDisplaySideBar);
 		},
 		pause: function() {
 			$('#notification-btn').off('click', this.hideOrDisplaySideBar);
+			if($('#sidebar-wrapper').is(':visible')){
+				_this.hideOrDisplaySideBar();
+			}
+			common.off(common.SIDEBAR_TOGGLE_EVENT, this.onSideBarToggle);
+			$(window).off('resize', this.onWindowResize);
+			$('.notifyDetail').off('click', this.hideOrDisplaySideBar);
 			if(this.doPause){
 				this.doPause();
 			}
@@ -270,7 +284,7 @@ define([
 				}
 			}
 
-			/*$("#notifyMenu").prepend('<li hashstr="'+hs+'"><a class="active"><div class="notifyDetail"><i class="fa '+ alertClass + ' fa-fw"></i><i style="padding-left:2px">'+ obj.shortMsg.substr(0,35)+'</i> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span><button type="button" aria-hidden="true" class="pull-right close" data-notify="dismiss" style="color: black;">Ãƒâ€”</button></div></a></li><li class="divider"></li>');*/
+			/*$("#notifyMenu").prepend('<li hashstr="'+hs+'"><a class="active"><div class="notifyDetail"><i class="fa '+ alertClass + ' fa-fw"></i><i style="padding-left:2px">'+ obj.shortMsg.substr(0,35)+'</i> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span><button type="button" aria-hidden="true" class="pull-right close" data-notify="dismiss" style="color: black;">ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã¯Â¿Â½</button></div></a></li><li class="divider"></li>');*/
 			if(obj.url!=null){
 				$("#notifyMenu")
 				.prepend(
@@ -371,6 +385,20 @@ define([
 		reset: function(){
 			if(this.doReset){
 				this.doReset();
+			}
+		},
+		onWindowResize: function() {
+			clearTimeout(resizeTimer);
+			resizeTimer = setTimeout(_this.doWindowResize, 300);
+		},
+		doWindowResize: function() {
+			if(_this.handleWindowResize){
+				_this.handleWindowResize();
+			}
+		},
+		onSideBarToggle: function(){
+			if(_this.handleSideBarToggle){
+				_this.handleSideBarToggle();
 			}
 		}
 	});

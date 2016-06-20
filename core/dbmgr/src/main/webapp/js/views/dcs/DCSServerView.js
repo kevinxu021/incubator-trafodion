@@ -135,7 +135,7 @@ define([
 			var keys = result.columnNames;
 
 			if(keys != null && keys.length > 0) {
-				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="dcs-query-results"></table>';
+				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table nowrap" id="dcs-query-results"></table>';
 				$(RESULT_CONTAINER).html( sb );
 
 				var aoColumns = [];
@@ -158,7 +158,8 @@ define([
 					"oLanguage": {
 						"sEmptyTable": "Could not find any master executor processes"
 					},
-					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					//dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					dom: "<'row'<'col-md-8'lB><'col-md-4'f>>" +"<'row'<'col-md-12'<'datatable-scroll'tr>>><'row'<'col-md-12'ip>>",
 					processing: true,
 					paging: bPaging,
 					//autoWidth: true,
@@ -182,10 +183,7 @@ define([
 	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
 	                        	   title: 'Connectivity Servers'} ,
 	                           { extend : 'print', orientation: 'landscape', exportOptions: { columns: ':visible' }, title: 'Connectivity Servers' }
-				          ],
-					fnDrawCallback: function(){
-						$('#dcs-query-results td').css("white-space","nowrap");
-					}
+				          ]
 				});
 			}
 		},

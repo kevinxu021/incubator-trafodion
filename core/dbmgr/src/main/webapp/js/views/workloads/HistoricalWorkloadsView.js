@@ -65,7 +65,7 @@ define([
 				var startTime = new Date($(START_TIME_PICKER).data("DateTimePicker").date()).getTime();
 				var endTime = new Date($(END_TIME_PICKER).data("DateTimePicker").date()).getTime();
 				return (startTime > 0 && startTime < endTime);
-			}, "* Invalid Date Time and/or Start Time is not less than End Time");
+			}, "* Invalid Date Time or Start Time is not less than End Time");
 
 			validator = $(FILTER_FORM).validate({
 				rules: {
@@ -152,7 +152,6 @@ define([
 			$(REFRESH_MENU).on('click', this.fetchQueriesInRepository);
 			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
-			$(window).on('resize', this.onResize);
 			this.fetchQueriesInRepository();
 		},
 		doResume: function(){
@@ -178,7 +177,6 @@ define([
 			$(REFRESH_MENU).off('click', this.fetchLogs);
 			$(FILTER_APPLY_BUTTON).off('click', this.filterApplyClicked);
 			$(OPEN_FILTER).off('click', this.filterButtonClicked);
-			$(window).off('resize', this.onResize);
 		},
 		initialTimeRangePicker:function(){
 			if(common.commonTimeRange==null){
@@ -380,7 +378,8 @@ define([
 					"oLanguage": {
 						"sEmptyTable": "No queries found for selected time range/or filters."
 					},
-					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					//dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					dom: "<'row'<'col-md-8'lB><'col-md-4'f>>" +"<'row'<'col-md-12'<'datatable-scroll'tr>>><'row'<'col-md-12'ip>>",
 					processing: true,
 					paging : bPaging, 
 					//autoWidth: true,
@@ -462,13 +461,9 @@ define([
 	                        	   title: 'Historical Workloads' } ,
 	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Historical Workloads' }
 				          ],
-				    "order":[[2, "desc"]],
-					          fnDrawCallback: function(){
-					        	  //$('#repo-query-results td').css("white-space","nowrap");
-					          }
+				    "order":[[2, "desc"]]
 				});
 
-				//$('#repo-query-results td').css("white-space","nowrap");
 				$('#repo-query-results tbody').on( 'click', 'td', function (e, a) {
 					if(oDataTable.cell(this)){
 						var cell = oDataTable.cell(this).index();
@@ -512,17 +507,7 @@ define([
 		},
 		parseInputDate:function(date){
 			return moment.tz(date, DATE_FORMAT_ZONE, common.serverTimeZone);
-		},
-		onResize: function() {
-			clearTimeout(resizeTimer);
-			resizeTimer = setTimeout(_this.doResize, 200);
-		},
-		doResize: function() {
-				if(oDataTable != null){
-					oDataTable.columns.adjust().draw();
-				}
-
-		}		
+		}	
 	});
 
 

@@ -1575,6 +1575,13 @@ NABoolean HSColGroupStruct::allocateISMemory(Int64 rows,
 // avoid freeing strData when this fn is called to remove the old data array.
 void HSColGroupStruct::freeISMemory(NABoolean freeStrData, NABoolean freeMCData)
 {
+  HSLogMan *LM = HSLogMan::Instance();
+  if (LM->LogNeeded())
+    {
+      sprintf(LM->msg, "Freeing IS memory for column %s", colNames->data());
+      LM->Log(LM->msg);
+    }
+
   // used by MC in-memory since a column might have been processed but kept
   // in memory to be used by MCs
   mcis_memFreed = TRUE;
@@ -2862,6 +2869,7 @@ HSGlobalsClass::HSGlobalsClass(ComDiagsArea &diags)
     sampleRateAsPercetageForIUS(0),
     minRowCtPerPartition_(-1),
     sample_I_generated(FALSE),
+    PSRowUpdated(FALSE),
     jitLogThreshold(0),
     stmtStartTime(0),
     jitLogOn(FALSE),
@@ -2892,6 +2900,12 @@ HSGlobalsClass::HSGlobalsClass(ComDiagsArea &diags)
 
 HSGlobalsClass::~HSGlobalsClass()
 {
+  // If this was an IUS execution, make sure the row for the source table in
+  // SB_PERSISTENT_SAMPLES is modified to reflect that an IUS operation is no
+  // longer in progress.
+  if (PSRowUpdated)
+    end_IUS_work();
+
   // reset the parser flags that were set in the constructor
   SQL_EXEC_ResetParserFlagsForExSqlComp_Internal(savedParserFlags);
 
@@ -6001,9 +6015,10 @@ Lng32 HSGlobalsClass::begin_IUS_work(char* ius_update_history_buffer)
    HSHandleError(retcode);
 
    //
-   // If we reach here, it means we have successfully stored the bdt and our process info
-   // into the UPDATE_DATE and UPDATER_INFO column. We can return TRUE.
+   // If we reach here, we have successfully stored the bdt and our process info
+   // into the UPDATE_DATE and UPDATER_INFO columns of SB_PERSISTENT_SAMPLES.
    //
+   PSRowUpdated = TRUE;
    return 0;
 }
 
@@ -6815,6 +6830,8 @@ Lng32 HSGlobalsClass::selectIUSBatch(Int64 currentRows, Int64 futureRows, NABool
   HSLogMan *LM = HSLogMan::Instance();
 
   colsSelected = 0;
+  iusSampleDeletedInMem->depopulate();
+  iusSampleInsertedInMem->depopulate();
   Int64 memAllowed = getMaxMemory();
   Int64 memLeft = memAllowed;
 
@@ -7067,8 +7084,11 @@ Lng32 HSGlobalsClass::incrementHistograms()
          } else {
            if ( retcode == 0 ) {
               group->state = PROCESSED; // IUS successful. 
-              delGroup->state = PROCESSED; // IUS successful. 
-              insGroup->state = PROCESSED; // IUS successful. 
+              group->freeISMemory();
+              delGroup->state = PROCESSED; // IUS successful.
+              delGroup->freeISMemory();
+              insGroup->state = PROCESSED; // IUS successful.
+              insGroup->freeISMemory();
            } else
               HSHandleError(retcode);
          }
@@ -12386,11 +12406,10 @@ Int32 HSGlobalsClass::estimateAndTestIUSStats(HSColGroupStruct* group,
   HSLogMan *LM = HSLogMan::Instance();
 
   if (LM->LogNeeded()) {
-    sprintf(LM->msg, "IUS estimateAndTest() for column %s, the exist histogram is", 
-                   group->colSet[0].colname->data());
-    hist->logAll(LM->msg);
-
+    sprintf(LM->msg, "IUS: estimateAndTestIUSStats() for column %s",
+                     group->colSet[0].colname->data());
     LM->StartTimer(LM->msg);
+    hist->logAll("The existing histogram is:");
     sprintf(LM->msg, "Total #intervals=%d, scaleFactor=%f,nullCount=%d", 
                       numNonNullIntervals, scaleFactor, nullCount);
     LM->Log(LM->msg);
@@ -12655,6 +12674,7 @@ Int32 HSGlobalsClass::estimateAndTestIUSStats(HSColGroupStruct* group,
         }
      diagsArea << DgSqlCode(shapeTestError)
                << DgString0(group->colSet[0].colname->data());
+     LM->StopTimer();
      return shapeTestError;
      }
 
@@ -12694,6 +12714,7 @@ Int32 HSGlobalsClass::estimateAndTestIUSStats(HSColGroupStruct* group,
       delta((UInt64)origTotalRC, totalRC)/origTotalRC > rcTotalChangeThreshold )  {
      diagsArea << DgSqlCode(UERR_WARNING_IUS_TOO_MUCH_RC_CHANGE_TOTAL)
                << DgString0(group->colSet[0].colname->data());
+     LM->StopTimer();
      return UERR_WARNING_IUS_TOO_MUCH_RC_CHANGE_TOTAL;
   }
 
@@ -12707,6 +12728,7 @@ Int32 HSGlobalsClass::estimateAndTestIUSStats(HSColGroupStruct* group,
       delta((UInt64)origTotalUEC, totalUEC)/origTotalUEC > uecTotalChangeThreshold ) {
      diagsArea << DgSqlCode(UERR_WARNING_IUS_TOO_MUCH_UEC_CHANGE_TOTAL)
                << DgString0(group->colSet[0].colname->data());
+     LM->StopTimer();
      return UERR_WARNING_IUS_TOO_MUCH_UEC_CHANGE_TOTAL;
   }
 

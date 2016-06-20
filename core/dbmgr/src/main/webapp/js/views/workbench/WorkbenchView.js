@@ -26,7 +26,6 @@ define([
 	var setRootNode = false;
 	var LOADING_SELECTOR = ".dbmgr-spinner";			
 	var st = null;
-	var resizeTimer = null;			
 	var oDataTable = null;
 	var controlStatements = null;
 	var previousScrollTop = 0;
@@ -125,7 +124,7 @@ define([
 			$(EXPLAIN_TREE).show();
 			//emulate a click on the root node.
 			st.onClick(st.root);
-			_this.doResize();
+			_this.handleWindowResize();
 			//end
 		},
 		showExplainTooltip: function(nodeName, data){
@@ -183,6 +182,7 @@ define([
 		                $(this).find('i').removeClass('fa-sort-up').addClass('fa-sort-down');
 		            }
 		        });
+			 
 			if(CodeMirror.mimeModes["text/x-esgyndb"] == null){
 				common.defineEsgynSQLMime(CodeMirror);
 			}
@@ -292,14 +292,8 @@ define([
 			//serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
 			//serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 		},
-		onRelayout: function () {
-			this.onResize();
-		},
-		onResize: function () {
-			clearTimeout(resizeTimer);
-			resizeTimer = setTimeout(this.doResize, 200);
-		},
-		doResize: function () {
+
+		handleWindowResize: function () {
 			if(st != null) {
 				st.canvas.resize($(EXPLAIN_TREE).width(), ($(PRIMARY_RESULT_CONTAINER).height() + $(PRIMARY_RESULT_CONTAINER).scrollTop()));
 			}
@@ -481,7 +475,8 @@ define([
 						"oLanguage": {
 							"sEmptyTable": "0 rows(s)"
 						},
-						dom:'lBftrip',
+						//dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+						dom: "<'row'<'col-md-8'lB><'col-md-4'f>>" +"<'row'<'col-md-12'<'datatable-scroll'tr>>><'row'<'col-md-12'ip>>",
 						processing: true,
 						"iDisplayLength" : 25, 
 						"sPaginationType": "full_numbers",
@@ -496,7 +491,7 @@ define([
 		                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
 		                        	   title: 'Query Workbench' } ,
 		                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Query Workbench' }
-					          ],
+					          ]
 
 					});
 				}        		
