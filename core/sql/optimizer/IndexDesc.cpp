@@ -209,10 +209,6 @@ IndexDesc::IndexDesc(TableDesc *tdesc,
         allColumns.getColumnPosition(partitioningKeyColumns[i]->getColName());
 
       found = (ixColNumber != NULL_COLL_INDEX);
-      if (NOT found)
-        {
-          Lng32 ij = 1;
-        }
 
       // insert the value id of the index column into the partitioningkey column
       // value id list

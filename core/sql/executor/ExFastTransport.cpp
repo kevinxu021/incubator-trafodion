@@ -835,17 +835,6 @@ void ExHdfsFastExtractTcb::createORCcolInfoLists
       temp = attr->getPrecision();
       typeInfo.append((char*)&temp, sizeof(temp));
 
-#ifdef __ignore
-      temp = attr->getLength();
-      typeInfo.append((char*)&temp, sizeof(temp));
-      temp = attr->getPrecision();
-      typeInfo.append((char*)&temp, sizeof(temp));
-      temp = attr->getScale();
-      typeInfo.append((char*)&temp, sizeof(temp));
-      short temp2 = (attr->getNullFlag() ? -1 : 0);
-      typeInfo.append((char*)&temp2, sizeof(temp2));
-#endif
-
       colTypeInfoList.push_back(typeInfo);
     }  
 }

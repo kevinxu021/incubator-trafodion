@@ -5836,6 +5836,15 @@ RelExpr * ExeUtilHBaseBulkLoad::bindNode(BindWA *bindWA)
   if (bindWA->errStatus()) 
     return this;
 
+  if (naTable->isHiveTable())
+    {
+      *CmpCommon::diags() << DgSqlCode(-3242)
+                          << DgString0("LOAD into hive tables is not supported.");
+      
+      bindWA->setErrStatus();
+      return this;      
+    }
+
   setUtilTableDesc(bindWA->createTableDesc(naTable, getTableName()));
   if (bindWA->errStatus())
     return this;
@@ -6068,6 +6077,15 @@ RelExpr * ExeUtilHBaseBulkLoadTask::bindNode(BindWA *bindWA)
   NATable *naTable = bindWA->getNATable(getTableName());
   if (bindWA->errStatus()) 
     return this;
+
+  if (naTable->isHiveTable())
+    {
+      *CmpCommon::diags() << DgSqlCode(-3242)
+                          << DgString0("LOAD into hive tables is not supported.");
+      
+      bindWA->setErrStatus();
+      return this;      
+    }
 
   setUtilTableDesc(bindWA->createTableDesc(naTable, getTableName()));
   if (bindWA->errStatus())
