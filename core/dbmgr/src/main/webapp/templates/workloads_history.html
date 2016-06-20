@@ -45,7 +45,7 @@
 	</div>
 	<div class="modal fade" id="filterDialog" tabindex="-1" role="dialog"
 		aria-labelledby="filterDialogLabel" data-backdrop="static" data-keyboard="false">
-		<div class="modal-dialog" role="document" style="overflow:auto;height:700px">
+		<div class="modal-dialog" role="document" style="overflow:auto;height:800px;font-size:13px">
 			<div class="modal-content">
 				<div class="modal-header">
 					<button type="button" class="close" data-dismiss="modal"
@@ -56,7 +56,7 @@
 				</div>
 				<div class="modal-body">
 					<form id="filter-form">
-						<div class="form-group">
+						<div class="form-group col-md-12">
 							<label for="filter-time-range" class="control-label">Time
 								Range : </label> <select class="form-control input-sm" id="filter-time-range">
 								<option value="1">Last 1 hour</option>
@@ -66,7 +66,7 @@
 								<option value="0">Custom</option>
 							</select>
 						</div>
-						<div class="form-group">
+						<div class="form-group col-md-6">
 							<label for="filter-start-time" class="control-label">Start
 								Time : </label>
 							<div class='input-group date' id='startdatetimepicker'>
@@ -76,7 +76,7 @@
 								</span>
 							</div>
 						</div>
-						<div class="form-group">
+						<div class="form-group col-md-6">
 							<label for="filter-end-time" class="control-label">End
 								Time : </label>
 							<div class='input-group date' id='enddatetimepicker'>
@@ -86,7 +86,7 @@
 								</span>
 							</div>
 						</div>
-						<div class="form-group">
+						<div class="form-group col-md-12">
 							<label class="control-label">Status : </label> <input
 								type="checkbox" id="state-completed" value="COMPLETED"
 								style="margin-left: 4px; padding-right: 4px"> Completed
@@ -99,38 +99,38 @@
 								style="margin-left: 4px; padding-right: 4px">
 							Unknown
 						</div>
-						<div class="form-group">
+						<div class="form-group col-md-12">
 							<label for="filter-query-ids" class="control-label">Query
 								ID (s) : </label> <input id="filter-query-ids" name="filter-query-ids"
 								type="text" class="form-control input-sm"
 								style="text-transform: uppercase"
 								placeholder="Query IDs separated by comma">
 						</div>
-						<div class="form-group">
+						<div class="form-group col-md-12">
 							<label for="filter-user-names" class="control-label">User
 								Name(s) : </label> <input type="text" class="form-control input-sm"
 								id="filter-user-names" name="filter-user-names"
 								placeholder="User names separated by comma">
 						</div>
-						<div class="form-group">
+						<div class="form-group col-md-12">
 							<label for="filter-app-names" class="control-label">Application
 								Name (s) : </label> <input type="text" class="form-control input-sm"
 								id="filter-app-names" name="filter-app-names"
 								placeholder="Application Names separated by comma">
 						</div>
-						<div class="form-group">
+						<div class="form-group col-md-12">
 							<label for="filter-client-names" class="control-label">Client
 								Name (s) : </label> <input type="text" class="form-control input-sm"
 								id="filter-client-names" name="filter-client-names"
 								placeholder="Client Names separated by comma">
 						</div>
-						<div class="form-group">
+						<div class="form-group col-md-12">
 							<label for="filter-query-text" class="control-label">Query
 								Text : </label> <input type="text" class="form-control input-sm"
 								id="filter-query-text" name="filter-query-text"
 								placeholder="Part of query text">
 						</div>
-						<div class="form-group">
+						<div class="form-group col-md-12">
 							<label for="max-fetch-rows" class="control-label">Max Fetch Rows : </label> 
 							<select class="form-control input-sm" id="max-fetch-rows">
 								<option value="5000">5,000</option>
@@ -138,12 +138,9 @@
 								<option value="100000">100,000</option>
 							</select>
 						</div>
-						<div class="form-group">
-							<label id="filter-error-text" class="control-label" class="dbmgr-error-text"></label>
-						</div>
 					</form>
 				</div>
-				<div class="modal-footer">
+				<div class="modal-footer" style="overflow:hidden">
 					<input id="filterApplyButton" class="submit btn btn-primary"
 						type="submit" value="Apply">
 					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>

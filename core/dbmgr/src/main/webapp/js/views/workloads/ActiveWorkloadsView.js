@@ -115,7 +115,8 @@ define([
 					"oLanguage": {
 						"sEmptyTable": "No active queries found."
 					},
-					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					//dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					dom: "<'row'<'col-md-8'lB><'col-md-4'f>>" +"<'row'<'col-md-12'<'datatable-scroll'tr>>><'row'<'col-md-12'ip>>",
 					processing: true,
 					paging : bPaging, 
 					autoWidth: true,
@@ -155,14 +156,9 @@ define([
 	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
 	                        	   title: 'Active Workloads' } ,
 	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Active Workloads' }
-				          ],
-
-	                           fnDrawCallback: function(){
-	                        	   //$('#query-results td').css("white-space","nowrap");
-	                           }
+				          ]
 				});
 
-				//$('#active-query-results td').css("white-space","nowrap");
 				$('#active-query-results tbody').on( 'click', 'td', function (e, a) {
 					if(oDataTable.cell(this)){
 						var cell = oDataTable.cell(this).index();

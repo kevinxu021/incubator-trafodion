@@ -35,6 +35,7 @@ define(['moment',
 			this.LIBRARY_CREATED_EVENT = 'LIBRARY_CREATED_EVENT';
 			this.LIBRARY_DROPPED_EVENT = 'LIBRARY_DROPPED_EVENT';
 			this.LIBRARY_ALTERED_EVENT = 'LIBRARY_ALTERED_EVENT';
+			this.SIDEBAR_TOGGLE_EVENT = 'SIDEBAR_TOGGLE_EVENT';
 			this.NOFITY_MESSAGE = 'nofigyMessage';
 			this.MESSAGE_LIST=new Array();
 			/*this.popupIndex;

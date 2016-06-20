@@ -12,12 +12,14 @@
 .dbmgr-tools-form label {
 	width: 150px;
 }
+
 #notifyMenu>ul.odd {
-    background: url('../img/details_open.png') no-repeat left top;
-    cursor: pointer;
+	background: url('../img/details_open.png') no-repeat left top;
+	cursor: pointer;
 }
+
 #notifyMenu>ul.odd.shown {
-    background: url('../img/details_close.png') no-repeat left top;
+	background: url('../img/details_close.png') no-repeat left top;
 }
 
 .dbmgr-tools-form .file {
@@ -41,30 +43,34 @@
 .dbmgr-tools-form .file:hover {
 	
 }
- #wrapper {
-     height: 100%;     
-     width: 100%;
-     position: absolute;
-     top: 0px;
-     left: 0;
-     display: inline-block;
- }
- #content-wrapper	 {
-     height: 100%;
-     overflow-y: auto;
-     padding: 60px 0 0px 0;
-     transition: all .5s linear;
-     -moz-transition: all .5s linear;
-     -webkit-transition: all .5s linear;
-     -o-transition: all .5s linear;
- }
- #sidebar-wrapper	 {
+
+#wrapper {
 	height: 100%;
-    padding: 80px 0 0px 0;
-    position: fixed;
-    right: 0;
- }
- #page-wrapper {
+	width: 100%;
+	position: absolute;
+	top: 0px;
+	left: 0;
+	display: inline-block;
+}
+
+#content-wrapper {
+	height: 100%;
+	overflow-y: auto;
+	padding: 60px 0 0px 0;
+	transition: all .5s linear;
+	-moz-transition: all .5s linear;
+	-webkit-transition: all .5s linear;
+	-o-transition: all .5s linear;
+}
+
+#sidebar-wrapper {
+	height: 100%;
+	padding: 80px 0 0px 0;
+	position: fixed;
+	right: 0;
+}
+
+#page-wrapper {
 	margin: 2px;
 }
 
@@ -117,7 +123,7 @@
 	display: table-cell;
 	padding-right: 10px;
 	margin-bottom: 10px;
-	font-size:13px;
+	font-size: 13px;
 }
 
 .dbmgr-button, .dbmgr-link-button {
@@ -130,7 +136,7 @@
 	width: 200px;
 	margin-bottom: 0px;
 	font-weight: 55;
-	font-size:13px;
+	font-size: 13px;
 }
 
 .nav>li {
@@ -301,5 +307,18 @@
 	li {
 		cursor: pointer;
 		cursor: hand;
+	}
+	.datatable-scroll {
+		overflow-x: auto;
+		overflow-y: visible;
+	}
+	table.dataTable thead th.sorting:after {
+		content: "\f0dc";
+		color: black;
+		font-size: 0.8em;
+		padding-top: 0.12em;
+	}
+	.dataTables_wrapper .dataTables_paginate .paginate_button {
+		padding: 1px;
 	}
 }
