@@ -29,7 +29,6 @@
 #  * Add an entry in sqf/LocalSettingsTemplate.sh to make path configurable.
 ##############################################################
 #source the config file just in case
-source /etc/trafodion/trafodion_config
 
 #Product version (Trafodion or derivative product)
 export TRAFODION_VER_PROD="EsgynDB Enterprise"
