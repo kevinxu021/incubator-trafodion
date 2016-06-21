@@ -1019,12 +1019,12 @@ public class OrcFileReader
 	    m_foi = m_fields.get(i).getFieldObjectInspector();
 	    int lv_element_type = m_types.get(i+1).getKind().getNumber();
 
-            //            System.out.println("lv_type = " + lv_element_type);
-
 	    switch (lv_element_type) {
 	    case OrcProto.Type.Kind.BYTE_VALUE:
-		throw new IOException("OrcFileReader.fillNextRow: Unsupported Type: BYTE_VALUE");
-
+		short lv_b = ((WritableByteObjectInspector) m_foi).get(lv_field_val);
+		p_row_bb.putInt(2);
+		p_row_bb.putShort(lv_b);
+                break;
 	    case OrcProto.Type.Kind.SHORT_VALUE:
 		short lv_s = ((WritableShortObjectInspector) m_foi).get(lv_field_val);
 		p_row_bb.putInt(2);
@@ -1034,9 +1034,6 @@ public class OrcFileReader
 		int lv_i = ((WritableIntObjectInspector) m_foi).get(lv_field_val);
 		p_row_bb.putInt(4);
 		p_row_bb.putInt(lv_i);
-
-                //                System.out.println("lv_i = " + lv_i);
-                
 		break;
 	    case OrcProto.Type.Kind.LONG_VALUE:
 		long lv_l = ((WritableLongObjectInspector) m_foi).get(lv_field_val);
@@ -1057,7 +1054,6 @@ public class OrcFileReader
 		String lv_string = ((WritableStringObjectInspector) m_foi).getPrimitiveJavaObject(lv_field_val);
 		p_row_bb.putInt(lv_string.getBytes().length);
 		p_row_bb.put(lv_string.getBytes());
-                //                System.out.println("lv_string = " + lv_string);
 		break;
 	    case OrcProto.Type.Kind.BINARY_VALUE:
 		throw new IOException("OrcFileReader.fillNextRow: Unsupported Type: BINARY_VALUE");

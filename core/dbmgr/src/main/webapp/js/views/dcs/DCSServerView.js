@@ -36,13 +36,13 @@ define([
 	PSTACK_CONTAINER = '#pStackContainer';
 
 	var oDataTable = null;
-	var _that = null;
+	var _this = null;
 
 	var DCSServerView = BaseView.extend({
 		template:  _.template(DcsServerT),
 
 		doInit: function (){
-			_that = this;
+			_this = this;
 			serverHandler.on(serverHandler.FETCHDCS_SUCCESS, this.displayResults);
 			serverHandler.on(serverHandler.FETCHDCS_ERROR, this.showErrorMessage);			
 			serverHandler.on(serverHandler.DCS_SUMMARY_SUCCESS, this.displaySummary);
@@ -91,7 +91,7 @@ define([
 			$(LOADING_SELECTOR).hide();
 		},
 		fetchDcsServers: function () {
-			_that.showLoading();
+			_this.showLoading();
 			$(SUMMARY_LOADING_SELECTOR).show();
 			$(ERROR_CONTAINER).hide();
 			$(SUMMARY_ERROR_CONTAINER).hide();
@@ -129,7 +129,7 @@ define([
 			
  		},
 		displayResults: function (result){
-			_that.hideLoading();
+			_this.hideLoading();
 			$(ERROR_CONTAINER).hide();
 			$(RESULT_CONTAINER).show();
 			var keys = result.columnNames;
@@ -189,7 +189,7 @@ define([
 		},
 		showErrorMessage: function (jqXHR) {
 			if(jqXHR.statusText != 'abort'){
-				_that.hideLoading();
+				_this.hideLoading();
 				$(RESULT_CONTAINER).hide();
 				$(ERROR_CONTAINER).show();
 				if (jqXHR.responseText) {

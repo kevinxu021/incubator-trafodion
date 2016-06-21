@@ -29,7 +29,11 @@ define([
 	RESULT_CONTAINER = '#details-container',
 	ERROR_CONTAINER = '#error-container',
 	ERROR_TEXT = '#query-detail-error-text';
-
+	
+	var CANCEL_QUERY_DIALOG = '#cancel-query-dialog',
+		CANCEL_QUERY_ID = '#cancel-query-id',
+		CANCEL_QUERY_YES_BTN = '#cancel-query-yes-btn';
+	
 	var _this = null;
 	var queryID = null;
 	var connDataTable = null, compDataTable = null, runDataTable = null;
@@ -70,10 +74,11 @@ define([
 			this.loadQueryText();
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_ERROR, this.showErrorMessage);
-			wHandler.on(wHandler.HISTORICAL_CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.on(wHandler.HISTORICAL_CANCEL_QUERY_ERROR, this.cancelQueryError);
+			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
 			$(REFRESH_MENU).on('click', this.fetchRepositoryQueryDetail);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
+			$(CANCEL_QUERY_YES_BTN).on('click', this.cancelQueryConfirmed);
 			$(EXPLAIN_BUTTON).on('click', this.explainQuery);
 			$(ERROR_CONTAINER).hide();
 			this.fetchRepositoryQueryDetail();
@@ -118,10 +123,9 @@ define([
 			}
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_ERROR, this.showErrorMessage);
-			/*wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);*/
 			$(REFRESH_MENU).on('click', this.fetchRepositoryQueryDetail);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
+			$(CANCEL_QUERY_YES_BTN).on('click', this.cancelQueryConfirmed);
 			$(EXPLAIN_BUTTON).on('click', this.explainQuery);
 			this.fetchRepositoryQueryDetail();
 		},
@@ -129,10 +133,9 @@ define([
 			this.redirectFlag=true;
 			wHandler.off(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.off(wHandler.FETCH_REPO_QUERY_DETAIL_ERROR, this.showErrorMessage);
-			/*wHandler.off(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.off(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);*/
 			$(REFRESH_MENU).off('click', this.fetchRepositoryQueryDetail);
 			$(QCANCEL_MENU).off('click', this.cancelQuery);
+			$(CANCEL_QUERY_YES_BTN).on('click', this.cancelQueryConfirmed);
 			$(EXPLAIN_BUTTON).off('click', this.explainQuery);
 		},
 		loadQueryText: function(){
@@ -154,7 +157,8 @@ define([
 		cancelQuery: function(){
 			var queryStatus = $('#query-status').val();
 			if(queryStatus == 'EXECUTING'){
-				wHandler.cancelQuery(queryID,_this.pageIdentifier);
+				$(CANCEL_QUERY_ID).text(queryID);
+				$(CANCEL_QUERY_DIALOG).modal('show');
 			}else {
 				/*alert("The query is not in executing state. Cannot cancel the query.");*/
 				var msgObj={msg:'The query '+queryID+' is not in executing state. Cannot cancel the query.',tag:"warning",url:_this.currentURL,shortMsg:"The query is not in executing state."};
@@ -166,36 +170,40 @@ define([
 				}
 			}
 		},
+		cancelQueryConfirmed: function(){
+			wHandler.cancelQuery(queryID, _this);			
+		},
 		cancelQuerySuccess:function(data){
-			/*alert('The cancel query request has been submitted');*/
-			var msgObj={msg:'The cancel query '+ data.queryID +' request has been submitted',tag:"success",url:_this.currentURL,shortMsg:"Cancel query successfully."};
-			if(_this.redirectFlag==false){
-				_this.popupNotificationMessage(null,msgObj);
-			}else{
-				
-				common.fire(common.NOFITY_MESSAGE,msgObj);
+			if(data.requestor == _this){
+				var msgObj={msg:'The cancel query request has been submitted',tag:"success",url:_this.currentURL,shortMsg:"Cancel query successfully."};
+				if(_this.redirectFlag==false){
+					_this.popupNotificationMessage(null,msgObj);
+				}else{
+					
+					common.fire(common.NOFITY_MESSAGE,msgObj);
+				}
+				_this.fetchRepositoryQueryDetail();
 			}
-			_this.fetchRepositoryQueryDetail();
-			
 		},
 		cancelQueryError:function(jqXHR){
-			/*alert(jqXHR.responseText);*/
-			var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Cancel query failed."};
-			if(jqXHR.responseText==undefined){
-				msgObj.msg="the response for query "+jqXHR.queryID+" was null.";
-				msgObj.shortMsg="the response was null."
+			if(jqXHR.requestor == _this){
+				var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Cancel query failed."};
+				if(jqXHR.responseText==undefined){
+					msgObj.msg="the response was null."
+					msgObj.shortMsg="the response was null."
+				}
+				if(jqXHR.statusText=="abort"){
+					msgObj.msg="the request was aborted."
+					msgObj.shortMsg="the request was aborted."
+				}
+				if(_this.redirectFlag==false){
+					_this.popupNotificationMessage(null,msgObj);
+				}else{
+					
+					common.fire(common.NOFITY_MESSAGE,msgObj);
+				}
+				_this.fetchRepositoryQueryDetail();
 			}
-			if(jqXHR.statusText=="abort"){
-				msgObj.msg="the request for query "+jqXHR.queryID+" was aborted."
-				msgObj.shortMsg="the request was aborted."
-			}
-			if(_this.redirectFlag==false){
-				_this.popupNotificationMessage(null,msgObj);
-			}else{
-				
-				common.fire(common.NOFITY_MESSAGE,msgObj);
-			}
-			_this.fetchRepositoryQueryDetail();
 		},  
 		explainQuery: function(){
 			var queryText = queryTextEditor.getValue(); //$('#query-text').text();

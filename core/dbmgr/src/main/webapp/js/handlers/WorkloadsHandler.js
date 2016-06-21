@@ -1,6 +1,6 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2015 Esgyn Corporation
+// (C) Copyright 2015-2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
@@ -21,12 +21,8 @@ define(['handlers/EventDispatcher'],
 				this.FETCH_REPO_QUERY_DETAIL_ERROR = 'fetchRepoQDetailError';
 				this.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS = 'fetchActiveQDetailSuccess';
 				this.FETCH_ACTIVE_QUERY_DETAIL_ERROR = 'fetchActiveQDetailError';
-				this.ACTIVE_CANCEL_QUERY_SUCCESS = 'activeCancelQuerySuccess';
-				this.ACTIVE_CANCEL_QUERY_ERROR = 'activeCancelQueryError';
-				this.HISTORICAL_CANCEL_QUERY_SUCCESS = 'historicalCancelQuerySuccess';
-				this.HISTORICAL_CANCEL_QUERY_ERROR = 'historicalCancelQueryError';
-				this.PLAN_CANCEL_QUERY_SUCCESS = 'planCancelQuerySuccess';
-				this.PLAN_CANCEL_QUERY_ERROR = 'planCancelQueryError';
+				this.CANCEL_QUERY_SUCCESS = 'CancelQuerySuccess';
+				this.CANCEL_QUERY_ERROR = 'CancelQueryError';
 
 				this.sessionTimeout = function() {
 					window.location.hash = '/stimeout';
@@ -81,7 +77,7 @@ define(['handlers/EventDispatcher'],
 					});
 				};
 
-				this.cancelQuery = function(queryID,pageIdentifier){
+				this.cancelQuery = function(queryID, requestor){
 
 					var xhr = xhrs["cancel_query"];
 					if(xhr && xhr.readyState !=4){
@@ -101,35 +97,18 @@ define(['handlers/EventDispatcher'],
 							var result = {};
 							result.data = data;
 							result.queryID = queryID;
-							switch (pageIdentifier) {
-								case "active":
-									dispatcher.fire(_this.ACTIVE_CANCEL_QUERY_SUCCESS, result);
-									break;
-								case "historical":
-									dispatcher.fire(_this.HISTORICAL_CANCEL_QUERY_SUCCESS, result);
-									break;
-								case "queryPlan":
-									dispatcher.fire(_this.PLAN_CANCEL_QUERY_SUCCESS, result);
-									break;
-								}
+							result.requestor = requestor;
 							
+							dispatcher.fire(_this.CANCEL_QUERY_SUCCESS, result);
 						},
 						error:function(jqXHR, res, error){
-							jqXHR.queryID=queryID;
-							switch (pageIdentifier) {
-							case "active":
-								dispatcher.fire(_this.ACTIVE_CANCEL_QUERY_ERROR, jqXHR, res, error);
-								break;
-							case "historical":
-								dispatcher.fire(_this.HISTORICAL_CANCEL_QUERY_ERROR, jqXHR, res, error);
-								break;
-							case "queryPlan":
-								dispatcher.fire(_this.PLAN_CANCEL_QUERY_ERROR, jqXHR, res, error);
-								break;
-							}
+							jqXHR.queryID = queryID;
+							jqXHR.requestor = requestor;
+							dispatcher.fire(_this.CANCEL_QUERY_ERROR, jqXHR, res, error);
 						}
 					});
-				};            
+				};
+				
 				this.fetchActiveQueries = function(){
 
 					var xhr = xhrs["active_list"];
