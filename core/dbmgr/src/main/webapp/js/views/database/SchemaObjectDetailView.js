@@ -93,6 +93,7 @@ define([
 
 		doInit: function (args){
 			_this = this;
+			this.currentURL = window.location.hash;
 			routeArgs = args;
 			prevRouteArgs = args;
 			pageStatus = {};
@@ -158,6 +159,7 @@ define([
 
 		},
 		doResume: function(args){
+			this.currentURL = window.location.hash;
 			routeArgs = args;
 			this.redirectFlag=false;
 			$(DDL_CONTAINER).hide();
@@ -1370,7 +1372,7 @@ define([
 
 			var msgPrefix = "dropped";
 			var msg= 'Library '+ common.ExternalForm(result.schemaName) + "." + common.ExternalForm(result.objectName) + ' was ' + msgPrefix + ' successfully';
-			var msgObj={msg: msg,tag:"success",url:null,shortMsg:'Library was ' + msgPrefix + ' successfully.'};
+			var msgObj={msg: msg,tag:"success",url:_this.currentURL,shortMsg:'Library was ' + msgPrefix + ' successfully.'};
 			if(_this.redirectFlag==false){
 				_this.popupNotificationMessage(null,msgObj);
 				if(bCrumbsArray && bCrumbsArray.length > 1){
@@ -1395,7 +1397,7 @@ define([
 			var errorString = jqXHR.responseText.substring(errorIndex);
 			var msgPrefix = "Failed to drop library ";
 			var msg= msgPrefix + common.ExternalForm(jqXHR.schemaName) + "." + common.ExternalForm(jqXHR.objectName)+ " : " + errorString;
-			var msgObj={msg:msg,tag:"danger",url:null,shortMsg:msgPrefix};
+			var msgObj={msg:msg,tag:"danger",url:_this.currentURL,shortMsg:msgPrefix};
 			if(_this.redirectFlag==false){
 				_this.popupNotificationMessage(null,msgObj);
 			}else{
