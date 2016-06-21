@@ -161,7 +161,7 @@ define([
 				$(CANCEL_QUERY_DIALOG).modal('show');
 			}else {
 				/*alert("The query is not in executing state. Cannot cancel the query.");*/
-				var msgObj={msg:'The query is not in executing state. Cannot cancel the query.',tag:"warning",url:_this.currentURL,shortMsg:"The query is not in executing state."};
+				var msgObj={msg:'The query '+queryID+' is not in executing state. Cannot cancel the query.',tag:"warning",url:_this.currentURL,shortMsg:"The query is not in executing state."};
 				if(_this.redirectFlag==false){
 					_this.popupNotificationMessage(null,msgObj);
 				}else{
