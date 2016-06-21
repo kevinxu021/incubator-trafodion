@@ -640,7 +640,11 @@
 			<text><![CDATA[SELECT * FROM TABLE(explain(null, 'EXPLAIN_QID=%1$s'))]]></text>
 		</query>
 		<query>
-			<name>TEXT_EXPLAIN_USING_QID</name>
+			<name>TEXT_EXPLAIN_USING_QID_RMS</name>
+			<text><![CDATA[explain for qid %1$s]]></text>
+		</query>
+		<query>
+			<name>TEXT_EXPLAIN_USING_QID_REPO</name>
 			<text><![CDATA[explain qid %1$s from repository]]></text>
 		</query>
 		<query>
