@@ -28,11 +28,9 @@
 #  * Talk to the infra team about getting the tool/library/etc installed on build/test machines.
 #  * Add an entry in sqf/LocalSettingsTemplate.sh to make path configurable.
 ##############################################################
-#source the config file just in case
-source /etc/trafodion/trafodion_config
 
 #Product version (Trafodion or derivative product)
-export TRAFODION_VER_PROD="EsgynDB Enterprise"
+export TRAFODION_VER_PROD="EsgynDB Advanced"
 # Trafodion version (also update file ../sql/common/copyright.h)
 export TRAFODION_VER_MAJOR=2
 export TRAFODION_VER_MINOR=2
