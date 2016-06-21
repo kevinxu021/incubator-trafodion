@@ -217,7 +217,7 @@ else
       TRAF_EXCLUDE_LIST=""
       while [[ "$node_id" -lt "$NUM_ELASTIC_NODES" ]]
       do
-          TRAF_EXCLUDE_LIST="$TRAF_EXCLUDE_LIST trafnode$node_id"
+          TRAF_EXCLUDE_LIST="$TRAF_EXCLUDE_LIST extranode$node_id"
           ((node_id++))
       done
       
