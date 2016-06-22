@@ -375,18 +375,14 @@ sudo chmod 777 $TRAF_CONFIG
 }
 
 function checkJavaVersion {
-
-source /etc/trafodion/trafodion_config
-
 if [[ -z "$JAVA_HOME" ]]; then
    errorFound=1
    echo "JAVA HOME" >> $ERROR_LOG
    echo "***ERROR: JAVA_HOME variable not set in config file." >> $ERROR_LOG   
 else
 
-   REQ_VER="1.7.0_65" 
+   REQ_VER="1.7.0_65"
    JAVA7="7"
-   JAVA8="8"
    JAVA65="65"
    error=""
 
@@ -422,13 +418,6 @@ else
             error="true"
          fi
 
-         if [[ "$JAVA_8_SUPPORT" == "Y" ]]; then
-            if [[ "$temp_JAVA" -ne "$JAVA8" ]]; then
-               error="true"
-            fi
-
-         fi
-
          #Checking if using 1.7.0_n
          if [[ "${THIS_JVM_VER:18:1}" -eq "0" ]] && [[ "$temp_JAVA" -eq "$JAVA7" ]]; then
             if [[ "${THIS_JVM_VER:20:1}" -eq "0" ]] || [[ "${THIS_JVM_VER:20:2}" -lt $JAVA65 ]]; then
@@ -445,16 +434,9 @@ else
          if [[ -n $error ]]; then
             errorFound=1
             echo "JAVA HOME" >> $ERROR_LOG
-            if [[ "$JAVA_8_SUPPORT" == "Y" ]]; then
-               #Get used to this error. You are going to see it alot. 
-               echo "***ERROR: Your existing JAVA_HOME on $node is not JAVA 8"  >> $ERROR_LOG
-               echo "***ERROR: Your Java Version on $node = $THIS_JVM_VER"  >> $ERROR_LOG
-               echo "***ERROR: Required java version is JAVA 8, any other version is not supported"  >> $ERROR_LOG 
-            else
-               echo "***ERROR: Your existing JAVA_HOME on $node is less than $REQ_VER"  >> $ERROR_LOG
-               echo "***ERROR: Your Java Version on $node = $THIS_JVM_VER"  >> $ERROR_LOG
-               echo "***ERROR: Required java version on $node should be greater than $REQ_VER"  >> $ERROR_LOG
-            fi
+            echo "***ERROR: Your existing JAVA_HOME on $node is less than $REQ_VER"  >> $ERROR_LOG
+            echo "***ERROR: Your Java Version on $node = $THIS_JVM_VER"  >> $ERROR_LOG
+            echo "***ERROR: Required java version on $node should be greater than $REQ_VER"  >> $ERROR_LOG
          fi
        done
     fi
@@ -575,25 +557,7 @@ else
       majorErrorFound
    fi
 
-   hadoopVersion=$(curl -k -su $ADMIN:$PASSWORD $URL/api/v1/clusters | grep version | grep -c CDH)
-
-   if [[ $hadoopVersion -lt "1" ]]; then
-      hadoopVersion=$(curl -k -su $ADMIN:$PASSWORD $URL/api/v1/clusters | grep version | grep -c HDP)
-      if [[ $hadoopVersion -ne "1" ]]; then
-         errorFound=1
-         echo "HADOOP URL" >> $ERROR_LOG
-         echo "***ERROR: Hadoop type can not be determined" >> $ERROR_LOG
-         echo "***ERROR: Check that URL and port are correct or if Hadoop is up" >> $ERROR_LOG
-         majorErrorFound
-      else
-         HADOOP_TYPE="hortonworks"
-      fi
-   else
-      HADOOP_TYPE="cloudera"
-   fi
    sudo chmod 777 $TRAF_CONFIG
-   sed -i '/HADOOP_TYPE\=/d' $TRAF_CONFIG
-   echo "export HADOOP_TYPE=\"$HADOOP_TYPE\"" >> $TRAF_CONFIG
    echo "export MULTI_CLUSTER=\"N\"" >> $TRAF_CONFIG
    sudo chmod 777 $TRAF_CONFIG
    source $TRAF_CONFIG
@@ -657,6 +621,19 @@ sudo chmod 777 $TRAF_CONFIG
 source $TRAF_CONFIG
 
 }
+
+function setHBaseDistroBI {
+
+export HBASE_DISTRO="BI"
+
+sudo chmod 777 $TRAF_CONFIG
+sed -i '/HBASE_DISTRO\=/d' $TRAF_CONFIG
+echo "export HBASE_DISTRO=\"$HBASE_DISTRO\"" >> $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+source $TRAF_CONFIG
+
+}
+
 
 function getHadoopNodes {
 
@@ -865,28 +842,6 @@ fi
 
 }
 
-function checkStart {
-
-if [[ -z $START ]]; then
-   erroFound=1
-   echo "START" >> $ERROR_LOG
-   echo "***ERROR: START variable not set in config file" >> $ERROR_LOG
-else
-   if [[ $START == "Y" ]]; then
-      INIT_TRAFODION="Y"
-   else
-      INIT_TRAFODION="N"
-   fi
-fi
-
-sudo chmod 777 $TRAF_CONFIG
-sed -i '/INIT_TRAFODION\=/d' $TRAF_CONFIG
-echo "export INIT_TRAFODION=\"$INIT_TRAFODION\"" >> $TRAF_CONFIG
-sudo chmod 777 $TRAF_CONFIG
-source $TRAF_CONFIG
-
-}
-
 function checkDCS {
 
 if [[ -z $DCS_SERVERS_PARM ]]; then
@@ -939,56 +894,6 @@ else
       fi
    fi
 fi
-
-}
-
-function checkJavaSupport {
-
-if [[ "$ONE_TAR_INSTALL" == "N" ]] || [[ -z "$ONE_TAR_INSTALL" ]] ; then
-   TRAF_BUILD=$(tar -tf $TRAF_PACKAGE | grep "trafodion_.*server")
-   tar -xzf $TRAF_PACKAGE --directory $LOCAL_WORKDIR
-   TRAF_BUILD_PATH=$LOCAL_WORKDIR/$TRAF_BUILD
-   install_features_path=$(tar -tf $TRAF_BUILD_PATH | grep "install_features")
-
-else
-   TRAF_BUILD_PATH=$TRAF_PACKAGE
-   install_features_path=$(tar -tf $TRAF_PACKAGE | grep "install_features")
-
-fi
-
-if [[ ! -z $install_features_path ]]; then
-   if [[ "$ONE_TAR_INSTALL" == "N" ]]; then
-      tar -xzf $TRAF_BUILD_PATH $install_features_path
-      if [[ $? -ne "0" ]]; then
-         echo "***ERROR: Error with untar of $TRAF_BUILD_PATH"
-         exit -1
-      fi
-   else
-      tar -xzf $TRAF_PACKAGE $install_features_path
-      if [[ $? -ne "0" ]]; then
-         echo "***ERROR: Error with untar of $TRAF_BUILD_PATH"
-         exit -1
-      fi
-   fi
-   source $install_features_path
-   
-   if [[ -z $JAVA_8_SUPPORT ]]; then
-      sudo chmod 777 $TRAF_CONFIG
-      echo "export JAVA_8_SUPPORT=\"N\"" >> $TRAF_CONFIG
-      sudo chmod 777 $TRAF_CONFIG
-   else
-      sudo chmod 777 $TRAF_CONFIG
-      echo "export JAVA_8_SUPPORT=\"$JAVA_8_SUPPORT\"" >> $TRAF_CONFIG
-      sudo chmod 777 $TRAF_CONFIG
-   fi
-else
-   JAVA_8_SUPPORT="N"
-   sudo chmod 777 $TRAF_CONFIG
-   echo "export JAVA_8_SUPPORT=\"$JAVA_8_SUPPORT\"" >> $TRAF_CONFIG
-   sudo chmod 777 $TRAF_CONFIG
-fi
-
-
 
 }
 
@@ -1105,8 +1010,6 @@ createAllNodes
 
 createPDSH
 
-checkJavaSupport
-
 checkJavaVersion
 
 checkHomeDir
@@ -1129,13 +1032,15 @@ if [[ "$HADOOP_TYPE" == "apache" ]]; then
    setHBaseDistro
 fi
 
+if [[ "$HADOOP_TYPE" == "biginsight" ]]; then
+   setHBaseDistroBI
+fi
+
 getHadoopNodes
 
 checkHadoopNames
 
 checkSQROOT
-
-checkStart
 
 checkDCS
 
