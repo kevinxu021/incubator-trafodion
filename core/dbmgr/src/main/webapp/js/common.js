@@ -20,12 +20,14 @@ define(['moment',
 
 			// var _isoDateFormat='yyyy-MM-dd HH:mm:ss'
 			var REFRESH_INTERVAL = '#refreshInterval';
-			this.MESSAGE_COUNT=0;
+			/*this.MESSAGE_COUNT=0;*/
 			var dispatcher = new EventDispatcher();
 			this.ISODateFormat = 'YYYY-MM-DD HH:mm:ss';
 			var _this = this;
 			this.serverTimeZone = null;
+			this.dbmgrTimeZone = null;
 			this.serverUtcOffset = 0;
+			this.dbmgrUtcOffset = 0;
 			this.dcsMasterInfoUri = "";
 			this.databaseVersion = "";
 			this.databaseEdition = "";
@@ -33,11 +35,12 @@ define(['moment',
 			this.LIBRARY_CREATED_EVENT = 'LIBRARY_CREATED_EVENT';
 			this.LIBRARY_DROPPED_EVENT = 'LIBRARY_DROPPED_EVENT';
 			this.LIBRARY_ALTERED_EVENT = 'LIBRARY_ALTERED_EVENT';
+			this.SIDEBAR_TOGGLE_EVENT = 'SIDEBAR_TOGGLE_EVENT';
 			this.NOFITY_MESSAGE = 'nofigyMessage';
 			this.MESSAGE_LIST=new Array();
-			this.popupIndex;
+			/*this.popupIndex;
 			this.isAllNotificationInserted=false;
-			this.hideNotifications=null;
+			this.hideNotifications=null;*/
 			this.commonTimeRange=null;
 			this.START_TIME_PICKER = '#startdatetimepicker';
 			this.END_TIME_PICKER = '#enddatetimepicker';
@@ -72,6 +75,8 @@ define(['moment',
 				_this.serverConfigLoaded = true;
 				_this.databaseEdition = data.databaseEdition;
 				_this.databaseVersion = data.databaseVersion;
+				_this.dbmgrTimeZone = data.dbmgrTimeZone;
+				_this.dbmgrUtcOffset = data.dbmgrUTCOffset;
 				
 				if(_this.isAdvanced()){
 					$('.dbmgr-adv').show();
@@ -268,17 +273,7 @@ define(['moment',
 			  }
 			  return hash;
 			},
-			this.toServerLocalFromUTCMilliSeconds = function(utcMsec){
-				return utcMsec + _this.serverUtcOffset;
-			},
-
-			this.toDateFromMilliSeconds = function(milliSeconds) {
-				if (milliSeconds != null) {
-					return moment(milliSeconds).format(_this.ISODateFormat);
-				}
-				return "";
-			},
-
+			
 			this.formatGraphDateLabels = function(milliSeconds, interval, isUtc){
 				var offSetString = 'HH:mm';
 
@@ -303,7 +298,9 @@ define(['moment',
 				}
 				if(isUtc !=null && isUtc == true)
 					return _this.toServerLocalDateFromUtcMilliSeconds(milliSeconds, offSetString);
-				return _this.toServerLocalDateFromMilliSeconds(milliSeconds, offSetString);
+				
+				return moment(milliSeconds).tz(_this.serverTimeZone).format(offSetString );
+				//return _this.toServerLocalDateFromMilliSeconds(milliSeconds, offSetString);
 			},
 			this.toTimeDifferenceFromLocalDate=function(start,end){
 				var minute = 1000 * 60;
@@ -335,34 +332,40 @@ define(['moment',
 				}
 				return timeAgo;
 			},
+			
 			this.toServerLocalDateFromMilliSeconds = function(milliSeconds, formatString) {
 				if (milliSeconds != null) {
-					//return moment(utcMilliSeconds + (_this.serverUtcOffset)).local().format('YYYY-MM-DD HH:mm:ss');
 					if(formatString == null){
 						formatString = 'YYYY-MM-DD HH:mm:ss z';
 					}
-					return moment(milliSeconds).tz(_this.serverTimeZone).format(formatString);
+					if(_this.dbmgrTimeZone != null && _this.dbmgrTimeZone != _this.serverTimeZone){
+						return moment.tz(milliSeconds, _this.dbmgrTimeZone).format(formatString);
+					}
+					else{
+						return moment(milliSeconds).tz(_this.serverTimeZone).format(formatString);
+					}
 				}
 				return "";
 			},
 
 			this.toServerLocalDateFromUtcMilliSeconds = function(utcMilliSeconds, formatString) {
 				if (utcMilliSeconds != null) {
-					return moment(utcMilliSeconds + (_this.serverUtcOffset)).local().format('YYYY-MM-DD HH:mm:ss');
-					/*if(formatString == null){
-						formatString = 'YYYY-MM-DD HH:mm:ss z';
+					if(_this.dbmgrTimeZone != null && _this.dbmgrTimeZone != _this.serverTimeZone && _this.dbmgrUtcOffset != _this.serverUtcOffset){
+						return moment(utcMilliSeconds + (_this.serverUtcOffset)).format('YYYY-MM-DD HH:mm:ss');
 					}
-					return moment(utcMilliSeconds + _this.serverUtcOffset).tz(_this.serverTimeZone).format(formatString);*/
+					return moment.tz(utcMilliSeconds + (_this.serverUtcOffset) , _this.serverTimeZone).format('YYYY-MM-DD HH:mm:ss');
 				}
 				return "";
 			},
+			
 			this.getTimeZoneOffset = function(localeTimeZone) {
 				return moment().tz(localeTimeZone).zone() * 60 * 1000;
 			},
 
 			this.getBrowserTimeZoneOffset = function() {
-				return moment().zone() * 60 * 1000;
+				return moment().utcOffset();
 			},
+			
 			this.getCommonTimeRange=function(selection){
 				var isAutoRefresh;
 				if($(REFRESH_INTERVAL).val()!=null){

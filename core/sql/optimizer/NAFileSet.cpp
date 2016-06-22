@@ -203,6 +203,12 @@ Int32 NAFileSet::numHivePartCols() const
   return result;
 }
 
+void NAFileSet::markAsHivePartitioningColumn(int colNum)
+{
+  // this is currently used to mark columns of external tables
+  allColumns_[colNum]->setVirtualColumnType(NAColumn::HIVE_PART_COL);
+}
+
 NABoolean NAFileSet::isSyskeyLeading() const
 {
   return (indexKeyColumns_.entries() > 0 &&

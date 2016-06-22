@@ -203,11 +203,12 @@ IndexDesc::IndexDesc(TableDesc *tdesc,
   for (i = 0; i < partitioningKeyColumns.entries(); i++)
     {
 
-NAColumn* p = partitioningKeyColumns[i];
+      NAColumn* p = partitioningKeyColumns[i];
       // which column of the index is this 
-#pragma nowarn(1506)   // warning elimination 
-      ixColNumber = allColumns.index(partitioningKeyColumns[i]);
-#pragma warn(1506)  // warning elimination 
+      ixColNumber = 
+        allColumns.getColumnPosition(partitioningKeyColumns[i]->getColName());
+
+      found = (ixColNumber != NULL_COLL_INDEX);
 
       // insert the value id of the index column into the partitioningkey column
       // value id list

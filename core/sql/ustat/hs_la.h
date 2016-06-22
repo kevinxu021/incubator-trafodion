@@ -92,13 +92,15 @@ class HSTableDef : public NABasicObject
 
     virtual void getRowChangeCounts(Int64 &inserts, Int64 &deletes, Int64 &updates) = 0;
     virtual void resetRowCounts() = 0;
-    virtual Int64 getRowCount(NABoolean &isEstimate) = 0;
+    virtual Int64 getRowCount(NABoolean &isEstimate,
+                              NABoolean estimateIfNecessary = TRUE) = 0;
     virtual Int64 getRowCount(NABoolean &isEstimate,
                       Int64 &numInserts,
                       Int64 &numDeletes,
                       Int64 &numUpdates,
                       Int64 &numPartitions,
-                      Int64 &minRowCtPerPartition
+                      Int64 &minRowCtPerPartition,
+                      NABoolean estimateIfNecessary
                      ) = 0;
     Int64 getRowCountUsingSelect();
     ComDiskFileFormat getObjectFormat() const {return objActualFormat_;}
@@ -185,13 +187,14 @@ class HSSqTableDef : public HSTableDef
 
     void getRowChangeCounts(Int64 &inserts, Int64 &deletes, Int64 &updates);
     void resetRowCounts();
-    Int64 getRowCount(NABoolean &isEstimate);
+    Int64 getRowCount(NABoolean &isEstimate, NABoolean estimateIfNecessary = TRUE);
     Int64 getRowCount(NABoolean &isEstimate,
                       Int64 &numInserts,
                       Int64 &numDeletes,
                       Int64 &numUpdates,
                       Int64 &numPartitions,
-                      Int64 &minRowCtPerPartition
+                      Int64 &minRowCtPerPartition,
+                      NABoolean estimateIfNecessary
                      );
     Lng32 collectFileStatistics() const;
     NABoolean isInMemoryObjectDefn() const {return inMemoryObjectDefn_;}
@@ -283,7 +286,7 @@ class HSHiveTableDef : public HSTableDef
       }
     void resetRowCounts()
       {}
-    Int64 getRowCount(NABoolean &isEstimate)
+    Int64 getRowCount(NABoolean &isEstimate, NABoolean estimateIfNecessary = TRUE)
       {
         const HHDFSTableStats *tableStats = getHHDFSTableStats();
         if ( tableStats->getTotalRows() >= 0 ) {
@@ -292,6 +295,7 @@ class HSHiveTableDef : public HSTableDef
         } else { 
           isEstimate = TRUE; // non-ORC
           return tableStats->getEstimatedRowCount();
+          return (estimateIfNecessary ? tableStats->getEstimatedRowCount() : 0);
         }
       }
     Int64 getRowCount(NABoolean &isEstimate,
@@ -299,7 +303,8 @@ class HSHiveTableDef : public HSTableDef
                       Int64 &numDeletes,
                       Int64 &numUpdates,
                       Int64 &numPartitions,
-                      Int64 &minRowCtPerPartition);
+                      Int64 &minRowCtPerPartition,
+                      NABoolean estimateIfNecessary);
     Lng32 collectFileStatistics() const
       {
         return 0;
@@ -398,13 +403,14 @@ class HSHbaseTableDef : public HSTableDef
       }
     void resetRowCounts()
       {}
-    Int64 getRowCount(NABoolean &isEstimate);
+    Int64 getRowCount(NABoolean &isEstimate, NABoolean estimateIfNecessary = TRUE);
     Int64 getRowCount(NABoolean &isEstimate,
                       Int64 &numInserts,
                       Int64 &numDeletes,
                       Int64 &numUpdates,
                       Int64 &numPartitions,
-                      Int64 &minRowCtPerPartition);
+                      Int64 &minRowCtPerPartition,
+                      NABoolean estimateIfNecessary);
     Lng32 collectFileStatistics() const
       {
         return 0;

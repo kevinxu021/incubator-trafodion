@@ -124,6 +124,11 @@ public class IdTm implements IdTmCb {
               LOG.error("native_id returned: " + err + " Throwing IdTmException");
               throw new IdTmException("ferr=" + err);
            }
+           if (id.val == 0) {
+              LOG.error("native_id returned id: " + id.val + " err: " + err + ", Throwing IdTmException");
+              throw new IdTmException("ferr=" + err);
+           }
+
         } catch (Throwable t) {
            LOG.error("id threw:", t);
            throw new IdTmException("id threw:" + t);

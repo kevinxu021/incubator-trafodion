@@ -1,6 +1,6 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2015 Esgyn Corporation
+// (C) Copyright 2015-2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
@@ -271,22 +271,42 @@ public class QueryPlanModel {
 					}
 
 					if (explainSuccess) {
-						String explainQryText = String.format(
-								SystemQueryCache.getQueryText(SystemQueryCache.TEXT_EXPLAIN_USING_QID),
-								JdbcHelper.EncloseInDoubleQuotes(queryID));
-						_LOG.debug(explainQryText);
-						pStmt = connection.prepareStatement(explainQryText);
-						rs = pStmt.executeQuery();
-						StringBuilder sb = new StringBuilder();
+						try {
+							String explainQryText = String.format(
+									SystemQueryCache.getQueryText(SystemQueryCache.TEXT_EXPLAIN_USING_QID_RMS),
+									JdbcHelper.EncloseInDoubleQuotes(queryID));
+							_LOG.debug(explainQryText);
+							pStmt = connection.prepareStatement(explainQryText);
+							rs = pStmt.executeQuery();
+							StringBuilder sb = new StringBuilder();
 
-						while (rs.next()) {
-							sb.append(rs.getString(1) + System.getProperty("line.separator"));
+							while (rs.next()) {
+								sb.append(rs.getString(1) + System.getProperty("line.separator"));
+							}
+
+							rs.close();
+							pStmt.close();
+							planText = sb.toString();
+						} catch (Exception ex) {
+							_LOG.debug("Failed to fetch textual plan from RMS : " + ex.getMessage());
 						}
+						if (planText == null || planText.length() < 1) {
+							String explainQryText = String.format(
+									SystemQueryCache.getQueryText(SystemQueryCache.TEXT_EXPLAIN_USING_QID_REPO),
+									JdbcHelper.EncloseInDoubleQuotes(queryID));
+							_LOG.debug(explainQryText);
+							pStmt = connection.prepareStatement(explainQryText);
+							rs = pStmt.executeQuery();
+							StringBuilder sb = new StringBuilder();
 
-						rs.close();
-						pStmt.close();
-						planText = sb.toString();
+							while (rs.next()) {
+								sb.append(rs.getString(1) + System.getProperty("line.separator"));
+							}
 
+							rs.close();
+							pStmt.close();
+							planText = sb.toString();
+						}
 					}
 
 				} catch (Exception ex) {

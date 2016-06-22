@@ -373,6 +373,8 @@ public:
   Int32 getNumOfBuckets() const { return (defaultBucketIdx_ ? defaultBucketIdx_ : 1); }
   Int32 getLastValidBucketIndx() const               { return defaultBucketIdx_; }
 
+  const hdfsFileInfo * dirInfo() const {return &dirInfo_; }
+
   void populate(hdfsFS fs,
                 const NAString &dir,
                 int partIndex,
@@ -408,6 +410,8 @@ private:
 
   char recordTerminator_;
   
+  hdfsFileInfo dirInfo_;
+
   NAMemory *heap_;
 };
 
@@ -428,6 +432,7 @@ public:
                                     totalNumPartitions_(0),
                                     recordTerminator_(0),
                                     fieldTerminator_(0),
+                                    nullFormat_(NULL),
                                     validationJTimestamp_(-1),
                                     listPartitionStatsList_(heap),
                                     hiveStatsSize_(0),
@@ -469,6 +474,7 @@ public:
 
   char getRecordTerminator() const {return recordTerminator_;}
   char getFieldTerminator() const {return fieldTerminator_;}
+  char *getNullFormat() const { return nullFormat_; }
 
   Int32 getNumPartitions() const {return totalNumPartitions_;}
 
@@ -508,6 +514,9 @@ public:
   Int32 getCurrHdfsPort() const { return currHdfsPort_; }
   void *getLOBGlobals() const { return lobGlob_; }
   
+  const Lng32 numOfPartCols() const { return numOfPartCols_; }
+  const Lng32 totalNumPartitions() const { return totalNumPartitions_; }
+
 private:
   enum FileType
   {
@@ -536,6 +545,8 @@ private:
 
   char recordTerminator_ ;
   char fieldTerminator_ ;
+
+  char *nullFormat_;
 
   Int64 validationJTimestamp_;
   // heap size used by the hive stats

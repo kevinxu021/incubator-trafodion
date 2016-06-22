@@ -60,7 +60,7 @@
 		aria-labelledby="filterDialogLabel" data-backdrop="static"
 		data-keyboard="false">
 		<div class="modal-dialog" role="document"
-			style="overflow: auto; height: 780px">
+			style="overflow: auto; height: 780px;font-size:13px">
 			<div class="modal-content">
 				<div class="modal-header">
 					<button type="button" class="close" data-dismiss="modal"
@@ -71,7 +71,7 @@
 				</div>
 				<div class="modal-body">
 					<form id="filter-form">
-						<div class="form-group">
+						<div class="form-group col-md-12">
 							<label for="filter-time-range" class="control-label">Time
 								Range : </label> <select class="form-control input-sm" id="filter-time-range">
 								<option value="1">Last 1 hour</option>
@@ -81,7 +81,7 @@
 								<option value="0">Custom</option>
 							</select>
 						</div>
-						<div class="form-group">
+						<div class="form-group col-md-6">
 							<label for="filter-start-time" class="control-label">Start
 								Time : </label>
 							<div class='input-group date' id='startdatetimepicker'>
@@ -91,7 +91,7 @@
 								</span>
 							</div>
 						</div>
-						<div class="form-group">
+						<div class="form-group col-md-6">
 							<label for="filter-end-time" class="control-label">End
 								Time : </label>
 							<div class='input-group date' id='enddatetimepicker'>
@@ -101,7 +101,7 @@
 								</span>
 							</div>
 						</div>
-						<div class="form-group">
+						<div class="form-group col-md-12">
 							<label class="control-label">Severity : </label> <br /> <input
 								type="checkbox" id="severity-fatal" value="FATAL"
 								style="margin-left: 4px; padding-right: 4px"> Fatal <input
@@ -115,7 +115,7 @@
 								value="DEBUG" style="margin-left: 4px; padding-right: 4px">
 							Debug
 						</div>
-						<div class="form-group">
+						<div class="form-group col-md-12">
 							<label for="filter-component-names" class="control-label">Component
 								Name(s) : </label> <br /> <input type="checkbox" id="component-mon"
 								value="MON" style="margin-left: 4px; padding-right: 4px"
@@ -170,26 +170,26 @@
 								data-trigger="focus" data-toggle="tooltip" data-placement="left"
 								title="REST Server"> REST
 						</div>
-						<div class="form-group">
+						<div class="form-group col-md-12">
 							<label for="filter-process-names" class="control-label">Process
 								Name(s) : </label> <input type="text" class="form-control input-sm"
 								id="filter-process-names" name="filter-process-names"
 								style="text-transform: uppercase"
-								placeholder="Process names separated by comma">
+								placeholder="Enter process names separated by comma...">
 						</div>
-						<div class="form-group">
+						<div class="form-group col-md-12">
 							<label for="filter-error-codes" class="control-label">Error
 								Code(s) : </label> <input type="text" class="form-control input-sm"
 								id="filter-error-codes" name="filter-error-codes"
-								placeholder="Error codes separated by comma">
+								placeholder="Enter error codes separated by comma...">
 						</div>
-						<div class="form-group">
+						<div class="form-group col-md-12">
 							<label for="filter-message-text" class="control-label">Message
 								: </label> <input type="text" class="form-control input-sm"
 								id="filter-message-text" name="filter-message-text"
-								placeholder="Part of message text">
+								placeholder="Enter part of message text...">
 						</div>
-						<div class="form-group">
+						<div class="form-group col-md-12">
 							<label for="max-fetch-rows" class="control-label">Max Fetch Rows : </label> 
 							<select class="form-control input-sm" id="max-fetch-rows">
 								<option value="5000">5,000</option>
@@ -197,13 +197,9 @@
 								<option value="100000">100,000</option>
 							</select>
 						</div>
-						<div class="form-group">
-							<label id="filter-error-text" class="control-label"
-								class="dbmgr-error-text"></label>
-						</div>
 					</form>
 				</div>
-				<div class="modal-footer">
+				<div class="modal-footer" style="overflow:hidden">
 					<input id="filterApplyButton" class="submit btn btn-primary"
 						type="submit" value="Apply">
 					<input id="filterResetButton" class="submit btn btn-primary"

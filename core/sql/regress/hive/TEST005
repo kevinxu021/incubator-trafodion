@@ -55,15 +55,17 @@ sh regrhadoop.ksh fs -put $REGRTSTDIR/tbl_bad.data /user/hive/exttables/tbl_bad;
 
 -- cleanup any left-over Trafodion objects
 drop external table hivepi for hive.hive.hivepi;
+drop external table hivepis for hive.hive.hivepis;
+drop external table hivepiso for hive.hive.hivepiso;
 
 log LOG005 clear;
 
 set schema hive.hive;
 set terminal_charset utf8;
 
-cqd AUTO_QUERY_RETRY 'OFF';
+cqd AUTO_QUERY_RETRY_WARNINGS 'ON';
 cqd HIVE_MAX_STRING_LENGTH '32' ;
-cqd CALL_EMBEDDED_ARKCMP 'OFF';
+
 cqd HIST_ROWCOUNT_REQUIRING_STATS '50000';
 ------------------------------------------------------------
 -- Testing query plan invalidation in the compiler, but
@@ -106,6 +108,10 @@ values -- partition 1,one
        -- partition 3 or partition 3,four
        (34,34,3,'four', timestamp '2004-04-04 04:56:18', date '2004-04-04');
 select * from hive.hive.hivenonp;
+
+set schema trafodion.sch;
+create external table hivepi for hive.hive.hivepi;
+set schema hive.hive;
 
 insert into hive.hive.hivepis select id, col2, p1, p2 from hive.hive.hivenonp;
 insert into hive.hive.hivepts select id, col2, p1t, p2 from hive.hive.hivenonp;
@@ -302,10 +308,8 @@ execute s2part;
 select * from newtable;
 -- no rows, but should know the new table
 insert into newtable values ('abc');
-cqd query_cache '0';
 select * from newtable;
 -- expect to see the row, but only because query cache is off
-cqd query_cache reset;
 
 insert into hiveregr5.newtable2 values ('xyz');
 select * from hiveregr5.newtable2;
@@ -371,7 +375,6 @@ select a,b from newtable;
 -- overwrite customer_p and tbl_utf8p with auto-generated partitions
 sh regrhive.ksh -v -f $REGRTSTDIR/TEST005_d.hive.sql;
 
-cqd query_cache '0';
 prepare s4 from 
   select c_preferred_cust_flag,
          count(*) 
@@ -466,9 +469,6 @@ execute display_rows_accessed;
 -- a partition elimination predicate
 select * from hive.hive.hivepio where p1=1 or col2<10;
 
-set catalog trafodion;
-create external table hivepi for hive.hive.hivepi;
-set schema hive.hive;
 update statistics for table hive.hive.hivepi on every column;
 update statistics for table hivepis on every column;
 update statistics for table hivepiso on every column;
@@ -538,4 +538,46 @@ c8 smallint
 cqd HIVE_SCAN_SPECIAL_MODE '2';
 insert into trafodion.seabase.traf_tbl_bad select * from tbl_bad;
 cqd HIVE_SCAN_SPECIAL_MODE reset;
+
+-- tests for hive timestamp mismatch check
+cqd auto_query_retry_warnings 'ON';
+
+sh echo "drop table thive;" > TEST005_junk;
+sh regrhive.ksh -f TEST005_junk;
+
+sh echo "create table thive(a int);" > TEST005_junk;
+sh regrhive.ksh -f TEST005_junk;
+
+select a from hive.hive.thive;
+
+sh echo "insert into thive values (1);" > TEST005_junk;
+sh regrhive.ksh -f TEST005_junk;
+
+select a from hive.hive.thive;
+insert into hive.hive.thive values (2);
+select a from hive.hive.thive;
+
+sh echo "drop table thive;" > TEST005_junk;
+sh regrhive.ksh -f TEST005_junk;
+
+sh echo "create table thive(a int, b int);" > TEST005_junk;
+sh regrhive.ksh -f TEST005_junk;
+
+sh echo "insert into thive values (1,2);" > TEST005_junk;
+sh regrhive.ksh -f TEST005_junk;
+
+select a from hive.hive.thive;
+
+select * from hive.hive.thive;
+
+-- purgedata of hive data
+cqd query_cache '0';
+purgedata hive.hive.thive;
+select * from hive.hive.thive;
+insert into hive.hive.thive values (10, 20);
+select * from hive.hive.thive;
+purgedata hive.hive.thive;
+purgedata hive.hive.thive;
+select * from hive.hive.thive;
+
 log;

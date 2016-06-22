@@ -72,6 +72,7 @@ Requires: perl-version
 Requires: python
 Requires: readline
 Requires: sqlite
+Requires: snappy
 Requires: zlib
 
 %description

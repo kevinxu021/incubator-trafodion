@@ -13,7 +13,7 @@ define([
         'jqueryvalidate'
      ], function (BaseView, LoginT, session, sessionHandler, common) {
 	'use strict';
-	var _that = null;
+	var _this = null;
 	var _router = null;
 	var validator = null;
 	var LOGIN_FORM = '#login-form',
@@ -40,7 +40,7 @@ define([
 
 		init: function(){
 			$('#navbar').hide();
-			_that = this;
+			_this = this;
 			$(SPINNER).hide();
 			validator = $(LOGIN_FORM).validate({
 				rules: {
@@ -72,9 +72,13 @@ define([
 			sessionHandler.on(sessionHandler.LOGIN_ERROR, this.showErrorMessage);
 			$(LOGIN_BUTTON).on('click', this.loginClick);
 			$(PASSWORD).on('keypress', this.passwordEnterKeyPressed);
+			$('body').css('padding-bottom','0px');
+			$('.login-content-wrapper').css('height','auto');
 		},
 
 		resume: function(){
+			$('body').css('padding-bottom','0px');
+			$('.login-content-wrapper').css('height','auto');
 			sessionHandler.on(sessionHandler.LOGIN_SUCCESS, this.loginSuccess);
 			sessionHandler.on(sessionHandler.LOGIN_ERROR, this.showErrorMessage);			
 			$(LOGIN_BUTTON).on('click', this.loginClick);
@@ -85,6 +89,8 @@ define([
 			sessionHandler.off(sessionHandler.LOGIN_ERROR, this.showErrorMessage);			
 			$(LOGIN_BUTTON).off('click', this.loginClick);
 			$(PASSWORD).off('keypress', this.passwordEnterKeyPressed);
+			$('body').css('padding-bottom','80px');
+			$('.login-content-wrapper').css('height','100%');
 		},
 		showLoading: function(){
 			$(SPINNER).show();
@@ -92,7 +98,7 @@ define([
 		passwordEnterKeyPressed: function (ev){
 			var keycode = (ev.keyCode ? ev.keyCode : ev.which);
 			if (keycode == '13') {
-				_that.loginClick(ev);
+				_this.loginClick(ev);
 			}
 		},
 		hideLoading: function () {
@@ -107,10 +113,10 @@ define([
 				this.$el.empty().append(this.child);
 				this.resume();
 			}
-			if(_that.sessionTimedOut == true){
+			if(_this.sessionTimedOut == true){
 				$(ERROR_TEXT).text("Your session timed out due to inactivity. Please login again.");
 				$(ERROR_TEXT).show();
-				_that.sessionTimedOut = false;
+				_this.sessionTimedOut = false;
 			}
 			return this;        	
 
@@ -131,7 +137,7 @@ define([
 			
 			var userName = $(USERNAME).val();
 			var password = $(PASSWORD).val();
-			_that.showLoading();
+			_this.showLoading();
 			var param = {username : userName, password: password};
 			sessionHandler.login(param);
 			e.preventDefault();
@@ -146,10 +152,11 @@ define([
 				}else{
 					$(ALERTS_FEATURE).show();
 				}
+				_this.pause();
 				//session.saveLoginTime(toISODateString(new Date()));
 				window.location.hash = '/dashboard';
 			}else{
-				_that.hideLoading();
+				_this.hideLoading();
 				$(ERROR_TEXT).show();
 				$(ERROR_TEXT).text(result.errorMessage);
 			}
@@ -169,7 +176,7 @@ define([
 
 		},
 		showErrorMessage: function (jqXHR, res, error) {
-			_that.hideLoading();
+			_this.hideLoading();
 			$(ERROR_TEXT).text("");
 			$(ERROR_TEXT).show();
 			if (jqXHR) {

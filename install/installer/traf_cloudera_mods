@@ -148,7 +148,7 @@ if [ $? != 0 ]; then
    exit -1
 fi
 
-ssh -q -n $HDFS_NODE 'sudo su' "$HDFS_USER" '--command "' "$HADOOP_BIN_PATH"'/hdfs dfs -chown -R '"$TRAF_USER"'/user/' "$TRAF_USER"'"'
+ssh -q -n $HDFS_NODE 'sudo su' "$HDFS_USER" '--command "' "$HADOOP_BIN_PATH"'/hdfs dfs -chown -R '"$TRAF_USER"' /user/'"$TRAF_USER"'"'
 
 ssh -q -n $HDFS_NODE 'sudo su' "$HDFS_USER" '--command "' "$HADOOP_BIN_PATH"'/hadoop fs -mkdir -p /hbase-staging"'
 if [ $? != 0 ]; then
@@ -327,7 +327,6 @@ restart_info=$(curl -k -X POST -u $ADMIN:$PASSWORD \
     $URL/api/v1/clusters/$CLUSTER_NAME/commands/restart)
 echo $restart_info
 command_id=$(echo $restart_info | grep id | awk '{print $4}' | sed -e 's@,@@' )
-echo "***DEBUG: Cloudera command_id=$command_id"
 
 # poll until restart is completed as a restart can take a while
 active=1

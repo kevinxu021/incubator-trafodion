@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2015 Esgyn Corporation
+//(C) Copyright 2015-2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -93,6 +93,7 @@ define([
 
 		doInit: function (args){
 			_this = this;
+			this.currentURL = window.location.hash;
 			routeArgs = args;
 			prevRouteArgs = args;
 			pageStatus = {};
@@ -158,6 +159,7 @@ define([
 
 		},
 		doResume: function(args){
+			this.currentURL = window.location.hash;
 			routeArgs = args;
 			this.redirectFlag=false;
 			$(DDL_CONTAINER).hide();
@@ -401,6 +403,7 @@ define([
 			$(DDL_ERROR_CONTAINER).hide();
 			$(COLUMNS_ERROR_CONTAINER).hide();
 			$(REGIONS_ERROR_CONTAINER).hide();
+			$(PRIVILEGES_ERROR_CONTAINER).hide();
 			$(STATISTICS_ERROR_CONTAINER).hide();
 			$(USAGES_ERROR_CONTAINER).hide();
 			$(INDEXES_ERROR_CONTAINER).hide();
@@ -781,7 +784,8 @@ define([
 					"oLanguage": {
 						"sEmptyTable": "There are no columns"
 					},
-					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					//dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					dom: "<'row'<'col-md-8'lB><'col-md-4'f>>" +"<'row'<'col-md-12'<'datatable-scroll'tr>>><'row'<'col-md-12'ip>>",
 					processing: true,
 					paging: bPaging,
 					autoWidth: true,
@@ -811,10 +815,7 @@ define([
 					          //{ extend : 'excel', exportOptions: { columns: ':visible', orthogonal: 'export' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible', orthogonal: 'export'  }, title: "Columns in "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible', orthogonal: 'export' }, title: "Columns in "+routeArgs.type + " " + routeArgs.name }
-					          ],					             
-					          fnDrawCallback: function(){
-					        	  // $('#db-object-columns-list td').css("white-space","nowrap");
-					          }
+					          ]
 				});
 			}
 		},
@@ -857,26 +858,26 @@ define([
 					"oLanguage": {
 						"sEmptyTable": "There are no regions"
 					},
-					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					//dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					dom: "<'row'<'col-md-6'lB><'col-md-6'f>>" +"<'row'<'col-md-12'<'datatable-scroll'tr>>><'row'<'col-md-12'ip>>",
 					processing: true,
 					paging: bPaging,
-					aAutoWidth: true,
+					autoWidth: true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "full_numbers",
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
 					"order": [[ 1, "asc" ]],
+					scrollCollapse: true,
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
 					          { extend : 'csv', exportOptions: { columns: ':visible' } },
 					         // { extend : 'excel', exportOptions: { columns: ':visible' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Regions for "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Regions for "+routeArgs.type + " " + routeArgs.name }
-					          ],					             
-					          fnDrawCallback: function(){
-					        	  //$('#db-object-regions-list td').css("white-space","nowrap");
-					          }
+					          ]
 				});
+
 			}
 		},
 		displayPrivileges: function(result){
@@ -918,7 +919,8 @@ define([
 					"oLanguage": {
 						"sEmptyTable": "There are no privileges"
 					},
-					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					//dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					dom: "<'row'<'col-md-8'lB><'col-md-4'f>>" +"<'row'<'col-md-12'<'datatable-scroll'tr>>><'row'<'col-md-12'ip>>",
 					processing: true,
 					paging: bPaging,
 					autoWidth: true,
@@ -927,17 +929,16 @@ define([
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
 					"order": [[ 1, "asc" ]],
+					scrollCollapse: true,
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
 					          { extend : 'csv', exportOptions: { columns: ':visible' } },
 					          //{ extend : 'excel', exportOptions: { columns: ':visible' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Privileges for "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Privileges for "+routeArgs.type + " " + routeArgs.name }
-					          ],					             
-					          fnDrawCallback: function(){
-					        	  // $('#db-object-privileges-list td').css("white-space","nowrap");
-					          }
+					          ]
 				});
+
 			}
 		},	
 		displayUsages: function(result){
@@ -1043,7 +1044,8 @@ define([
 					"oLanguage": {
 						"sEmptyTable": "There are no objects using this " + routeArgs.type
 					},
-					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					//dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					dom: "<'row'<'col-md-8'lB><'col-md-4'f>>" +"<'row'<'col-md-12'<'datatable-scroll'tr>>><'row'<'col-md-12'ip>>",
 					processing: true,
 					paging: bPaging,
 					autoWidth: true,
@@ -1059,10 +1061,7 @@ define([
 					          //{ extend : 'excel', exportOptions: { columns: ':visible' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Objects using "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Objects using "+routeArgs.type + " " + routeArgs.name }
-					          ],					             
-					          fnDrawCallback: function(){
-					        	  // $('#db-object-privileges-list td').css("white-space","nowrap");
-					          }
+					          ]
 				});
 			}
 		},	
@@ -1158,7 +1157,8 @@ define([
 					"oLanguage": {
 						"sEmptyTable": "There are no indexes on this table"
 					},
-					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					//dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					dom: "<'row'<'col-md-8'lB><'col-md-4'f>>" +"<'row'<'col-md-12'<'datatable-scroll'tr>>><'row'<'col-md-12'ip>>",
 					processing: true,
 					paging: bPaging,
 					autoWidth: true,
@@ -1173,14 +1173,9 @@ define([
 					         // { extend : 'excel', exportOptions: { columns: ':visible' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text(), orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text() }
-					          ],					             
-					          fnDrawCallback: function(){
-					        	  // $('#db-object-list-results td').css("white-space","nowrap");
-					          }
+					          ]
 				});
 
-
-				//$('#db-objects-list-results td').css("white-space","nowrap");
 				$('#db-objects-list-results tbody').on( 'click', 'td', function (e, a) {
 					if(indexesDataTable.cell(this)){
 						var cell = indexesDataTable.cell(this).index();
@@ -1253,7 +1248,8 @@ define([
 					"oLanguage": {
 						"sEmptyTable": "There are no statistics"
 					},
-					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					//dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					dom: "<'row'<'col-md-8'lB><'col-md-4'f>>" +"<'row'<'col-md-12'<'datatable-scroll'tr>>><'row'<'col-md-12'ip>>",
 					processing: true,
 					paging: bPaging,
 					autoWidth: true,
@@ -1269,10 +1265,7 @@ define([
 					          //{ extend : 'excel', exportOptions: { columns: ':visible' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Statistics for "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Statistics for "+routeArgs.type + " " + routeArgs.name }
-					          ],					             
-					          fnDrawCallback: function(){
-					        	  // $('#db-object-statistics-list td').css("white-space","nowrap");
-					          }
+					          ]
 				});
 			}
 		},		
@@ -1379,7 +1372,7 @@ define([
 
 			var msgPrefix = "dropped";
 			var msg= 'Library '+ common.ExternalForm(result.schemaName) + "." + common.ExternalForm(result.objectName) + ' was ' + msgPrefix + ' successfully';
-			var msgObj={msg: msg,tag:"success",url:null,shortMsg:'Library was ' + msgPrefix + ' successfully.'};
+			var msgObj={msg: msg,tag:"success",url:_this.currentURL,shortMsg:'Library was ' + msgPrefix + ' successfully.'};
 			if(_this.redirectFlag==false){
 				_this.popupNotificationMessage(null,msgObj);
 				if(bCrumbsArray && bCrumbsArray.length > 1){
@@ -1404,7 +1397,7 @@ define([
 			var errorString = jqXHR.responseText.substring(errorIndex);
 			var msgPrefix = "Failed to drop library ";
 			var msg= msgPrefix + common.ExternalForm(jqXHR.schemaName) + "." + common.ExternalForm(jqXHR.objectName)+ " : " + errorString;
-			var msgObj={msg:msg,tag:"danger",url:null,shortMsg:msgPrefix};
+			var msgObj={msg:msg,tag:"danger",url:_this.currentURL,shortMsg:msgPrefix};
 			if(_this.redirectFlag==false){
 				_this.popupNotificationMessage(null,msgObj);
 			}else{

@@ -11675,6 +11675,7 @@ blob_type : TOK_BLOB blob_optional_left_len_right
                   $$ = new (PARSERHEAP()) SQLClob ( $2 );
 		}
             }
+ 
 
 blob_optional_left_len_right: '(' NUMERIC_LITERAL_EXACT_NO_SCALE optional_blob_unit ')'
         {
@@ -11689,7 +11690,7 @@ blob_optional_left_len_right: '(' NUMERIC_LITERAL_EXACT_NO_SCALE optional_blob_u
 	  
 	  longIntVal = longIntVal * $3;
 
-	  $$ = (Lng32)longIntVal;
+	  $$ = (Int64)longIntVal;
 	  delete $2;
 	 
 	}
@@ -11699,12 +11700,12 @@ blob_optional_left_len_right: '(' NUMERIC_LITERAL_EXACT_NO_SCALE optional_blob_u
 
 	  if (CmpCommon::getDefault(TRAF_BLOB_AS_VARCHAR) == DF_ON)
 	    {
-	      $$ = (Lng32)100000;
+	      $$ = (Int64)100000;
 	    }
 	  else
 	    {
 	 
-	      $$ = (Lng32)CmpCommon::getDefaultNumeric(LOB_MAX_SIZE)*1024*1024;
+	      $$ = (Int64)CmpCommon::getDefaultNumeric(LOB_MAX_SIZE)*1024*1024;
 
 	    }
         }
@@ -12945,12 +12946,12 @@ insert_obj_to_lob_function :
 				}
 			  | TOK_EXTERNALTOLOB '(' literal ')'
 			        {
-                                  YYERROR;
+                         
                                   $$ = new (PARSERHEAP()) LOBinsert( $3, NULL, LOBoper::EXTERNAL_);
 				}
 			  | TOK_EXTERNALTOLOB '(' literal ',' literal ')'
 			        {
-                                  YYERROR;
+                                  
                                   $$ = new (PARSERHEAP()) LOBinsert( $3, $5, LOBoper::EXTERNAL_);
 				}
 
@@ -12994,8 +12995,13 @@ update_obj_to_lob_function :
 
 			  | TOK_EXTERNALTOLOB '(' literal ')'
 			        {
-                                  YYERROR;
+                                  
 				  $$ = new (PARSERHEAP()) LOBupdate( $3, NULL, NULL,LOBoper::EXTERNAL_, FALSE);
+                                }
+                                  | TOK_EXTERNALTOLOB '(' literal ',' TOK_APPEND ')'
+			        {
+                                  YYERROR;
+				  $$ = new (PARSERHEAP()) LOBupdate( $3, NULL, NULL,LOBoper::EXTERNAL_, TRUE);
 				}
 			  | TOK_EXTERNALTOLOB '(' literal ',' literal ')'
 			        {
@@ -25700,21 +25706,14 @@ optional_loggable : TOK_LOGGABLE
 					}
 
 // pElemDDLL
-optional_lobattrs : TOK_LOB TOK_STORAGE TOK_TYPE QUOTED_STRING
+optional_lobattrs :  TOK_STORAGE  QUOTED_STRING
         {
 	  LobsStorage ls;
-	  if (*$4 == "HDFS")
-	    ls = Lob_HDFS_File;
-	  else if (*$4 == "HBASE")
-	    ls = Lob_HBASE_Table;
-	  else if (*$4 == "External HDFS")
+	  
+	   if (*$2 == "external")
 	    ls = Lob_External_HDFS_File;
-	  else if (*$4 == "External HBASE")
-	    ls = Lob_External_HBASE_Table;
-	  else if (*$4 == "External Local")
-	    ls = Lob_External_Local_File;
 	  else
-	    ls = Lob_Local_File;
+	    ls = Lob_HDFS_File;
 
 	  $$ = new (PARSERHEAP()) ElemDDLLobAttrs(ls);
 	}

@@ -16,9 +16,14 @@ define([
 	'use strict';
 	var _this = null;
 	var __this=null;
+	var resizeTimer = null,
+		sidebarTimer = null;
+
 	var BaseView = Backbone.View.extend({
 
 		el: $('#content-wrapper'),
+		
+		DETAIL_EL:$('#notifyMenu>ul.even'),
 
 		initialized: false,
 
@@ -125,6 +130,7 @@ define([
 		init: function(args){
 			__this=this;
 			common.on(common.NOFITY_MESSAGE, this.collectNewNotifyMessage);
+			common.on(common.SIDEBAR_TOGGLE_EVENT, this.onSideBarToggle);
 			if(this.doInit){
 				this.doInit(args);
 				this.currentURL=window.location.hash;
@@ -142,14 +148,15 @@ define([
 				$('#content-wrapper').removeClass('col-md-12').addClass('col-md-10');
 			}
 
+			$(window).on('resize', this.onWindowResize);
 			$('#content-wrapper').css('padding-top','60px');
-			$('#notifyMenu').on('click', this.hideOrDisplaySideBar);
-
-			/*$('#notifyMenu').on('shown.bs.dropdown', function(){
+			$('#notification-btn').unbind().on('click', this.hideOrDisplaySideBar);
+			/*$('#notification-btn').on('shown.bs.dropdown', function(){
 				$('#notification-btn').find('.dbmgr-notify-icon').remove();
 			});*/
 		},
 		hideOrDisplaySideBar: function(args){
+			$('#notification-btn').find('.dbmgr-notify-icon').remove();
 			$('#content-wrapper').removeClass('no-transition');
 			if ($('#sidebar-wrapper').is(':visible') && $('#content-wrapper').hasClass('col-md-10')) {
 				// Slide out
@@ -176,26 +183,47 @@ define([
 				//  $('#sidebar-wrapper').show();
 				$('#content-wrapper').removeClass('no-transition');
 				$('#content-wrapper').removeClass('col-md-12').addClass('col-md-10');
-			}			
+			}	
+			common.fire(common.SIDEBAR_TOGGLE_EVENT,'');
 		},
 		resume: function(args){
 			if(this.doResume){
 				this.doResume(args);
 				this.currentURL=window.location.hash;
 			}
+			$(window).on('resize', this.onWindowResize);
+			common.on(common.SIDEBAR_TOGGLE_EVENT, this.onSideBarToggle);
 			common.on(common.NOFITY_MESSAGE, this.collectNewNotifyMessage);
-			$('#notifyMenu').on('click', this.hideOrDisplaySideBar);
+			$('#notification-btn').unbind().on('click', this.hideOrDisplaySideBar);
 		},
 		pause: function() {
-			$('#notifyMenu').off('click', this.hideOrDisplaySideBar);
+			$('#notification-btn').off('click', this.hideOrDisplaySideBar);
+			if($('#sidebar-wrapper').is(':visible')){
+				$('#content-wrapper').removeClass('col-md-10').addClass('col-md-12');
+				$.cookie('offcanvas', 'hide');
+				$('#sidebar-wrapper').hide();
+			}
+			common.off(common.SIDEBAR_TOGGLE_EVENT, this.onSideBarToggle);
+			$(window).off('resize', this.onWindowResize);
+			$('#notification-btn').off('click', this.hideOrDisplaySideBar);
 			if(this.doPause){
 				this.doPause();
 			}
 			common.off(common.NOFITY_MESSAGE, this.collectNewNotifyMessage);
 		},
-		flashBackground:function(){
-			//$("#notifyMenu>a").attr("style","background-color:yellow");
-			//setTimeout(function(){$("#notifyMenu>a").attr("style","background-color:transparent");},500);
+		openCloseMessage:function(event,index){
+			var child=$(this.nextSibling);
+			if (child.is(":visible")) {
+	            // This row is already open - close it
+				child.hide();
+	            $(this).removeClass('shown');
+	        }
+	        else {
+	            // Open this row
+	        	child.show();
+	        	$(this).addClass('shown');
+	        }
+			event.stopPropagation();
 		},
 		refreshTimeDiff:function(){
 			var current = new Date();
@@ -205,27 +233,19 @@ define([
 			}
 		},
 		collectNewNotifyMessage:function(obj){
-			$("#notifyMenu>ul>div").remove();
+			$("#total").remove();
 			var notifyIndicator = $('#notification-btn').find('.dbmgr-notify-icon');
-			if(notifyIndicator.length == 0){
+			if(notifyIndicator.length == 0&& $('#content-wrapper').hasClass('col-md-12') && $('#sidebar-wrapper').is(':hidden')){
 				$('#notification-btn').append('<i class="dbmgr-notify-icon fa fa-exclamation-circle fa-stack-1x" style="color:yellow"></i>');
 			}
 
-			common.MESSAGE_COUNT++;
 			var currentTime=new Date();
-			var interval=setInterval(__this.flashBackground,1000);
 			setInterval(__this.refreshTimeDiff,60000);
-			setTimeout(function(){clearInterval(interval)},5000);
+			/*var interval=setInterval(__this.flashBackground,1000);
+			setTimeout(function(){clearInterval(interval)},5000);*/
 			//remove the empty li.
-			if($("#notifyMenu>ul>li>a>strong").text().trim()=='No available notifications'){
-				$("#notifyMenu>ul>li").remove();
-			}
-			//sometimes the response will be undefined.
-			if(common.MESSAGE_COUNT>4){
-				if(common.isAllNotificationInserted==false){
-					common.isAllNotificationInserted=true;
-					$("#notifyMenu>ul").append('<li id="allNotification"><a class="text-center active"><strong>See All Notifications</strong><i class="fa fa-angle-right"></i></a></li>');
-				}
+			if($("#notifyMenu>ul").text().trim()=='No available notifications'){
+				$("#notifyMenu>ul").remove();
 			}
 			if(obj.msg == undefined){
 				obj.msg="there is no response for current request.";
@@ -248,12 +268,12 @@ define([
 				$.each(common.MESSAGE_LIST, function (index , value){
 					if(obj.url == value.url){
 						common.MESSAGE_LIST.splice(index, 1);
-						common.MESSAGE_COUNT --;
+						/*common.MESSAGE_COUNT --;*/
 					}
 				});
 
 				//Delete the older messages from the UI, by matching the hash string
-				var itemList = $('#notifyMenu>ul>li');
+				var itemList = $('#notifyMenu>ul.odd>li');
 				if(itemList.length > 0){
 					for(var i=0;i<itemList.length;i++){
 						if($(itemList[i]).attr("hashstr") && $(itemList[i]).attr("hashstr") == hs){
@@ -266,91 +286,76 @@ define([
 					}
 				}
 			}
-
-			$("#notifyMenu>ul").prepend('<li hashstr="'+hs+'"><a class="active"><div class="notifyDetail"><i class="fa '+ alertClass + ' fa-fw"></i><i style="padding-left:2px">'+ obj.shortMsg.substr(0,35)+'</i> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span><button type="button" aria-hidden="true" class="pull-right close" data-notify="dismiss" style="color: black;">Ãƒâ€”</button></div></a></li><li class="divider"></li>');
-
+			var totalCount=common.MESSAGE_LIST.length+1;
+			/*$("#notifyMenu").prepend('<li hashstr="'+hs+'"><a class="active"><div class="notifyDetail"><i class="fa '+ alertClass + ' fa-fw"></i><i style="padding-left:2px">'+ obj.shortMsg.substr(0,35)+'</i> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span><button type="button" aria-hidden="true" class="pull-right close" data-notify="dismiss" style="color: black;">ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã¯Â¿Â½</button></div></a></li><li class="divider"></li>');*/
+			var messgeElem='<ul class="odd" style="padding-left: 30px;margin-bottom:0px;margin-top:6px"><li hashstr="'+hs+'" style="list-style: none">'
+			+ '<div class="notifyDetail">'
+			+ '<i class="fa '+ alertClass + ' fa-fw"></i>'
+			+ '<i style="padding-left: 2px">'+ obj.shortMsg.substr(0,35)+'</i><br/> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span>'
+			+ '<button type="button" aria-hidden="true"'
+			+ 'class="pull-right close" data-notify="dismiss"'
+			+ 'style="color: black;font-size:small;margin-right:10px">x</button>'
+			+ '</div></li></ul>'
+			+ '<ul class="even" style="padding-left: 30px;display:none">'
+			+ '<li style="list-style: none"><a class="active">'
+			+ '<div class="notifyDetail">';
+			if(obj.url!=null){
+				$("#notifyMenu")
+				.prepend(messgeElem
+						+ '<i style="padding-left: 2px;"><a  href='+ obj.url +' style="color:black;font-size:small">'+obj.msg+'</a></i>'
+						+ '</div></a></li></ul><hr style="margin-top:6px;margin-bottom:0px"/>');							
+			}else{
+				$("#notifyMenu")
+				.prepend(messgeElem
+						+ '<i style="padding-left: 2px;color:black;font-size:small">'+obj.msg+'</i>'
+						+ '</div></li></ul><hr style="margin-top:6px;margin-bottom:0px"/>');	
+			}
+			$("#notifyMenu").prepend('<ul id="total" class="panel-heading" style="cursor:hand;text-align: center;border: 1px solid #e5e5e5;padding-top: 5px;color: #7b8a8b;">There are '+totalCount+' notifications<a id="deleteAll" style="list-style:none;color: black;" class="pull-right">Delete All</a></ul>');
+			$("#deleteAll").on("click",_this.removeAllNotification);
 			common.MESSAGE_LIST.splice(0,0,{msg:obj.msg,tag:obj.tag,url:obj.url,time:currentTime});
-			common.hideNotifications=$("#notifyMenu>ul>li[id!='allNotification']:gt(7)");
-			$(".notifyDetail").unbind().on("click",__this.popupNotificationMessage);
-			$(".close").unbind().on("click",__this.removeNotificationMessage);
-			if($("#allNotification").text().indexOf("All")>0){
-				//showed part of notifications
-				common.hideNotifications.hide();
-				$("#allNotification").unbind().on("click",__this.showAllNotifications);
-			}else if($("#allNotification").text().indexOf("Part")>0){
-				//showed all of notifications
-				$("#allNotification").unbind().on("click",__this.showPartOfNotifications);
-				if(common.MESSAGE_COUNT>7){
-					$("#notifyMenu>ul").attr("style","overflow:scroll;height:400px;width:450px");
-				}
-			}
-			$("#notifyMenu>ul").prepend('<div class="panel-heading" style="text-align: center;border: 1px solid #e5e5e5;padding-top: 5px;color: #7b8a8b;">Total Count '+common.MESSAGE_COUNT+'</div>');
+			$('#notifyMenu>ul.odd').unbind().on("click",_this.openCloseMessage);
+			$("#notifyMenu .close").unbind().on("click",__this.removeNotificationMessage);
 		},
-		showAllNotifications:function(event){
-			$("#notifyMenu>ul>li").show();
-			$("#allNotification>a>strong").text("See Part of Notifications");
-			$("#allNotification").unbind().on("click",__this.showPartOfNotifications);
-			//add scroll bar style whie more than 7 notifications
-			if(common.MESSAGE_COUNT>7){
-				$("#notifyMenu>ul").attr("style","overflow:scroll;height:400px;width:450px");
-			}
-			event.stopPropagation();
-		},
-		showPartOfNotifications:function(event){
-			$("#notifyMenu>ul").attr("style","width:450px");
-			common.hideNotifications.hide();
-			$("#allNotification>a>strong").text("See All Notifications");
-			$("#allNotification").unbind().on("click",__this.showAllNotifications);
-			event.stopPropagation();
+		removeAllNotification:function(){
+			$("#notifyMenu>ul").remove();
+			$("#notifyMenu>hr").remove();
+			$("#notifyMenu").prepend('<ul>No available notifications</ul>');
+			common.MESSAGE_LIST=[];
 		},
 		removeNotificationMessage:function(event,index){
 			var i;
 			if($.type(event)=="object"){
 				//triggered by the panel x mark.
-				i=$(this).closest("li").index();
+				i=$(this).closest("ul").index();
 			}/*else{
 				//triggered by the popup x mark waiting for plugin bower download available of onclick function..
 				i=index;
 			}*/
-			common.MESSAGE_COUNT--;
-			//remove the scroll bar whie less than 7
-			if(common.MESSAGE_COUNT<=7){
-				$("#notifyMenu>ul").attr("style","width:450px");
+			for(var j =0;j<3;j++){
+				$("#notifyMenu").children().eq(i).remove();
 			}
-			$("#notifyMenu>ul>div").text("Total Count " + common.MESSAGE_COUNT);
-			$("#notifyMenu>ul>li").eq(i-1).remove();
-			$("#notifyMenu>ul>li").eq(i-1).remove();
-			common.MESSAGE_LIST.splice((i-1)/2,1);
-			//if the removed element is display:block, redefine the hide and show notifications
-			if(this.parentElement.style.display==""){
-				__this.redefineShowHideNotifications();
-			}
-			//while all the notifications are removed.
-			if($("#notifyMenu>ul>li [class!='divider']").length==0){
-				$("#notifyMenu>ul>div").remove();
-				$("#notifyMenu>ul").prepend('<li><a class="text-center active"><i class="fa fa-angle-left"></i><strong>No available notifications</strong><i class="fa fa-angle-right"></i></a></li>');
+			common.MESSAGE_LIST.splice((i-1)/3,1);
+			if(common.MESSAGE_LIST.length==0){
+				$("#notifyMenu>ul").remove();
+				$("#notifyMenu>hr").remove();
+				$("#notifyMenu").prepend('<ul>No available notifications</ul>');
+			}else{
+				$("#total").remove();
+				$("#notifyMenu").prepend('<ul id="total" class="panel-heading" style="cursor:hand;text-align: center;border: 1px solid #e5e5e5;padding-top: 5px;color: #7b8a8b;">There are '+common.MESSAGE_LIST.length+' notifications<a id="deleteAll" style="list-style:none;color: black;" class="pull-right">Delete All</a></ul>');
+				$("#deleteAll").on("click",_this.removeAllNotification);
 			}
 			event.stopPropagation();
 		},
-		redefineShowHideNotifications:function(){
-			var showList=$("#notifyMenu>ul>li[id!='allNotification']:lt(8)");
-			//get the four show elements
-			showList.show();
-			if(common.MESSAGE_COUNT<=4){
-				$("#allNotification").remove();
-				common.isAllNotificationInserted=false;
-			}
-		},
 		popupNotificationMessage:function(event,obj){
 			var message=null;
-			if(event!=null){
+			/*if(event!=null){
 				//this for redirect case
 				var i=$(this).closest("li").index();
 				event.stopPropagation();
 				//used to remove the notification from popup.
 				common.popupIndex=(i-1)/2;
 				obj=common.MESSAGE_LIST[(i-1)/2];
-			}
+			}*/
 			//this is for no redirect
 			if(obj.msg==undefined){
 				obj.msg="Operation failed.";
@@ -391,6 +396,25 @@ define([
 			if(this.doReset){
 				this.doReset();
 			}
+		},
+		onWindowResize: function() {
+			clearTimeout(resizeTimer);
+			resizeTimer = setTimeout(_this.doWindowResize, 300);
+		},
+		doWindowResize: function() {
+			if(_this.handleWindowResize){
+				_this.handleWindowResize();
+			}
+		},
+		onSideBarToggle: function(){
+			clearTimeout(sidebarTimer);
+			sidebarTimer = setTimeout(_this.doSideBarToggle, 500);
+
+		},
+		doSideBarToggle:function(){
+			if(_this.handleSideBarToggle){
+				_this.handleSideBarToggle();
+			}			
 		}
 	});
 

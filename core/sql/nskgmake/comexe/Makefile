@@ -73,8 +73,8 @@ CPPSRC := CmpMessage.cpp \
 	ComTrace.cpp \
 	ComTdbCancel.cpp \
 	ComTdbHdfsScan.cpp \
-	ComCompressionInfo.cpp
-
+	ComCompressionInfo.cpp \
+	ComTdbOrcAccess.cpp
 
 CPPSRC += vers_libcomexe.cpp
 

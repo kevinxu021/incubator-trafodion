@@ -121,6 +121,9 @@ typedef NABoolean               ComBoolean;
 #define HBASE_STATS_SCHEMA           "\"_HBASESTATS_\""
 #define HBASE_STATS_SCHEMA_NO_QUOTES "_HBASESTATS_"
 
+// default null format for data in hive files.
+#define HIVE_DEFAULT_NULL_STRING             "\\N"
+
 #define TRAFODION_SYSCAT_LIT              "TRAFODION"
 #define SEABASE_SYSTEM_SCHEMA           "SEABASE"
 #define SEABASE_OLD_PRIVMGR_SCHEMA         "PRIVMGR_MD"

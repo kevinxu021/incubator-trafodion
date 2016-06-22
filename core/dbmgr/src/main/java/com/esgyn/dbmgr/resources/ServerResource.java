@@ -83,7 +83,8 @@ public class ServerResource {
 			objNode.put("serverTimeZone", ConfigurationResource.getServerTimeZone());
 			objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
 			objNode.put("dcsMasterInfoUri", configResource.getDcsMasterInfoUri());
-
+			objNode.put("dbmgrTimeZone", DateTimeZone.getDefault().getID());
+			objNode.put("dbmgrUTCOffset", DateTimeZone.getDefault().getOffset(DateTime.now().getMillis()));
 			Session content = new Session(usr, pwd, new DateTime(DateTimeZone.UTC));
 			SessionModel.putSessionObject(key, content);
 		} else {
@@ -148,7 +149,8 @@ public class ServerResource {
 		objNode.put("serverTimeZone", ConfigurationResource.getServerTimeZone());
 		objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
 		objNode.put("dcsMasterInfoUri", server.getDcsMasterInfoUri());
-
+		objNode.put("dbmgrTimeZone", DateTimeZone.getDefault().getID());
+		objNode.put("dbmgrUTCOffset", DateTimeZone.getDefault().getOffset(DateTime.now().getMillis()));
 		objNode.put("databaseVersion", ConfigurationResource.getDatabaseVersion());
 		objNode.put("databaseEdition", ConfigurationResource.getDatabaseEdition());
 
@@ -216,7 +218,7 @@ public class ServerResource {
 				uri = String.format(queryText, trafRestUri);
 			}
 
-			result = processRESTRequest(uri, soc.getUsername(), soc.getPassword());
+			result = Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
 
 		} catch (Exception ex) {
 			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to fetch dcs connections", ex);
@@ -268,7 +270,7 @@ public class ServerResource {
 				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.GET_SERVICE_STATUS);
 				uri = String.format(queryText, trafRestUri);
 			}
-			result = processRESTRequest(uri, soc.getUsername(), soc.getPassword());
+			result = Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
 
 		} catch (Exception ex) {
 			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to get status of EsgynDB services", ex);
@@ -294,7 +296,7 @@ public class ServerResource {
 				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.GET_NODE_STATUS);
 				uri = String.format(queryText, trafRestUri);
 			}
-			result = processRESTRequest(uri, soc.getUsername(), soc.getPassword());
+			result = Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
 
 		} catch (Exception ex) {
 			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to get status of EsgynDB nodes", ex);
@@ -337,22 +339,5 @@ public class ServerResource {
 		}
 	}
 
-	private TabularResult processRESTRequest(String uri, String userName, String password) throws Exception {
-		TabularResult result = new TabularResult();
-		JsonFactory factory = new JsonFactory();
-		ObjectMapper mapper = new ObjectMapper(factory);
-		RESTRequest request = mapper.readValue(uri, RESTRequest.class);
 
-		String jsonRequest = mapper.writeValueAsString(request);
-		String jsonOutputString = RESTProcessor.getRestOutput(jsonRequest, userName, password);
-
-		ArrayList<String> columns = new ArrayList<String>();
-		ArrayList<Object[]> queries = new ArrayList<Object[]>();
-		RESTProcessor.processResult(jsonOutputString, columns, queries);
-
-		result.columnNames = new String[columns.size()];
-		result.columnNames = columns.toArray(result.columnNames);
-		result.resultArray = queries;
-		return result;
-	}
 }

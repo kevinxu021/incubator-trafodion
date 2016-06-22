@@ -78,6 +78,7 @@
 #include "ComTdbCancel.h"
 #include "ComTdbHdfsScan.h"
 #include "ComTdbHbaseAccess.h"
+#include "ComTdbOrcAccess.h"
 #endif
 
 #endif

@@ -346,7 +346,7 @@ then
      --targettype=TR --javahome=\$JAVA_HOME --jdbccp=\$MY_SQROOT/export/lib/jdbcT4-${TRAFODION_VER}.jar
 elif [[ \$1 == "t2" ]]
 then
-  export LD_PRELOAD=\$JAVA_HOME/jre/lib/amd64/libjsig.so:\$MY_SQROOT/export/lib\$SQ_MBTYPE/libseabasesig.so
+  export LD_PRELOAD=\$JAVA_HOME/jre/lib/${JRE_LIB_DIR}/libjsig.so:\$MY_SQROOT/export/lib\$SQ_MBTYPE/libseabasesig.so
   ./phoenix_test.py --targettype=TR --javahome=\$JAVA_HOME \\
      --jdbccp=\$MY_SQROOT/export/lib/jdbcT2.jar --jdbctype=T2 \\
      --nomvntest --tests="AlterTableTest,ArithmeticQueryTest,BinaryRowKeyTest,CoalesceFunctionTest,CompareDecimalToLongTest,CustomEntityDataTest,DeleteRangeTest,DescColumnSortOrderTest,DistinctCountTest,ExtendedQueryExecTest,FunkyNamesTest,IsNullTest,OrderByTest,QueryExecTest,SaltedTableTest,SaltedTableUpsertSelectTest,SaltedTableVarLengthRowKeyTest,SkipScanQueryTest,UpsertSelectAutoCommitTest,UpsertSelectTest,UpsertValuesTest],AutoCommitTest,CreateTableTest,ExecuteStatementsTest,GroupByCaseTest,IndexTest,KeyOnlyTest,MultiCfQueryExecTest,ProductMetricsTest,QueryExecWithoutSCNTest,QueryPlanTest,ReadIsolationLevelTest,ServerExceptionTest,StatementHintsTest,StddevTest,ToCharFunctionTest,ToNumberFunctionTest,TopNTest,UpsertBigValuesTest,VariableLengthPKTest,SaltedTableUpsertSelectTest"
@@ -386,7 +386,8 @@ YES
 EOF
     cd .. 
     mv TRAFDSN TRAFDSN.orig 
-    sed -e "s@TCP:1.2.3.4:23400@TCP:localhost:$MY_DCS_MASTER_PORT@" TRAFDSN.orig >> TRAFDSN 
+    sed -e "s@TCP:localhost:23400@TCP:localhost:$MY_DCS_MASTER_PORT@" TRAFDSN.orig >> TRAFDSN 
+    cp -p TRAFDSN $MY_SQROOT/samples
     echo "Successfully installed linux driver in $LNXDRVR"| tee -a ${MY_LOG_FILE}
     echo "Creating odbcinst.ini file..." |tee -a ${MY_LOG_FILE}
     cat <<EOF >$LNXDRVR/odbcinst.ini

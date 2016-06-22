@@ -2844,13 +2844,7 @@ short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
   // committed in the called methods.
   if ((ddlXns()) &&
       (
-           (initHbase()) ||
-           (dropHbase()) ||
            (purgedataHbase()) ||
-           (initHbase()) ||
-           (dropHbase()) ||
-           (initAuthorization()) ||
-           (dropAuthorization()) ||
            (backup()) ||
            (restore()) ||
            (unlockTraf()) ||
@@ -5868,7 +5862,15 @@ RelExpr * HbaseUpdate::preCodeGen(Generator * generator,
 	      lu->updatedTableSchemaName() += "\"";
               lu->lobSize() = col->getType()->getPrecision();
 	      lu->lobNum() = col->lobNum();
-	      lu->lobStorageType() = col->lobStorageType();
+	      // lu->lobStorageType() = col->lobStorageType();
+              if (lu->lobStorageType() != col->lobStorageType())
+                    {
+                      *CmpCommon::diags() << DgSqlCode(-1432)
+                                          << DgInt0((Int32)lu->lobStorageType())
+                                          << DgInt1((Int32)col->lobStorageType())
+                                          << DgString0(col->getColName());
+                      GenExit();
+                    }
 	      lu->lobStorageLocation() = col->lobStorageLocation();
 	    }
 	} // for
@@ -5978,13 +5980,21 @@ RelExpr * HbaseInsert::preCodeGen(Generator * generator,
 			   getTableName().getSchemaName());
 		  li->insertedTableSchemaName() += "\"";
 		  
-		  //		  li->lobNum() = col->getPosition();
-		  // li->lobSize() = srcValueId.getType().getPrecision();
+		
                   li->lobSize() = tgtValueId.getType().getPrecision();
 		  li->lobFsType() = tgtValueId.getType().getFSDatatype();
 
 		  li->lobNum() = col->lobNum();
-		  li->lobStorageType() = col->lobStorageType();
+                  if ((child1Expr->getOperatorType() == ITM_CONSTANT) && 
+                      !(((ConstValue *)child1Expr)->isNull()))
+                    if (li->lobStorageType() != col->lobStorageType())
+                      {
+                        *CmpCommon::diags() << DgSqlCode(-1432)
+                                            << DgInt0((Int32)li->lobStorageType())
+                                            << DgInt1((Int32)col->lobStorageType())
+                                            << DgString0(col->getColName());
+                        GenExit();
+                      }
 		  li->lobStorageLocation() = col->lobStorageLocation();
 
 		  li->bindNode(generator->getBindWA());
@@ -6011,7 +6021,14 @@ RelExpr * HbaseInsert::preCodeGen(Generator * generator,
 		  li->insertedTableSchemaName() += "\"";
 		  
 		  li->lobNum() = col->lobNum();
-		  li->lobStorageType() = col->lobStorageType();
+                  if (li->lobStorageType() != col->lobStorageType())
+                    {
+                      *CmpCommon::diags() << DgSqlCode(-1432)
+                                          << DgInt0((Int32)li->lobStorageType())
+                                          << DgInt1((Int32)col->lobStorageType())
+                                          << DgString0(col->getColName());
+                        GenExit();
+                      }
 		  li->lobStorageLocation() = col->lobStorageLocation();
 		  
 		  li->lobSize() = tgtValueId.getType().getPrecision();
@@ -6043,7 +6060,7 @@ RelExpr * HbaseInsert::preCodeGen(Generator * generator,
 		      li->lobFsType() = tgtValueId.getType().getFSDatatype();
 
 		      li->lobNum() = col->lobNum();
-		      li->lobStorageType() = col->lobStorageType();
+		     
 		      li->lobStorageLocation() = col->lobStorageLocation();
 		      
 		      li->bindNode(generator->getBindWA());
@@ -11375,9 +11392,42 @@ RelExpr * PhysicalFastExtract::preCodeGen (Generator * generator,
     return this;
 
   generator->setIsFastExtract(TRUE);  
-
+  
   if (!RelExpr::preCodeGen(generator,externalInputs,pulledNewInputs))
     return NULL;
+  
+  if ((hiveNATable() && hiveNATable()->isORC()) &&
+      (reqdOrder().entries() > 0))
+    {
+      Sort *sortNode = new(generator->wHeap()) Sort(child(0));
+      
+      sortNode->getSortKey() = reqdOrder();
+      
+      // Use the same characteristic inputs and outputs as the left child
+      sortNode->setGroupAttr(new(generator->wHeap())
+                             GroupAttributes(*(child(0)->getGroupAttr())));
+      //pass along some of the  estimates 
+      sortNode->setEstRowsUsed(child(0)->getEstRowsUsed());
+      sortNode->setMaxCardEst(child(0)->getMaxCardEst());
+      sortNode->setInputCardinality(child(0)->getInputCardinality());
+      sortNode->setPhysicalProperty(child(0)->getPhysicalProperty());
+      sortNode->setCollectNFErrors();
+      sortNode->setOperatorCost(0);
+      sortNode->setRollUpCost(child(0)->getRollUpCost());
+
+      child(0)->markAsBound();
+
+      sortNode->bindNode(generator->getBindWA());
+      if (generator->getBindWA()->errStatus())
+        return NULL;
+      
+      RelExpr * re = sortNode->preCodeGen(generator, 
+                                          externalInputs, pulledNewInputs);
+      if (! re)
+        return NULL;
+
+      child(0) = re;
+    }
 
   ValueIdSet availableValues;
   getInputValuesFromParentAndChildren(availableValues);

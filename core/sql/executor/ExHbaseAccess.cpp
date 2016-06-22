@@ -2554,13 +2554,14 @@ short ExHbaseAccessTcb::copyRowIDToDirectBuffer(HbaseStr &rowID)
    return 0;
 }
 
-short ExHbaseAccessTcb::createDirectRowBuffer( UInt16 tuppIndex, 
-                 char * tuppRow,
-                  Queue * listOfColNames, 
-                  Queue * listOfOmittedColNames,
-                  NABoolean isUpdate,
-                  std::vector<UInt32> * posVec,
-                  double samplingRate )
+short ExHbaseAccessTcb::createDirectRowBuffer( 
+     UInt16 tuppIndex, 
+     char * tuppRow,
+     Queue * listOfColNames, 
+     Queue * listOfOmittedColNames,
+     NABoolean isUpdate,
+     std::vector<UInt32> * posVec,
+     double samplingRate )
 {
   char hiveBuff[500]; //@ZXtemp
   size_t hiveBuffInx = 0;
