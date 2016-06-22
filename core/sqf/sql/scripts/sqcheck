@@ -269,8 +269,8 @@ for enode in `cat $sq_exc_node`; do
 done
 
 if [ $act_lnode_up_cnt '>' 0 ]; then
-    cfg_lnode_cnt=(act_lnode_up_cnt+act_lnode_down_cnt-exc_lnode_cnt)
-    cfg_pnode_cnt=(act_pnode_up_cnt+act_pnode_down_cnt-exc_pnode_cnt)
+    cfg_lnode_cnt=(act_lnode_up_cnt+act_lnode_down_cnt)
+    cfg_pnode_cnt=(act_pnode_up_cnt+act_pnode_down_cnt)
 fi
 
 rm -f $sq_tmp_lnode_up
