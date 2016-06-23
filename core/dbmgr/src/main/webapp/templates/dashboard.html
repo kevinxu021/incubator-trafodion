@@ -298,7 +298,7 @@
 		aria-labelledby="metricsDialogLabel" data-backdrop="static" data-keyboard="false">
 		<div class="modal-dialog" role="document"
 			style="height: 80%; width: 90%">
-			<div class="modal-content">
+			<div id="metricsDialogContent" class="modal-content">
 				<div class="modal-header">
 					<button type="button" class="close" data-dismiss="modal"
 						aria-label="Close">
@@ -308,15 +308,15 @@
 					<img id="metrics-drilldown-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />
 					<label id="metric-name-holder" style="display:none"></label>
 				</div>
-				<div class="modal-body" style="height:600px">
+				<div class="modal-body" style="hheight:600px">
 					<form id="metrics-form" style="padding:10px">
 						<div id="metric-series-select-container">
 							<label style="padding-right:10px;padding-bottom:20px">Metric Name</label>
 							<select id="seriesSelect" style="font-size:13px;"> </select>
 						</div>
-						<div id="metrics-drilldown-container">
-							<div id="metrics-drilldown-chart" class="dbmgr-drilldown-graph"></div>
-							<div style="overflow:auto">
+						<div id="metrics-drilldown-container" class="row ui-resizable">
+							<div id="metrics-drilldown-chart" class="dbmgr-drilldown-graph col-sm-9" style="overflow:auto"></div>
+							<div class="col-sm-3" style="overflow:auto">
 								<p id="metrics-drilldown-legend" style="font-size:13px;float:left"></p>
 							</div>
 						</div>
