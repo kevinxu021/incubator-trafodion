@@ -141,6 +141,7 @@ public class HBaseClient {
     public static final int HBASE_DURABILITY = 20;
     public static final int HBASE_MEMSTORE_FLUSH_SIZE = 21;
     public static final int HBASE_SPLIT_POLICY = 22;
+    public static final int HBASE_ENCRYPTION = 23;
 
     
     public HBaseClient() {
@@ -373,6 +374,11 @@ public class HBaseClient {
            case HBASE_BLOCKSIZE:
                colDesc.setBlocksize
                    (Integer.parseInt(tableOption));
+               returnStatus.setColumnDescriptorChanged();
+               break ;
+           case HBASE_ENCRYPTION:
+               if (tableOption.equalsIgnoreCase("AES"))
+                   colDesc.setEncryptionType("AES");
                returnStatus.setColumnDescriptorChanged();
                break ;
            case HBASE_DATA_BLOCK_ENCODING:
@@ -1118,6 +1124,15 @@ public class HBaseClient {
       long totalSizeBytes = 0; // Size of all HFiles for table 
       long estimatedTotalPuts = 0;
       boolean more = true;
+
+      // Make sure the config doesn't specify HBase bucket cache. If it does,
+      // then the CacheConfig constructor may fail with a Java OutOfMemory 
+      // exception because our JVM isn't configured with large enough memory.
+
+      String ioEngine = config.get(HConstants.BUCKET_CACHE_IOENGINE_KEY,null);
+      if (ioEngine != null) {
+          config.unset(HConstants.BUCKET_CACHE_IOENGINE_KEY); // delete the property
+      }
 
       // Access the file system to go directly to the table's HFiles.
       // Create a reader for the file to access the entry count stored

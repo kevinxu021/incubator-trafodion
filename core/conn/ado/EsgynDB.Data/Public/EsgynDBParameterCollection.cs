@@ -320,7 +320,7 @@ namespace EsgynDB.Data
 
             if (this._parameters.Count != desc.Length && this._cmd.isRWRS == false)
             {
-                string msg = EsgynDBResources.FormatMessage(EsgynDBMessage.ParameterCountMismatch);
+                string msg = EsgynDBResources.GetMessage(EsgynDBMessage.ParameterCountMismatch);
                 EsgynDBException.ThrowException(this._cmd.Connection, new InvalidOperationException(msg));
             }
             int idx = 0;

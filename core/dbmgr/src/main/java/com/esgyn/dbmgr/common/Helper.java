@@ -429,4 +429,23 @@ public class Helper {
 			return new EsgynDBMgrException(featureTag + ", Reason : " + ex.getMessage());
 		}
 	}
+
+	public static TabularResult processRESTRequest(String uri, String userName, String password) throws Exception {
+		TabularResult result = new TabularResult();
+		JsonFactory factory = new JsonFactory();
+		ObjectMapper mapper = new ObjectMapper(factory);
+		RESTRequest request = mapper.readValue(uri, RESTRequest.class);
+
+		String jsonRequest = mapper.writeValueAsString(request);
+		String jsonOutputString = RESTProcessor.getRestOutput(jsonRequest, userName, password);
+
+		ArrayList<String> columns = new ArrayList<String>();
+		ArrayList<Object[]> queries = new ArrayList<Object[]>();
+		RESTProcessor.processResult(jsonOutputString, columns, queries);
+
+		result.columnNames = new String[columns.size()];
+		result.columnNames = columns.toArray(result.columnNames);
+		result.resultArray = queries;
+		return result;
+	}
 }

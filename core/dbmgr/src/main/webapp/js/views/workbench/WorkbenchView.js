@@ -26,7 +26,6 @@ define([
 	var setRootNode = false;
 	var LOADING_SELECTOR = ".dbmgr-spinner";			
 	var st = null;
-	var resizeTimer = null;			
 	var oDataTable = null;
 	var controlStatements = null;
 	var previousScrollTop = 0;
@@ -59,7 +58,6 @@ define([
 	controlStmtEditor = null,
 	//scalarResultEditor = null,
 	resultsDataTable = null,
-	isPaused = false,
 	resultsAfterPause = false,
 	lastExecuteResult = null,
 	lastExplainResult = null,
@@ -103,7 +101,7 @@ define([
 			if(jsonData.requestor !=null && jsonData.requestor != _this) //error message is probably for different page
 				return;
 			
-			if(isPaused){
+			if(this.redirectFlag){
 				resultsAfterPause = true;
 				lastExplainResult = jsonData;
 				var msgObj={msg:'The workbench query explain completed successfully.',tag:"success",url:_this.currentURL,shortMsg:"Workbench explain succeeded.",lastMessageOnly:true};
@@ -126,7 +124,7 @@ define([
 			$(EXPLAIN_TREE).show();
 			//emulate a click on the root node.
 			st.onClick(st.root);
-			_this.doResize();
+			_this.handleWindowResize();
 			//end
 		},
 		showExplainTooltip: function(nodeName, data){
@@ -145,6 +143,7 @@ define([
 		doInit: function () {
 			_this = this;
 			this.currentURL = window.location.hash;
+			this.redirectFlag=false;
 			$(TEXT_RESULT_CONTAINER).hide();
 			$(SCALAR_RESULT_CONTAINER).hide();
 			this.hideLoading();
@@ -156,7 +155,6 @@ define([
 			$(OPTIONS_BTN).on('click', this.openFilterDialog);
 
 			resultsDataTable = null;
-			isPaused = false;
 			resultsAfterPause = false;
 			lastExecuteResult = null;
 			lastExplainResult = null;
@@ -184,6 +182,7 @@ define([
 		                $(this).find('i').removeClass('fa-sort-up').addClass('fa-sort-down');
 		            }
 		        });
+			 
 			if(CodeMirror.mimeModes["text/x-esgyndb"] == null){
 				common.defineEsgynSQLMime(CodeMirror);
 			}
@@ -271,7 +270,6 @@ define([
 		doResume: function(){
 			this.currentURL = window.location.hash;
 			this.redirectFlag=false;
-			isPaused = false;
 			if(resultsAfterPause == true){
 				if(lastExecuteResult != null){
 					_this.displayResults(lastExecuteResult);
@@ -287,21 +285,15 @@ define([
 			//serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 		},
 		doPause:  function(){
-			isPaused = true;
+			this.redirectFlag=true;
 			//this.hideLoading();
 			//serverHandler.off(serverHandler.WRKBNCH_EXECUTE_SUCCESS, this.displayResults);
 			//serverHandler.off(serverHandler.WRKBNCH_EXECUTE_ERROR, this.showErrorMessage);
 			//serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
 			//serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 		},
-		onRelayout: function () {
-			this.onResize();
-		},
-		onResize: function () {
-			clearTimeout(resizeTimer);
-			resizeTimer = setTimeout(this.doResize, 200);
-		},
-		doResize: function () {
+
+		handleWindowResize: function () {
 			if(st != null) {
 				st.canvas.resize($(EXPLAIN_TREE).width(), ($(PRIMARY_RESULT_CONTAINER).height() + $(PRIMARY_RESULT_CONTAINER).scrollTop()));
 			}
@@ -441,7 +433,7 @@ define([
 
 		displayResults: function (result){
 			
-			if(isPaused){
+			if(_this.redirectFlag){
 				resultsAfterPause = true;
 				lastExecuteResult = result;
 				var msgObj={msg:'The workbench query execution completed successfully.',tag:"success",url:_this.currentURL,shortMsg:"Workbench execute succeeded.",lastMessageOnly:true};
@@ -483,7 +475,8 @@ define([
 						"oLanguage": {
 							"sEmptyTable": "0 rows(s)"
 						},
-						dom:'lBftrip',
+						//dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+						dom: "<'row'<'col-md-8'lB><'col-md-4'f>>" +"<'row'<'col-md-12'<'datatable-scroll'tr>>><'row'<'col-md-12'ip>>",
 						processing: true,
 						"iDisplayLength" : 25, 
 						"sPaginationType": "full_numbers",
@@ -498,7 +491,7 @@ define([
 		                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
 		                        	   title: 'Query Workbench' } ,
 		                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Query Workbench' }
-					          ],
+					          ]
 
 					});
 				}        		
@@ -509,7 +502,7 @@ define([
 			if(jqXHR.requestor !=null && jqXHR.requestor != _this) //error message is probably for different page
 				return;
 			
-			if(isPaused){
+			if(_this.redirectFlag){
 				resultsAfterPause = true;
 				lastRawError = jqXHR;
 				var msgObj={msg:'The workbench operation failed.',tag:"danger",url:_this.currentURL,shortMsg:"Workbench operation failed.",lastMessageOnly:true};

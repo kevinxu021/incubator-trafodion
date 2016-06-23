@@ -179,6 +179,7 @@ public class TransactionManager {
   public static final int HBASE_DURABILITY = 20;
   public static final int HBASE_MEMSTORE_FLUSH_SIZE = 21;
   public static final int HBASE_SPLIT_POLICY = 22;
+  public static final int HBASE_ENCRYPTION = 23;
 
   public static final int TM_COMMIT_FALSE = 0;
   public static final int TM_COMMIT_READ_ONLY = 1;
@@ -2815,6 +2816,11 @@ public class TransactionManager {
            case HBASE_BLOCKSIZE:
                colDesc.setBlocksize
                    (Integer.parseInt(tableOption));
+               returnStatus.setColumnDescriptorChanged();
+               break ;
+           case HBASE_ENCRYPTION:
+               if (tableOption.equalsIgnoreCase("AES"))
+                   colDesc.setEncryptionType("AES");
                returnStatus.setColumnDescriptorChanged();
                break ;
            case HBASE_DATA_BLOCK_ENCODING:

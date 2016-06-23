@@ -73,7 +73,7 @@ class AbstractFastStatsHist;
 Lng32 AddNecessaryColumns();
 Lng32 AddAllColumnsForIUS();
 
-Lng32 createSampleOption(Lng32 sampleType, double samplePercent, NAString &sampleOpt,
+void createSampleOption(Lng32 sampleType, double samplePercent, NAString &sampleOpt,
                         Int64 sampleValue1=0, Int64 sampleValue2=0);
 Lng32 doubleToHSDataBuffer(const double dbl, HSDataBuffer& dbf);
 Lng32 managePersistentSamples();
@@ -1951,6 +1951,13 @@ private:
     Int64 stmtStartTime;
     NABoolean jitLogOn;
 
+    // For IUS, was the SB_PERSISTENT_SAMPLES row for the source table updated?
+    // The change is undone by the HSGlobalsClass dtor, so we need to account for
+    // the possibility that an IUS statement failed prior to making the change.
+    // Otherwise, a concurrent IUS operation could have its changes to the row
+    // overwritten.
+    NABoolean PSRowUpdated;
+
     static THREAD_P NABoolean performISForMC_;
 
   };  // class HSGlobalsClass
@@ -2498,6 +2505,16 @@ class HSInMemoryTable : public NABasicObject
                              NAString& queryText, NABoolean rollback);
    
     Lng32 populate(NAString& queryText);
+
+    // The data is actually deallocated by calling freeISMemory() from
+    // HSGlobalsClass::incrementHistograms() for each column as soon as the
+    // column is successfully handled by IUS (the data is preserved for use
+    // by RUS/IS if IUS can't be performed). This function just resets the
+    // flag that would cause assertion failure when populate() is called, as
+    // it must be to load data for the next batch of IUS columns.
+    void depopulate() {
+      isPopulated_ = FALSE;
+    }
 
     void logState(const char* title);
 

@@ -191,6 +191,11 @@ class HSSample
 
     NABoolean isIUS() { return isIUS_; }
 
+    // These setters are used when RUS is used as a backup for columns that could
+    // not be processed by IUS.
+    void setSampleType(Lng32 smplType) { sampleType = smplType; }
+    void setSampleTablePercent(double smplPct) { samplePercent = smplPct; }
+
   private:
     // Member function
     void makeTableName(NABoolean isPersSample = FALSE);

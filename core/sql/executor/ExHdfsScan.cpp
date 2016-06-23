@@ -44,6 +44,7 @@
 //#include "hdfs.h"
 
 #include "ExpORCinterface.h"
+#include "ComSmallDefs.h"
 
 ex_tcb * ExHdfsScanTdb::build(ex_globals * glob)
 {
@@ -1802,7 +1803,7 @@ char * ExHdfsScanTcb::extractAndTransformAsciiSourceToSqlRow(int &err,
 
   ExpTupleDesc * origSourceTD = 
     hdfsScanTdb().workCriDesc_->getTupleDescriptor(hdfsScanTdb().origTuppIndex_);
-
+  
   const char cd = hdfsScanTdb().columnDelimiter_;
   const char rd = hdfsScanTdb().recordDelimiter_;
   const char *sourceDataEnd = hdfsScanBuffer_+trailingPrevRead_
@@ -1842,7 +1843,6 @@ char * ExHdfsScanTcb::extractAndTransformAsciiSourceToSqlRow(int &err,
       if (hdfsScanTdb().convertSkipList_[i] > 0)
       {
         attr = asciiSourceTD->getAttr(neededColIndex);
-
         tgtAttr = origSourceTD->getAttr(neededColIndex);
         neededColIndex++;
       }
@@ -1884,19 +1884,27 @@ char * ExHdfsScanTcb::extractAndTransformAsciiSourceToSqlRow(int &err,
 
             if (attr->getNullFlag())
             {
-              // for non-varchar, length of zero indicates a null value
-              if (tgtAttr && len == 0) {
-                 if (DFS2REC::isSQLVarChar(tgtAttr->getDatatype()) &&
-                     (NOT hdfsScanTdb().emptyAsNULL())) 
-                   *(short *)&hdfsAsciiSourceData_[attr->getNullIndOffset()] = 0;
-                 else
-                  *(short *)&hdfsAsciiSourceData_[attr->getNullIndOffset()] = -1;
-              }
-	      else if ((len > 0) && (memcmp(sourceData, "\\N", len) == 0))
-                *(short *)&hdfsAsciiSourceData_[attr->getNullIndOffset()] = -1;
-              else
-                *(short *)&hdfsAsciiSourceData_[attr->getNullIndOffset()] = 0;
-            }
+              *(short *)&hdfsAsciiSourceData_[attr->getNullIndOffset()] = 0;
+              if (hdfsScanTdb().getNullFormat()) // null format specified by user
+                {
+                  if (((len == 0) && (strlen(hdfsScanTdb().getNullFormat()) == 0)) ||
+                      ((len > 0) && (memcmp(sourceData, hdfsScanTdb().getNullFormat(), len) == 0)))
+                    {
+                       *(short *)&hdfsAsciiSourceData_[attr->getNullIndOffset()] = -1;
+                    }
+                } // if
+              else // null format not specified by user
+                {
+                  // Use default null format.
+                  // for non-varchar, length of zero indicates a null value.
+                  // For all datatypes, HIVE_DEFAULT_NULL_STRING('\N') indicates a null value.
+                  if (((len == 0) && (tgtAttr && (NOT DFS2REC::isSQLVarChar(tgtAttr->getDatatype())))) ||
+                      ((len > 0) && (memcmp(sourceData, HIVE_DEFAULT_NULL_STRING, len) == 0)))
+                    {
+                      *(short *)&hdfsAsciiSourceData_[attr->getNullIndOffset()] = -1;
+                    }
+                } // else
+            } // if nullable attr
 
             if (len > 0)
             {

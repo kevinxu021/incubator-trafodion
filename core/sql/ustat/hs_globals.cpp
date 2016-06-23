@@ -1575,6 +1575,13 @@ NABoolean HSColGroupStruct::allocateISMemory(Int64 rows,
 // avoid freeing strData when this fn is called to remove the old data array.
 void HSColGroupStruct::freeISMemory(NABoolean freeStrData, NABoolean freeMCData)
 {
+  HSLogMan *LM = HSLogMan::Instance();
+  if (LM->LogNeeded())
+    {
+      sprintf(LM->msg, "Freeing IS memory for column %s", colNames->data());
+      LM->Log(LM->msg);
+    }
+
   // used by MC in-memory since a column might have been processed but kept
   // in memory to be used by MCs
   mcis_memFreed = TRUE;
@@ -2862,6 +2869,7 @@ HSGlobalsClass::HSGlobalsClass(ComDiagsArea &diags)
     sampleRateAsPercetageForIUS(0),
     minRowCtPerPartition_(-1),
     sample_I_generated(FALSE),
+    PSRowUpdated(FALSE),
     jitLogThreshold(0),
     stmtStartTime(0),
     jitLogOn(FALSE),
@@ -2892,6 +2900,12 @@ HSGlobalsClass::HSGlobalsClass(ComDiagsArea &diags)
 
 HSGlobalsClass::~HSGlobalsClass()
 {
+  // If this was an IUS execution, make sure the row for the source table in
+  // SB_PERSISTENT_SAMPLES is modified to reflect that an IUS operation is no
+  // longer in progress.
+  if (PSRowUpdated)
+    end_IUS_work();
+
   // reset the parser flags that were set in the constructor
   SQL_EXEC_ResetParserFlagsForExSqlComp_Internal(savedParserFlags);
 
@@ -3028,11 +3042,12 @@ Lng32 HSGlobalsClass::Initialize()
     actualRowCount = objDef->getRowCount(currentRowCountIsEstimate_,
                                          inserts, deletes, updates,
                                          numPartitions,
-                                         minRowCtPerPartition_);
+                                         minRowCtPerPartition_,
+                                         optFlags & SAMPLE_REQUESTED);
     LM->StopTimer();
     if (LM->LogNeeded())
       {
-        sprintf(LM->msg, "\tcurrentRowCountIsEstimate_=%d from GetRowCount()", currentRowCountIsEstimate_);
+        sprintf(LM->msg, "\tcurrentRowCountIsEstimate_=%d from getRowCount()", currentRowCountIsEstimate_);
         LM->Log(LM->msg);
       }
 
@@ -3056,47 +3071,28 @@ Lng32 HSGlobalsClass::Initialize()
                 LM->Log(LM->msg);
               }
           }
-        else if (!((optFlags & SAMPLE_REQUESTED) &&
-                   convertInt64ToDouble(actualRowCount) >=
-                     CmpCommon::getDefaultNumeric(USTAT_MIN_ESTIMATE_FOR_ROWCOUNT)))
+        else if (convertInt64ToDouble(actualRowCount) <   // may be 0 (no estimate) or -1 (error doing estimation)
+                     CmpCommon::getDefaultNumeric(USTAT_MIN_ESTIMATE_FOR_ROWCOUNT))
           {
-            actualRowCount = 0;
-            if (hs_globals->isHbaseTable &&
-                CmpCommon::getDefault(USTAT_ESTIMATE_HBASE_ROW_COUNT) == DF_ON)
+            if (LM->LogNeeded() && actualRowCount > 0)
+            {
+              sprintf(LM->msg, "Estimated row count " PF64 " rejected (below size threshhold).",
+                      actualRowCount);
+              LM->Log(LM->msg);
+            }
+            LM->StartTimer("Execute query to get row count");
+            query  = "SELECT COUNT(*) FROM ";
+            query += getTableName(user_table->data(), nameSpace);
+            query += " FOR READ UNCOMMITTED ACCESS";
+            retcode = cursor.fetchNumColumn(query, NULL, &actualRowCount);
+            LM->StopTimer();
+            HSHandleError(retcode);
+            currentRowCountIsEstimate_ = FALSE;
+            if (LM->LogNeeded())
               {
-                LM->StartTimer("Estimate row count for HBase table");
-                actualRowCount = objDef->getNATable()->estimateHBaseRowCount();
-                LM->StopTimer();
-                if (LM->LogNeeded())
-                  {
-                    snprintf(LM->msg, sizeof(LM->msg),
-                             "Call to estimateHBaseRowCount() returned " PF64 ".",
-                             actualRowCount);
-                    LM->Log(LM->msg);
-                  }
-              }
-
-            // If actualRowCount is still 0 then the table is not an HBase table
-            // (or the cqd is not set). If it is HIST_NO_STATS_ROWCOUNT, then
-            // estimateHBaseRowCount() was not able to produce an estimate. In either
-            // of these cases, we need to resort to a count(*).
-            if (actualRowCount == 0 ||
-                actualRowCount == ActiveSchemaDB()->getDefaults().getAsDouble(HIST_NO_STATS_ROWCOUNT))
-              {
-                LM->StartTimer("Execute query to get row count");
-                query  = "SELECT COUNT(*) FROM ";
-                query += getTableName(user_table->data(), nameSpace);
-                query += " FOR READ UNCOMMITTED ACCESS";
-                retcode = cursor.fetchNumColumn(query, NULL, &actualRowCount);
-                LM->StopTimer();
-                HSHandleError(retcode);
-                currentRowCountIsEstimate_ = FALSE;
-                if (LM->LogNeeded())
-                  {
-                    convertInt64ToAscii(actualRowCount, intStr);
-                    sprintf(LM->msg, "\n\t\tUsing select count(*): rows=%s", intStr);
-                    LM->Log(LM->msg);
-                  }
+                convertInt64ToAscii(actualRowCount, intStr);
+                sprintf(LM->msg, "\n\t\tUsing select count(*): rows=%s", intStr);
+                LM->Log(LM->msg);
               }
           }
       }
@@ -3639,8 +3635,6 @@ void HSGlobalsClass::startJitLogging(const char* checkPointName, Int64 elapsedSe
 /* METHOD: createSampleOption()               */
 /* PURPOSE: create text for use in sample     */
 /*          query.                            */
-/* RETCODE: 0 - on success                    */
-/*          non-zero otherwise                */
 /* INPUT:  sampleType - the sample option type*/
 /*           set when parsing.                */
 /*         samplePercent - %                  */
@@ -3648,10 +3642,9 @@ void HSGlobalsClass::startJitLogging(const char* checkPointName, Int64 elapsedSe
 /*          when parsing.                     */
 /* OUTPUT: sampleOpt - sample text option.    */
 /**********************************************/
-Lng32 createSampleOption(Lng32 sampleType, double samplePercent, NAString &sampleOpt,
+void createSampleOption(Lng32 sampleType, double samplePercent, NAString &sampleOpt,
                         Int64 sampleValue1, Int64 sampleValue2)
 {
-  Lng32 retcode = 0;
   char floatStr[30], intStr[30];
   switch (sampleType)
   {
@@ -3683,10 +3676,9 @@ Lng32 createSampleOption(Lng32 sampleType, double samplePercent, NAString &sampl
       sampleOpt += " ROWS ";
       break;
     default:                     // Invalid option.
-      retcode = -1;
+      HS_ASSERT(FALSE);
       break;
   }
-  return retcode;
 }
 
 
@@ -3823,10 +3815,10 @@ Lng32 HSSample::make(NABoolean rowCountIsEstimate, // input
 
     // Create sample option based on sampling type, using 'samplePercent'.
     if (hs_globals)
-         retcode = createSampleOption(sampleType, samplePercent, sampleOption, 
-                                      hs_globals->sampleValue1, hs_globals->sampleValue2);
-    else retcode = createSampleOption(sampleType, samplePercent, sampleOption);
-    HSHandleError(retcode);
+      createSampleOption(sampleType, samplePercent, sampleOption,
+                         hs_globals->sampleValue1, hs_globals->sampleValue2);
+    else
+      createSampleOption(sampleType, samplePercent, sampleOption);
 
     //Normally, we want to create an AUDITED scratch table. Although, for
     //performance and TMF timeouts, we should use a NON-AUDITED table and
@@ -4477,6 +4469,7 @@ static void mapInternalSortTypes(HSColGroupStruct *groupList, NABoolean forHive 
     {
      HSColumnStruct &col = group->colSet[0];
      NAString columnName, dblQuote="\"";
+     group->ISSelectExpn = "";
 
      // If retrieving from the Hive backing sample for a table, positional names
      // are used. This avoids any issues with Trafodion delimited ids that do
@@ -4984,9 +4977,10 @@ Int64 HSGlobalsClass::getInternalSortMemoryRequirements(NABoolean performISForMC
 Lng32 HSGlobalsClass::validateIUSWhereClause()
 {
   Lng32 retcode = 0;
-  ULng32 savedParserFlags = Get_SqlParser_Flags(0xFFFFFFFF);
 
-  Set_SqlParser_Flags(PARSING_IUS_WHERE_CLAUSE); // ORs this bit into the flags
+  // set PARSING_IUS_WHERE_CLAUSE bit in Sql_ParserFlags; return it to
+  // its entry value on exit
+  PushAndSetSqlParserFlags savedParserFlags(PARSING_IUS_WHERE_CLAUSE);
 
   NAString query = "select count(*) from ";
   query.append(getTableName(strrchr(user_table->data(), '.')+1, nameSpace));
@@ -5023,9 +5017,6 @@ Lng32 HSGlobalsClass::validateIUSWhereClause()
       else
         retcode = diagsArea.mainSQLCODE();
     }
-
-  // Restore parser flags to prior settings.
-  Assign_SqlParser_Flags (savedParserFlags);
 
   return retcode;
 }
@@ -5212,9 +5203,9 @@ Lng32 HSGlobalsClass::CollectStatistics()
            //
            if ( colsSelected == 0 ) {
              if ( ranOutOfMem ) {
-               diagsArea << DgSqlCode(UERR_IUS_NO_SUFFICIENT_MEMORY);
-               retcode = -1;
-               HSHandleErrorIUS(retcode);
+               diagsArea << DgSqlCode(UERR_WARNING_IUS_INSUFFICIENT_MEMORY)
+                         << DgInt0(moreColsForIUS());
+               break;  // Let RUS handle the rest
              } else {
                if (LM->LogNeeded())
                  LM->Log("Empty IUS batch, not because of memory.");
@@ -5373,12 +5364,25 @@ Lng32 HSGlobalsClass::CollectStatistics()
           retcode = deletePersistentCBFsForIUS(*hssample_table, singleGroup);
           HSHandleErrorIUS(retcode);
 
-
-          // setup the sample size
+          // Set the sample parameters to do an RUS corresponding to the existing
+          // persistent sample.
+          optFlags |= SAMPLE_RAND_1;
           sampleRowCount = futureSampleSize;
+          sampleTblPercent = sampleRateAsPercetageForIUS * 100;
+          useSampling = TRUE;
+          sampleTable.setSampleType(optFlags & SAMPLE_REQUESTED);
+          sampleTable.setSampleTablePercent(sampleTblPercent);
 
+          // Set the external sample table name if specified by cqd, or set
+          // externalSampleTable to FALSE, so a temporary sample table will
+          // be created by the RUS code.
+          if (!IsNAStringSpaceOrEmpty(sampleTableFromCQD)) {
+              *hssample_table = sampleTableFromCQD;
+              externalSampleTable = TRUE;
+          } else {
+            externalSampleTable = FALSE;
+          }
         } else {
-
           if (multiGroup)  // don't return if there are MCs to process
             sampleRowCount = futureSampleSize;
           else
@@ -5393,8 +5397,8 @@ Lng32 HSGlobalsClass::CollectStatistics()
         // internal sort disabled
         if (LM->LogNeeded()) LM->Log("Internal sort is disabled");
         if (useSampling && !externalSampleTable)
-          retcode = sampleTable.make(currentRowCountIsEstimate_, 
-                                     *hssample_table, 
+          retcode = sampleTable.make(currentRowCountIsEstimate_,
+                                     *hssample_table,
                                      actualRowCount, sampleRowCount);
             // hssample_table assigned, actualRowCount and sampleRowCount may get adjusted.
         else if (!externalSampleTable)
@@ -5517,10 +5521,9 @@ Lng32 HSGlobalsClass::CollectStatistics()
                 LM->Log("Internal sort: reading sample directly from base table; no sample table created");
               *hssample_table = getTableName(user_table->data(), nameSpace);
                 // sampleTblPercent and sampleRowCount may get adjusted.
-              retcode = createSampleOption(optFlags & SAMPLE_REQUESTED, 
-                                           sampleTblPercent, *sampleOption, 
-                                           sampleValue1, sampleValue2);
-              HSHandleError(retcode);
+              createSampleOption(optFlags & SAMPLE_REQUESTED,
+                                 sampleTblPercent, *sampleOption,
+                                 sampleValue1, sampleValue2);
               sampleTableUsed = FALSE;
               samplingUsed    = TRUE;
 
@@ -5533,8 +5536,8 @@ Lng32 HSGlobalsClass::CollectStatistics()
         else
           {
               if (useSampling && !externalSampleTable)
-                retcode = sampleTable.make(currentRowCountIsEstimate_, 
-                                           *hssample_table, 
+                retcode = sampleTable.make(currentRowCountIsEstimate_,
+                                           *hssample_table,
                                            actualRowCount, sampleRowCount);
                // hssample_table assigned, actualRowCount and sampleRowCount may get adjusted.
               else if (!externalSampleTable)
@@ -5733,22 +5736,43 @@ Lng32 HSGlobalsClass::CollectStatistics()
         group = group->next;
       }
 
-    // If we used cqd USTAT_ESTIMATE_HBASE_ROW_COUNT 'ON', then actualRowCount
-    // is the estimate of the row count given by HBase. If we also did not do
-    // sampling, we know the true row count; this is in sampleRowCount. We
-    // take the opportunity here to correct the actualRowCount in this case.
-    if (!samplingUsed && isHbaseTable &&
-        CmpCommon::getDefault(USTAT_ESTIMATE_HBASE_ROW_COUNT) == DF_ON)
+    // If the current row count for an Hbase table is an estimate, then
+    // actualRowCount is the estimate of the row count given by HBase. This
+    // estimate can sometimes be inaccurate. Now that we have actually read
+    // the data, we can improve the estimate. If we used sampling, we can
+    // divide our sampleRowCount by the sampling ratio. If we did not use
+    // sampling, the sampleRowCount is the true row count.
+
+    // Note: After a recent code change, we no longer do an estimate
+    // when not doing sampling. So the "else" case below is actually dead
+    // code. But I'm leaving the code here on the chance that we change
+    // our minds about estimates in the non-sampling case.
+
+    if (isHbaseTable && currentRowCountIsEstimate_)
       {
-        if (LM->LogNeeded())
-          {
-            sprintf(LM->msg, "Correcting actualRowCount (was " PF64 ") from sampleRowCount (" PF64 ")",
-                             actualRowCount,sampleRowCount);
-            LM->Log(LM->msg);
+        if (samplingUsed)
+          {  
+            HS_ASSERT(sampleTblPercent > 0 && sampleTblPercent <= 100.00);
+            Int64 newActualRowCount = (Int64)((100 * sampleRowCount) / sampleTblPercent);
+            if (LM->LogNeeded())
+              {
+                sprintf(LM->msg, "Re-estimating actualRowCount (was " PF64 ") as " PF64,
+                                 actualRowCount,newActualRowCount);
+                LM->Log(LM->msg);
+              }
+            actualRowCount = newActualRowCount;           
           }
-        actualRowCount = sampleRowCount;
-      }
-         
+        else
+          {
+            if (LM->LogNeeded())
+              {
+                sprintf(LM->msg, "Correcting actualRowCount (was " PF64 ") from sampleRowCount (" PF64 ")",
+                                 actualRowCount,sampleRowCount);
+                LM->Log(LM->msg);
+              }
+            actualRowCount = sampleRowCount;
+          }
+      }         
 
     if (singleGroup && LM->LogNeeded())
       LM->StopTimer();
@@ -6000,9 +6024,10 @@ Lng32 HSGlobalsClass::begin_IUS_work(char* ius_update_history_buffer)
    HSHandleError(retcode);
 
    //
-   // If we reach here, it means we have successfully stored the bdt and our process info
-   // into the UPDATE_DATE and UPDATER_INFO column. We can return TRUE.
+   // If we reach here, we have successfully stored the bdt and our process info
+   // into the UPDATE_DATE and UPDATER_INFO columns of SB_PERSISTENT_SAMPLES.
    //
+   PSRowUpdated = TRUE;
    return 0;
 }
 
@@ -6146,7 +6171,7 @@ HSGlobalsClass::detectPersistentCBFsForIUS(NAString& sampleTableName,
       if (stat(cbfFile, &sts) == -1 && errno == ENOENT)
         group->delayedRead = FALSE; 
       else
-        group->delayedRead = TRUE; 
+        group->delayedRead = TRUE;
       
       group = group->next;
    }
@@ -6319,9 +6344,6 @@ Lng32 HSGlobalsClass::generateSampleI(Int64 currentSampleSize,
 
     HSTranMan *TM = HSTranMan::Instance();
     NABoolean transStarted = (TM->Begin("IUS clean data set I") == 0);
-
-    if (LM->LogNeeded()) LM->StartTimer("IUS: select-insert to form persistent I");
-
 
     NAString insertSelectIQuery;
     iusSampleInsertedInMem->generateInsertSelectIQuery(sampleTable_I, 
@@ -6812,8 +6834,12 @@ Int32 HSGlobalsClass::deletePersistentCBFsForIUS(NAString& sampleTableName,
 Lng32 HSGlobalsClass::selectIUSBatch(Int64 currentRows, Int64 futureRows, NABoolean& ranOut, Int32& colsSelected)
 {
   HSLogMan *LM = HSLogMan::Instance();
+  if (LM->LogNeeded())
+    LM->StartTimer("IUS: selectIUSBatch()");
 
   colsSelected = 0;
+  iusSampleDeletedInMem->depopulate();
+  iusSampleInsertedInMem->depopulate();
   Int64 memAllowed = getMaxMemory();
   Int64 memLeft = memAllowed;
 
@@ -6957,9 +6983,11 @@ Lng32 HSGlobalsClass::selectIUSBatch(Int64 currentRows, Int64 futureRows, NABool
            memLeft -= totMemNeeded;
 
          } else {
-           // the memory is not enough for the group. Do nothing. 
-           // The group is still in UNPROCESSED state.
+           // Not enough memory for the group. Leave the group in UNPROCESSED state,
+           // and get rid of the HSHistogram object we created for it.
            ranOut = TRUE;
+           delete group->groupHist;
+           group->groupHist = NULL;
            if (LM->LogNeeded()) {
               sprintf(LM->msg, "Not enough memory: memLeft=" PF64 "totMemNeeded=", memLeft);
               formatFixedNumeric((Int64)totMemNeeded, 0, LM->msg+strlen(LM->msg));
@@ -7036,6 +7064,7 @@ Lng32 HSGlobalsClass::selectIUSBatch(Int64 currentRows, Int64 futureRows, NABool
         }
      sprintf(LM->msg, "return from selectIUSBatch(): count=%d", colsSelected); 
      LM->Log(LM->msg);
+     LM->StopTimer();
     }
 
   return retcode;
@@ -7066,8 +7095,11 @@ Lng32 HSGlobalsClass::incrementHistograms()
          } else {
            if ( retcode == 0 ) {
               group->state = PROCESSED; // IUS successful. 
-              delGroup->state = PROCESSED; // IUS successful. 
-              insGroup->state = PROCESSED; // IUS successful. 
+              group->freeISMemory();
+              delGroup->state = PROCESSED; // IUS successful.
+              delGroup->freeISMemory();
+              insGroup->state = PROCESSED; // IUS successful.
+              insGroup->freeISMemory();
            } else
               HSHandleError(retcode);
          }
@@ -7165,6 +7197,9 @@ Lng32 HSGlobalsClass::initIUSIntervals(HSColGroupStruct* smplGroup,
                                        UInt32 histID,
                                        Int16 numIntervals)
 {
+  HSLogMan *LM = HSLogMan::Instance();
+  if (LM->LogNeeded())
+    LM->StartTimer("IUS: initIUSIntervals()");
   typedef Int16 LenType;
   Lng32 retcode = 0;
   Int64 tableUID = objDef->getObjectUID();
@@ -7273,6 +7308,8 @@ Lng32 HSGlobalsClass::initIUSIntervals(HSColGroupStruct* smplGroup,
 
     }
 
+  if (LM->LogNeeded())
+    LM->StopTimer();
   return retcode;
 }
 
@@ -12037,7 +12074,11 @@ Int32 HSGlobalsClass::processIUSColumn(T* ptr,
                       << DgString0(smplGroup->colSet[0].colname->data());
 
              
-LM->Log("NONMFV overflow");
+            if (LM->LogNeeded()) {
+              LM->Log("NONMFV overflow");
+              LM->StopTimer();  // Need both of these; there are
+              LM->StopTimer();  //   2 outstanding timer events
+            }
             return UERR_IUS_INSERT_NONMFV_OVERFLOW;
          }
 
@@ -12165,10 +12206,9 @@ if ( x[0] == (unsigned char)255 && x[1] == (unsigned char)127 ) {
 
       // non-mfv value overflows to mfv. bail out.
       if (insert_status == CountingBloomFilter::NEW_MFV) {
-
          diagsArea << DgSqlCode(UERR_IUS_INSERT_NONMFV_OVERFLOW)
                    << DgString0(smplGroup->colSet[0].colname->data());
-
+         LM->StopTimer();
          return UERR_IUS_INSERT_NONMFV_OVERFLOW;
       }
 
@@ -12385,11 +12425,10 @@ Int32 HSGlobalsClass::estimateAndTestIUSStats(HSColGroupStruct* group,
   HSLogMan *LM = HSLogMan::Instance();
 
   if (LM->LogNeeded()) {
-    sprintf(LM->msg, "IUS estimateAndTest() for column %s, the exist histogram is", 
-                   group->colSet[0].colname->data());
-    hist->logAll(LM->msg);
-
+    sprintf(LM->msg, "IUS: estimateAndTestIUSStats() for column %s",
+                     group->colSet[0].colname->data());
     LM->StartTimer(LM->msg);
+    hist->logAll("The existing histogram is:");
     sprintf(LM->msg, "Total #intervals=%d, scaleFactor=%f,nullCount=%d", 
                       numNonNullIntervals, scaleFactor, nullCount);
     LM->Log(LM->msg);
@@ -12654,6 +12693,7 @@ Int32 HSGlobalsClass::estimateAndTestIUSStats(HSColGroupStruct* group,
         }
      diagsArea << DgSqlCode(shapeTestError)
                << DgString0(group->colSet[0].colname->data());
+     LM->StopTimer();
      return shapeTestError;
      }
 
@@ -12693,6 +12733,7 @@ Int32 HSGlobalsClass::estimateAndTestIUSStats(HSColGroupStruct* group,
       delta((UInt64)origTotalRC, totalRC)/origTotalRC > rcTotalChangeThreshold )  {
      diagsArea << DgSqlCode(UERR_WARNING_IUS_TOO_MUCH_RC_CHANGE_TOTAL)
                << DgString0(group->colSet[0].colname->data());
+     LM->StopTimer();
      return UERR_WARNING_IUS_TOO_MUCH_RC_CHANGE_TOTAL;
   }
 
@@ -12706,6 +12747,7 @@ Int32 HSGlobalsClass::estimateAndTestIUSStats(HSColGroupStruct* group,
       delta((UInt64)origTotalUEC, totalUEC)/origTotalUEC > uecTotalChangeThreshold ) {
      diagsArea << DgSqlCode(UERR_WARNING_IUS_TOO_MUCH_UEC_CHANGE_TOTAL)
                << DgString0(group->colSet[0].colname->data());
+     LM->StopTimer();
      return UERR_WARNING_IUS_TOO_MUCH_UEC_CHANGE_TOTAL;
   }
 
@@ -15592,12 +15634,13 @@ Lng32 HSGlobalsClass::processFastStatsBatch(CollIndex numCols, HSColGroupStruct*
     {
       group = colGroups[i];
 
-      //@ZXbl -- memory alloc may be moved later
+      //@ZXbl -- memory alloc may be moved later. Also needs to be able to recover
+      //         from insufficient memory.
       if (!group->allocateISMemory(MAX_ROWSET,
                                    TRUE,        // alloc strdata if a char type
                                    FALSE))      // no recalc memneeded (IUS)
         {
-          diagsArea << DgSqlCode(UERR_IUS_NO_SUFFICIENT_MEMORY);
+          diagsArea << DgSqlCode(UERR_FASTSTATS_MEM_ALLOCATION_ERROR);
           retcode = -1;
           HSHandleError(retcode);
         }
@@ -15722,8 +15765,8 @@ Lng32 HSGlobalsClass::CollectStatisticsWithFastStats()
   {
     numCols = selectFastStatsBatch(colGroups);
     if (numCols > 0)
-      processFastStatsBatch(numCols, colGroups);
-  } while (numCols > 0);
+      retcode = processFastStatsBatch(numCols, colGroups);
+  } while (numCols > 0 && retcode >= 0);
 
   return retcode;
 }

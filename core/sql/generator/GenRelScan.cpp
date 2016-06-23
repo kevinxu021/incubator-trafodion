@@ -1580,6 +1580,15 @@ if (hTabStats->isOrcFile())
   char * tablename = 
     space->AllocateAndCopyToAlignedSpace(GenGetQualifiedName(getIndexDesc()->getNAFileSet()->getFileSetName()), 0);
 
+  char * nullFormat = NULL;
+  if (hTabStats->getNullFormat())
+    {
+      nullFormat = 
+        space->allocateAndCopyToAlignedSpace(hTabStats->getNullFormat(),
+                                             strlen(hTabStats->getNullFormat()),
+                                             0);
+    }
+
   // info needed to validate hdfs file structs
   char * hdfsRootDir = NULL;
   Int64 modTS = -1;
@@ -1600,6 +1609,7 @@ if (hTabStats->isOrcFile())
       // At runtime, only these dirs will be checked for data modification.
       // ** TBD **
     }
+
 
   // create hdfsscan_tdb
   ComTdbHdfsScan *hdfsscan_tdb = NULL;
@@ -1680,6 +1690,7 @@ if (hTabStats->isOrcFile())
            numCompressionTypes,
            hTabStats->getRecordTerminator(),  // recordDelimiter
            hTabStats->getFieldTerminator(),   // columnDelimiter,
+           nullFormat,
            hdfsBufSize,
            rangeTailIOSize,
            partCols.entries(),

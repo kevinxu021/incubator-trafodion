@@ -1,6 +1,6 @@
 /* @@@ START COPYRIGHT @@@
 * 
-*  (C) Copyright 2016 Esgyn Corporation
+*  (C) Copyright 2015-2016 Esgyn Corporation
 *
 *  @@@ END COPYRIGHT @@@
 */
@@ -12,12 +12,14 @@
 .dbmgr-tools-form label {
 	width: 150px;
 }
+
 #notifyMenu>ul.odd {
-    background: url('../img/details_open.png') no-repeat left top;
-    cursor: pointer;
+	background: url('../img/details_open.png') no-repeat left top;
+	cursor: pointer;
 }
+
 #notifyMenu>ul.odd.shown {
-    background: url('../img/details_close.png') no-repeat left top;
+	background: url('../img/details_close.png') no-repeat left top;
 }
 
 .dbmgr-tools-form .file {
@@ -41,31 +43,38 @@
 .dbmgr-tools-form .file:hover {
 	
 }
- #wrapper {
-     height: 100%;     
-     width: 100%;
-     position: absolute;
-     top: 0px;
-     left: 0;
-     display: inline-block;
- }
- #content-wrapper	 {
-     height: 100%;
-     overflow-y: auto;
-     padding: 60px 0 0px 0;
-     transition: all .5s linear;
-     -moz-transition: all .5s linear;
-     -webkit-transition: all .5s linear;
-     -o-transition: all .5s linear;
- }
- #sidebar-wrapper	 {
+
+#wrapper {
 	height: 100%;
-    padding: 80px 0 0px 0;
-    position: fixed;
-    right: 0;
- }
- #page-wrapper {
-	margin: 2px;
+	width: 100%;
+	/*overflow-y: auto;*/
+	/*position: absolute;
+	top: 0px;
+	left: 0;*/
+	display: inline-block;
+}
+
+#content-wrapper {
+	height: 100%;
+	/*width: 100%;*/
+	overflow-y: auto;
+	padding: 0px !important;
+	transition: all .5s linear;
+	-moz-transition: all .5s linear;
+	-webkit-transition: all .5s linear;
+	-o-transition: all .5s linear;
+}
+
+#sidebar-wrapper {
+	height: 100%;
+	padding: 10px 0 0px 0;
+	position: relative;
+	right: 0;
+	overflow:auto;
+}
+
+#page-wrapper {
+	margin: 0px;
 }
 
 .panel-heading span {
@@ -117,7 +126,7 @@
 	display: table-cell;
 	padding-right: 10px;
 	margin-bottom: 10px;
-	font-size:13px;
+	font-size: 13px;
 }
 
 .dbmgr-button, .dbmgr-link-button {
@@ -130,7 +139,7 @@
 	width: 200px;
 	margin-bottom: 0px;
 	font-weight: 55;
-	font-size:13px;
+	font-size: 13px;
 }
 
 .nav>li {
@@ -149,6 +158,9 @@
 	.navbar-default .sidebar-nav {
 		border-color: #e7e7e7;
 	}*/
+	#page-wrapper {
+		padding:0px 15px;
+	}
 	.page-header {
 		margin-top: 10px;
 		padding-bottom: 5px;
@@ -172,7 +184,7 @@
 	#dbmgr-page-wrapper {
 		position: inherit;
 		/*margin: 0 0 0 250px;*/
-		padding: 0 30px;
+		/*padding: 0 30px;*/
 		border-left: 1px solid #e7e7e7;
 	}
 	.dbmgr-error-text {
@@ -301,5 +313,29 @@
 	li {
 		cursor: pointer;
 		cursor: hand;
+	}
+	.datatable-scroll {
+		overflow-x: auto;
+		overflow-y: visible;
+	}
+	table.dataTable thead th.sorting:after {
+		content: "\f0dc";
+		color: black;
+		font-size: 0.8em;
+		padding-top: 0.12em;
+	}
+	.dataTables_wrapper .dataTables_paginate .paginate_button {
+		padding: 1px;
+	}
+	table.dataTable, table.dataTable th, table.dataTable td {
+		-webkit-box-sizing: content-box;
+		box-sizing: border-box;
+	}
+	footer{
+		position: relative;
+	    border-top: 1px solid #e5e5e5;
+	    padding: 30px 0;
+	    margin-top: -101px;
+	    height: 40px;
 	}
 }

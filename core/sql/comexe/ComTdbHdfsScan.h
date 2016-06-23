@@ -143,21 +143,22 @@ class ComTdbHdfsScan : public ComTdb
   Int32 partColsRowLength_;                                   // 200 - 203
   Int32 virtColsRowLength_;                                   // 204 - 207
   Int32 numPartCols_;                                         // 208 - 211
+  char fillersComTdbHdfsScan1_[4];                            // 236 - 239
   ExExprPtr partElimExpr_;                                    // 212 - 219
   UInt32  hiveScanMode_;                                      // 220 - 223
   UInt32 numCompressionInfos_;                                // 224 - 227
   NAVersionedObjectPtrTempl<ComCompressionInfo>
                                       compressionInfos_;      // 228 - 235
-  char fillersComTdbHdfsScan1_[4];                            // 236 - 239
 
   // next 4 params are used to check if data under hdfsFileDir
   // was modified after query was compiled.
   NABasicPtr hdfsRootDir_;                                     // 240 - 247
   Int64  modTSforDir_;                                         // 248 - 255
   Lng32  numOfPartCols_;                                       // 256 - 259
+  char fillersComTdbHdfsScan2_[4];                             // 276 - 279
   QueuePtr hdfsDirsToCheck_;                                   // 260 - 267
 
-  char fillersComTdbHdfsScan2_[4];                             // 268 - 271
+  NABasicPtr nullFormat_;                                      // 268 - 275
     
 public:
   enum HDFSFileType
@@ -191,6 +192,7 @@ public:
                  Int16 numCompressionInfos,
                  char recordDelimiter,
                  char columnDelimiter,
+                 char * nullFormat,
 		 Int64 hdfsBufSize,
                  UInt32 rangeTailIOSize,
                  Int32 numPartCols,
@@ -215,6 +217,7 @@ public:
 		 Cardinality estimatedRowCount,
                  Int32  numBuffers,
                  UInt32  bufferSize,
+
                  char * errCountTable = NULL,
                  char * loggingLocation = NULL,
                  char * errCountId = NULL,
@@ -272,6 +275,8 @@ public:
   const ComCompressionInfo * getCompressionInfo(int c) const
   { return ((c >= 0 && c < numCompressionInfos_) ? &compressionInfos_[c] : NULL); }
 
+  char * getNullFormat() { return nullFormat_; }
+
   const NABoolean isTextFile() const { return (type_ == TEXT_);}
   const NABoolean isSequenceFile() const { return (type_ == SEQUENCE_);}  
   const NABoolean isOrcFile() const { return (type_ == ORC_);}
@@ -289,27 +294,28 @@ public:
   NABoolean hdfsPrefetch() { return (flags_ & HDFS_PREFETCH) != 0; };
 
   void setUseCif(NABoolean v)
-   {(v ? flags_ |= USE_CIF : flags_ &= ~USE_CIF); };
-   NABoolean useCif() { return (flags_ & USE_CIF) != 0; };
+  {(v ? flags_ |= USE_CIF : flags_ &= ~USE_CIF); };
+  NABoolean useCif() { return (flags_ & USE_CIF) != 0; };
+  
+  void setUseCifDefrag(NABoolean v)
+  {(v ? flags_ |= USE_CIF_DEFRAG : flags_ &= ~USE_CIF_DEFRAG); };
+  NABoolean useCifDefrag() { return (flags_ & USE_CIF_DEFRAG) != 0; };
 
-   void setUseCifDefrag(NABoolean v)
-    {(v ? flags_ |= USE_CIF_DEFRAG : flags_ &= ~USE_CIF_DEFRAG); };
-   NABoolean useCifDefrag() { return (flags_ & USE_CIF_DEFRAG) != 0; };
-   void setContinueOnError(NABoolean v)
-    {(v ? flags_ |= CONTINUE_ON_ERROR : flags_ &= ~CONTINUE_ON_ERROR); };
-   NABoolean continueOnError() { return (flags_ & CONTINUE_ON_ERROR) != 0; };
+  void setContinueOnError(NABoolean v)
+  {(v ? flags_ |= CONTINUE_ON_ERROR : flags_ &= ~CONTINUE_ON_ERROR); };
+  NABoolean continueOnError() { return (flags_ & CONTINUE_ON_ERROR) != 0; };
+  
+  void setEmptyAsNULL(NABoolean v)
+  {(v ? flags_ |= TREAT_EMPTY_AS_NULL : flags_ &= ~TREAT_EMPTY_AS_NULL); };
+  NABoolean emptyAsNULL() { return (flags_ & TREAT_EMPTY_AS_NULL) != 0; };
 
-   void setEmptyAsNULL(NABoolean v)
-    {(v ? flags_ |= TREAT_EMPTY_AS_NULL : flags_ &= ~TREAT_EMPTY_AS_NULL); };
-   NABoolean emptyAsNULL() { return (flags_ & TREAT_EMPTY_AS_NULL) != 0; };
-
-    void setLogErrorRows(NABoolean v)
-     {(v ? flags_ |= LOG_ERROR_ROWS : flags_ &= ~LOG_ERROR_ROWS); };
-    NABoolean getLogErrorRows() { return (flags_ & LOG_ERROR_ROWS) != 0; };
-
-     UInt32 getMaxErrorRows() const { return maxErrorRows_;}
-     void setMaxErrorRows(UInt32 v ) { maxErrorRows_= v; }
-
+  void setLogErrorRows(NABoolean v)
+  {(v ? flags_ |= LOG_ERROR_ROWS : flags_ &= ~LOG_ERROR_ROWS); };
+  NABoolean getLogErrorRows() { return (flags_ & LOG_ERROR_ROWS) != 0; };
+  
+  UInt32 getMaxErrorRows() const { return maxErrorRows_;}
+  void setMaxErrorRows(UInt32 v ) { maxErrorRows_= v; }
+  
   // ---------------------------------------------------------------------
   // Used by the internal SHOWPLAN command to get attributes of a TDB.
   // ---------------------------------------------------------------------

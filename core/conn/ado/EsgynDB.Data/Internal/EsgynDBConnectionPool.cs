@@ -46,8 +46,7 @@
             {
                 if (_pool.Count >= this._builder.MaxPoolSize)
                 {
-                    EsgynDBException e = new EsgynDBException(EsgynDBMessage.PoolExhuasted, this._builder.MaxPoolSize);
-                    EsgynDBException.ThrowException(conn, e);
+                    EsgynDBException.ThrowException(conn, new EsgynDBException(EsgynDBMessage.PoolExhuasted, this._builder.MaxPoolSize));
                     //waiting for connecting, done in the future
                 }
                 if (conn != null)
@@ -82,8 +81,7 @@
                 }
                 else if (_pool.Count >= this._builder.MaxPoolSize)
                 {
-                    EsgynDBException e = new EsgynDBException(EsgynDBMessage.PoolExhuasted, this._builder.MaxPoolSize);
-                    EsgynDBException.ThrowException(conn, e);
+                    EsgynDBException.ThrowException(conn, new EsgynDBException(EsgynDBMessage.PoolExhuasted, this._builder.MaxPoolSize));
                     //waiting for connecting, done in the future
                 }
                 return null;

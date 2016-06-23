@@ -135,7 +135,7 @@ public:
     isSaltColumn_(isSaltColumn),
     isDivisioningColumn_(isDivisioningColumn),
     lobNum_(-1),
-    lobStorageType_(Lob_Invalid_Storage),
+    lobStorageType_(Lob_HDFS_File),
     lobStorageLocation_(NULL),
     hbaseColFlags_(0),
     virtualColumnType_(NON_VIRTUAL_COL)
@@ -179,7 +179,7 @@ public:
     hbaseColFam_(nac.hbaseColFam_),
     hbaseColQual_(nac.hbaseColQual_),
     hbaseColFlags_(nac.hbaseColFlags_),
-    virtualColumnType_(NON_VIRTUAL_COL)
+    virtualColumnType_(nac.virtualColumnType_)
   {
     routineParamType_[0] = 0;
     if (nac.routineParamType_) strncpy(routineParamType_, nac.routineParamType_, 2);
