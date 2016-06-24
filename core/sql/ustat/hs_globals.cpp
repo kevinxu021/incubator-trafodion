@@ -3411,7 +3411,7 @@ NABoolean HSGlobalsClass::isAuthorized(NABoolean isShowStats)
     return TRUE;
 
    // no privilege support available for hbase and hive tables
-   assert (objDef->getNATable());
+   HS_ASSERT (objDef->getNATable());
    if (CmpSeabaseDDL::isHbase(objDef->getCatName()) || isHiveCat(objDef->getCatName()))
      return TRUE;
 
@@ -6773,8 +6773,8 @@ Int32 HSGlobalsClass::writeCBFstoDiskForIUS(NAString& sampleTableName,
 
            char* buffer = bufptr;
            sz = group->cbf->packIntoBuffer(buffer, FALSE /* no bytes swapping */ );
-           assert( sz <= bufSz);
-           assert( sz <= buffer - bufptr);
+           HS_ASSERT( sz <= bufSz);
+           HS_ASSERT( sz <= buffer - bufptr);
 
            ssize_t wsz = write(fd, bufptr, sz);
 
@@ -8148,6 +8148,35 @@ NABoolean HSGlobalsClass::allMCGroupsProcessed(NABoolean forIS)
     return TRUE;
 }
 
+
+// This function is called by the HS_ASSERT macro to take care of some things
+// before triggering an assertion failure:
+//   - Log the assertion failure if logging is enabled.
+//   - Roll back transaction if one is in progress.
+//   - Put an assertion error in the diagnostics area. This is supposed to be
+//     done by code executed due to the macro HS_ASSERT invokes for the assertion
+//     failure, but it does not always work properly. Doing it here prevents it
+//     from being attempted downstream.
+// The parameters are the text of the assertion, and the file and line at which
+// it occurred.
+void HSGlobalsClass::preAssertionFailure(const char* condition,
+                                         const char* fileName,
+                                         Lng32 lineNum)
+{
+  HSTranMan *TM = HSTranMan::Instance();
+  HSLogMan *LM = HSLogMan::Instance();
+  if (LM->LogNeeded())
+    {
+      sprintf(LM->msg, "***[ERROR] INTERNAL ASSERTION (%s) AT %s:%i", condition, fileName, lineNum);
+      LM->Log(LM->msg);
+    }
+  if (TM->StartedTransaction())
+    TM->Rollback();
+  diagsArea << DgSqlCode(arkcmpErrorAssert)
+            << DgString0(condition)
+            << DgString1(fileName)
+            << DgInt0(lineNum);
+}
 
 
 /****************************************************************/
@@ -11894,6 +11923,15 @@ Int32 computeKeyLengthInfo(Lng32 datatype)
 }
 
 template <class T>
+void IUSValueIterator<T>::init(HSColGroupStruct* group)
+{
+  // Strings must be contiguous in the strData buffer for this iterator to
+  // work correctly.
+  HS_ASSERT(group->strDataConsecutive);
+  vp = (T*)group->data;
+}
+
+template <class T>
 Int32 HSGlobalsClass::processIUSColumn(T* ptr,
                       const NAWchar* format,
                       HSColGroupStruct* smplGroup,
@@ -12112,8 +12150,8 @@ Int32 HSGlobalsClass::processIUSColumn(T* ptr,
      }
 
   } else {
-
-     assert(cbf->numBuckets() == hist->getNumIntervals());
+     // 1 more bucket than interval so that interval# maps to bucket# directly
+     HS_ASSERT(cbf->numBuckets() == hist->getNumIntervals() + 1);
      cbf->setKenLengthInfo( computeKeyLengthInfo(smplGroup->ISdatatype) );
      sampleRowCount = cbf->totalFreqForAll();
   }
@@ -14106,7 +14144,7 @@ static short convFloat64ToAscii(char *target,
   short err = 0;
 
   Lng32 displaySize = digits + 8; // Mantissa = digits + 3, E = 1, Exponent = 4
-  assert(displaySize <= SQL_DOUBLE_PRECISION_DISPLAY_SIZE);
+  HS_ASSERT(displaySize <= SQL_DOUBLE_PRECISION_DISPLAY_SIZE);
   char tempTarget[SQL_DOUBLE_PRECISION_DISPLAY_SIZE + 1];
   //char format[8];
 
