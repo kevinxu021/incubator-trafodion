@@ -2527,7 +2527,13 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   DDflt0_(NCM_NJ_PROBES_MAXCARD_FACTOR,         "10000"),
   DDkwd__(NCM_NJ_SEQIO_FIX,                     "ON"), // change to ON
   DDint__(NCM_NUM_SORT_RUNS,			"4"),
+
   DDflt__(NCM_OLTP_ET_THRESHOLD,                "60.0"),
+
+  DDkwd__(NCM_ORC_COSTING,                      "ON"),  
+  DDkwd__(NCM_ORC_COSTING_APPLY_SKIP_RATIO,      "OFF"),
+  DDkwd__(NCM_ORC_COSTING_DEBUG,                "OFF"),  
+
   DDflt__(NCM_PAR_ADJ_FACTOR,                   "0.10"),
   DDkwd__(NCM_PAR_GRPBY_ADJ,			"ON"),
   DDkwd__(NCM_PRINT_ROWSIZE,			"OFF"),
