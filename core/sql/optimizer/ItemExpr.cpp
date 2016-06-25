@@ -914,8 +914,8 @@ NABoolean ItemExpr::doesExprEvaluateToConstant(NABoolean strict,
         return TRUE;
       }
       return FALSE;
-		default:
-		  return FALSE;
+    default:
+      return FALSE;
     }
   }
 

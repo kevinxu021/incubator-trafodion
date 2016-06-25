@@ -1129,7 +1129,7 @@ EstLogPropSharedPtr AppliedStatMan::getStatsForCANodeId(
       if ( cardHint ) 
          rc = (cardHint->getScanCardinality()).getValue();
 
-      if ( !cardHint && tableDesc->getNATable()->isHbaseTable() ) {
+      if ( !cardHint ) {
 
           NATable* nt = (NATable*)(tableDesc->getNATable());
    

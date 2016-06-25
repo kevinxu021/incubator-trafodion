@@ -245,6 +245,7 @@ void HHDFSStatsBase::add(const HHDFSStatsBase *o)
   numBlocks_ += o->numBlocks_;
   numFiles_ += o->numFiles_; 
   totalRows_ += o->totalRows_;
+  numStripes_ += o->numStripes_;
   totalStringLengths_ += o->totalStringLengths_; 
   totalSize_ += o->totalSize_;
   if (o->modificationTS_ > modificationTS_)
@@ -258,6 +259,7 @@ void HHDFSStatsBase::subtract(const HHDFSStatsBase *o)
   numBlocks_ -= o->numBlocks_;
   numFiles_ -= o->numFiles_; 
   totalRows_-= o->totalRows_;
+  numStripes_ -= o->numStripes_;
   totalStringLengths_ -= o->totalStringLengths_;
   totalSize_ -= o->totalSize_;
   sampledBytes_ -= o->sampledBytes_;
@@ -1789,6 +1791,7 @@ void HHDFSORCFileStats::assignToESPs(NodeMapIterator* nmi,
 
 THREAD_P Int64 HHDFSORCFileStats::totalAccumulatedRows_ = 0;
 THREAD_P Int64 HHDFSORCFileStats::totalAccumulatedTotalSize_ = 0;
+THREAD_P Int64 HHDFSORCFileStats::totalAccumulatedStripes_ = 0;
 
 void HHDFSORCFileStats::populate(hdfsFS fs,
                 hdfsFileInfo *fileInfo,
@@ -1800,8 +1803,11 @@ void HHDFSORCFileStats::populate(hdfsFS fs,
    // do not estimate # of records on ORC files
    HHDFSFileStats::populate(fs, fileInfo, samples, diags, FALSE, recordTerminator);
 
-   NABoolean readStripeInfo = (CmpCommon::getDefault(ORC_READ_STRIPE_INFO) == DF_ON);
-   NABoolean readNumRows = doEstimation || (CmpCommon::getDefault(ORC_READ_NUM_ROWS) == DF_ON);
+   NABoolean readStripeInfo = doEstimation || 
+                             (CmpCommon::getDefault(ORC_READ_STRIPE_INFO) == DF_ON);
+   NABoolean readNumRows = doEstimation || 
+                           (CmpCommon::getDefault(ORC_READ_NUM_ROWS) == DF_ON);
+
    NABoolean needToOpenORCI = (readStripeInfo || readNumRows );
 
    ExpORCinterface* orci = NULL;
@@ -1822,8 +1828,17 @@ void HHDFSORCFileStats::populate(hdfsFS fs,
       }
    }
 
-   if ( readStripeInfo ) 
+   if ( readStripeInfo ) {
       orci->getStripeInfo(numOfRows_, offsets_, totalBytes_);
+      numStripes_ = offsets_.entries();
+      totalAccumulatedStripes_ += offsets_.entries();
+   } else {
+      if ( totalAccumulatedTotalSize_ > 0 ) {
+         float stripesPerByteRatio = float(totalAccumulatedStripes_) / totalAccumulatedTotalSize_;
+         numStripes_ = totalSize_ * stripesPerByteRatio;
+      } else
+         numStripes_ = 1;
+   }
 
    if ( readNumRows ) {
      NAArray<HbaseStr> *colStats = NULL;
@@ -1842,6 +1857,9 @@ void HHDFSORCFileStats::populate(hdfsFS fs,
       HbaseStr *hbaseStr = &colStats->at(0);
       ex_assert(hbaseStr->len <= sizeof(totalRows_), "Insufficient length");
       memcpy(&totalRows_, hbaseStr->val, hbaseStr->len);
+
+      totalAccumulatedRows_ += totalRows_;
+      totalAccumulatedTotalSize_ += totalSize_;
 
       // get sum of the lengths of the strings
       Int64 sum = 0;
@@ -1865,9 +1883,6 @@ void HHDFSORCFileStats::populate(hdfsFS fs,
         diags.recordError(NAString("ORC interface close() failed"));
         return;
       }
-
-      totalAccumulatedRows_ += totalRows_;
-      totalAccumulatedTotalSize_ += totalSize_;
 
    } else {
       if ( totalAccumulatedTotalSize_ > 0 ) {

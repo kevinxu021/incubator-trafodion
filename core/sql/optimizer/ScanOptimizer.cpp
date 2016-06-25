@@ -3428,6 +3428,10 @@ ScanOptimizer::isMdamEnabled() const
   if (isHbaseNativeTable)
     mdamIsEnabled = FALSE;
 
+  // disable MDAM for ORC tables
+  if (idesc->getPrimaryTableDesc()->getNATable()->isORC())
+    mdamIsEnabled = FALSE;
+
   // If the table to be optimized is the base table and has divisioning
   // columns defined on it, no more check is necessary.
   if ( idesc == idesc->getPrimaryTableDesc()->getClusteringIndex() ) {

@@ -4950,6 +4950,8 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
       Int64 estimatedRC = 0;
       Int64 estimatedRecordLength = 0;
 
+      Lng32 blockSize = (Lng32)hiveHDFSTableStats->getEstimatedBlockSize();
+
       if ( isORC ) {
          // We cannot use colArray.getTotalStorageSize() for estimating row length,
          // since we make worst-case assumptions about string column sizes. 
@@ -4964,6 +4966,11 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
          else
            // we think the table is empty so there are no strings! avoid divide by zero
            estimatedRecordLength = nonStringsPart;
+
+         // The block size is purposely set to CQD NCM_SEQ_IO_WEIGHT so that the 
+         // seq IO to scan ORC table is the amount of data scanned.
+         blockSize = ActiveSchemaDB()->getDefaults().getAsDouble(NCM_SEQ_IO_WEIGHT);
+
       } else if ( !sd_desc->isTrulyText() ) {
          //
          // Poor man's estimation by assuming the record length in hive is the 
@@ -4980,8 +4987,7 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
                        hiveHDFSTableStats->getEstimatedBlockSize()-100));
       }
 		  
-      Lng32 blockSize = MAXOF((Lng32)hiveHDFSTableStats->getEstimatedBlockSize(),
-                              (Lng32)estimatedRecordLength);
+      blockSize = MAXOF(blockSize, (Lng32)estimatedRecordLength);
       
       ((NATable*)table)-> setOriginalRowCount((double)estimatedRC);
 
