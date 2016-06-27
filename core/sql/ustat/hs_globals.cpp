@@ -5361,6 +5361,9 @@ Lng32 HSGlobalsClass::CollectStatistics()
           // Remove all persistent CBFs with PENDING state
           // because RUS may generates a histogram with different
           // #intervals than that recorded in CBF! If the CBFs
+          // are left undeleted, the encoded intervals (as
+          // # of buckets) in CBF can be in conflict with
+          // the actual # of intervals computed by RUS.
           retcode = deletePersistentCBFsForIUS(*hssample_table, singleGroup);
           HSHandleErrorIUS(retcode);
 
