@@ -5319,7 +5319,7 @@ Lng32 HSGlobalsClass::CollectStatistics()
              // are left undeleted, the encoded intervals (as
              // # of buckets) in CBF can be in conflict with 
              // the actual # of intervals computed by RUS.
-             retcode = deletePersistentCBFsForIUS(*hssample_table, singleGroup);
+             retcode = deletePersistentCBFsForIUS(*hssample_table, singleGroup, PENDING);
              HSHandleErrorIUS(retcode);
 
              retcode = sortByColInMem();
@@ -5358,10 +5358,10 @@ Lng32 HSGlobalsClass::CollectStatistics()
           // process even one batch of columns, or there is no stats as a base to 
           // compute IUS.
 
-          // Remove all persistent CBFs with PENDING state
+          // Remove all persistent CBFs with UNPROCESSED state
           // because RUS may generates a histogram with different
           // #intervals than that recorded in CBF! If the CBFs
-          retcode = deletePersistentCBFsForIUS(*hssample_table, singleGroup);
+          retcode = deletePersistentCBFsForIUS(*hssample_table, singleGroup, UNPROCESSED);
           HSHandleErrorIUS(retcode);
 
           // Set the sample parameters to do an RUS corresponding to the existing
@@ -6797,7 +6797,8 @@ Int32 HSGlobalsClass::writeCBFstoDiskForIUS(NAString& sampleTableName,
 }
 
 Int32 HSGlobalsClass::deletePersistentCBFsForIUS(NAString& sampleTableName, 
-                                                 HSColGroupStruct* group)
+                                                 HSColGroupStruct* group,
+                                                 SortState stateToDelete)
 {
    // Before we have the PERSISTENT_DATA table available to us, we will
    // save the CBFs as binary files on disk. One CBF maps to one binary file.
@@ -6816,7 +6817,7 @@ Int32 HSGlobalsClass::deletePersistentCBFsForIUS(NAString& sampleTableName,
 
    while (group) {
 
-      if ( group->cbf && group->state == PENDING ) {
+      if ( group->cbf && group->state == stateToDelete ) {
 
         NAString cbfFile(cbfFilePrefix);
         str_itoa(group->colSet[0].colnum, buffer);
