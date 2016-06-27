@@ -11,7 +11,8 @@ define([
         'common',
         'handlers/ServerHandler',
         'bootstrapNotify',
-        'jqueryui'
+        'jqueryui',
+        'jquerylocalize'
         ], function ($, _, Backbone, common, serverHandler) {
 	'use strict';
 	var _this = null;
@@ -28,7 +29,7 @@ define([
 		initialized: false,
 
 		TASK_MENU:'#notify',
-
+		
 		pageWrapper: null,
 
 		pageIdentifier:null,
