@@ -856,7 +856,8 @@ Int32 NAColumnArray::getTotalStorageSize() const
   Int32 total = 0;
   for (CollIndex i=0;i<entries();i++)
     {
-       total += at(i)->getType()->getNominalSize();
+       if (!at(i)->isHiveVirtualColumn())
+          total += at(i)->getType()->getNominalSize();
     }
 
   return total;
@@ -867,9 +868,11 @@ Int32 NAColumnArray::getTotalStorageSizeForNonChars() const
   Int32 total = 0;
   for (CollIndex i=0;i<entries();i++)
     {
-       const NAType * type = at(i)->getType();
-       if (type->getTypeQualifier() != NA_CHARACTER_TYPE)
-         total += type->getNominalSize();
+       if (!at(i)->isHiveVirtualColumn()) {
+          const NAType * type = at(i)->getType();
+          if (type->getTypeQualifier() != NA_CHARACTER_TYPE)
+            total += type->getNominalSize();
+       }
     }
 
   return total;

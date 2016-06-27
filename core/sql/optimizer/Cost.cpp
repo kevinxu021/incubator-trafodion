@@ -2447,7 +2447,10 @@ void Cost::print(FILE * pfp, const char * , const char *) const
 {
   if (CmpCommon::getDefault(SIMPLE_COST_MODEL) == DF_ON)
   {
-    fprintf(pfp,"SCM Last Row Cost information\n");
+    fprintf(pfp,"SCM Last Row Cost Info:\n");
+    CostScalar et = convertToElapsedTime();
+    fprintf(pfp, "Elapsed time=%f\n", et.getValue());
+    fprintf(pfp,"Details:\n");
     cpScmlr_.print(pfp);
   }
   else

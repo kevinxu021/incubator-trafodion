@@ -1051,6 +1051,10 @@ public:
   void convertBeginKeyKeyToPredicatesForORC(ValueIdSet& preds, CollHeap* heap);
   void convertKeyToPredicate(ValueIdList& key, OperatorTypeEnum op, ValueIdSet& preds, CollHeap* heap);
 
+  // Compute the total width of all columns in this scan that involve in 
+  // the executor predicates
+  Lng32 getTotalColumnWidthForExecPreds() const;
+
 private:
 
 

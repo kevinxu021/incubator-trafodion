@@ -99,6 +99,10 @@ require.config({
 		flotcategories : {
 			deps : ['flot'],
 			exports: 'flotcategories'
+		},
+		flotresize: {
+			deps: ['flot'],
+			exports : 'flotresize'
 		}
 	},
 	paths: {
@@ -136,7 +140,8 @@ require.config({
 		flotcanvas: '../bower_components/flot/jquery.flot.canvas',
 		flotcrosshair: '../bower_components/flot/jquery.flot.crosshair',
 		flotaxislabels: '../bower_components/flot-axislabels/jquery.flot.axislabels',
-		flotcategories: '../bower_components/flot/jquery.flot.categories'
+		flotcategories: '../bower_components/flot/jquery.flot.categories',
+		flotresize: '../bower_components/flot/jquery.flot.resize'
 	}
 
 });

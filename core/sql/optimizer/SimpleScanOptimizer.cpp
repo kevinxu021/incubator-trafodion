@@ -33,6 +33,7 @@
 
 #include "SimpleScanOptimizer.h"
 #include "AllRelExpr.h"
+#include "HDFSHook.h"
 
 #ifdef DEBUG
 #define SFSOWARNING(x) fprintf(stdout, "SimpleFileScan optimizer warning: %s\n", x);
@@ -2420,16 +2421,22 @@ SimpleFileScanOptimizer::estimateEffTotalRowCount(
   // more predicates in totalPreds variable.
 
   // All this casting away is because mutable is not supported
-  NodeMap * nodeMapPtr = (NodeMap *)(getContext().getPlan()->
-    getPhysicalProperty()->getPartitioningFunction()->getNodeMap());
+  NABoolean isORC = 
+    getIndexDesc()->getPrimaryTableDesc()->getNATable()->isORC();
 
-  CostScalar actPart = getEstNumActivePartitionsAtRuntimeForHbaseRegions();
+  if ( !isORC ) {
 
-  if (CmpCommon::getDefault(NCM_HBASE_COSTING) == DF_OFF)
-    actPart = getNumActivePartitions();
+    NodeMap * nodeMapPtr = (NodeMap *)(getContext().getPlan()->
+         getPhysicalProperty()->getPartitioningFunction()->getNodeMap());
 
-  effRowCount = MINOF( effRowCount, 
-                       realRowCount * actPart/nodeMapPtr->getNumEntries() );
+    CostScalar actPart = getEstNumActivePartitionsAtRuntimeForHbaseRegions();
+
+    if (CmpCommon::getDefault(NCM_HBASE_COSTING) == DF_OFF)
+        actPart = getNumActivePartitions();
+
+    effRowCount = MINOF( effRowCount, 
+                         realRowCount * actPart/nodeMapPtr->getNumEntries() );
+  }
 
   return;
 } // SimpleFileScanOptimizer::estimateEffTotalRowCount()
