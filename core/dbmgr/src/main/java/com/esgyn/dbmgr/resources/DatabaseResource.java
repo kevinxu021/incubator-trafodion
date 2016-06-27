@@ -97,7 +97,7 @@ public class DatabaseResource {
 		if (objectType == null) {
 			objectType = "schemas";
 		}
-		System.out.println(EsgynLocalizeMapping.getLocalizedValue("s2"));
+		/*System.out.println(EsgynLocalizeMapping.getLocalizedValue("s2"));*/
 		String catalogName = "TRAFODION";
 		PreparedStatement pstmt = null;
 		Connection connection = null;
