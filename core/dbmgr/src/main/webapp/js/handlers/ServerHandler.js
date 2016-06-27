@@ -50,7 +50,7 @@ define(['handlers/EventDispatcher', 'common'],
 					}
 					xhrs["setEsgynLocale"] = $.ajax({
 						cache: false,
-						url: 'resources/db/locale',
+						url: 'resources/db/locale/?locale='+locale,
 						type:'GET',
 						dataType:"json",
 						contentType: "application/json;",

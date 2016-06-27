@@ -30,8 +30,6 @@ define([
 
 		TASK_MENU:'#notify',
 		
-		locale:null,
-
 		pageWrapper: null,
 
 		pageIdentifier:null,
@@ -106,7 +104,6 @@ define([
 				_this.afterRender(); 
 				return _this; 
 			}); 
-			this.esgynLocalize();
 		}, 
 
 		beforeRender: function() { 
@@ -132,7 +129,6 @@ define([
 		},
 
 		init: function(args){
-			/*this.esgynLocalize();*/
 			__this=this;
 			common.on(common.NOFITY_MESSAGE, this.collectNewNotifyMessage);
 			common.on(common.SIDEBAR_TOGGLE_EVENT, this.onSideBarToggle);
@@ -159,12 +155,6 @@ define([
 			/*$('#notification-btn').on('shown.bs.dropdown', function(){
 				$('#notification-btn').find('.dbmgr-notify-icon').remove();
 			});*/
-		},
-		esgynLocalize:function(){
-			_this.locale = navigator.language;
-			$.cookie("locale",_this.locale);
-			$("[data-localize]").localize("/lang/dbmgr", { language: _this.locale });
-			serverHandler.setEsgynLocale();
 		},
 		hideOrDisplaySideBar: function(args){
 			$('#notification-btn').find('.dbmgr-notify-icon').remove();

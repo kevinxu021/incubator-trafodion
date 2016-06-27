@@ -83,7 +83,7 @@ public class DatabaseResource {
 	@GET
 	@Path("/locale/")
 	@Produces("application/json")
-	public void getEsgynLocale(@Context String locale,@Context HttpServletRequest servletRequest,
+	public void getEsgynLocale(@QueryParam("locale") String locale,@Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) {
 		EsgynLocalizeMapping.setLocale(locale);
 	}
