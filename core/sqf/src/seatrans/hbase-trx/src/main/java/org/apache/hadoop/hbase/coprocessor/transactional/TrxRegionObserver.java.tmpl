@@ -76,7 +76,6 @@ import org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegionSca
 import org.apache.hadoop.hbase.regionserver.transactional.TrxTransactionState;
 import org.apache.hadoop.hbase.regionserver.transactional.TransactionState;
 import org.apache.hadoop.hbase.client.transactional.STRConfig;
-import org.apache.hadoop.hbase.coprocessor.transactional.MutationCapture;
 import org.apache.hadoop.hbase.wal.WAL;
 //import org.apache.hadoop.hbase.regionserver.wal.HLog;
 import org.apache.hadoop.hbase.regionserver.wal.HLogKey;
@@ -105,6 +104,8 @@ import org.apache.hadoop.hbase.regionserver.ScannerContext;
 #ifdef HDP2.3
 import org.apache.hadoop.hbase.regionserver.Region;
 #endif
+
+import org.trafodion.pit.MutationCapture;
 
 public class TrxRegionObserver extends BaseRegionObserver {
 
