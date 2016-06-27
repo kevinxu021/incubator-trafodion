@@ -13078,10 +13078,11 @@ computeDP2CostDataThatDependsOnSPP(
   NADefaults &defs = ActiveSchemaDB()->getDefaults();
 
   NABoolean isHbaseTable = indexDesc.getPrimaryTableDesc()->getNATable()->isHbaseTable();
+  NABoolean isHiveTable = indexDesc.getPrimaryTableDesc()->getNATable()->isHiveTable();
 
   NABoolean fakeEnv = FALSE; // do not care
   CostScalar totalCPUsExecutingDP2s = defs.getTotalNumOfESPsInCluster(fakeEnv);
-  if(!isHbaseTable)
+  if(!isHbaseTable && !isHiveTable)
   {
      // seabed api doesn't return audit count
      totalCPUsExecutingDP2s--; // do not count the system volume
@@ -14673,7 +14674,6 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   NABoolean canUseSearchKey = ( indexDesc_->isSortedORCHive() ||
                                 indexDesc_->getIndexKey().entries() > 0 );
 
- 
   const RequireReplicateNoBroadcast* rpnb = NULL;
   // If the requirement is repN, produce a repN partition func to satisfy it.
   // The primary use of repN is to access the inner side of a NJ. Only NJ into

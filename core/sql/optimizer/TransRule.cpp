@@ -2693,7 +2693,7 @@ NABoolean JoinToTSJRule::topMatch (RelExpr * expr,
 		  if(colA)
 		  {
 		    if (colA->getConstValue(cv,FALSE/*useRefAConstExpr*/))
-		      continue; // try next prefix column
+                      isaConstant = TRUE;
 		  }
 		  else
 		  {
@@ -2705,7 +2705,7 @@ NABoolean JoinToTSJRule::topMatch (RelExpr * expr,
 
 		    ValueId exprId;
 		    if(predsWithConst.referencesTheGivenValue(firstkeyCol,exprId))
-		      continue;
+		      isaConstant = TRUE;
 		  }
 
                   // skip salted columns and constant predicates
@@ -2733,6 +2733,17 @@ NABoolean JoinToTSJRule::topMatch (RelExpr * expr,
                     }
                   else // no predicate match for prefix key column
                     {
+                     // If we alrady know there exists a constant predicate,
+                     // continue to process next key column. We wait until 
+                     // this moment because if there is also an equi-join 
+                     // predicate on the same key column, like T.A = S.B = 10, 
+                     // we can set foundPrefixKey to TRUE in the THEN branch and 
+                     // quit check. If we would process the isConstant==TRUE 
+                     // case first, we would miss the equi-join predicate and
+                     // thus try the NJ.
+                     if ( isaConstant )
+                        continue;
+ 
                       if ( collectLeadingDivColumns && isLeadingDivColumn )
                         divColumnsWithoutKeyPreds.insert(firstkeyCol);
                       else

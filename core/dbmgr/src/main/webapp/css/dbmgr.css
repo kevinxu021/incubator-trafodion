@@ -198,13 +198,13 @@
 	}
 	.drilldown-container {
 		width: 850px;
-		height: 600px;
+		/*height: 600px;*/
 		padding: 20px 15px 15px 15px;
 	}
 	.dbmgr-drilldown-graph {
 		min-height: 400px;
-		height: 500px;
-		width: 75%;
+		/*height: auto;*/
+		/*width: 75%;*/
 		float: left;
 	}
 	.drilldown-legend-selector {
@@ -337,5 +337,8 @@
 	    padding: 30px 0;
 	    margin-top: -101px;
 	    height: 40px;
+	}
+	.modal-content.ui-resizable {
+	  overflow-y: auto;
 	}
 }

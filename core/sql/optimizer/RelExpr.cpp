@@ -9481,6 +9481,11 @@ NABoolean Scan::isMdamEnabled(const Context *context)
     if (CmpCommon::getDefault(MDAM_SCAN_METHOD) == DF_OFF)
       mdamIsEnabled = FALSE;
 
+
+    // do not allow MDAM scan against ORC table.
+    if (getTableDesc() && getTableDesc()->getNATable()->isORC())
+       mdamIsEnabled = FALSE;
+
     // -----------------------------------------------------------------------
     // Mdam can also be disabled for a particular scan via Control
     // Query Shape. The information is passed by the context.
@@ -14974,6 +14979,16 @@ IndexProperty* Scan::findSmallestIndex(const LIST(ScanIndexInfo *)& possibleInde
    }
 
    return smallestIndex;
+}
+
+Lng32 FileScan::getTotalColumnWidthForExecPreds() const
+{
+  TableDesc * tdesc = getTableDesc();
+
+  const TableAnalysis* tAnalysis = tdesc->getTableAnalysis();
+  const ValueIdSet & usedCols = tAnalysis->getUsedCols() ;
+
+  return usedCols.getRowLength();
 }
 
 // This function checks if the passed RelExpr is a UDF rule created by a CQS

@@ -122,7 +122,8 @@ public class OrcFileWriter {
 
             case REC_BIN16_SIGNED:
             case REC_BIN16_UNSIGNED:
-                oi = PrimitiveObjectInspectorFactory.writableShortObjectInspector;
+                // oi = PrimitiveObjectInspectorFactory.writableShortObjectInspector;
+                oi = PrimitiveObjectInspectorFactory.writableIntObjectInspector;
                 break;
 
             case REC_BIN32_SIGNED:

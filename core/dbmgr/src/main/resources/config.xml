@@ -55,7 +55,7 @@
 	<entry key="requestHeaderSize">98304</entry>
 
 	<!-- The TimeZone name of the EsgynDB server. Enter in java time zone format like America/New_York -->
-	<entry key="timeZoneName">Etc/UTC</entry>
+	<entry key="timeZoneName">America/New_York</entry>
 	
 	<!-- The openTSDB HTTP URI-->
 	<entry key="openTSDBUri">10.1.30.80:5242</entry>

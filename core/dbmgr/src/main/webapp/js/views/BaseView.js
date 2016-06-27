@@ -147,7 +147,7 @@ define([
 				$('#content-wrapper').removeClass('no-transition');
 				$('#content-wrapper').removeClass('col-md-12').addClass('col-md-10');
 			}
-
+			$('.modal-dialog').draggable();
 			$(window).on('resize', this.onWindowResize);
 			$('#content-wrapper').css('padding-top','60px');
 			$('#notification-btn').unbind().on('click', this.hideOrDisplaySideBar);
