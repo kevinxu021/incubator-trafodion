@@ -15,6 +15,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
@@ -31,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.esgyn.dbmgr.common.EsgynDBMgrException;
+import com.esgyn.dbmgr.common.EsgynLocalizeMapping;
 import com.esgyn.dbmgr.common.Helper;
 import com.esgyn.dbmgr.common.JdbcHelper;
 import com.esgyn.dbmgr.common.TabularResult;
@@ -79,6 +81,13 @@ public class DatabaseResource {
 		}
 	}
 	@GET
+	@Path("/locale/")
+	@Produces("application/json")
+	public void getEsgynLocale(@Context String locale,@Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) {
+		EsgynLocalizeMapping.setLocale(locale);
+	}
+	@GET
 	@Path("/objects/")
 	@Produces("application/json")
 	public SqlObjectListResult getDatabaseObjects(@QueryParam("type") String objectType,
@@ -88,6 +97,7 @@ public class DatabaseResource {
 		if (objectType == null) {
 			objectType = "schemas";
 		}
+		System.out.println(EsgynLocalizeMapping.getLocalizedValue("s2"));
 		String catalogName = "TRAFODION";
 		PreparedStatement pstmt = null;
 		Connection connection = null;

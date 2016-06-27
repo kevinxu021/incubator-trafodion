@@ -43,7 +43,29 @@ define(['handlers/EventDispatcher', 'common'],
 				this.sessionTimeout = function() {
 					window.location.hash = '/stimeout';
 				};
-
+				this.setEsgynLocale = function(locale){
+					var xhr = xhrs["setEsgynLocale"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["setEsgynLocale"] = $.ajax({
+						cache: false,
+						url: 'resources/db/locale',
+						type:'GET',
+						dataType:"json",
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},    				
+						success: function(data){
+							/*dispatcher.fire(null, data);*/
+						},
+						error:function(jqXHR, res, error){
+							/*dispatcher.fire(null, jqXHR, res, error);*/
+						}
+					});
+				}; 
 				this.fetchDcsServers = function(){
 					var xhr = xhrs["fetchDcsServers"];
 					if(xhr && xhr.readyState !=4){
