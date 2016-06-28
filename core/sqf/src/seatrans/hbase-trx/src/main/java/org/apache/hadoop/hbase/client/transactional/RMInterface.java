@@ -438,7 +438,7 @@ public class RMInterface {
     }
 
     public void createTable(HTableDescriptor desc, byte[][] keys, int numSplits, int keyLength, long transID) throws IOException {
-
+    	if (LOG.isTraceEnabled()) LOG.trace("Enter createTable, txid: " + transID + " Table: " + desc.getNameAsString());
         byte[] lv_byte_desc = desc.toByteArray();
         byte[] lv_byte_tblname = desc.getNameAsString().getBytes();
         if (LOG.isTraceEnabled()) LOG.trace("createTable: htabledesc bytearray: " + lv_byte_desc + "desc in hex: " + Hex.encodeHexString(lv_byte_desc));
@@ -448,11 +448,11 @@ public class RMInterface {
         	LOG.error("createTable exception. Unable to create table " + desc.getNameAsString() + " txid " + transID);
         	throw new IOException("createTable exception. Unable to create table " + desc.getNameAsString());
         }
-       
+        if (LOG.isTraceEnabled()) LOG.trace("Exit createTable, txid: " + transID + " Table: " + desc.getNameAsString());
     }
 
     public void truncateTableOnAbort(String tblName, long transID) throws IOException {
-
+    	if (LOG.isTraceEnabled()) LOG.trace("Enter truncateTableOnAbort, txid: " + transID + " Table: " + tblName);
         byte[] lv_byte_tblName = tblName.getBytes();
         int ret = truncateOnAbortReq(lv_byte_tblName, transID);
         if(ret != 0)
@@ -461,10 +461,12 @@ public class RMInterface {
         	throw new IOException("truncateTableOnAbort exception. Unable to truncate table" + tblName);
         }
         
+    	if (LOG.isTraceEnabled()) LOG.trace("Exit truncateTableOnAbort, txid: " + transID + " Table: " + tblName);
+        
     }
 
     public void dropTable(String tblName, long transID) throws IOException {
-
+    	if (LOG.isTraceEnabled()) LOG.trace("Enter dropTable, txid: " + transID + " Table: " + tblName);
         byte[] lv_byte_tblname = tblName.getBytes();
         int ret = dropTableReq(lv_byte_tblname, transID);
         if(ret != 0)
@@ -472,10 +474,11 @@ public class RMInterface {
         	LOG.error("dropTable exception. Unable to drop table" + tblName + " txid " + transID);
         	throw new IOException("dropTable exception. Unable to drop table" + tblName);
         }
+        if (LOG.isTraceEnabled()) LOG.trace("Exit dropTable, txid: " + transID + " Table: " + tblName);
     }
 
     public void alter(String tblName, Object[] tableOptions, long transID) throws IOException {
-
+    	if (LOG.isTraceEnabled()) LOG.trace("Enter alterTable, txid: " + transID + " Table: " + tblName);
         byte[] lv_byte_tblname = tblName.getBytes();
         int ret = alterTableReq(lv_byte_tblname, tableOptions, transID);
         if(ret != 0)
@@ -483,6 +486,7 @@ public class RMInterface {
         	LOG.error("alter Table exception. Unable to alter table" + tblName + " txid " + transID);
         	throw new IOException("alter Table exception. Unable to alter table" + tblName);
         }
+        if (LOG.isTraceEnabled()) LOG.trace("Exit alterTable, txid: " + transID + " Table: " + tblName);
     }   
 
     static public void replayEngineStart(final long timestamp) throws Exception {
