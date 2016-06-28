@@ -1204,13 +1204,7 @@ class IUSValueIterator
     virtual ~IUSValueIterator()
     {}
     
-    void init(HSColGroupStruct* group)
-    {
-      // Strings must be contiguous in the strData buffer for this iterator to
-      // work correctly.
-      HS_ASSERT(group->strDataConsecutive);
-      vp = (T*)group->data;
-    }
+    void init(HSColGroupStruct* group);
     
     void next()
     {
@@ -1485,6 +1479,9 @@ public:
 
     //Log the current contents of this class.
     void log(HSLogMan* LM);
+
+    // Takes action necessary before throwing exception for an assertion failure.
+    void preAssertionFailure(const char* condition, const char* fileName, Lng32 lineNum);
 
     // Derive a return code from the contents of the diagnostics area.
     Lng32 getRetcodeFromDiags();
