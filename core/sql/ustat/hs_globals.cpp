@@ -3043,7 +3043,7 @@ Lng32 HSGlobalsClass::Initialize()
                                          inserts, deletes, updates,
                                          numPartitions,
                                          minRowCtPerPartition_,
-                                         optFlags & SAMPLE_REQUESTED);
+                                         optFlags & (SAMPLE_REQUESTED | IUS_OPT));
     LM->StopTimer();
     if (LM->LogNeeded())
       {
