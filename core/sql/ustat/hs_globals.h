@@ -1135,6 +1135,7 @@ struct HSColGroupStruct : public NABasicObject
     Int64            prevUEC;                      /* uec from existing histogram */
     Int64            colSecs;                      /* Time to sort/group data for column */
     CountingBloomFilter* cbf;                      /* A bloom filter for IUS */
+    NAString& cbfFileNameSuffix() { return *colSet[0].colname; }
 
     void* boundaryValues;                          /* List of bounary values for IUS */
     void* MFVValues;                               /* List of MFV values for IUS */
@@ -1503,6 +1504,7 @@ public:
                                              NABoolean forceToFetch = TRUE);
     Lng32 updatePersistentSampleTableForIUS(NAString& sampleTableName, double sampleRate,
                                             NAString& targetTableName);
+    void getCBFFilePrefix(NAString& sampleTableName, NAString& filePrefix);
     void detectPersistentCBFsForIUS(NAString& sampleTableName, HSColGroupStruct *group);
     Lng32 readCBFsIntoMemForIUS(NAString& sampleTableName, HSColGroupStruct* group);
     Lng32 writeCBFstoDiskForIUS(NAString& sampleTableName, HSColGroupStruct* group);

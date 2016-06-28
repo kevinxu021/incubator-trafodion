@@ -6143,30 +6143,31 @@ Lng32 HSGlobalsClass::computeSampleSizeForIUS(Int64& currentSampleSize, Int64& f
    return 0;
 }
 
+// Before we have the PERSISTENT_DATA table available to us, we will
+// save the CBFs as binary files on disk. One CBF maps to one binary file.
+// The path of the directory for these files is specified in CQD
+// USTAT_IUS_PERSISTENT_CBF_PATH, and the cbf file name is
+// sampleTableName + '.' + 'colName'. This function builds the common initial
+// text of the path for all columns in the same table, and assigns it to the
+// output parameter filePrefix.
+void HSGlobalsClass::getCBFFilePrefix(NAString& sampleTableName, NAString& filePrefix)
+{
+  filePrefix = ActiveSchemaDB()->getDefaults().getValue(USTAT_IUS_PERSISTENT_CBF_PATH);
+  filePrefix.append("/")
+            .append(sampleTableName)
+            .append(".");
+}
 
 void
 HSGlobalsClass::detectPersistentCBFsForIUS(NAString& sampleTableName, 
                                            HSColGroupStruct *group)
 {
-   // Before we have the PERSISTENT_DATA table available to us, we will
-   // save the CBFs as binary files on disk. One CBF maps to one binary file.
-   // The path of the directory for these files is specified in CQD
-   // USTAT_IUS_PERSISTENT_CBF_PATH, and the cbf binary file name is 
-   // sampleTableName + '.' + 'colName';
-
-   NAString path = 
-     ActiveSchemaDB()->getDefaults().getValue(USTAT_IUS_PERSISTENT_CBF_PATH);
-
-   NAString cbfFilePrefix(path); 
-   cbfFilePrefix.append("/");
-   cbfFilePrefix.append(sampleTableName); 
-   cbfFilePrefix.append(".");
-
+   NAString cbfFilePrefix;
+   getCBFFilePrefix(sampleTableName, cbfFilePrefix);
    struct stat sts;
    while (group) {
-
       NAString cbfFile(cbfFilePrefix);
-      cbfFile.append(group->colSet[0].colname->data());
+      cbfFile.append(group->cbfFileNameSuffix());
 
       if (stat(cbfFile, &sts) == -1 && errno == ENOENT)
         group->delayedRead = FALSE; 
@@ -6396,38 +6397,41 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
   HSHandleError(retcode);
   sampleIExists_ = TRUE;  // so we remember to drop it
 
-  if (LM->LogNeeded()) 
-    LM->StartTimer("IUS: read in Si");
-
+  NABoolean havePending = FALSE;
   HSColGroupStruct *group = singleGroup;
   while (group)
     {
-      if (group->delayedRead && group->state == PENDING)
-        group->state = SKIP ; // temp. set so that the column
-                              // data is not to be read.
+      if (group->state == PENDING)
+        {
+          if (group->delayedRead)
+            group->state = SKIP; // temp. set so that the column data is not to be read
+          else
+            havePending = TRUE;
+        }
       group = group->next;
     }
 
+  // Only read in Si if there is at least one column in this batch that doesn't
+  // already have a persistent CBF.
+  if (havePending)
+    {
+      if (LM->LogNeeded())
+        LM->StartTimer("IUS: read in Si");
 
-  // Populate the selected rows into singleGroup. Use a C scope to allow
-  // the cursor to be deallocated after the reading of S.
-  //
-  // Only read in columns that are in PENDING state 
-  {
-     HSCursor cursor;
-     // Read from the persistent sample table and use smplGroup to 
-     // hold the data read. All columns in PENDING state 
-     // will be read in.
-     retcode = readColumnsIntoMem(&cursor, currentSampleSize);
-     HSHandleError(retcode);
-     checkTime("after reading pending columns into memory for IUS");
-  }
+      // Populate the data areas for the PENDING columns from the persistent
+      // sample table.
+      HSCursor cursor;  // on block exit, dtor will close/dealloc stmt and descriptors
+      retcode = readColumnsIntoMem(&cursor, currentSampleSize);
+      HSHandleError(retcode);
+      checkTime("after reading pending columns into memory for IUS");
 
+      if (LM->LogNeeded())
+        LM->StopTimer();
+    }
+  else if (LM->LogNeeded())
+    LM->Log("IUS: skipped reading in Si; delayedRead true for all columns in batch");
 
-  if (LM->LogNeeded()) 
-    LM->StopTimer();
-
-   // restore the state field to PENDING.
+   // restore the state field to PENDING for any skipped groups.
    group = singleGroup;
    while (group) {
        if (group->delayedRead && group->state == SKIP)
@@ -6568,25 +6572,13 @@ Int32 HSGlobalsClass::readCBFsIntoMemForIUS(NAString& sampleTableName,
                                             HSColGroupStruct* group
      )
 {
-   // Before we have the PERSISTENT_DATA table available to us, we will
-   // save the CBFs as binary files on disk. One CBF maps to one binary file.
-   // The path of the directory for these files is specified in CQD
-   // USTAT_IUS_PERSISTENT_CBF_PATH, and the cbf binary file name is
-   // sampleTableName + '.' + 'colName';
-
-   NAString path =
-     ActiveSchemaDB()->getDefaults().getValue(USTAT_IUS_PERSISTENT_CBF_PATH);
-
-   NAString cbfFilePrefix(path);
-   cbfFilePrefix.append("/");
-   cbfFilePrefix.append(sampleTableName);
-   cbfFilePrefix.append(".");
+   NAString cbfFilePrefix;
+   getCBFFilePrefix(sampleTableName, cbfFilePrefix);
 
    Lng32 sz;
    Lng32 bufSz = 0;
    char* bufptr = NULL;
    struct stat sts;
-   char buffer[20];
 
    while (group) {
 
@@ -6597,8 +6589,7 @@ Int32 HSGlobalsClass::readCBFsIntoMemForIUS(NAString& sampleTableName,
         group->delayedRead = FALSE;
 
         NAString cbfFile(cbfFilePrefix);
-        str_itoa(group->colSet[0].colnum, buffer);
-        cbfFile.append(buffer);
+        cbfFile.append(group->cbfFileNameSuffix());
 
         if (stat(cbfFile, &sts) == 0) {
            if ( bufSz < sts.st_size ) {
@@ -6709,11 +6700,6 @@ Int32 HSGlobalsClass::writeCBFstoDiskForIUS(NAString& sampleTableName,
                                             HSColGroupStruct* group
      )
 {
-   // We save the CBFs as binary files on disk. One CBF maps to one binary file.
-   // The path of the directory for these files is specified in CQD
-   // USTAT_IUS_PERSISTENT_CBF_PATH, and the cbf binary file name is
-   // sampleTableName + '.' + 'col_position_in_table';
-
    NAString path =
      ActiveSchemaDB()->getDefaults().getValue(USTAT_IUS_PERSISTENT_CBF_PATH);
 
@@ -6731,15 +6717,12 @@ Int32 HSGlobalsClass::writeCBFstoDiskForIUS(NAString& sampleTableName,
    UInt64 totalAllowedInBlocks = MINOF(totalCBFsizeInMB * 1024 / 2, 
                                        totalSpaceInBlocks * percentage);
 
-   NAString cbfFilePrefix(path);
-   cbfFilePrefix.append("/");
-   cbfFilePrefix.append(sampleTableName);
-   cbfFilePrefix.append(".");
+   NAString cbfFilePrefix;
+   getCBFFilePrefix(sampleTableName, cbfFilePrefix);
 
    Lng32 sz;
    Lng32 bufSz = 0;
    char* bufptr = NULL;
-   char buffer[20];
 
    Int32 count = 0;
 
@@ -6748,9 +6731,7 @@ Int32 HSGlobalsClass::writeCBFstoDiskForIUS(NAString& sampleTableName,
       if ( group->cbf && group->state == PROCESSED ) {
 
         NAString cbfFile(cbfFilePrefix);
-        str_itoa(group->colSet[0].colnum, buffer);
-        cbfFile.append(buffer);
-
+        cbfFile.append(group->cbfFileNameSuffix());
 
         Lng32 cbfSz = group->cbf->getTotalMemSize();
 
@@ -6799,28 +6780,15 @@ Int32 HSGlobalsClass::writeCBFstoDiskForIUS(NAString& sampleTableName,
 Int32 HSGlobalsClass::deletePersistentCBFsForIUS(NAString& sampleTableName, 
                                                  HSColGroupStruct* group)
 {
-   // Before we have the PERSISTENT_DATA table available to us, we will
-   // save the CBFs as binary files on disk. One CBF maps to one binary file.
-   // The path of the directory for these files is specified in CQD
-   // USTAT_IUS_PERSISTENT_CBF_PATH, and the cbf binary file name is
-   // sampleTableName + '.' + 'colName';
-
-   NAString path =
-     ActiveSchemaDB()->getDefaults().getValue(USTAT_IUS_PERSISTENT_CBF_PATH);
-
-   NAString cbfFilePrefix(path);
-   cbfFilePrefix.append("/");
-   cbfFilePrefix.append(sampleTableName);
-   cbfFilePrefix.append(".");
-   char buffer[20];
+   NAString cbfFilePrefix;
+   getCBFFilePrefix(sampleTableName, cbfFilePrefix);
 
    while (group) {
 
       if ( group->cbf && group->state == PENDING ) {
 
         NAString cbfFile(cbfFilePrefix);
-        str_itoa(group->colSet[0].colnum, buffer);
-        cbfFile.append(buffer);
+        cbfFile.append(group->cbfFileNameSuffix());
 
         remove(cbfFile.data());
       }
