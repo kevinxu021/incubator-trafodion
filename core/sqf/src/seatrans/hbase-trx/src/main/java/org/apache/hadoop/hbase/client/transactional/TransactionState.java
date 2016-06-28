@@ -50,6 +50,7 @@ public class TransactionState {
     //  short clusterId
     private final long transactionId;
     private TransState status;
+    private long startEpoc;
     private long startId;
     private long commitId;
     private long recoveryASN;
@@ -434,6 +435,23 @@ public class TransactionState {
     }
 
     /**
+     * Set the startEpoc.
+     *
+     */
+    public void setStartEpoc(final long epoc) {
+        this.startEpoc = epoc;
+    }
+
+    /**
+     * Get the startEpoc.
+     *
+     * @return Return the startEpoc.
+     */
+    public long getStartEpoc() {
+        return startEpoc;
+    }
+
+    /**
      * Set the startId.
      *
      */
@@ -490,9 +508,9 @@ public class TransactionState {
     @Override
     public String toString() {
         return "transactionId: " + transactionId + ", startId: " + startId + ", commitId: " + commitId +
-               ", participants: " + participatingRegions.size() + ", ignoring: " + regionsToIgnore.size() +
-               ", hasDDL: " + hasDDLTx() + ", recoveryASN: " + getRecoveryASN() + ", remotePeers: "
-               + hasRemotePeers() + ", state: " + status.toString();
+               ", startEpoc: " + startEpoc + ", participants: " + participatingRegions.size()
+               + ", ignoring: " + regionsToIgnore.size() + ", hasDDL: " + hasDDLTx()
+               + ", recoveryASN: " + getRecoveryASN() + ", remotePeers: " + hasRemotePeers() + ", state: " + status.toString();
     }
 
     public int getParticipantCount() {
