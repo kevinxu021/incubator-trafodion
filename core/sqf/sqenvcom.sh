@@ -983,6 +983,3 @@ if [[ "$SQ_VERBOSE" == "1" ]]; then
   echo
 fi
 
-export DCS_INSTALL_DIR=/opt/trafodion/0525/dcs-2.2.0
-export REST_INSTALL_DIR=/opt/trafodion/0525/rest-2.2.0
-
