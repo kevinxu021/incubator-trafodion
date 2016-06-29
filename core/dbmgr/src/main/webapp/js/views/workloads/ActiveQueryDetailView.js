@@ -45,6 +45,7 @@ define([
 			this.currentURL = window.location.hash;
 			this.redirectFlag=false;
 			_this = this;
+			
 			$('#query-id').val(args);
 			queryID = args;
 			this.pageIdentifier="active";
@@ -85,8 +86,8 @@ define([
 			$(CANCEL_QUERY_YES_BTN).on('click', this.cancelQueryConfirmed);
 			$(EXPLAIN_BUTTON).on('click', this.explainQuery);
 			$(ERROR_CONTAINER).hide();
+			_this.resetChildParentQIDs();
 			this.fetchActiveQueryDetail();
-
 		},
 		doResume: function(args){
 			this.redirectFlag=false;
@@ -105,6 +106,7 @@ define([
 			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimer.resume();
 			$(ERROR_CONTAINER).hide();
+			_this.resetChildParentQIDs();
 			this.fetchActiveQueryDetail();
 		},
 		doPause: function(){
@@ -135,6 +137,10 @@ define([
 
 		hideLoading: function () {
 			$(LOADING_SELECTOR).hide();
+		},
+		resetChildParentQIDs: function(){
+			$('#childQid-container').hide();
+			$('#parentQid-container').hide();
 		},
 		cancelQuery: function(){
 			$(CANCEL_QUERY_ID).text(queryID);
@@ -217,11 +223,16 @@ define([
 					$(htmlTag).css("color", "black");
 				}
 				value = _this.formatSummary(k, summary[k]);
-				$(htmlTag).val(value);
 				if(htmlTag == '#childQid' || htmlTag == '#parentQid'){
 					if(value == null || value == '' || value == 'NONE'){
 						$(htmlTag + '-container').hide();
+					}else{
+						$(htmlTag + '-container').show();
+						$(htmlTag).attr("href", "#/workloads/active/querydetail/" + encodeURIComponent(value));
+						$(htmlTag).text(value);
 					}
+				}else{
+					$(htmlTag).val(value);
 				}
 			}
 			historySummary = result.summary;

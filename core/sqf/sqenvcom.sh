@@ -28,6 +28,7 @@
 #  * Talk to the infra team about getting the tool/library/etc installed on build/test machines.
 #  * Add an entry in sqf/LocalSettingsTemplate.sh to make path configurable.
 ##############################################################
+#source the config file just in case
 
 #Product version (Trafodion or derivative product)
 export TRAFODION_VER_PROD="EsgynDB Enterprise"
@@ -177,12 +178,13 @@ export UTIL_JAR=trafodion-utility-${TRAFODION_VER}.jar
 export JDBCT4_JAR=jdbcT4-${TRAFODION_VER}.jar
 
 HBVER=""
-if [[ "$HBASE_DISTRO" = "HDP" ]]; then
+if [[ "$HBASE_DISTRO" = "HDP" ]] || [[ "$HBASE_DISTRO" == "BI" ]]; then
     export HBASE_TRX_JAR=${HBASE_TRX_ID_HDP}-${TRAFODION_VER}.jar
     HBVER="hdp2_3"
     export DTM_COMMON_JAR=trafodion-dtm-${HBVER}-${TRAFODION_VER}.jar
     export SQL_JAR=trafodion-sql-${HBVER}-${TRAFODION_VER}.jar
 fi
+
 if [[ "$HBASE_DISTRO" = "APACHE" ]]; then
     export HBASE_TRX_JAR=${HBASE_TRX_ID_APACHE}-${TRAFODION_VER}.jar
     HBVER="apache1_0_2"
@@ -376,7 +378,7 @@ elif [[ -n "$(ls /usr/lib/hadoop/hadoop-*cdh*.jar 2>/dev/null)" ]]; then
   export HBASE_CNF_DIR=/etc/hbase/conf
   export HIVE_CNF_DIR=/etc/hive/conf
 
-elif [[ -n "$(ls /etc/init.d/ambari* 2>/dev/null)" ]]; then
+elif [[ "$HADOOP_TYPE" == "hortonworks" ]]; then
   # we are on a cluster with Hortonworks installed
   # ----------------------------------------------
 
@@ -409,6 +411,41 @@ elif [[ -n "$(ls /etc/init.d/ambari* 2>/dev/null)" ]]; then
   export HADOOP_CNF_DIR=/etc/hadoop/conf
   export HBASE_CNF_DIR=/etc/hbase/conf
   export HIVE_CNF_DIR=/etc/hive/conf
+
+elif [[ "$HADOOP_TYPE" == "biginsight" ]]; then
+  # we are on a cluster with BigInsight installed
+  # ----------------------------------------------
+
+  # native library directories and include directories
+  export HADOOP_LIB_DIR=/usr/iop/current/hadoop-client/lib/native/Linux-*-${SQ_MTYPE}:/usr/iop/current/hadoop-client/lib/native
+  export HADOOP_INC_DIR=/usr/include
+  # The supported HDP version, HDP 1.3 uses Hadoop 1
+  export USE_HADOOP_1=1
+
+  export CURL_INC_DIR=/usr/include
+  export CURL_LIB_DIR=/usr/lib64
+
+  #HBASE_JAR_FILES obtained from hbase directly here.
+  lv_hbase_cp=`hbase classpath`
+
+  # directories with jar files and list of jar files
+  export HADOOP_JAR_DIRS="/usr/iop/current/hadoop-client
+                          /usr/iop/current/hadoop-client/lib"
+  export HADOOP_JAR_FILES="/usr/iop/4.1.0.0/hadoop-hdfs/hadoop-hdfs-*.jar"
+  export HIVE_JAR_DIRS="/usr/iop/current/hive-client/lib"
+  export HIVE_JAR_FILES="/usr/iop/current/hadoop-mapreduce-client/hadoop-mapreduce-client-core*.jar"
+
+  export HBASE_TRX_JAR=${HBASE_TRX_ID_HDP}-${TRAFODION_VER}.jar
+  HBVER="hdp2_3"
+  export DTM_COMMON_JAR=trafodion-dtm-${HBVER}-${TRAFODION_VER}.jar
+  export SQL_JAR=trafodion-sql-${HBVER}-${TRAFODION_VER}.jar
+
+  # Configuration directories
+
+  export HADOOP_CNF_DIR=/etc/hadoop/conf
+  export HBASE_CNF_DIR=/etc/hbase/conf
+  export HIVE_CNF_DIR=/etc/hive/conf
+
 
 elif [[ -d /opt/mapr ]]; then
   # we are on a MapR system
@@ -945,3 +982,4 @@ if [[ "$SQ_VERBOSE" == "1" ]]; then
   echo $CLASSPATH | sed -e's/:/ /g' | fmt -w2 | xargs printf '\t%s\n'
   echo
 fi
+

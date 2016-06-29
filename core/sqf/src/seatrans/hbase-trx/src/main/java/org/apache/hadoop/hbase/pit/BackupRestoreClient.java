@@ -20,14 +20,11 @@
 // @@@ END COPYRIGHT @@@
 
 //package org.apache.hadoop.hbase.client.transactional;
-package org.trafodion.sql;
+package org.trafodion.pit;
 
 import org.apache.hadoop.hbase.regionserver.transactional.IdTm;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTmException;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTmId;
-import org.apache.hadoop.hbase.client.transactional.SnapshotMeta;
-import org.apache.hadoop.hbase.client.transactional.SnapshotMetaRecord;
-import org.apache.hadoop.hbase.client.transactional.SnapshotMetaStartRecord;
 import org.apache.hadoop.hbase.client.transactional.RMInterface;
 
 import org.apache.hadoop.conf.Configuration;
@@ -41,6 +38,10 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.ArrayList;
+
+import org.trafodion.pit.SnapshotMeta;
+import org.trafodion.pit.SnapshotMetaRecord;
+import org.trafodion.pit.SnapshotMetaStartRecord;
 
 public class BackupRestoreClient
 {
@@ -78,8 +79,8 @@ public class BackupRestoreClient
     public boolean createSnapshot(Object[] tables, String backuptag)
             throws MasterNotRunningException, IOException, Exception,
             SnapshotCreationException, InterruptedException {
-        
-        if (logger.isDebugEnabled())
+       
+        if (logger.isDebugEnabled()) 
             logger.debug("BackupRestoreClient.createSnapshot Backup Tag : " + backuptag);
 
         HBaseAdmin admin = new HBaseAdmin(config);
@@ -100,12 +101,16 @@ public class BackupRestoreClient
           String snapshotName = hbaseTableName + "_SNAPSHOT_" + backuptag
                   + "_" + String.valueOf(startId);
 
+          logger.info("BackupRestoreClient.createSnapshot, snapshotName : " + snapshotName);
+
           if (logger.isDebugEnabled())
-            logger.debug("BackupRestoreClient.createSnapshot snapshotName : " + snapshotName);
+            logger.debug("BackupRestoreClient.createSnapshot, admin.flush  snapshotName : " + snapshotName);
           
           // Flush the table. In future this needs to happen in parallel.
           admin.flush(TableName.valueOf(hbaseTableName));
           // Note , do not disable table.
+          if (logger.isDebugEnabled())
+            logger.debug("BackupRestoreClient.createSnapshot, admin.snapshot snapshotName : " + snapshotName);
           admin.snapshot(snapshotName, hbaseTableName);
 
           // update snapshot meta
@@ -117,7 +122,8 @@ public class BackupRestoreClient
         // Complete snapshotMeta update.
         completeSnapshotMeta();
 
-        logger.info("BackupRestoreClient.createSnapshot Snapshot complete for Backup Tag : " + backuptag);
+        if (logger.isDebugEnabled())
+           logger.debug("BackupRestoreClient.createSnapshot Snapshot complete for Backup Tag : " + backuptag);
 
         return true;
     }
@@ -143,8 +149,7 @@ public class BackupRestoreClient
             String hbaseTableName = s.getTableName();
             String snapshotName =  s.getSnapshotPath();
   
-            if (logger.isDebugEnabled())
-              logger.debug("BackupRestoreClient restoreSnapshots Snapshot Name :"
+              logger.info("BackupRestoreClient restoreSnapshots Snapshot Name :"
                       + snapshotName);
   
             admin.restoreSnapshot(snapshotName);

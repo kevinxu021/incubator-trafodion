@@ -10,8 +10,9 @@ define([
         'model/Session',
         'handlers/SessionHandler',
         'common',
+        'language',
         'jqueryvalidate'
-     ], function (BaseView, LoginT, session, sessionHandler, common) {
+     ], function (BaseView, LoginT, session, sessionHandler, common,language) {
 	'use strict';
 	var _this = null;
 	var _router = null;
@@ -143,6 +144,7 @@ define([
 			e.preventDefault();
 		},
 		loginSuccess: function(result){
+			language.initialize();
 			$(ERROR_TEXT).text("");
 			if(result.status == 'OK'){
 				session.saveToken(result.key);
