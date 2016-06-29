@@ -6564,8 +6564,8 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
 
   checkTime("after updating persistent sample table for IUS");
 
-  // Write CBFs for groups that are PENDING and delayedRead back to disk.
-  Int32 count = writeCBFstoDiskForIUS(*hssample_table,singleGroup);
+  // Write CBFs for groups that are PROCESSED and delayedRead back to disk.
+  writeCBFstoDiskForIUS(*hssample_table, singleGroup);
 
   return retcode;
 }
@@ -6771,6 +6771,9 @@ Int32 HSGlobalsClass::writeCBFstoDiskForIUS(NAString& sampleTableName,
 
         }
        
+        // Make sure we don't write it again on next batch.
+        delete group->cbf;
+        group->cbf = NULL;
       }
 
       group = group->next;
@@ -6795,6 +6798,10 @@ Int32 HSGlobalsClass::deletePersistentCBFsForIUS(NAString& sampleTableName,
         cbfFile.append(group->cbfFileNameSuffix());
 
         remove(cbfFile.data());
+
+        // Make sure this unused CBF does not get persisted.
+        delete group->cbf;
+        group->cbf = NULL;
       }
 
       group = group->next;
