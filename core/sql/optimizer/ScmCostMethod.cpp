@@ -1310,10 +1310,10 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
       castToReplicateNoBroadcastPartitioningFunction();
 
   CollIndex numActivePartitions = getEstNumActivePartitionsAtRuntime();
-  //if ( !repN ) {
+  if ( !repN ) {
     tuplesProduced  /= numActivePartitions;
     tuplesProcessed /= numActivePartitions;
-  //}
+  }
 
   if ( CmpCommon::getDefault(NCM_ORC_COSTING_DEBUG) == DF_ON  &&
        getIndexDesc()->getPrimaryTableDesc()->getNATable()->isORC() )
