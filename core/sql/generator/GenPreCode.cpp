@@ -3768,10 +3768,14 @@ NABoolean FileScan::processMinMaxKeys(Generator* generator,
     NABoolean minMaxKeyUpdated = FALSE;
     // impossible to satisfy such request.
     if ( !getSearchKey() && updateSearchKeyOnly )
-      return minMaxKeyUpdated;
+      return FALSE;
+
+    // if the table has no index key, bail out.
+    if ( getIndexDesc()->getIndexKey().entries() == 0 )
+      return FALSE;
 
     CollIndex leadKeyIdx = 0;
-    if (getIndexDesc()->getPrimaryTableDesc()->getNATable()->isHbaseTable() &
+    if (getIndexDesc()->getPrimaryTableDesc()->getNATable()->isHbaseTable() &&
         getIndexDesc()->getPrimaryTableDesc()->getNATable()->hasSaltedColumn()) 
     { 
        leadKeyIdx = 1;

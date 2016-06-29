@@ -44,7 +44,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Wed Jun  8 21:04:06 2016
+-- Definition current  Wed Jun 29 18:37:34 2016
 
   (
     S_STORE_SK                       INT
@@ -285,7 +285,7 @@ Flag = 0000000000001001
 
 For ComTdbOrcScan :
 tableName_ = HIVE.STORE_ORC
-hostName_ = localhost, port_ = 36000
+hostName_ = localhost, port_ = 20000
 recordDelimiter_ = 10, columnDelimiter_ = 1
 hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 8
 tuppIndex_ = 2, workAtpIndex_ = 3
@@ -337,8 +337,8 @@ ColNumber: 26, ColName: S_ZIP
 ColNumber: 27, ColName: S_COUNTRY
 ColNumber: 28, ColName: S_GMT_OFFSET
 ColNumber: 29, ColName: S_TAX_PRECENTAGE
-hdfsRootDir: hdfs://localhost:36000/user/hive/warehouse/store_orc
-modTSforDir_ = 1465418457, numOfPartCols_ = 0
+hdfsRootDir: hdfs://localhost:20000/user/hive/warehouse/store_orc
+modTSforDir_ = 1466615869, numOfPartCols_ = 0
 
 # of Expressions = 6
 
@@ -420,7 +420,7 @@ Flag = 0000000000001001
 
 For ComTdbOrcScan :
 tableName_ = HIVE.STORE_ORC
-hostName_ = localhost, port_ = 36000
+hostName_ = localhost, port_ = 20000
 recordDelimiter_ = 10, columnDelimiter_ = 1
 hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 8
 tuppIndex_ = 2, workAtpIndex_ = 3
@@ -444,8 +444,8 @@ ESP    0 reads               4288 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
-hdfsRootDir: hdfs://localhost:36000/user/hive/warehouse/store_orc
-modTSforDir_ = 1465418457, numOfPartCols_ = 0
+hdfsRootDir: hdfs://localhost:20000/user/hive/warehouse/store_orc
+modTSforDir_ = 1466615869, numOfPartCols_ = 0
 
 # of Expressions = 6
 
@@ -573,7 +573,7 @@ Flag = 0000000000001001
 
 For ComTdbOrcScan :
 tableName_ = HIVE.STORE_ORC
-hostName_ = localhost, port_ = 36000
+hostName_ = localhost, port_ = 20000
 recordDelimiter_ = 10, columnDelimiter_ = 1
 hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 16
 tuppIndex_ = 3, workAtpIndex_ = 3
@@ -597,8 +597,8 @@ ESP    0 reads               4288 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
-hdfsRootDir: hdfs://localhost:36000/user/hive/warehouse/store_orc
-modTSforDir_ = 1465418457, numOfPartCols_ = 0
+hdfsRootDir: hdfs://localhost:20000/user/hive/warehouse/store_orc
+modTSforDir_ = 1466615869, numOfPartCols_ = 0
 
 # of Expressions = 6
 
@@ -706,7 +706,7 @@ Flag = 0000000000001001
 
 For ComTdbOrcScan :
 tableName_ = HIVE.STORE_ORC
-hostName_ = localhost, port_ = 36000
+hostName_ = localhost, port_ = 20000
 recordDelimiter_ = 10, columnDelimiter_ = 1
 hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 16
 tuppIndex_ = 3, workAtpIndex_ = 3
@@ -730,8 +730,8 @@ ESP    0 reads               4288 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
-hdfsRootDir: hdfs://localhost:36000/user/hive/warehouse/store_orc
-modTSforDir_ = 1465418457, numOfPartCols_ = 0
+hdfsRootDir: hdfs://localhost:20000/user/hive/warehouse/store_orc
+modTSforDir_ = 1466615869, numOfPartCols_ = 0
 
 Number of PPI entries: 3
 PPI: #1
@@ -984,7 +984,7 @@ NUM_HITS    NUM_PARAMS
 >>invoke hive.hive.store_sales_orc;
 
 -- Definition of hive table STORE_SALES_ORC
--- Definition current  Wed Jun  8 21:04:34 2016
+-- Definition current  Wed Jun 29 18:38:12 2016
 
   (
     SS_SOLD_DATE_SK                  INT
@@ -1027,9 +1027,9 @@ NUM_HITS    NUM_PARAMS
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212332179874903710
+PLAN_ID .................. 212333985493002012
 ROWS_OUT ................ 20
-EST_TOTAL_COST ........... 0.01
+EST_TOTAL_COST ......... 704.58
 STATEMENT ................ select * from store_sales_orc where ss_item_sk = 1;
 
 
@@ -1038,7 +1038,7 @@ ROOT ======================================  SEQ_NO 2        ONLY CHILD 1
 REQUESTS_IN .............. 1
 ROWS_OUT ................ 20
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 0.01
+EST_TOTAL_COST ......... 704.58
 DESCRIPTION
   max_card_est .......... 20
   fragment_id ............ 0
@@ -1094,8 +1094,8 @@ ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.STORE_SALES_ORC
 REQUESTS_IN .............. 1
 ROWS_OUT ................ 20
-EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 0.01
+EST_OPER_COST .......... 704.58
+EST_TOTAL_COST ......... 704.58
 DESCRIPTION
   max_card_est .......... 20
   fragment_id ............ 0
@@ -1145,9 +1145,9 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212332179876030779
+PLAN_ID .................. 212333985493836055
 ROWS_OUT ......... 2,880,401
-EST_TOTAL_COST ........... 0.56
+EST_TOTAL_COST ... 3,522,899.25
 STATEMENT ................ select *
                            from customer_orc, store_sales_orc
                            where store_sales_orc.ss_item_sk =
@@ -1160,7 +1160,7 @@ ROOT ======================================  SEQ_NO 4        ONLY CHILD 3
 REQUESTS_IN .............. 1
 ROWS_OUT ......... 2,880,401
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 0.56
+EST_TOTAL_COST ... 3,522,899.25
 DESCRIPTION
   max_card_est ........... 2.8804e+06
   fragment_id ............ 0
@@ -1235,7 +1235,7 @@ NESTED_JOIN ===============================  SEQ_NO 3        CHILDREN 1, 2
 REQUESTS_IN .............. 1
 ROWS_OUT ......... 2,880,401
 EST_OPER_COST ............ 0.5
-EST_TOTAL_COST ........... 0.56
+EST_TOTAL_COST ... 3,522,899.25
 DESCRIPTION
   max_card_est ........... 2.8804e+06
   fragment_id ............ 0
@@ -1249,8 +1249,8 @@ ORC_SCAN ==================================  SEQ_NO 2        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.STORE_SALES_ORC
 REQUESTS_IN ......... 99,997
 ROWS/REQUEST ............ 28.8
-EST_OPER_COST ............ 0.03
-EST_TOTAL_COST ........... 0.03
+EST_OPER_COST .... 3,522,869.5
+EST_TOTAL_COST ... 3,522,869.5
 DESCRIPTION
   max_card_est ........... 2.8804e+06
   fragment_id ............ 0
@@ -1266,7 +1266,7 @@ DESCRIPTION
   successful_probes   99,997
   unique_probes ...... 5,000
   duplicated_succ_pr  94,997
-  rows_accessed .......... 1.99994e+06
+  rows_accessed .......... 2.8804e+06
   orc_pred_pushdown ...... yes
   orc_search_arguments ... and( HIVE.STORE_SALES_ORC.SS_ITEM_SK =
                              cast(HIVE.CUSTOMER_ORC.C_CUSTOMER_SK) )
@@ -1282,8 +1282,8 @@ ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.CUSTOMER_ORC
 REQUESTS_IN .............. 1
 ROWS_OUT ............ 99,997
-EST_OPER_COST ............ 0.03
-EST_TOTAL_COST ........... 0.03
+EST_OPER_COST ........... 29.45
+EST_TOTAL_COST .......... 29.45
 DESCRIPTION
   max_card_est ...... 99,997
   fragment_id ............ 0
@@ -1343,6 +1343,62 @@ DESCRIPTION
 
 --- SQL operation complete.
 >>
+>>-- join with nested join
+>>
+>>control query shape off;
+
+--- SQL operation complete.
+>>cqd HIVE_USE_EXT_TABLE_ATTRS 'off';
+
+--- SQL operation complete.
+>>cqd ncm_orc_costing 'on';
+
+--- SQL operation complete.
+>>cqd orc_njs 'on';
+
+--- SQL operation complete.
+>>cqd parallel_num_esps '8';
+
+--- SQL operation complete.
+>>
+>>prepare s from
++>select [last 0] ss_net_profit from
++>date_dim_orc dim, store_sales_sorted_orc ss
++>where
++>dim.d_date_sk = ss.ss_sold_date_sk
++>and d_year = 2001 and d_moy = 3 and d_dom = 30;
+
+--- SQL command prepared.
+>>explain options 'f' s;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+5    .    6    root                                                  1.00E+000
+4    .    5    firstn                                                1.00E+000
+3    .    4    esp_exchange                    1:2(hash2)            4.43E+003
+1    2    3    nested_join                                           4.43E+003
+.    .    2    orc_scan                        STORE_SALES_SORTED_O  4.43E+003
+.    .    1    orc_scan                        DATE_DIM_ORC          1.00E+000
+
+--- SQL operation complete.
+>>
+>>cqd HIVE_USE_EXT_TABLE_ATTRS reset;
+
+--- SQL operation complete.
+>>cqd ncm_orc_costing reset;
+
+--- SQL operation complete.
+>>cqd parallel_num_esps reset;
+
+--- SQL operation complete.
+>>cqd orc_njs reset;
+
+--- SQL operation complete.
+>>
+>>
+>>-- more external table tests
+>>
 >>control query shape cut;
 
 --- SQL operation complete.
@@ -1372,7 +1428,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Wed Jun  8 21:04:38 2016
+-- Definition current  Wed Jun 29 18:38:17 2016
 
   (
     D_DATE_SK                        INT
@@ -1513,9 +1569,9 @@ CREATE EXTERNAL TABLE HIVE.HIVE.DATE_DIM_ORC
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212332179881269629
+PLAN_ID .................. 212333985499374054
 ROWS_OUT ................ 20
-EST_TOTAL_COST ........... 0.01
+EST_TOTAL_COST ........... 8.42
 STATEMENT ................ select *
                            from hive.hive.date_dim_orc
                            where d_date = date '2016-01-27';
@@ -1526,7 +1582,7 @@ ROOT ======================================  SEQ_NO 2        ONLY CHILD 1
 REQUESTS_IN .............. 1
 ROWS_OUT ................ 20
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 0.01
+EST_TOTAL_COST ........... 8.42
 DESCRIPTION
   max_card_est .......... 20
   fragment_id ............ 0
@@ -1547,7 +1603,6 @@ DESCRIPTION
   MODE_SEAHIVE ........... ON
   TRAF_ENABLE_ORC_FORMAT   ON
   HIST_ROWCOUNT_REQU  50,000
-  HIVE_USE_EXT_TABLE_ATTR  ON
   HIST_MISSING_STATS_WARN  0
   ORC_COLUMNS_PUSHDOWN ... ON
   ORC_PRED_PUSHDOWN ...... ON
@@ -1586,8 +1641,8 @@ ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.DATE_DIM_ORC
 REQUESTS_IN .............. 1
 ROWS_OUT ................ 20
-EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 0.01
+EST_OPER_COST ............ 8.42
+EST_TOTAL_COST ........... 8.42
 DESCRIPTION
   max_card_est .......... 20
   fragment_id ............ 0
@@ -1621,7 +1676,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Wed Jun  8 21:04:50 2016
+-- Definition current  Wed Jun 29 18:38:23 2016
 
   (
     D_DATE_SK                        INT
@@ -1762,9 +1817,9 @@ CREATE EXTERNAL TABLE HIVE.HIVE.DATE_DIM_ORC
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212332179893066024
+PLAN_ID .................. 212333985505513050
 ROWS_OUT ................ 20
-EST_TOTAL_COST ........... 0.01
+EST_TOTAL_COST ........... 2.54
 STATEMENT ................ select *
                            from hive.hive.date_dim_orc
                            where d_date = date '2016-01-27';
@@ -1775,7 +1830,7 @@ ROOT ======================================  SEQ_NO 2        ONLY CHILD 1
 REQUESTS_IN .............. 1
 ROWS_OUT ................ 20
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 0.01
+EST_TOTAL_COST ........... 2.54
 DESCRIPTION
   max_card_est .......... 20
   fragment_id ............ 0
@@ -1796,7 +1851,6 @@ DESCRIPTION
   MODE_SEAHIVE ........... ON
   TRAF_ENABLE_ORC_FORMAT   ON
   HIST_ROWCOUNT_REQU  50,000
-  HIVE_USE_EXT_TABLE_ATTR  ON
   HIST_MISSING_STATS_WARN  0
   ORC_COLUMNS_PUSHDOWN ... ON
   ORC_PRED_PUSHDOWN ...... ON
@@ -1835,8 +1889,8 @@ ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.DATE_DIM_ORC
 REQUESTS_IN .............. 1
 ROWS_OUT ................ 20
-EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 0.01
+EST_OPER_COST ............ 2.54
+EST_TOTAL_COST ........... 2.54
 DESCRIPTION
   max_card_est .......... 20
   fragment_id ............ 0
@@ -1976,6 +2030,9 @@ orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK is null ) 
 >>cqd parallel_num_esps '4';
 
 --- SQL operation complete.
+>>cqd HIVE_USE_EXT_TABLE_ATTRS 'off';
+
+--- SQL operation complete.
 >>
 >>prepare xx from select count(*) from hive.hive.customer_orc, hive.hive.store_sales_sorted_orc
 +>    where ss_sold_date_sk = c_customer_sk
@@ -1988,9 +2045,9 @@ orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK is null ) 
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-PLAN_ID .................. 212332179917411829
+PLAN_ID .................. 212333985523977525
 ROWS_OUT ................. 1
-EST_TOTAL_COST ........... 0.05
+EST_TOTAL_COST ........... 6.96
 STATEMENT ................ select count(*)
                            from hive.hive.customer_orc,
                              hive.hive.store_sales_sorted_orc
@@ -1999,11 +2056,11 @@ STATEMENT ................ select count(*)
 
 
 ------------------------------------------------------------------ NODE LISTING
-ROOT ======================================  SEQ_NO 7        ONLY CHILD 6
+ROOT ======================================  SEQ_NO 8        ONLY CHILD 7
 REQUESTS_IN .............. 1
 ROWS_OUT ................. 1
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 0.05
+EST_TOTAL_COST ........... 6.96
 DESCRIPTION
   max_card_est ........... 1
   fragment_id ............ 0
@@ -2011,9 +2068,11 @@ DESCRIPTION
   fragment_type .......... master
   statement_index ........ 0
   affinity_value ......... 0
-  max_max_cardinal  2,880,394
+  est_memory_per_cpu ..... 69 KB
+  max_max_cardinal  2,752,446
   total_overflow_size .... 0.00 KB
   esp_2_node_map ......... (\NSK:-1:-1:-1:-1)
+  esp_3_node_map ......... (\NSK:-1)
   xn_access_mode ......... read_only
   xn_autoabort_interval    0
   auto_query_retry ....... enabled
@@ -2025,7 +2084,6 @@ DESCRIPTION
   MODE_SEAHIVE ........... ON
   TRAF_ENABLE_ORC_FORMAT   ON
   HIST_ROWCOUNT_REQU  50,000
-  HIVE_USE_EXT_TABLE_ATTR  ON
   HIST_MISSING_STATS_WARN  0
   ORC_COLUMNS_PUSHDOWN ... ON
   ORC_AGGR_PUSHDOWN ...... OFF
@@ -2035,15 +2093,16 @@ DESCRIPTION
   ORC_PRED_PUSHDOWN ...... ON
   ORC_NJS ................ ON
   PARALLEL_NUM_ESPS ...... 4
+  HIVE_USE_EXT_TABLE_ATTR  OFF
   select_list ............ cast(sum(count(1 )))
-  input_variables ........ %(4)
+  input_variables ........ %(4), execution_count
 
 
-SORT_PARTIAL_AGGR_ROOT ====================  SEQ_NO 6        ONLY CHILD 5
+SORT_PARTIAL_AGGR_ROOT ====================  SEQ_NO 7        ONLY CHILD 6
 REQUESTS_IN .............. 1
 ROWS_OUT ................. 1
 EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 0.05
+EST_TOTAL_COST ........... 6.96
 DESCRIPTION
   max_card_est ........... 1
   fragment_id ............ 0
@@ -2052,13 +2111,13 @@ DESCRIPTION
   aggregates ............. sum(count(1 ))
 
 
-ESP_EXCHANGE ==============================  SEQ_NO 5        ONLY CHILD 4
+ESP_EXCHANGE ==============================  SEQ_NO 6        ONLY CHILD 5
 REQUESTS_IN .............. 1
 ROWS_OUT ................. 1
 EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 0.05
+EST_TOTAL_COST ........... 6.96
 DESCRIPTION
-  max_card_est ........... 1
+  max_card_est ......... 318.43
   fragment_id ............ 2
   parent_frag ............ 0
   fragment_type .......... esp
@@ -2071,131 +2130,154 @@ DESCRIPTION
   seamonster_exchange .... no
 
 
-SORT_PARTIAL_AGGR_LEAF ====================  SEQ_NO 4        ONLY CHILD 3
+SORT_PARTIAL_AGGR_LEAF ====================  SEQ_NO 5        ONLY CHILD 4
 REQUESTS_IN .............. 1
 ROWS_OUT ................. 1
 EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 0.05
+EST_TOTAL_COST ........... 6.96
 DESCRIPTION
-  max_card_est ........... 1
+  max_card_est ......... 318.43
   fragment_id ............ 2
   parent_frag ............ 0
   fragment_type .......... esp
   aggregates ............. count(1 )
 
 
-NESTED_JOIN ===============================  SEQ_NO 3        CHILDREN 1, 2
+HYBRID_HASH_JOIN ==========================  SEQ_NO 4        CHILDREN 3, 2
 REQUESTS_IN .............. 1
-ROWS_OUT ......... 2,880,394
+ROWS_OUT ........... 478,096
 EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 0.04
+EST_TOTAL_COST ........... 6.96
 DESCRIPTION
-  max_card_est ........... 2.88039e+06
+  memory_quota_per_esp ... 1200 MB
+  max_card_est ........... 1.52241e+08
   fragment_id ............ 2
   parent_frag ............ 0
   fragment_type .......... esp
+  est_memory_per_cpu ..... 66 KB
   join_type .............. inner
-  join_method ............ nested
-  parallel_join_type ..... 2 (N2J Opens all inner partitions)
+  join_method ............ hash
+  parallel_join_type ..... 2
+  min_max_cols ........... HIVE.CUSTOMER_ORC.C_CUSTOMER_SK
+  min_max_expr ........... \:_sys_MinVal0, \:_sys_MaxVal0
+  hash_join_predicates ... (HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK =
+                             HIVE.CUSTOMER_ORC.C_CUSTOMER_SK)
 
 
-ORC_SCAN ==================================  SEQ_NO 2        NO CHILDREN
+ORC_SCAN ==================================  SEQ_NO 3        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.STORE_SALES_SORTED_ORC
-REQUESTS_IN ............ 317
-ROWS/REQUEST ......... 9,086.42
-EST_OPER_COST ............ 0.03
-EST_TOTAL_COST ........... 0.03
+REQUESTS_IN .............. 1
+ROWS_OUT ......... 2,752,446
+EST_OPER_COST ............ 5.63
+EST_TOTAL_COST ........... 5.63
 DESCRIPTION
   max_card_est ........... 2.88039e+06
   fragment_id ............ 2
   parent_frag ............ 0
   fragment_type .......... esp
-  scan_type .............. subset scan of table HIVE.HIVE.STORE_SALES_SORTED_OR
-                             C
+  scan_type .............. full scan of table HIVE.HIVE.STORE_SALES_SORTED_ORC
   object_type ............ Hive_Orc
   scan_direction ......... forward
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
   columns_retrieved ..... 27
-  probes ............. 1,268
-  successful_probes    1,268
-  unique_probes ...... 1,268
-  rows_accessed ...... 6,340
+  probes ................. 1
+  rows_accessed .......... 2.88039e+06
+  min_max_hashj_cols ..... HIVE.HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK
   orc_pred_pushdown ...... yes
-  orc_search_arguments ... and( HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK =
-                             cast(HIVE.CUSTOMER_ORC.C_CUSTOMER_SK) )
-  executor_predicates .... (HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK =
-                             HIVE.CUSTOMER_ORC.C_CUSTOMER_SK)
-  part_key_predicates .... (HIVE.HIVE.CUSTOMER_ORC.C_CUSTOMER_SK =
-                             SS_SOLD_DATE_SK)
+  orc_search_arguments ... and( not( HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_S
+                             K is null ) not( HIVE.STORE_SALES_SORTED_ORC.SS_SO
+                             LD_DATE_SK <cast(\:_sys_MinVal0) )
+                             HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK <=
+                             cast(\:_sys_MaxVal0) )
+  executor_predicates .... HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK is not
+                             null
   begin_key .............. (HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK =
-                             HIVE.CUSTOMER_ORC.C_CUSTOMER_SK),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_TIME_SK =
-                             <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_ITEM_SK =
-                             <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_CUSTOMER_S
-                             K = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_CDEMO_
-                             SK = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_HDEMO
-                             _SK = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_ADDR
-                             _SK = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_STOR
-                             E_SK = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_PRO
-                             MO_SK = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_TI
-                             CKET_NUMBER = <min>), (HIVE.STORE_SALES_SORTED_ORC
-                             .SS_QUANTITY = <min>), (HIVE.STORE_SALES_SORTED_OR
-                             C.SS_WHOLESALE_COST = <min>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_LIST_PRICE =
-                             <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_SALES_PRIC
-                             E = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_DI
-                             SCOUNT_AMT = <min>), (HIVE.STORE_SALES_SORTED_ORC.
-                             SS_EXT_SALES_PRICE = <min>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_WHOLESALE_COST
-                             = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_LIST
-                             _PRICE = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_E
-                             XT_TAX = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_C
-                             OUPON_AMT = <min>), (HIVE.STORE_SALES_SORTED_ORC.S
-                             S_NET_PAID = <min>), (HIVE.STORE_SALES_SORTED_ORC.
-                             SS_NET_PAID_INC_TAX = <min>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_NET_PROFIT =
-                             <min>)
+                             \:_sys_MinVal0), (HIVE.STORE_SALES_SORTED_ORC.SS_S
+                             OLD_TIME_SK = <min>), (HIVE.STORE_SALES_SORTED_ORC
+                             .SS_ITEM_SK = <min>), (HIVE.STORE_SALES_SORTED_ORC
+                             .SS_CUSTOMER_SK = <min>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_CDEMO_SK = <min>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_HDEMO_SK = <min>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_ADDR_SK = <min>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_STORE_SK = <min>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_PROMO_SK = <min>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_TICKET_NUMBER =
+                             <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_QUANTITY =
+                             <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_WHOLESALE_
+                             COST = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_LIS
+                             T_PRICE = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_
+                             SALES_PRICE = <min>), (HIVE.STORE_SALES_SORTED_ORC
+                             .SS_EXT_DISCOUNT_AMT = <min>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_SALES_PRICE =
+                             <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_WHOLES
+                             ALE_COST = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS
+                             _EXT_LIST_PRICE = <min>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_TAX = <min>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_COUPON_AMT =
+                             <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_NET_PAID =
+                             <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_NET_PAID_I
+                             NC_TAX = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_N
+                             ET_PROFIT = <min>)
   end_key ................ (HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK =
-                             HIVE.CUSTOMER_ORC.C_CUSTOMER_SK),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_TIME_SK =
-                             <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_ITEM_SK =
-                             <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_CUSTOMER_S
-                             K = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_CDEMO_
-                             SK = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_HDEMO
-                             _SK = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_ADDR
-                             _SK = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_STOR
-                             E_SK = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_PRO
-                             MO_SK = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_TI
-                             CKET_NUMBER = <max>), (HIVE.STORE_SALES_SORTED_ORC
-                             .SS_QUANTITY = <max>), (HIVE.STORE_SALES_SORTED_OR
-                             C.SS_WHOLESALE_COST = <max>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_LIST_PRICE =
-                             <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_SALES_PRIC
-                             E = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_DI
-                             SCOUNT_AMT = <max>), (HIVE.STORE_SALES_SORTED_ORC.
-                             SS_EXT_SALES_PRICE = <max>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_WHOLESALE_COST
-                             = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_LIST
-                             _PRICE = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_E
-                             XT_TAX = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_C
-                             OUPON_AMT = <max>), (HIVE.STORE_SALES_SORTED_ORC.S
-                             S_NET_PAID = <max>), (HIVE.STORE_SALES_SORTED_ORC.
-                             SS_NET_PAID_INC_TAX = <max>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_NET_PROFIT =
-                             <max>)
+                             \:_sys_MaxVal0), (HIVE.STORE_SALES_SORTED_ORC.SS_S
+                             OLD_TIME_SK = <max>), (HIVE.STORE_SALES_SORTED_ORC
+                             .SS_ITEM_SK = <max>), (HIVE.STORE_SALES_SORTED_ORC
+                             .SS_CUSTOMER_SK = <max>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_CDEMO_SK = <max>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_HDEMO_SK = <max>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_ADDR_SK = <max>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_STORE_SK = <max>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_PROMO_SK = <max>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_TICKET_NUMBER =
+                             <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_QUANTITY =
+                             <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_WHOLESALE_
+                             COST = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_LIS
+                             T_PRICE = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_
+                             SALES_PRICE = <max>), (HIVE.STORE_SALES_SORTED_ORC
+                             .SS_EXT_DISCOUNT_AMT = <max>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_SALES_PRICE =
+                             <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_WHOLES
+                             ALE_COST = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS
+                             _EXT_LIST_PRICE = <max>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_TAX = <max>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_COUPON_AMT =
+                             <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_NET_PAID =
+                             <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_NET_PAID_I
+                             NC_TAX = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_N
+                             ET_PROFIT = <max>)
+
+
+ESP_EXCHANGE ==============================  SEQ_NO 2        ONLY CHILD 1
+REQUESTS_IN .............. 1
+ROWS_OUT ............... 317
+EST_OPER_COST ............ 0.01
+EST_TOTAL_COST ........... 1.32
+DESCRIPTION
+  max_card_est ...... 94,998.1
+  fragment_id ............ 3
+  parent_frag ............ 2
+  fragment_type .......... esp
+  est_memory_per_cpu ..... 3 KB
+  buffer_size ........ 5,000
+  record_length .......... 8
+  parent_processes ....... 4
+  child_processes ........ 1
+  parent_partitioning_fun  broadcast 4 times
+  seamonster_query ....... no
+  seamonster_exchange .... no
 
 
 ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.CUSTOMER_ORC
 REQUESTS_IN .............. 1
 ROWS_OUT ............... 317
-EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 0.01
+EST_OPER_COST ............ 1.32
+EST_TOTAL_COST ........... 1.32
 DESCRIPTION
   max_card_est ...... 94,998.1
-  fragment_id ............ 2
-  parent_frag ............ 0
+  fragment_id ............ 3
+  parent_frag ............ 2
   fragment_type .......... esp
   scan_type .............. subset scan of table HIVE.HIVE.CUSTOMER_ORC
   object_type ............ Hive_Orc
@@ -2211,7 +2293,6 @@ DESCRIPTION
                              null ) )
   executor_predicates .... (HIVE.CUSTOMER_ORC.C_FIRST_SALES_DATE_SK = %(4)) and
                              HIVE.CUSTOMER_ORC.C_CUSTOMER_SK is not null
-  part_key_predicates .... (C_FIRST_SALES_DATE_SK = %(4))
   begin_key .............. (HIVE.CUSTOMER_ORC.C_CUSTOMER_SK = <min>),
                              (HIVE.CUSTOMER_ORC.C_CUSTOMER_ID = '<min>'),
                              (HIVE.CUSTOMER_ORC.C_CURRENT_CDEMO_SK = <min>),
@@ -2255,12 +2336,13 @@ DESCRIPTION
 LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ---- ---- ---- --------------------  --------  --------------------  ---------
 
-6    .    7    root                                                  1.00E+000
-5    .    6    sort_partial_aggr_ro                                  1.00E+000
-4    .    5    esp_exchange                    1:4(hash2)            1.00E+000
-3    .    4    sort_partial_aggr_le                                  1.00E+000
-1    2    3    nested_join                                           2.88E+006
-.    .    2    orc_scan                        STORE_SALES_SORTED_O  9.08E+003
+7    .    8    root                                                  1.00E+000
+6    .    7    sort_partial_aggr_ro                                  1.00E+000
+5    .    6    esp_exchange                    1:4(hash2)            1.00E+000
+4    .    5    sort_partial_aggr_le                                  1.00E+000
+3    2    4    hybrid_hash_join                                      4.78E+005
+.    .    3    orc_scan                        STORE_SALES_SORTED_O  2.75E+006
+1    .    2    esp_exchange                    4(rep-b):1            3.17E+002
 .    .    1    orc_scan                        CUSTOMER_ORC          3.17E+002
 
 --- SQL operation complete.
@@ -2277,6 +2359,9 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 
 --- SQL operation complete.
 >>cqd parallel_num_esps reset;
+
+--- SQL operation complete.
+>>cqd HIVE_USE_EXT_TABLE_ATTRS reset;
 
 --- SQL operation complete.
 >>

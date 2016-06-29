@@ -161,6 +161,7 @@ public:
   // Mutators
   // -----------------------------------------------------------------------
   void append(const ColStatDescSharedPtr& colStatDesc);
+  void append(const ColStatDescList&);
   
   // we need some way of propagating the multi-column uec list
   inline void setCSDLUecList (const MultiColumnUecList * other)

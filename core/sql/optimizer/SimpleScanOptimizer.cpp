@@ -1367,6 +1367,14 @@ SimpleFileScanOptimizer::categorizeMultiProbes(NABoolean *isAnIndexJoin)
     probes_ = (getRepeatCount() *
                getEstNumActivePartitionsAtRuntimeForHbaseRegions()).minCsOne();
   else
+  if (getFileScan().isHiveOrcTable() && CmpCommon::getDefault(NCM_ORC_COSTING) == DF_ON)
+  {
+    // For ORC HIVE tables, we do not multiply the repeat count by # of partitions,
+    // because the repeat count (aka the logic output RC from the outer) is for the
+    // entire inner table.
+    probes_ = getRepeatCount();
+  }
+  else
     probes_ = (getRepeatCount() * getEstNumActivePartitionsAtRuntime()).minCsOne();
 
   // all the probes that don't have duplicates
@@ -2338,6 +2346,9 @@ SimpleFileScanOptimizer::estimateEffTotalRowCount(
   // Examine the predicates on the single subset key columns.
   // RMW - BUG - Could this code break out of the inner loop too early?
   //
+  //
+  NABoolean equiPredFound = FALSE;
+
   for (CollIndex Indx=0; Indx <= singleSubsetPrefixColumn; Indx++)
     {
       // predicate on column which is part of key
@@ -2347,6 +2358,7 @@ SimpleFileScanOptimizer::estimateEffTotalRowCount(
       // Is there an constant equality predicate on this column
       //
       NABoolean curFound = FALSE;
+      equiPredFound = FALSE;
 
       if (keyPreds AND NOT keyPreds->isEmpty())
         {
@@ -2371,9 +2383,12 @@ SimpleFileScanOptimizer::estimateEffTotalRowCount(
                       curFound = TRUE;
 
                     } //end of check for A Constant Expression
-                  else
+                  else {
+                    totalPreds += predId;
+                    equiPredFound = TRUE;
                     break;  // break out of inner loop.  May also
                             // break out of outer loop
+                  }
 
                 } //end of "if" Operator to be VEG predicate
 
@@ -2381,7 +2396,7 @@ SimpleFileScanOptimizer::estimateEffTotalRowCount(
 
         } //end of "if" predicates to be non empty
 
-      if (NOT curFound)
+      if (NOT curFound && NOT equiPredFound)
         break;
 
     } //end of outer loop "for (CollIndex i=0; i <= singleSubsetPre...)"
@@ -2392,6 +2407,8 @@ SimpleFileScanOptimizer::estimateEffTotalRowCount(
     innerHistograms(*getIndexDesc(),
                     getIndexDesc()->getIndexKey().entries());
 
+
+ 
   //GET ROW count
   realRowCount = innerHistograms.getRowCount();
       
@@ -2399,17 +2416,27 @@ SimpleFileScanOptimizer::estimateEffTotalRowCount(
   // predicates to determine the effective row count.  Otherwise use
   // the whole table row count.
   //
+  const SelectivityHint * selHint = getIndexDesc()->getPrimaryTableDesc()->getSelectivityHint();
+  const CardinalityHint * cardHint = getIndexDesc()->getPrimaryTableDesc()->getCardinalityHint();
+
   if( hasAtleastOneConstExpr )
     {
-      const SelectivityHint * selHint = getIndexDesc()->getPrimaryTableDesc()->getSelectivityHint();
-      const CardinalityHint * cardHint = getIndexDesc()->getPrimaryTableDesc()->getCardinalityHint();
 
       innerHistograms.applyPredicates(totalPreds, getRelExpr(), selHint, cardHint, REL_SCAN);
 
       //GET ROW count
       effRowCount = innerHistograms.getRowCount();
     }
-  else
+  else if( equiPredFound &&
+           CmpCommon::getDefault(NCM_ORC_COSTING_DEBUG) == DF_ON ) 
+  {
+
+     // Append the colStats from the outer probing side so that we can compute
+     // the # of rows touched by the equi-predicate.
+     innerHistograms.append(getContext().getInputLogProp()->getColStats());
+     innerHistograms.applyPredicates(totalPreds, getRelExpr(), selHint, cardHint, REL_SCAN);
+     effRowCount = innerHistograms.getRowCount();
+  } else 
     {
       effRowCount = realRowCount;
     }

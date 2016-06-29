@@ -857,6 +857,7 @@ SimpleFileScanOptimizer::scmComputeCostVectorsForORC()
        printf("blockSize=%f\n", blockSize.getValue());
        printf("blocks scale factor=%f\n", numBlocksScaleFactor.getValue());
        printf("numBlocks=%f\n", numBlocks.getValue());
+       printf("numActivePartitions=%d\n", getEstNumActivePartitionsAtRuntime());
     }
 
 
@@ -1226,6 +1227,7 @@ SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbes()
 
 Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
 {
+      
   estimateEffTotalRowCount(totalRowCount_, effectiveTotalRowCount_);
   
   NABoolean isAnIndexJoin = FALSE;
@@ -1261,13 +1263,11 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
 
   CostScalar tuplesProduced = getResultSetCardinality();
   
-  //// # of rows accessed by successful probes
-  //CostScalar tuplesProcessed = getDataRows(); 
-  //// add # of rows accessed by failed probes
-  //tuplesProcessed += (numfailedProbes * effectiveTotalRowCount_);
+  // # of rows accessed by successful probes
+  CostScalar tuplesProcessed = getDataRows(); 
+  // add # of rows accessed by failed probes
+  tuplesProcessed += effectiveTotalRowCount_;
 
-  CostScalar tuplesProcessed = effectiveTotalRowCount_; 
-  
 
   // Now compute the sequential I/O
   CostScalar skipRatio = 1;
@@ -1296,6 +1296,25 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
     numBlocks *= numBlocksScaleFactor;
   }
 
+  // Some book keeping: 
+  // set the field before it is normalized and mutiplied by the row size factor.
+  setTuplesProcessed(tuplesProcessed);
+  setEstRowsAccessed(tuplesProduced);
+  setNumberOfBlocksToReadPerAccess(numBlocks);
+
+  // Normalize by number of partitions, if necessary.  Normalization is not 
+  // needed for NJs into ORC table when the inner table is accessed through 
+  // a rep-n partitioning function.
+  const ReplicateNoBroadcastPartitioningFunction* repN =
+    getContext().getPlan()->getPhysicalProperty()->getPartitioningFunction()->
+      castToReplicateNoBroadcastPartitioningFunction();
+
+  CollIndex numActivePartitions = getEstNumActivePartitionsAtRuntime();
+  //if ( !repN ) {
+    tuplesProduced  /= numActivePartitions;
+    tuplesProcessed /= numActivePartitions;
+  //}
+
   if ( CmpCommon::getDefault(NCM_ORC_COSTING_DEBUG) == DF_ON  &&
        getIndexDesc()->getPrimaryTableDesc()->getNATable()->isORC() )
     {
@@ -1316,27 +1335,9 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
        printf("blockSize=%f\n", blockSize.getValue());
        printf("blocksScaleFactor=%f\n", numBlocksScaleFactor.getValue());
        printf("numBlocks=%f\n", numBlocks.getValue());
+       printf("numActivePartitions=%d\n", numActivePartitions);
     }
  
-
-  // Some book keeping: 
-  // set the field before it is normalized and mutiplied by the row size factor.
-  setTuplesProcessed(tuplesProcessed);
-  setEstRowsAccessed(tuplesProduced);
-  setNumberOfBlocksToReadPerAccess(numBlocks);
-
-  // Normalize by number of partitions, if necessary.  Normalization is not 
-  // needed for NJs into ORC table when the inner table is accessed through 
-  // a rep-n partitioning function.
-  const ReplicateNoBroadcastPartitioningFunction* repN =
-    getContext().getPlan()->getPhysicalProperty()->getPartitioningFunction()->
-      castToReplicateNoBroadcastPartitioningFunction();
-
-  if ( !repN ) {
-    CostScalar numActivePartitions = getEstNumActivePartitionsAtRuntime();
-    tuplesProduced  /= numActivePartitions;
-    tuplesProcessed /= numActivePartitions;
-  }
 
   // Factor in row sizes.
   CostScalar rowSizeFactor = scmRowSizeFactor(rowSize);
