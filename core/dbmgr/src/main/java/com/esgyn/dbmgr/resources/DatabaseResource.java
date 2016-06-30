@@ -81,19 +81,22 @@ public class DatabaseResource {
 		}
 	}
 	@GET
-	@Path("/locale/")
-	@Produces("application/json")
-	public void getEsgynLocale(@QueryParam("locale") String locale,@Context HttpServletRequest servletRequest,
-			@Context HttpServletResponse servletResponse) {
-		EsgynLocalizeMapping.setLocale(locale);
-	}
-	@GET
 	@Path("/objects/")
 	@Produces("application/json")
 	public SqlObjectListResult getDatabaseObjects(@QueryParam("type") String objectType,
 			@QueryParam("schema") String schemaName, @QueryParam("parentObjectName") String parentObjectName,
 			@Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+		/*********************this is for localization test code**/
+		String locale=null;
+		Cookie[] cookies = servletRequest.getCookies();
+		for (Cookie cookie : cookies) {
+			if (cookie.getName().equalsIgnoreCase("locale")) {
+				locale=cookie.getValue();
+			}
+		}
+		System.out.println(EsgynLocalizeMapping.getLocalizedValue(locale, "s2"));
+		/*********************this is for localization test code**/
 		if (objectType == null) {
 			objectType = "schemas";
 		}
