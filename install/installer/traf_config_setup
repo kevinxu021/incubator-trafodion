@@ -63,7 +63,7 @@ SQ_ROOT=""
 INIT_TRAFODION="N"
 START="N"
 SQCONFIG=""
-DCS_SERVERS_PARM="2"
+DCS_SERVERS_PARM="1"
 ENABLE_HA="false"
 FLOATING_IP=""
 BACKUP_DCS_NODES=""
@@ -238,6 +238,27 @@ fi
 
 echo "export NODE_LIST=\"$NODE_LIST\"" >> $LOCAL_TRAF_CONFIG
 node_count=$(echo $NODE_LIST | wc -w)
+
+
+#==============================================
+#Elasticity 
+echo -n "Enable elasticity (Y/N), default is Y: "
+read answer
+if [[ "${answer}" =~ ^[Nn]$ ]]; then
+   echo "export ELASTICITY_ENABLED=\"N\"" >> $LOCAL_TRAF_CONFIG
+else
+   echo "export ELASTICITY_ENABLED=\"Y\"" >> $LOCAL_TRAF_CONFIG
+   echo "***INFO: When elasticity is enabled, there will be copy errors"
+   sleep 10
+   NUM_ELASTIC_NODES="$node_count"
+   echo -n "Number of elastic nodes, default is [ $NUM_ELASTIC_NODES ]: "
+   read answer
+   if [[ -z "$answer" ]]; then
+      echo "export NUM_ELASTIC_NODES=\"$NUM_ELASTIC_NODES\"" >> $LOCAL_TRAF_CONFIG 
+   else
+     echo "export NUM_ELASTIC_NODES=\"$answer\"" >> $LOCAL_TRAF_CONFIG 
+   fi
+fi
 
 #==============================================
 echo -n "Do you have a set of management nodes (Y/N), default is N: "
@@ -717,7 +738,7 @@ fi
 #==============================================
 #DCS Servers
 
-if [[ -z $DCS_SERVERS_PARM ]]; then
+if [[ "$DCS_SERVERS_PARM" -eq "1" ]]; then
    DCS_SERVERS_PARM=$(($node_count * 8))
 fi
 

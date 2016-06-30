@@ -21,7 +21,7 @@
 * @@@ END COPYRIGHT @@@
 **/
 
-package org.apache.hadoop.hbase.coprocessor.transactional;
+package org.trafodion.pit;
 
 import java.io.IOException;
 
@@ -104,10 +104,6 @@ import org.apache.hadoop.hbase.client.transactional.UnknownTransactionException;
 import org.apache.hadoop.hbase.client.transactional.BatchException;
 import org.apache.hadoop.hbase.client.transactional.TransState;
 import org.apache.hadoop.hbase.client.transactional.STRConfig;
-import org.apache.hadoop.hbase.client.transactional.MutationMeta;
-import org.apache.hadoop.hbase.client.transactional.MutationMetaRecord;
-import org.apache.hadoop.hbase.client.transactional.SnapshotMeta;
-import org.apache.hadoop.hbase.client.transactional.SnapshotMetaRecord;
 
 import org.apache.hadoop.hbase.KeyValueUtil;
 import org.apache.hadoop.hbase.KeyValue;
@@ -150,6 +146,11 @@ import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
 import com.google.protobuf.ServiceException;
+
+import org.trafodion.pit.MutationMeta;
+import org.trafodion.pit.MutationMetaRecord;
+import org.trafodion.pit.SnapshotMeta;
+import org.trafodion.pit.SnapshotMetaRecord;
 
 public class MutationCapture {
 

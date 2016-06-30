@@ -2032,6 +2032,7 @@ public class HBaseTxClient {
                             }
                             if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD: in-doubt transaction size " + transactionStates.size());
                             for (Map.Entry<Long, TransactionState> tsEntry : transactionStates.entrySet()) {
+                            	TransactionState ts1 = null;
                                 TransactionState ts = tsEntry.getValue();
                                 Long txID = ts.getTransactionId();
                                 int clusterid = (int) TransactionState.getClusterId(txID);
@@ -2056,30 +2057,30 @@ public class HBaseTxClient {
                                         else {
                                             if (LOG.isDebugEnabled()) LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " no ts object in DTM memory ");
                                          }
-
-                                        audit.getTransactionState(ts, true);
-                                        if ((! ts.getStatus().contains("RECOVERY")) &&  (ts.getStatus().contains("COMMIT"))){
+                                        ts1 = new TransactionState(txID);
+                                        audit.getTransactionState(ts1, true);
+                                        if ((! ts1.getStatus().contains("RECOVERY")) &&  (ts1.getStatus().contains("COMMIT"))){
                                         	// Write a RECOVERY_COMMIT record to TLOG to prevent aging
                                             long nextAsn = audit.getNextAuditSeqNum((int)TransactionState.getNodeId(txID));
                                             audit.putSingleRecord(txID, 
-                                            		              ts.getStartId(),
-                                            		              ts.getCommitId(),
+                                            		              ts1.getStartId(),
+                                            		              ts1.getCommitId(),
                                                                   TransState.STATE_RECOVERY_COMMIT.toString(),
-                                                                  ts.getParticipatingRegions(),
-                                                                  ts.hasRemotePeers(),
+                                                                  ts1.getParticipatingRegions(),
+                                                                  ts1.hasRemotePeers(),
                                                                   forceForgotten,
                                                                   nextAsn);                                        		
                                         }
                                         audit.getTransactionState(ts, false);
                                         if (peerid == -1) {
-                                            audit.getTransactionState(ts, true);
+                                            // audit.getTransactionState(ts, true);
                                             if (LOG.isDebugEnabled()) LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " has no peer configured " + peerid
                                             		+ " ,commit authority is handled by local owner " + clusterid
                                             		+ " with ts status " + ts.getStatus().toString());
                                             commitPath = 1;
                                         }
                                         else if ((!ts.getStatus().contains("NOTX")) && (!ts.hasRemotePeers())) { // only has local participant (no STR peer region)
-                                           audit.getTransactionState(ts, true);
+                                           // audit.getTransactionState(ts, true);
                                            LOG.info("TRAF RCOV PEER THREAD: TID " + txID
                                         		     + " has no remote participants, commit authority is handled by local owner "
                                         		   + clusterid + " with ts status " + ts.getStatus().toString());

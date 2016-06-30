@@ -323,9 +323,13 @@ public class TransactionManager {
 
                Map<byte[], CommitResponse> result = null;
                try {
-                 if (LOG.isTraceEnabled()) LOG.trace("doCommitX -- before coprocessorService txid: " + transactionId +
+            	 if (ignoreUnknownTransaction){
+            	   if(LOG.isDebugEnabled())
+            		   LOG.debug("doCommitX -- Recovery Redrive before coprocessorService txid: " + transactionId +
                         " ignoreUnknownTransaction: " + ignoreUnknownTransaction + " table: " +
-                        table.toString() + " startKey: " + new String(startKey, "UTF-8") + " endKey: " + new String(endKey, "UTF-8"));
+                        table.toString() + " startKey: " + new String(startKey, "UTF-8") + " endKey: " + new String(endKey, "UTF-8")
+                        + "Region :" + regionName.toString());
+            	 }
                  result = table.coprocessorService(TrxRegionService.class, startKey, endKey, callable);
                } catch (ServiceException se) {
                   String msg = new String ("ERROR occurred while calling doCommitX coprocessor service in doCommitX for transaction: "

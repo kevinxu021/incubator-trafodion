@@ -19,7 +19,7 @@
 //
 // @@@ END COPYRIGHT @@@
 
-package org.apache.hadoop.hbase.client.transactional;
+package org.trafodion.pit;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;

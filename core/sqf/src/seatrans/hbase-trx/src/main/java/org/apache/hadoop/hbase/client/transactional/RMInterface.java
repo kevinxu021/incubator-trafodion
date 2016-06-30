@@ -55,7 +55,6 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.client.transactional.ReplayEngine;
 import org.apache.hadoop.hbase.client.transactional.TransactionManager;
 import org.apache.hadoop.hbase.client.transactional.TransactionState;
 import org.apache.hadoop.hbase.client.transactional.CommitUnsuccessfulException;
@@ -95,6 +94,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
+
+import org.trafodion.pit.ReplayEngine;
 
 public class RMInterface {
     static final Log LOG = LogFactory.getLog(RMInterface.class);
