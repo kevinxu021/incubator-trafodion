@@ -6548,7 +6548,7 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
 Lng32 HSGlobalsClass::UpdateIUSPersistentSampleTable()
 {
   Lng32 retcode = 0;
-  Int64 xRows = 0;
+  Int64 xRows;
   HSLogMan *LM = HSLogMan::Instance();
 
   // Start a new scope for the transaction, which is bounded by the ctor/dtor of
@@ -6569,16 +6569,17 @@ Lng32 HSGlobalsClass::UpdateIUSPersistentSampleTable()
        LM->StartTimer("IUS: execute query to delete from PS");
      }
 
+     xRows = 0;
      retcode = HSFuncExecQuery(deleteQuery, -UERR_INTERNAL_ERROR,
                               &xRows,
                               "IUS delete from PS where",
                               NULL, NULL, TRUE/*doRetry*/ );
-     HSHandleError(retcode);
      if (LM->LogNeeded()) {
        LM->StopTimer();
        sprintf(LM->msg, PF64 " rows deleted from persistent sample table.", xRows);
        LM->Log(LM->msg);
      }
+     HSHandleError(retcode);
 
      // step 2  - add all rows from _I to PS
      NAString selectInsertQuery;
@@ -6590,22 +6591,23 @@ Lng32 HSGlobalsClass::UpdateIUSPersistentSampleTable()
         LM->StartTimer("IUS: execute query to insert into PS");
      }
 
+     xRows = 0;
      retcode = HSFuncExecQuery(selectInsertQuery, -UERR_INTERNAL_ERROR,
                               &xRows,
                               "IUS insert into PS (select from _I)",
                               NULL, NULL, TRUE/*doRetry*/ );
-     HSHandleError(retcode);
      if (LM->LogNeeded()) {
        LM->StopTimer();
        sprintf(LM->msg, PF64 " rows inserted into persistent sample table.", xRows);
        LM->Log(LM->msg);
      }
+     HSHandleError(retcode);
   }   // must end the transaction here; DDL and DML can't be in the same transaction
 
   // step3 - drop _I table
-  sampleIExists_ = FALSE;  // only try to drop it once
   retcode = drop_I(*hssample_table);
   HSHandleError(retcode);
+  sampleIExists_ = FALSE;  // only try to drop it once
 
   HSFuncExecQuery("CONTROL QUERY DEFAULT ALLOW_DML_ON_NONAUDITED_TABLE reset");
 
