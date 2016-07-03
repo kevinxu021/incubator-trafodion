@@ -2939,6 +2939,15 @@ NABoolean GroupAttributes::allHiveORCTables()
   return TRUE;
 }
 
+NAString GroupAttributes::getIndexName(CollIndex i)
+{
+  if ( i< 0 || i >= availableBtreeIndexes_.entries() )
+    return NAString("");
+
+  IndexDesc* iDesc = availableBtreeIndexes_[i];
+  return iDesc->getPrimaryTableDesc()->getNATable()->getTableName().getQualifiedNameAsAnsiString();
+}
+
 NABoolean GroupAttributes::allHiveORCTablesSorted()
 {
    if ( !allHiveTables() )

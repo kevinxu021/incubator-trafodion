@@ -2427,16 +2427,7 @@ SimpleFileScanOptimizer::estimateEffTotalRowCount(
       //GET ROW count
       effRowCount = innerHistograms.getRowCount();
     }
-  else if( equiPredFound &&
-           CmpCommon::getDefault(NCM_ORC_COSTING_DEBUG) == DF_ON ) 
-  {
-
-     // Append the colStats from the outer probing side so that we can compute
-     // the # of rows touched by the equi-predicate.
-     innerHistograms.append(getContext().getInputLogProp()->getColStats());
-     innerHistograms.applyPredicates(totalPreds, getRelExpr(), selHint, cardHint, REL_SCAN);
-     effRowCount = innerHistograms.getRowCount();
-  } else 
+  else 
     {
       effRowCount = realRowCount;
     }

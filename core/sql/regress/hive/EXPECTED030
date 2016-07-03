@@ -44,7 +44,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Wed Jun 29 18:37:34 2016
+-- Definition current  Sun Jul  3 15:34:18 2016
 
   (
     S_STORE_SK                       INT
@@ -984,7 +984,7 @@ NUM_HITS    NUM_PARAMS
 >>invoke hive.hive.store_sales_orc;
 
 -- Definition of hive table STORE_SALES_ORC
--- Definition current  Wed Jun 29 18:38:12 2016
+-- Definition current  Sun Jul  3 15:34:53 2016
 
   (
     SS_SOLD_DATE_SK                  INT
@@ -1027,7 +1027,7 @@ NUM_HITS    NUM_PARAMS
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212333985493002012
+PLAN_ID .................. 212334320093872002
 ROWS_OUT ................ 20
 EST_TOTAL_COST ......... 704.58
 STATEMENT ................ select * from store_sales_orc where ss_item_sk = 1;
@@ -1145,7 +1145,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212333985493836055
+PLAN_ID .................. 212334320094719331
 ROWS_OUT ......... 2,880,401
 EST_TOTAL_COST ... 3,522,899.25
 STATEMENT ................ select *
@@ -1249,8 +1249,8 @@ ORC_SCAN ==================================  SEQ_NO 2        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.STORE_SALES_ORC
 REQUESTS_IN ......... 99,997
 ROWS/REQUEST ............ 28.8
-EST_OPER_COST .... 3,522,869.5
-EST_TOTAL_COST ... 3,522,869.5
+EST_OPER_COST .... 3,522,869.25
+EST_TOTAL_COST ... 3,522,869.25
 DESCRIPTION
   max_card_est ........... 2.8804e+06
   fragment_id ............ 0
@@ -1343,7 +1343,7 @@ DESCRIPTION
 
 --- SQL operation complete.
 >>
->>-- join with nested join
+>>-- join with parallel nested join
 >>
 >>control query shape off;
 
@@ -1357,18 +1357,17 @@ DESCRIPTION
 >>cqd orc_njs 'on';
 
 --- SQL operation complete.
->>cqd parallel_num_esps '8';
-
---- SQL operation complete.
 >>
 >>prepare s from
 +>select [last 0] ss_net_profit from
 +>date_dim_orc dim, store_sales_sorted_orc ss
 +>where
 +>dim.d_date_sk = ss.ss_sold_date_sk
-+>and d_year = 2001 and d_moy = 3 and d_dom = 30;
++>and d_year in ( 2001,2000) and d_dom = 30 -- produce 24 rows
++>;
 
 --- SQL command prepared.
+>>
 >>explain options 'f' s;
 
 LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
@@ -1376,10 +1375,10 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 
 5    .    6    root                                                  1.00E+000
 4    .    5    firstn                                                1.00E+000
-3    .    4    esp_exchange                    1:2(hash2)            4.43E+003
-1    2    3    nested_join                                           4.43E+003
-.    .    2    orc_scan                        STORE_SALES_SORTED_O  4.43E+003
-.    .    1    orc_scan                        DATE_DIM_ORC          1.00E+000
+3    .    4    esp_exchange                    1:4(hash2)            3.61E+004
+1    2    3    nested_join                                           3.61E+004
+.    .    2    orc_scan                        STORE_SALES_SORTED_O  1.50E+003
+.    .    1    orc_scan                        DATE_DIM_ORC          2.40E+001
 
 --- SQL operation complete.
 >>
@@ -1387,9 +1386,6 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 
 --- SQL operation complete.
 >>cqd ncm_orc_costing reset;
-
---- SQL operation complete.
->>cqd parallel_num_esps reset;
 
 --- SQL operation complete.
 >>cqd orc_njs reset;
@@ -1428,7 +1424,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Wed Jun 29 18:38:17 2016
+-- Definition current  Sun Jul  3 15:34:58 2016
 
   (
     D_DATE_SK                        INT
@@ -1569,7 +1565,7 @@ CREATE EXTERNAL TABLE HIVE.HIVE.DATE_DIM_ORC
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212333985499374054
+PLAN_ID .................. 212334320100207714
 ROWS_OUT ................ 20
 EST_TOTAL_COST ........... 8.42
 STATEMENT ................ select *
@@ -1676,7 +1672,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Wed Jun 29 18:38:23 2016
+-- Definition current  Sun Jul  3 15:35:03 2016
 
   (
     D_DATE_SK                        INT
@@ -1817,7 +1813,7 @@ CREATE EXTERNAL TABLE HIVE.HIVE.DATE_DIM_ORC
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212333985505513050
+PLAN_ID .................. 212334320106005140
 ROWS_OUT ................ 20
 EST_TOTAL_COST ........... 2.54
 STATEMENT ................ select *
@@ -2045,7 +2041,7 @@ orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK is null ) 
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-PLAN_ID .................. 212333985523977525
+PLAN_ID .................. 212334320124963870
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 6.96
 STATEMENT ................ select count(*)

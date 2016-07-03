@@ -183,25 +183,25 @@ explain options 'f' s;
 explain s;
 cqd orc_njs reset;
 
--- join with nested join
+-- join with parallel nested join
 
 control query shape off;
 cqd HIVE_USE_EXT_TABLE_ATTRS 'off';
 cqd ncm_orc_costing 'on';
 cqd orc_njs 'on';
-cqd parallel_num_esps '8';
 
 prepare s from
 select [last 0] ss_net_profit from
 date_dim_orc dim, store_sales_sorted_orc ss
 where
 dim.d_date_sk = ss.ss_sold_date_sk
-and d_year = 2001 and d_moy = 3 and d_dom = 30;
+and d_year in ( 2001,2000) and d_dom = 30 -- produce 24 rows
+;
+
 explain options 'f' s;
 
 cqd HIVE_USE_EXT_TABLE_ATTRS reset;
 cqd ncm_orc_costing reset;
-cqd parallel_num_esps reset;
 cqd orc_njs reset;
 
 

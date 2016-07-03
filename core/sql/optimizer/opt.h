@@ -1656,6 +1656,7 @@ public:
   inline RuleSubset &triedEnforcerRules() { return triedEnforcerRules_; }
   inline RuleSubset &ignoredRules() { return ignoreTheseRules_; }
 
+  virtual void display() { print(); };
   virtual void print (FILE * f = stdout,
 		      const char * prefix = "",
 		      const char * suffix = "") const;

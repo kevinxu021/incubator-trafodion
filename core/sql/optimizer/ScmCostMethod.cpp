@@ -1245,17 +1245,23 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
 
   CMPASSERT(hdfsStats);
 
-  CostScalar totalFileSize = hdfsStats->getTotalSize();
+  CostScalar totalFileSizeOriginal = hdfsStats->getTotalSize();
+  CostScalar totalFileSizeNormalized = totalFileSizeOriginal;
 
   // collect fact about whether some columns are sorted. 
   NABoolean leadingColumnsSorted = 
       getIndexDesc()->isSortedORCHive() && isLeadingKeyColCovered();
 
-  // if the scan is on a sorted leading, the total scan size is one stripe. 
+  // if the scan is on a sorted leading, the total scan size is the amount
+  // of data in one stripe
   if (leadingColumnsSorted)
   {
-     totalFileSize /= hdfsStats->getNumStripes();
+     totalFileSizeNormalized /= hdfsStats->getNumStripes();
   }
+
+  CollIndex numActivePartitions = getEstNumActivePartitionsAtRuntime();
+
+  totalFileSizeNormalized /= numActivePartitions;
 
   // width of columns involved in predicates against the scan
   CostScalar involvedColSize = getFileScan().getTotalColumnWidthForExecPreds();
@@ -1265,9 +1271,15 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
   
   // # of rows accessed by successful probes
   CostScalar tuplesProcessed = getDataRows(); 
-  // add # of rows accessed by failed probes
-  tuplesProcessed += effectiveTotalRowCount_;
 
+  // add # of rows accessed by failed probes
+  CostScalar avgRowsPerStripe = 
+         hdfsStats->getTotalRows() / hdfsStats->getNumStripes();
+
+  tuplesProcessed += numfailedProbes * 
+          ((leadingColumnsSorted) ? avgRowsPerStripe : effectiveTotalRowCount_);
+
+  tuplesProcessed = MAXOF(tuplesProcessed, tuplesProduced); 
 
   // Now compute the sequential I/O
   CostScalar skipRatio = 1;
@@ -1280,7 +1292,7 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
   // factor in the column design in ORC reader in that only the data for the
   // columns needed is scanned.
   CostScalar totalDataScanned =
-           totalProbes * totalFileSize * skipRatio * (involvedColSize/rowSize);
+           totalProbes * totalFileSizeNormalized * skipRatio * (involvedColSize/rowSize);
 
   CostScalar blockSize = getIndexDesc()->getNAFileSet()->getBlockSize();
 
@@ -1309,7 +1321,6 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
     getContext().getPlan()->getPhysicalProperty()->getPartitioningFunction()->
       castToReplicateNoBroadcastPartitioningFunction();
 
-  CollIndex numActivePartitions = getEstNumActivePartitionsAtRuntime();
   if ( !repN ) {
     tuplesProduced  /= numActivePartitions;
     tuplesProcessed /= numActivePartitions;
@@ -1328,7 +1339,9 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
        printf("tuple processed=%f \n", tuplesProcessed.getValue());
        printf("tuple produced=%f \n", tuplesProduced.getValue());
        printf("totalProbes=%f\n", totalProbes.getValue());
-       printf("totalFileSize=%f\n", totalFileSize.getValue());
+       printf("totalFileSizeOriginal=%f\n", totalFileSizeOriginal.getValue());
+       printf("totalFileSizeNormalized=%f\n", totalFileSizeNormalized.getValue());
+       printf("totalNumStripes=%d\n", hdfsStats->getNumStripes());
        printf("totalDataScanned=%f\n", totalDataScanned.getValue());
        printf("involvedColSiz=%f\n", involvedColSize.getValue());
        printf("recordLength=%f\n", rowSize.getValue());
