@@ -10,9 +10,8 @@ define([
         'model/Session',
         'handlers/SessionHandler',
         'common',
-        'language',
         'jqueryvalidate'
-     ], function (BaseView, LoginT, session, sessionHandler, common,language) {
+     ], function (BaseView, LoginT, session, sessionHandler, common) {
 	'use strict';
 	var _this = null;
 	var _router = null;
@@ -40,6 +39,8 @@ define([
 		},
 
 		init: function(){
+			$("[data-localize]").localize("/lang/dbmgr", { language: navigator.language });
+			session.saveLocale(navigator.language);
 			$('#navbar').hide();
 			_this = this;
 			$(SPINNER).hide();
@@ -144,7 +145,6 @@ define([
 			e.preventDefault();
 		},
 		loginSuccess: function(result){
-			language.initialize();
 			$(ERROR_TEXT).text("");
 			if(result.status == 'OK'){
 				session.saveToken(result.key);
@@ -175,6 +175,7 @@ define([
 			sessionHandler.logout(param);
 		},
 		logoutSuccess: function(){
+			session.delCookie("locale");
 
 		},
 		showErrorMessage: function (jqXHR, res, error) {

@@ -430,7 +430,7 @@ Lng32 CreateHistTables (const HSGlobalsClass* hsGlobal)
     // do NOT check volatile tables
     if (hsGlobal->objDef->isVolatile()) return retcode;
 
-    LM->StartTimer("Table creation");
+    LM->StartTimer("Create histogram tables");
     NAString tableNotCreated;
 
     // Call createHistogramTables to create any table that does not yet exist.

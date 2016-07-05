@@ -5333,7 +5333,12 @@ Lng32 HSGlobalsClass::CollectStatistics()
            }
         }
 
-
+        // If the _I table exists, some IUS work was done and the persistent
+        // sample table must be updated (and the _I table dropped).
+        if (sampleIExists_) {
+          retcode = UpdateIUSPersistentSampleTable();
+          HSHandleErrorIUS(retcode);
+        }
              
         Int32 iusUnprocessed  = 0;
         // Reverse the NO_STATS state to UNPROCESSED and count 
@@ -6311,6 +6316,10 @@ Lng32 HSGlobalsClass::prepareForIUSAlgorithm1(Int64& rows)
 
 static Lng32 create_I(NAString& sampTblName)
 {
+  HSLogMan *LM = HSLogMan::Instance();
+  if (LM->LogNeeded())
+     LM->StartTimer("IUS: create _I table");
+
   NAString createI("create table ");
   createI += sampTblName;
   createI += "_I LIKE ";
@@ -6319,6 +6328,9 @@ static Lng32 create_I(NAString& sampTblName)
   Lng32 retcode = HSFuncExecQuery(createI, -UERR_INTERNAL_ERROR,
                                   NULL, "IUS create I",
                                   NULL, NULL, TRUE/*doRetry*/);
+  if (LM->LogNeeded())
+     LM->StopTimer();
+
   HSHandleError(retcode);
   return retcode;
 }
@@ -6377,11 +6389,17 @@ Lng32 HSGlobalsClass::generateSampleI(Int64 currentSampleSize,
 
 static Lng32 drop_I(NAString& sampTblName)
 {
+  HSLogMan *LM = HSLogMan::Instance();
+  if (LM->LogNeeded())
+    LM->StartTimer("IUS: drop _I table");
+
   NAString cleanupI("drop table if exists ");
   cleanupI.append(sampTblName).append("_I");
   Lng32 retcode = HSFuncExecQuery(cleanupI, -UERR_INTERNAL_ERROR,
                                   NULL, "IUS cleanup I",
                                   NULL, NULL, TRUE/*doRetry*/);
+  if (LM->LogNeeded())
+    LM->StopTimer();
   HSHandleError(retcode);
   return retcode;
 }
@@ -6394,11 +6412,13 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
 
   HSLogMan *LM = HSLogMan::Instance();
 
-  // create help table -I 
-
-  retcode = create_I(*hssample_table);
-  HSHandleError(retcode);
-  sampleIExists_ = TRUE;  // so we remember to drop it
+  // create help table _I
+  if (!sampleIExists_)
+    {
+      retcode = create_I(*hssample_table);
+      HSHandleError(retcode);
+      sampleIExists_ = TRUE;  // so we remember to drop it
+    }
 
   NABoolean havePending = FALSE;
   HSColGroupStruct *group = singleGroup;
@@ -6513,12 +6533,29 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
   if (LM->LogNeeded()) 
     LM->StopTimer();
 
-  
-  // Update the persistent sample table in several steps
+  // Write CBFs for groups that are PROCESSED and delayedRead back to disk.
+  writeCBFstoDiskForIUS(*hssample_table, singleGroup);
+
+  return retcode;
+}
+
+// Update the persistent sample table, dropping the _I table when finished.
+//   1) Delete rows in the persistent sample satisfying the IUS predicate.
+//   2) Insert the rows from <sampleTblName>_I into the persistent sample.
+//      These rows constitute a random sample of rows from the source table
+//      that satisfy the IUS predicate.
+//   3) Remove the _I table.
+Lng32 HSGlobalsClass::UpdateIUSPersistentSampleTable()
+{
+  Lng32 retcode = 0;
+  Int64 xRows;
+  HSLogMan *LM = HSLogMan::Instance();
+
+  // Start a new scope for the transaction, which is bounded by the ctor/dtor of
+  // the HSTranController object declared within.
   {
      HSFuncExecQuery("CONTROL QUERY DEFAULT ALLOW_DML_ON_NONAUDITED_TABLE 'ON'");
 
-       // start a new scope for the trasaction
      HSTranController TC("IUS: update PS table", &retcode);
      HSHandleError(retcode);
 
@@ -6526,17 +6563,22 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
      NAString deleteQuery;
      iusSampleDeletedInMem->generateDeleteQuery(*hssample_table, deleteQuery);
 
-
      if (LM->LogNeeded()) {
-        LM->Log("query to delete from PS:");
-        LM->Log(deleteQuery.data());
+       LM->Log("query to delete from PS:");
+       LM->Log(deleteQuery.data());
+       LM->StartTimer("IUS: execute query to delete from PS");
      }
 
-
+     xRows = 0;
      retcode = HSFuncExecQuery(deleteQuery, -UERR_INTERNAL_ERROR,
                               &xRows,
                               "IUS delete from PS where",
                               NULL, NULL, TRUE/*doRetry*/ );
+     if (LM->LogNeeded()) {
+       LM->StopTimer();
+       sprintf(LM->msg, PF64 " rows deleted from persistent sample table.", xRows);
+       LM->Log(LM->msg);
+     }
      HSHandleError(retcode);
 
      // step 2  - add all rows from _I to PS
@@ -6546,28 +6588,30 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
      if (LM->LogNeeded()) {
         LM->Log("query to insert into PS:");
         LM->Log(selectInsertQuery.data());
+        LM->StartTimer("IUS: execute query to insert into PS");
      }
-  
+
+     xRows = 0;
      retcode = HSFuncExecQuery(selectInsertQuery, -UERR_INTERNAL_ERROR,
                               &xRows,
                               "IUS insert into PS (select from _I)",
                               NULL, NULL, TRUE/*doRetry*/ );
+     if (LM->LogNeeded()) {
+       LM->StopTimer();
+       sprintf(LM->msg, PF64 " rows inserted into persistent sample table.", xRows);
+       LM->Log(LM->msg);
+     }
      HSHandleError(retcode);
   }   // must end the transaction here; DDL and DML can't be in the same transaction
 
   // step3 - drop _I table
-  sampleIExists_ = FALSE;  // only try to drop it once
-  retcode = drop_I(*hssample_table);  
+  retcode = drop_I(*hssample_table);
   HSHandleError(retcode);
+  sampleIExists_ = FALSE;  // only try to drop it once
 
   HSFuncExecQuery("CONTROL QUERY DEFAULT ALLOW_DML_ON_NONAUDITED_TABLE reset");
 
   checkTime("after updating persistent sample table for IUS");
-
-  // Write CBFs for groups that are PROCESSED and delayedRead back to disk.
-  writeCBFstoDiskForIUS(*hssample_table, singleGroup);
-
-  return retcode;
 }
 
 // Read in CBFs for groups that are PENDING and delayedRead flag is TRUE 
@@ -6703,6 +6747,10 @@ Int32 HSGlobalsClass::writeCBFstoDiskForIUS(NAString& sampleTableName,
                                             HSColGroupStruct* group
      )
 {
+   HSLogMan *LM = HSLogMan::Instance();
+   if (LM->LogNeeded())
+     LM->StartTimer("IUS: write CBF files to disk");
+
    NAString path =
      ActiveSchemaDB()->getDefaults().getValue(USTAT_IUS_PERSISTENT_CBF_PATH);
 
@@ -6714,8 +6762,11 @@ Int32 HSGlobalsClass::writeCBFstoDiskForIUS(NAString& sampleTableName,
 
    UInt64 totalSpaceInBlocks = 0;
 
-   if ( !getTotalDiskSizeInBlocks(path, totalSpaceInBlocks) )
+   if ( !getTotalDiskSizeInBlocks(path, totalSpaceInBlocks) ) {
+     if (LM->LogNeeded())
+       LM->StopTimer();
      return 0;
+   }
    
    UInt64 totalAllowedInBlocks = MINOF(totalCBFsizeInMB * 1024 / 2, 
                                        totalSpaceInBlocks * percentage);
@@ -6780,6 +6831,8 @@ Int32 HSGlobalsClass::writeCBFstoDiskForIUS(NAString& sampleTableName,
    }
    NADELETEBASIC(bufptr, STMTHEAP);
 
+   if (LM->LogNeeded())
+     LM->StopTimer();
    return count;
 }
 
