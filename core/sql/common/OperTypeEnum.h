@@ -1064,6 +1064,7 @@ enum OperatorTypeEnum {
                         ELM_LIKE_OPT_WITH_HEADINGS_ELEM,
                         ELM_LIKE_OPT_WITH_HORIZONTAL_PARTITIONS_ELEM,
                         ELM_LIKE_OPT_WITHOUT_SALT_ELEM,
+                        ELM_LIKE_OPT_SALT_CLAUSE_ELEM,
                         ELM_LIKE_OPT_WITHOUT_DIVISION_ELEM,
                         ELM_LOCATION_ELEM,
                         ELM_OPTION_LIST,
