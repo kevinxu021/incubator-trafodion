@@ -9,6 +9,7 @@ define([
         'text!templates/db_schema_object_detail.html',
         'jquery',
         'handlers/DatabaseHandler',
+        'handlers/ToolsHandler',
         'common',
         '../../../bower_components/codemirror/lib/codemirror',
         '../../../bower_components/codemirror/mode/sql/sql',
@@ -16,7 +17,7 @@ define([
         'datatables.net',
         'datatables.net-bs',
         'pdfmake'
-        ], function (BaseView, DatabaseT, $, dbHandler, common, CodeMirror) {
+        ], function (BaseView, DatabaseT, $, dbHandler, tHandler, common, CodeMirror) {
 	'use strict';
 	var ATTRIBUTES_SPINNER = '#attributes-spinner',
 	COLUMNS_SPINNER = '#columns-spinner',
@@ -78,6 +79,8 @@ define([
 	UPDATE_LIBRARY_CONTAINER = '#update-library-div',
 	UPDATE_LIBRARY_BUTTON = '#update-library-btn',
 	DROP_LIBRARY_BUTTON = '#drop-library-btn',
+	DOWNLOAD_LIBRARY_BUTTON = '#download-library-btn',
+	DOWNLOAD_LOADING = "#download-loading-spinner",
 	STATISTICS_BTN = '#statistics-btn',
 	REFRESH_ACTION = '#refreshAction';
 
@@ -135,6 +138,7 @@ define([
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			$(UPDATE_LIBRARY_BUTTON).on('click', this.updateLibrary);
 			$(DROP_LIBRARY_BUTTON).on('click',this.dropLibrary);
+			$(DOWNLOAD_LIBRARY_BUTTON).on('click',this.downloadLibrary);
 			common.on(common.LIBRARY_ALTERED_EVENT, this.libraryAlteredEvent);
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
@@ -154,6 +158,8 @@ define([
 			dbHandler.on(dbHandler.FETCH_USAGE_ERROR, this.fetchUsagesError);
 			dbHandler.on(dbHandler.DROP_OBJECT_SUCCESS, this.dropObjectSuccess);
 			dbHandler.on(dbHandler.DROP_OBJECT_ERROR, this.dropObjectError);
+			tHandler.on(tHandler.GET_LIBRARY_SUCCESS, this.getLibrarySuccess);
+			tHandler.on(tHandler.GET_LIBRARY_ERROR, this.getLibraryError);
 			_this.processRequest();
 
 		},
@@ -166,6 +172,7 @@ define([
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			$(UPDATE_LIBRARY_BUTTON).on('click', this.updateLibrary);
 			$(DROP_LIBRARY_BUTTON).on('click',this.dropLibrary);
+			$(DOWNLOAD_LIBRARY_BUTTON).on('click',this.downloadLibrary);
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
@@ -183,6 +190,8 @@ define([
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.fetchIndexesError);
 			dbHandler.on(dbHandler.FETCH_USAGE_SUCCESS, this.displayUsages);
 			dbHandler.on(dbHandler.FETCH_USAGE_ERROR, this.fetchUsagesError);
+			tHandler.on(tHandler.GET_LIBRARY_SUCCESS, this.getLibrarySuccess);
+			tHandler.on(tHandler.GET_LIBRARY_ERROR, this.getLibraryError);
 
 			if(prevRouteArgs.schema != routeArgs.schema || 
 					prevRouteArgs.name != routeArgs.name ||
@@ -210,6 +219,7 @@ define([
 			$(REFRESH_ACTION).off('click', this.doRefresh);
 			$(UPDATE_LIBRARY_BUTTON).off('click', this.updateLibrary);
 			$(DROP_LIBRARY_BUTTON).off('click',this.dropLibrary);
+			$(DOWNLOAD_LIBRARY_BUTTON).off('click',this.downloadLibrary);
 			dbHandler.off(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.off(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
 			dbHandler.off(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
@@ -226,6 +236,8 @@ define([
 			dbHandler.off(dbHandler.FETCH_OBJECT_LIST_ERROR, this.fetchIndexesError);
 			dbHandler.off(dbHandler.FETCH_USAGE_SUCCESS, this.displayUsages);
 			dbHandler.off(dbHandler.FETCH_USAGE_ERROR, this.fetchUsagesError);
+			tHandler.off(tHandler.GET_LIBRARY_SUCCESS, this.getLibrarySuccess);
+			tHandler.off(tHandler.GET_LIBRARY_ERROR, this.getLibraryError);
 			$('a[data-toggle="pill"]').off('shown.bs.tab', this.selectFeature);
 		},
 		doReset: function(){
@@ -350,6 +362,31 @@ define([
 			_this.isAjaxCompleted=false;
 			dbHandler.dropObject(common.ExternalDisplayName(routeArgs.schema), routeArgs.type, common.ExternalDisplayName(routeArgs.name));
 		},
+		
+		downloadLibrary: function(){
+			$(UPDATE_LIBRARY_BUTTON).prop('disabled',true);
+			$(DROP_LIBRARY_BUTTON).prop('disabled',true);
+			$(DOWNLOAD_LIBRARY_BUTTON).prop('disabled',true);
+			$(DOWNLOAD_LOADING).css('visibility', 'visible');
+			tHandler.getLibrary(routeArgs.CodeFileName);
+		},
+		
+		getLibrarySuccess: function(){
+			$(UPDATE_LIBRARY_BUTTON).prop('disabled',false);
+			$(DROP_LIBRARY_BUTTON).prop('disabled',false);
+			$(DOWNLOAD_LIBRARY_BUTTON).prop('disabled',false);
+			$(DOWNLOAD_LOADING).css('visibility', 'hidden');
+			alert("file download success");
+		},
+		
+		getLibraryError: function(){
+			$(UPDATE_LIBRARY_BUTTON).prop('disabled',false);
+			$(DROP_LIBRARY_BUTTON).prop('disabled',false);
+			$(DOWNLOAD_LIBRARY_BUTTON).prop('disabled',false);
+			$(DOWNLOAD_LOADING).css('visibility', 'hidden');
+			alert("file download error");
+		},
+		
 		selectFeature: function(e){
 			$(OBJECT_DETAILS_CONTAINER).show();
 			var selectedFeatureLink = ATTRIBUTES_SELECTOR;
@@ -630,6 +667,7 @@ define([
 				$(ATTRIBUTES_SPINNER).show();
 				$(UPDATE_LIBRARY_BUTTON).hide();
 				$(DROP_LIBRARY_BUTTON).hide();
+				$(DOWNLOAD_LIBRARY_BUTTON).hide();
 				dbHandler.fetchAttributes(routeArgs.type, routeArgs.name, routeArgs.schema);
 			}else{
 				_this.displayAttributes();
@@ -692,6 +730,7 @@ define([
 			$(ATTRIBUTES_SPINNER).hide();
 			$(UPDATE_LIBRARY_BUTTON).show();
 			$(DROP_LIBRARY_BUTTON).show();
+			$(DOWNLOAD_LIBRARY_BUTTON).show();
 			if(data != null){
 				objectAttributes = data;
 			}
@@ -703,6 +742,9 @@ define([
 					var value = v[property];
 					if(property == 'CreateTime' || property == 'ModifiedTime'){
 						value = common.toServerLocalDateFromUtcMilliSeconds(value);
+					}
+					if(property == 'Code File Name'){
+						routeArgs.CodeFileName = value.substring(value.lastIndexOf("/")+1);
 					}
 					if(routeArgs.type == 'index' && property == 'Table Name'){
 						var parentObjectName = _this.getParentObjectName();

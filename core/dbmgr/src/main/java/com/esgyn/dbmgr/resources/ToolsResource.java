@@ -1,11 +1,15 @@
 package com.esgyn.dbmgr.resources;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -35,11 +39,11 @@ public class ToolsResource {
 	@Path("/createlibrary")
 	@Consumes(MediaType.MULTIPART_FORM_DATA)
 	@Produces("application/json")
-	public boolean createOrUpdatelibrary(@FormDataParam("file") InputStream in, @FormDataParam("fileName") String fileName,
-			@FormDataParam("schemaName") String schemaName, @FormDataParam("filePart") String filePart,
-			@FormDataParam("libraryName") String libraryName, @FormDataParam("overwriteFlag") boolean overwriteFlag,
-			@FormDataParam("startFlag") boolean startFlag, @FormDataParam("endFlag") boolean endFlag,
-			@FormDataParam("updateFlag") boolean updateFlag,
+	public boolean createOrUpdatelibrary(@FormDataParam("file") InputStream in,
+			@FormDataParam("fileName") String fileName, @FormDataParam("schemaName") String schemaName,
+			@FormDataParam("filePart") String filePart, @FormDataParam("libraryName") String libraryName,
+			@FormDataParam("overwriteFlag") boolean overwriteFlag, @FormDataParam("startFlag") boolean startFlag,
+			@FormDataParam("endFlag") boolean endFlag, @FormDataParam("updateFlag") boolean updateFlag,
 			@Context HttpServletRequest servletRequest, @Context HttpServletResponse servletResponse)
 					throws EsgynDBMgrException {
 		Session soc = SessionModel.getSession(servletRequest, servletResponse);
@@ -72,7 +76,7 @@ public class ToolsResource {
 			_LOG.info("Schema check:" + query_text);
 			stmt = adminConnection.createStatement();
 			rs = stmt.executeQuery(query_text);
-			if (!rs.next()) {//Schema does not exist
+			if (!rs.next()) {// Schema does not exist
 				throw new EsgynDBMgrException("Schema " + schemaName + " does not exist");
 			}
 			query_text = String.format(SystemQueryCache.getQueryText(SystemQueryCache.CHECK_LIBRARY), checkSchemaName,
@@ -176,4 +180,95 @@ public class ToolsResource {
 		}
 		return true;
 	}
+	
+	@POST
+	@Path("/getlibrary")
+	@Consumes(MediaType.MULTIPART_FORM_DATA)
+	@Produces("application/json")
+	public boolean getfile(@FormDataParam("fileName") String fileName, @Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+		Session soc = SessionModel.getSession(servletRequest, servletResponse);
+		Connection adminConnection = null;
+		Connection connection = null;
+		CallableStatement pc = null;
+		String query_text;
+		Statement stmt;
+		ResultSet rs = null;
+		FileOutputStream out = null;
+		String path = servletRequest.getSession().getServletContext().getRealPath("")+File.separator;
+		//check file status
+		String tmpFileName = fileName + ".tmp";
+		File tmpFile = new File(path + tmpFileName);
+		while(tmpFile.exists()){
+			try {
+				Thread.sleep(10000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			_LOG.debug("****************");
+			_LOG.debug("another user is downloading this file....please wait");
+		}
+		//start to get file
+		try {
+			adminConnection = connection = JdbcHelper.getInstance().getAdminConnection();
+			connection = JdbcHelper.getInstance().getConnection(soc.getUsername(), soc.getPassword());
+			query_text = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SPJ_GETFILE));
+			_LOG.debug(query_text);
+			_LOG.debug("****************");
+			_LOG.debug(fileName);
+			pc = connection.prepareCall(query_text);
+			int offset = 0;
+			pc.registerOutParameter(3, Types.BIGINT);
+			pc.registerOutParameter(4, Types.VARCHAR);
+			String data = null;
+			byte[] unData = null;
+			long len = 1;
+			_LOG.debug("****************");
+			_LOG.debug(path);
+			out = new FileOutputStream(path + tmpFileName);
+			while (offset < len) {
+				pc.setString(1, fileName);
+				pc.setInt(2, offset);
+				pc.execute();
+				data = pc.getString(3);
+				System.out.println("data size:" + data.length());
+				if (data.length() == 0) {
+					break;
+				}
+				unData = data.getBytes("ISO-8859-1");
+				out.write(unData);
+				len = pc.getLong(4);
+				offset += unData.length;
+				_LOG.info("offset=" + offset + ",len=" + len);
+				
+			}
+		} catch (Exception e) {
+			_LOG.error(e.getMessage());
+			throw new EsgynDBMgrException(e.getMessage());
+		} finally {
+			try {
+				if (out != null) {
+					out.close();
+				}
+				if (pc != null) {
+					pc.close();
+				}
+				if (adminConnection != null) {
+					adminConnection.close();
+				}
+				if (connection != null) {
+					connection.close();
+				}
+			} catch (Exception e) {
+			}
+		}
+		//rename file
+		File file = new File(path + fileName);
+		if(file.exists()){
+			file.delete();
+		}
+		tmpFile.renameTo(file);
+		return true;
+	}
+	
 }

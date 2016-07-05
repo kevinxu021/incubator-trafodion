@@ -17,7 +17,53 @@ define(['moment',
 	return (function() {
 
 		function Common() {
-
+			var MAPPING = {
+					"Name":"名称",
+					"Owner":"拥有者",
+					"CreateTime":"创建时间",
+					"ModifiedTime":"修改时间",
+					"Time":"时间",
+					"Last Activity Seconds":"上次活动持续时间(秒)",
+					"Query ID":"查询ID",
+					"Execution State":"执行状态",
+					"Query Text":"查询文本",
+					"Full Text Length":"全文长度",
+					"Status":"状态",
+					"Start Time":"开始时间",
+					"End Time":"结束时间",
+					"User Name":"用户名",
+					"Application":"应用程序",
+					"Client":"客户端",
+					"Elapsed Time":"执行时间",
+					"Query Text":"查询文本",
+					"Severity":"错误等级",
+					"Component":"组件",
+					"Process":"进程",
+					"Error Code":"错误码",
+					"Message":"信息",
+					"HOSTNAME":"主机名",
+					"INSTANCE":"实例",
+					"START_TIME":"开始时间",
+					"REGISTERED":"是否注册",
+					"STATE":"状态",
+					"PROCESS_NAME":"进程名",
+					"IP_ADDRESS":"IP地址",
+					"PORT":"端口",
+					"CLIENT_NAME":"客户端名",
+					"CLIENT_APPL":"客户端应用",
+					"CLINET_IP_ADDRESS":"客户端IP地址",
+					"CLIENT_PORT":"客户端端口",
+					"View Name":"视图名",
+					"Updateble":"可否更新",
+					"Insertable":"可否插入",
+					"Index Name":"索引名",
+					"Table Name":"表名",
+					"Is Unqiue":"是否唯一",
+					"Library Name":"库名",
+					"Code File Name":"文件名",
+					"Function Type":"函数类型",
+					"Language Type":"语言类型"
+			}
 			// var _isoDateFormat='yyyy-MM-dd HH:mm:ss'
 			var REFRESH_INTERVAL = '#refreshInterval';
 			/*this.MESSAGE_COUNT=0;*/
@@ -90,6 +136,10 @@ define(['moment',
 				}
 				return false;
 			};
+			
+			this.Translate = function(str){
+				return MAPPING[str];
+			}
 			
 			this.ExternalDisplayName = function (objName) {
 				var name = objName.trim();

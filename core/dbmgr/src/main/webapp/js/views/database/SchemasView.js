@@ -100,6 +100,7 @@ define([
 				$.each(keys, function(k, v) {
 					var obj = new Object();
 					obj.title = v;
+					//obj.title = common.Translate(obj.title);
 					aoColumns.push(obj);
 				});
 
@@ -167,7 +168,7 @@ define([
 						"searchable" : false
 					}],
 	                 buttons: [
-	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+	                           { extend : 'copy', text: '复制', exportOptions: { columns: ':visible' } },
 	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
 	                          // { extend : 'excel', exportOptions: { columns: ':visible' } },
 	                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: 'Schemas' },
