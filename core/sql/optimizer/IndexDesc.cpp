@@ -122,6 +122,13 @@ IndexDesc::IndexDesc(TableDesc *tdesc,
   // of the order that the index provides
   // ---------------------------------------------------------------------
   const NAColumnArray & indexKeyColumns = fileSet_->getIndexKeyColumns();
+
+
+//NAString tname((this->getPrimaryTableDesc()->getNATable()->getTableName()).getQualifiedNameAsAnsiString());
+//cout << "in IndexDesc::IndexDesc(), for " << tname.data() << endl;
+//cout << ", indexKeyColumns.entries() = " << indexKeyColumns.entries() << endl;
+
+
   for (i = 0; i < indexKeyColumns.entries(); i++)
     {
       // which column of the index is this (usually this will be == i)

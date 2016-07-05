@@ -11,7 +11,8 @@ define([
         'common',
         'handlers/ServerHandler',
         'bootstrapNotify',
-        'jqueryui'
+        'jqueryui',
+        'jquerylocalize'
         ], function ($, _, Backbone, common, serverHandler) {
 	'use strict';
 	var _this = null;
@@ -28,7 +29,7 @@ define([
 		initialized: false,
 
 		TASK_MENU:'#notify',
-
+		
 		pageWrapper: null,
 
 		pageIdentifier:null,
@@ -147,7 +148,7 @@ define([
 				$('#content-wrapper').removeClass('no-transition');
 				$('#content-wrapper').removeClass('col-md-12').addClass('col-md-10');
 			}
-
+			$('.modal-dialog').draggable();
 			$(window).on('resize', this.onWindowResize);
 			$('#content-wrapper').css('padding-top','60px');
 			$('#notification-btn').unbind().on('click', this.hideOrDisplaySideBar);

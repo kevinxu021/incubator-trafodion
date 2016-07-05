@@ -1135,6 +1135,7 @@ struct HSColGroupStruct : public NABasicObject
     Int64            prevUEC;                      /* uec from existing histogram */
     Int64            colSecs;                      /* Time to sort/group data for column */
     CountingBloomFilter* cbf;                      /* A bloom filter for IUS */
+    NAString& cbfFileNameSuffix() { return *colSet[0].colname; }
 
     void* boundaryValues;                          /* List of bounary values for IUS */
     void* MFVValues;                               /* List of MFV values for IUS */
@@ -1203,13 +1204,7 @@ class IUSValueIterator
     virtual ~IUSValueIterator()
     {}
     
-    void init(HSColGroupStruct* group)
-    {
-      // Strings must be contiguous in the strData buffer for this iterator to
-      // work correctly.
-      HS_ASSERT(group->strDataConsecutive);
-      vp = (T*)group->data;
-    }
+    void init(HSColGroupStruct* group);
     
     void next()
     {
@@ -1485,6 +1480,9 @@ public:
     //Log the current contents of this class.
     void log(HSLogMan* LM);
 
+    // Takes action necessary before throwing exception for an assertion failure.
+    void preAssertionFailure(const char* condition, const char* fileName, Lng32 lineNum);
+
     // Derive a return code from the contents of the diagnostics area.
     Lng32 getRetcodeFromDiags();
 
@@ -1503,10 +1501,12 @@ public:
                                              NABoolean forceToFetch = TRUE);
     Lng32 updatePersistentSampleTableForIUS(NAString& sampleTableName, double sampleRate,
                                             NAString& targetTableName);
+    void getCBFFilePrefix(NAString& sampleTableName, NAString& filePrefix);
     void detectPersistentCBFsForIUS(NAString& sampleTableName, HSColGroupStruct *group);
+    Lng32 UpdateIUSPersistentSampleTable();
     Lng32 readCBFsIntoMemForIUS(NAString& sampleTableName, HSColGroupStruct* group);
     Lng32 writeCBFstoDiskForIUS(NAString& sampleTableName, HSColGroupStruct* group);
-    Lng32 deletePersistentCBFsForIUS(NAString& sampleTableName, HSColGroupStruct* group);
+    Lng32 deletePersistentCBFsForIUS(NAString& sampleTableName, HSColGroupStruct* group, SortState stateToDelete);
 
     void logDiagArea(const char* title);
 

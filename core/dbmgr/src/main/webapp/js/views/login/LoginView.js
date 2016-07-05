@@ -39,6 +39,8 @@ define([
 		},
 
 		init: function(){
+			$("[data-localize]").localize("/lang/dbmgr", { language: navigator.language });
+			session.saveLocale(navigator.language);
 			$('#navbar').hide();
 			_this = this;
 			$(SPINNER).hide();
@@ -173,6 +175,7 @@ define([
 			sessionHandler.logout(param);
 		},
 		logoutSuccess: function(){
+			session.delCookie("locale");
 
 		},
 		showErrorMessage: function (jqXHR, res, error) {
