@@ -2346,8 +2346,6 @@ SimpleFileScanOptimizer::estimateEffTotalRowCount(
   // Examine the predicates on the single subset key columns.
   // RMW - BUG - Could this code break out of the inner loop too early?
   //
-  //
-  NABoolean equiPredFound = FALSE;
 
   for (CollIndex Indx=0; Indx <= singleSubsetPrefixColumn; Indx++)
     {
@@ -2358,7 +2356,6 @@ SimpleFileScanOptimizer::estimateEffTotalRowCount(
       // Is there an constant equality predicate on this column
       //
       NABoolean curFound = FALSE;
-      equiPredFound = FALSE;
 
       if (keyPreds AND NOT keyPreds->isEmpty())
         {
@@ -2384,8 +2381,6 @@ SimpleFileScanOptimizer::estimateEffTotalRowCount(
 
                     } //end of check for A Constant Expression
                   else {
-                    totalPreds += predId;
-                    equiPredFound = TRUE;
                     break;  // break out of inner loop.  May also
                             // break out of outer loop
                   }
@@ -2396,7 +2391,7 @@ SimpleFileScanOptimizer::estimateEffTotalRowCount(
 
         } //end of "if" predicates to be non empty
 
-      if (NOT curFound && NOT equiPredFound)
+      if (NOT curFound)
         break;
 
     } //end of outer loop "for (CollIndex i=0; i <= singleSubsetPre...)"
@@ -2416,11 +2411,11 @@ SimpleFileScanOptimizer::estimateEffTotalRowCount(
   // predicates to determine the effective row count.  Otherwise use
   // the whole table row count.
   //
-  const SelectivityHint * selHint = getIndexDesc()->getPrimaryTableDesc()->getSelectivityHint();
-  const CardinalityHint * cardHint = getIndexDesc()->getPrimaryTableDesc()->getCardinalityHint();
 
   if( hasAtleastOneConstExpr )
     {
+      const SelectivityHint * selHint = getIndexDesc()->getPrimaryTableDesc()->getSelectivityHint();
+      const CardinalityHint * cardHint = getIndexDesc()->getPrimaryTableDesc()->getCardinalityHint();
 
       innerHistograms.applyPredicates(totalPreds, getRelExpr(), selHint, cardHint, REL_SCAN);
 
