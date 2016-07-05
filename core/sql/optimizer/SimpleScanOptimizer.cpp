@@ -1367,6 +1367,14 @@ SimpleFileScanOptimizer::categorizeMultiProbes(NABoolean *isAnIndexJoin)
     probes_ = (getRepeatCount() *
                getEstNumActivePartitionsAtRuntimeForHbaseRegions()).minCsOne();
   else
+  if (getFileScan().isHiveOrcTable() && CmpCommon::getDefault(NCM_ORC_COSTING) == DF_ON)
+  {
+    // For ORC HIVE tables, we do not multiply the repeat count by # of partitions,
+    // because the repeat count (aka the logic output RC from the outer) is for the
+    // entire inner table.
+    probes_ = getRepeatCount();
+  }
+  else
     probes_ = (getRepeatCount() * getEstNumActivePartitionsAtRuntime()).minCsOne();
 
   // all the probes that don't have duplicates
@@ -2338,6 +2346,7 @@ SimpleFileScanOptimizer::estimateEffTotalRowCount(
   // Examine the predicates on the single subset key columns.
   // RMW - BUG - Could this code break out of the inner loop too early?
   //
+
   for (CollIndex Indx=0; Indx <= singleSubsetPrefixColumn; Indx++)
     {
       // predicate on column which is part of key
@@ -2371,9 +2380,10 @@ SimpleFileScanOptimizer::estimateEffTotalRowCount(
                       curFound = TRUE;
 
                     } //end of check for A Constant Expression
-                  else
+                  else {
                     break;  // break out of inner loop.  May also
                             // break out of outer loop
+                  }
 
                 } //end of "if" Operator to be VEG predicate
 
@@ -2392,6 +2402,8 @@ SimpleFileScanOptimizer::estimateEffTotalRowCount(
     innerHistograms(*getIndexDesc(),
                     getIndexDesc()->getIndexKey().entries());
 
+
+ 
   //GET ROW count
   realRowCount = innerHistograms.getRowCount();
       
@@ -2399,6 +2411,7 @@ SimpleFileScanOptimizer::estimateEffTotalRowCount(
   // predicates to determine the effective row count.  Otherwise use
   // the whole table row count.
   //
+
   if( hasAtleastOneConstExpr )
     {
       const SelectivityHint * selHint = getIndexDesc()->getPrimaryTableDesc()->getSelectivityHint();
@@ -2409,7 +2422,7 @@ SimpleFileScanOptimizer::estimateEffTotalRowCount(
       //GET ROW count
       effRowCount = innerHistograms.getRowCount();
     }
-  else
+  else 
     {
       effRowCount = realRowCount;
     }
