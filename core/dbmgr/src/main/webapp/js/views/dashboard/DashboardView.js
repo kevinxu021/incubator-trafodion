@@ -25,7 +25,8 @@ define([
         'flottime',
         'flotcanvas',
         'flotcrosshair',
-        'flotaxislabels'
+        'flotaxislabels',
+        'flotresize'
         ], function (BaseView, DashboardT, dashboardHandler, serverHandler, $, common, moment, refreshTimer, timeRangeView) {
 	'use strict';
 
@@ -77,7 +78,7 @@ define([
 	var renderedCharts = {};
 	var renderedFlotCharts = {};
 	var chartsData = {};
-	var resizeTimer = null;
+	//var resizeTimer = null;
 	var drillDownChart = {};
 	var chartConfig = null;
 	var transConfig = null;
@@ -125,11 +126,16 @@ define([
 			timeRangeView.eventAgg.on(timeRangeView.events.TIME_RANGE_CHANGED, this.timeRangeChanged);
 			refreshTimer.setRefreshInterval(0.5);
 			timeRangeView.setTimeRange(1);
-			$(window).on('resize', this.onResize);
+			//$(window).on('resize', this.onResize);
 			
 			this.bindEnterpriseEvents();
 			this.bindOtherInitialEvents();
 			this.refreshPage();
+			$('#metricsDialogContent').resizable({
+			    //alsoResize: ".modal-dialog",
+			    //minHeight: 150
+			});
+
 		},
 		doResume: function(){
 			$(REFRESH_ACTION).on('click', this.refreshPage);
@@ -140,7 +146,7 @@ define([
 			}else{
 				refreshTimer.setRefreshInterval(1);
 			}
-			$(window).on('resize', this.onResize);
+			//$(window).on('resize', this.onResize);
 			refreshTimer.resume();
 			timeRangeView.resume();
 
@@ -158,7 +164,7 @@ define([
 		},
 		doPause: function(){
 			this.storeCommonTimeRange();
-			$(window).off('resize', this.onResize);
+			//$(window).off('resize', this.onResize);
 			refreshTimer.pause();
 			timeRangeView.pause();
 			$(REFRESH_ACTION).off('click', this.refreshPage);
@@ -172,8 +178,6 @@ define([
 			serverHandler.off(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
 			
 			this.unbindEnterpriseEvents();
-			
-
 		},
 		bindOtherInitialEvents:function(){
 			if(common.isEnterprise() || common.isAdvanced()){
@@ -192,6 +196,25 @@ define([
 					var metricName = $(DRILLDOWN_METRICNAME).text();
 					dashboardHandler.fetchMetricDrilldown(_this.generateParams(metricName, true));
 				});
+				
+				$(DRILLDOWN_DIALOG).on('show.bs.modal', function () {
+				    $(this).find('.modal-body').css({
+				        'max-height':'100%'
+				    });
+				});
+				
+				$(DRILLDOWN_DIALOG).on('resize', function () {
+					if (drillDownChart != null && drillDownChart.plot != null){
+						var placeholder = drillDownChart.plot.getPlaceholder();
+						// somebody might have hidden us and we can't plot
+						// when we don't have the dimensions
+						if (placeholder.width() == 0 || placeholder.height() == 0)
+							return;						
+						drillDownChart.plot.resize();
+						drillDownChart.plot.setupGrid();						
+						drillDownChart.plot.draw(); 
+					}
+				});
 			}
 
 
@@ -201,8 +224,8 @@ define([
 					var startTime = $(START_TIME_PICKER).data("DateTimePicker").date();
 					var endTime = $(END_TIME_PICKER).data("DateTimePicker").date();
 
-					lastUsedTimeRange.startTime = startTime.format('YYYY/MM/DD-HH:mm:ss');
-					lastUsedTimeRange.endTime = endTime.format('YYYY/MM/DD-HH:mm:ss');
+					lastUsedTimeRange.startTime = startTime;
+					lastUsedTimeRange.endTime = endTime;
 				}
 			});
 
@@ -421,11 +444,7 @@ define([
 				});
 			});
 		},
-		onResize: function () {
-			clearTimeout(resizeTimer);
-			resizeTimer = setTimeout(_this.doResize, 200);
-		},
-		doResize: function () {
+		handleWindowResize: function () {
 			if(renderedFlotCharts !== null){
 				$.each(renderedFlotCharts, function(index, graph){
 					if (graph != null){
@@ -440,6 +459,9 @@ define([
 					}
 				});
 			}
+		},
+		handleSideBarToggle: function(){
+			_this.handleWindowResize();
 		},
 		storeCommonTimeRange:function(){
 			var selection = $(FILTER_TIME_RANGE).val();
@@ -468,8 +490,8 @@ define([
 			}		
 			lastUsedTimeRange.startMsec = startTime.unix() * 1000;		
 			lastUsedTimeRange.endMsec = endTime.unix() * 1000;
-			lastUsedTimeRange.startTime = params.startTime;
-			lastUsedTimeRange.endTime = params.endTime;
+			lastUsedTimeRange.startTime = startTime;
+			lastUsedTimeRange.endTime = endTime;
 			lastUsedTimeRange.timeRange = $(FILTER_TIME_RANGE).val();
 
 			params.metricName = metricName;
@@ -485,8 +507,8 @@ define([
 			if(lastUsedTimeRange != null){
 				$(FILTER_TIME_RANGE).val(lastUsedTimeRange.timeRange);
 				//if(lastUsedTimeRange.timeRange == '0'){
-				$(START_TIME_PICKER).data("DateTimePicker").date(moment(lastUsedTimeRange.startTime));
-				$(END_TIME_PICKER).data("DateTimePicker").date(moment(lastUsedTimeRange.endTime));
+				$(START_TIME_PICKER).data("DateTimePicker").date(lastUsedTimeRange.startTime);
+				$(END_TIME_PICKER).data("DateTimePicker").date(lastUsedTimeRange.endTime);
 				//}
 			}
 		},
@@ -1135,8 +1157,6 @@ define([
 				drillDownChart.updateLegendTimeout = null;
 				drillDownChart.latestPosition = null;
 
-
-
 				$(DRILLDOWN_CHART).bind("plothover",  function (event, pos, item) {
 					drillDownChart.latestPosition = pos;
 					if (!drillDownChart.updateLegendTimeout) {
@@ -1159,6 +1179,14 @@ define([
 				}
 			});
 
+			/*$(DRILLDOWN_CHART).resize();
+			$(DRILLDOWN_CHART_CONTAINER).resizeable({
+				maxWidth: 900,
+				maxHeight: 500,
+				minWidth: 450,
+				minHeight: 250
+			})*/
+			
 			if (data.length > 0) {
 				drillDownChart.plot = $.plot($(DRILLDOWN_CHART), data, drillDownChart.flotOptions);
 			}else{

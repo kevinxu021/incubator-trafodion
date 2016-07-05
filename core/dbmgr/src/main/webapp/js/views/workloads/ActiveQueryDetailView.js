@@ -33,7 +33,11 @@ define([
 	var ERROR_CONTAINER = '#error-container';
 	var ERROR_TEXT = '#query-detail-error-text';
 	var queryTextEditor = null;
-
+	
+	var CANCEL_QUERY_DIALOG = '#cancel-query-dialog',
+		CANCEL_QUERY_ID = '#cancel-query-id',
+		CANCEL_QUERY_YES_BTN = '#cancel-query-yes-btn';
+	
 	var ActiveQueryDetailView = BaseView.extend({
 		template:  _.template(WorkloadsT),
 
@@ -41,6 +45,7 @@ define([
 			this.currentURL = window.location.hash;
 			this.redirectFlag=false;
 			_this = this;
+			
 			$('#query-id').val(args);
 			queryID = args;
 			this.pageIdentifier="active";
@@ -69,8 +74,8 @@ define([
 			this.loadQueryText();
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_ERROR, this.showErrorMessage);
-			wHandler.on(wHandler.ACTIVE_CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.on(wHandler.ACTIVE_CANCEL_QUERY_ERROR, this.cancelQueryError);
+			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
 			refreshTimer.init();
 			
 			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
@@ -78,10 +83,11 @@ define([
 
 			$(REFRESH_MENU).on('click', this.fetchActiveQueryDetail);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
+			$(CANCEL_QUERY_YES_BTN).on('click', this.cancelQueryConfirmed);
 			$(EXPLAIN_BUTTON).on('click', this.explainQuery);
 			$(ERROR_CONTAINER).hide();
+			_this.resetChildParentQIDs();
 			this.fetchActiveQueryDetail();
-
 		},
 		doResume: function(args){
 			this.redirectFlag=false;
@@ -93,14 +99,14 @@ define([
 			}
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_ERROR, this.showErrorMessage);
-			/*wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);*/
 			$(REFRESH_MENU).on('click', this.fetchActiveQueryDetail);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
+			$(CANCEL_QUERY_YES_BTN).on('click', this.cancelQueryConfirmed);
 			$(EXPLAIN_BUTTON).on('click', this.explainQuery);
 			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimer.resume();
 			$(ERROR_CONTAINER).hide();
+			_this.resetChildParentQIDs();
 			this.fetchActiveQueryDetail();
 		},
 		doPause: function(){
@@ -109,10 +115,9 @@ define([
 			refreshTimer.pause();
 			wHandler.off(wHandler.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.off(wHandler.FETCH_ACTIVE_QUERY_DETAIL_ERROR, this.showErrorMessage);
-			/*wHandler.off(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.off(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);*/
 			$(REFRESH_MENU).off('click', this.fetchActiveQueryDetail);
 			$(QCANCEL_MENU).off('click', this.cancelQuery);
+			$(CANCEL_QUERY_YES_BTN).off('click', this.cancelQueryConfirmed);
 			$(EXPLAIN_BUTTON).off('click', this.explainQuery);
 		},
 		loadQueryText: function(){
@@ -133,38 +138,47 @@ define([
 		hideLoading: function () {
 			$(LOADING_SELECTOR).hide();
 		},
-		cancelQuery: function(){
-			wHandler.cancelQuery(queryID,_this.pageIdentifier);
+		resetChildParentQIDs: function(){
+			$('#childQid-container').hide();
+			$('#parentQid-container').hide();
 		},
-		cancelQuerySuccess:function(){
-			/*alert('The cancel query request has been submitted');*/
-			var msgObj={msg:'The cancel query request has been submitted',tag:"success",url:_this.currentURL,shortMsg:"Cancel query successfully."};
-			if(_this.redirectFlag==false){
-				_this.popupNotificationMessage(null,msgObj);
-			}else{
-				
-				common.fire(common.NOFITY_MESSAGE,msgObj);
+		cancelQuery: function(){
+			$(CANCEL_QUERY_ID).text(queryID);
+			$(CANCEL_QUERY_DIALOG).modal('show');
+		},
+		cancelQueryConfirmed: function(){
+			wHandler.cancelQuery(queryID, _this);			
+		},
+		cancelQuerySuccess:function(data){
+			if(data.requestor == _this){
+				var msgObj={msg:'The cancel query request has been submitted',tag:"success",url:_this.currentURL,shortMsg:"Cancel query successfully."};
+				if(_this.redirectFlag==false){
+					_this.popupNotificationMessage(null,msgObj);
+				}else{
+					
+					common.fire(common.NOFITY_MESSAGE,msgObj);
+				}
+				_this.fetchActiveQueryDetail();
 			}
-			_this.fetchActiveQueryDetail();
 		},
 		cancelQueryError:function(jqXHR){
-			/*alert(jqXHR.responseText);*/
-			var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Cancel query failed."};
-			if(jqXHR.responseText==undefined){
-				msgObj.msg="the response was null."
-				msgObj.shortMsg="the response was null."
+			if(jqXHR.requestor == _this){
+				var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Cancel query failed."};
+				if(jqXHR.responseText==undefined){
+					msgObj.msg="the response was null."
+					msgObj.shortMsg="the response was null."
+				}
+				if(jqXHR.statusText=="abort"){
+					msgObj.msg="the request was aborted."
+					msgObj.shortMsg="the request was aborted."
+				}
+				if(_this.redirectFlag==false){
+					_this.popupNotificationMessage(null,msgObj);
+				}else{
+					common.fire(common.NOFITY_MESSAGE,msgObj);
+				}
+				_this.fetchActiveQueryDetail();
 			}
-			if(jqXHR.statusText=="abort"){
-				msgObj.msg="the request was aborted."
-				msgObj.shortMsg="the request was aborted."
-			}
-			if(_this.redirectFlag==false){
-				_this.popupNotificationMessage(null,msgObj);
-			}else{
-				
-				common.fire(common.NOFITY_MESSAGE,msgObj);
-			}
-			_this.fetchActiveQueryDetail();
 		},
 		timerBeeped: function(){
 			_this.fetchActiveQueryDetail();
@@ -209,7 +223,17 @@ define([
 					$(htmlTag).css("color", "black");
 				}
 				value = _this.formatSummary(k, summary[k]);
-				$(htmlTag).val(value);
+				if(htmlTag == '#childQid' || htmlTag == '#parentQid'){
+					if(value == null || value == '' || value == 'NONE'){
+						$(htmlTag + '-container').hide();
+					}else{
+						$(htmlTag + '-container').show();
+						$(htmlTag).attr("href", "#/workloads/active/querydetail/" + encodeURIComponent(value));
+						$(htmlTag).text(value);
+					}
+				}else{
+					$(htmlTag).val(value);
+				}
 			}
 			historySummary = result.summary;
 
@@ -254,15 +278,14 @@ define([
 
 			var statisticTable = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="statistic-results"></table>';
 			$('#statistic-container').html(statisticTable);
-			$('#statistic-results').dataTable({
-				"bAutoWidth" : true,
-				"bProcessing" : true,
-				"bFilter" : false,
-				"bPaginate" : false,
-				// "bAutoWidth": true,
+			$('#statistic-results').DataTable({
+				autoWidth : true,
+				processing : true,
+				paging : false,
+				dom: "<'row'<'col-md-8'B><'col-md-4'f>>" +"<'row'<'col-md-12'<'datatable-scroll'tr>>><'row'<'col-md-12'ip>>",
 				"scrollCollapse" : true,
 				"aaData" : statisticDataSet,
-				"aaSorting" :	[[2,"desc"]],
+				"order" :	[[2,"desc"]],
 				"columns" : [{"sTitle" : "LC"},{"sTitle" : "RC"},{"sTitle" : "Id"},
 				             {"sTitle" : "PaId"},{"sTitle" : "ExId"},{"sTitle" : "Frag"},
 				             {"sTitle" : "TDB Name"},{"sTitle" : "DOP"},{"sTitle" : "Oper Cpu Time"},
@@ -279,7 +302,14 @@ define([
 				            		 } 
 				            		 return "";
 				            	 }
-				             } ]
+				             } ],
+								buttons: [
+								          { extend : 'copy', exportOptions: { columns: ':visible', orthogonal: 'export'  } },
+								          { extend : 'csv', exportOptions: { columns: ':visible', orthogonal: 'export' } },
+								          //{ extend : 'excel', exportOptions: { columns: ':visible', orthogonal: 'export' } },
+								          { extend : 'pdfHtml5', exportOptions: { columns: ':visible', orthogonal: 'export'  }, title: "Operator Statistics", orientation: 'landscape' },
+								          { extend : 'print', exportOptions: { columns: ':visible', orthogonal: 'export' }, title: "Operator Statistics" }
+								          ]
 			});
 
 		},

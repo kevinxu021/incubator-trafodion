@@ -1313,8 +1313,6 @@ SDDui___(CYCLIC_ESP_PLACEMENT,                  "1"),
   DDSint__(ESP_PRIORITY,                        "0"),
   DDSint__(ESP_PRIORITY_DELTA,                  "0"),
 
-  DDkwd__(ESTIMATE_HBASE_ROW_COUNT,             "ON"),
-
  // Disable hints - if SYSTEM, enable on SSD, and disable only on HDD
   DDkwd__(EXE_BMO_DISABLE_CMP_HINTS_OVERFLOW_HASH,	"SYSTEM"),
   DDkwd__(EXE_BMO_DISABLE_CMP_HINTS_OVERFLOW_SORT,	"SYSTEM"),
@@ -1768,6 +1766,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
  // exposure.
  DDkwd__(HBASE_DELETE_COSTING,		             "OFF"),
  DDflt0_(HBASE_DOP_PARALLEL_SCANNER,             "0."),
+ DDkwd__(HBASE_ENCRYPTION_OPTION,		             ""),
  DDkwd__(HBASE_FILTER_PREDS,		             "OFF"),
  DDkwd__(HBASE_HASH2_PARTITIONING,                   "ON"),
  DDui___(HBASE_INDEX_LEVEL,                          "0"),
@@ -1964,6 +1963,9 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
  // Main ones to use:
  // HIVE_MAX_STRING_LENGTH: Hive "string" data type gets converted
  //                         into a VARCHAR with this length
+ //                         This should be deprecated from Trafodion R2.1
+ // HIVE_MAX_STRING_LENGTH_IN_BYTES: Hive "string" data type gets converted
+ //                                  into a VARCHAR with this length
  // HIVE_MIN_BYTES_PER_ESP_PARTITION: Make one ESP for this many bytes
  // HIVE_NUM_ESPS_PER_DATANODE: Equivalent of MAX_ESPS_PER_CPU_PER_OP
  //                             Note that this is really per SeaQuest node
@@ -1987,6 +1989,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   // Set to one byte less than QUERY_CACHE_MAX_CHAR_LEN so that hive queries with
   // string literals can be cached.
   DDui___(HIVE_MAX_STRING_LENGTH,               "31999"), 
+  DDui___(HIVE_MAX_STRING_LENGTH_IN_BYTES,      "31999"),
   DDkwd__(HIVE_METADATA_JAVA_ACCESS,            "ON"),
   DDint__(HIVE_METADATA_REFRESH_INTERVAL,       "0"),
   DDflt0_(HIVE_MIN_BYTES_PER_ESP_PARTITION,     "67108864"),
@@ -2524,7 +2527,13 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   DDflt0_(NCM_NJ_PROBES_MAXCARD_FACTOR,         "10000"),
   DDkwd__(NCM_NJ_SEQIO_FIX,                     "ON"), // change to ON
   DDint__(NCM_NUM_SORT_RUNS,			"4"),
+
   DDflt__(NCM_OLTP_ET_THRESHOLD,                "60.0"),
+
+  DDkwd__(NCM_ORC_COSTING,                      "ON"),  
+  DDkwd__(NCM_ORC_COSTING_APPLY_SKIP_RATIO,      "OFF"),
+  DDkwd__(NCM_ORC_COSTING_DEBUG,                "OFF"),  
+
   DDflt__(NCM_PAR_ADJ_FACTOR,                   "0.10"),
   DDkwd__(NCM_PAR_GRPBY_ADJ,			"ON"),
   DDkwd__(NCM_PRINT_ROWSIZE,			"OFF"),
@@ -3443,7 +3452,6 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
 
   DDkwd__(TRAF_UNLOAD_BYPASS_LIBHDFS,                  "ON"),
   DD_____(TRAF_UNLOAD_DEF_DELIMITER,                   "|" ),
-  DD_____(TRAF_UNLOAD_DEF_NULL_STRING,                 "" ),
   DD_____(TRAF_UNLOAD_DEF_RECORD_SEPARATOR,            "\n" ),
   DDint__(TRAF_UNLOAD_HDFS_COMPRESS,                   "0"),
   DDkwd__(TRAF_UNLOAD_SKIP_WRITING_TO_FILES,           "OFF"),
@@ -3556,7 +3564,7 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDkwd__(USTAT_DEBUG_FORCE_FETCHCOUNT,         "OFF"),
   DD_____(USTAT_DEBUG_TEST,                     ""),
   DDflte_(USTAT_DSHMAX,		                "50.0"),
-  DDkwd__(USTAT_ESTIMATE_HBASE_ROW_COUNT,       "OFF"),
+  DDkwd__(USTAT_ESTIMATE_HBASE_ROW_COUNT,       "ON"),
   DDkwd__(USTAT_FETCHCOUNT_ACTIVE,              "OFF"),
   DDkwd__(USTAT_FORCE_MOM_ESTIMATOR,            "OFF"),
   DDkwd__(USTAT_FORCE_TEMP,                     "OFF"),
@@ -3643,7 +3651,7 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDkwd__(USTAT_USE_SIDETREE_INSERT,            "ON"),
   DDkwd__(USTAT_USE_SLIDING_SAMPLE_RATIO,       "ON"), // Trend sampling rate down w/increasing table size, going
                                                        //   flat at 1%.
- XDDui1__(USTAT_YOULL_LIKELY_BE_SORRY,          "100000000"),  // guard against unintentional long-running UPDATE STATS
+ XDDflt1_(USTAT_YOULL_LIKELY_BE_SORRY,          "100000000"),  // guard against unintentional long-running UPDATE STATS
   DDkwd__(VALIDATE_RFORK_REDEF_TS,	        "OFF"),
 
   DDkwd__(VALIDATE_VIEWS_AT_OPEN_TIME,		"OFF"),
@@ -3754,6 +3762,71 @@ static NABoolean isSynonymOfSYSTEM(Int32 attrEnum, NAString &value)
   return FALSE;
 }
 
+// Helper class used for holding and restoring CQDs
+class NADefaults::HeldDefaults
+{
+  public:
+   
+    HeldDefaults(void);
+
+    ~HeldDefaults(void);
+
+    // CMPASSERT's on stack overflow
+    void pushDefault(const char * value);
+
+    // returns null if nothing to pop
+    char * popDefault(void);
+
+  private:
+
+    enum { STACK_SIZE = 3 };
+
+    int stackPointer_;
+    char * stackValue_[STACK_SIZE];
+    
+};
+
+// Methods for helper class HeldDefaults
+NADefaults::HeldDefaults::HeldDefaults(void) : stackPointer_(0)
+{            
+  for (int i = 0; i < STACK_SIZE; i++)
+    stackValue_[i] = NULL;
+}
+
+NADefaults::HeldDefaults::~HeldDefaults(void)
+{
+  for (int i = 0; i < STACK_SIZE; i++)
+  {
+    if (stackValue_[i])
+    {
+      NADELETEBASIC(stackValue_[i], NADHEAP);
+    }
+  }
+}
+
+// CMPASSERT's on stack overflow
+void NADefaults::HeldDefaults::pushDefault(const char * value)
+{
+  CMPASSERT(stackPointer_ < STACK_SIZE);
+  stackValue_[stackPointer_] = new NADHEAP char[strlen(value) + 1];
+  strcpy(stackValue_[stackPointer_],value);
+  stackPointer_++;
+}
+
+// returns null if nothing to pop
+char * NADefaults::HeldDefaults::popDefault(void)
+{
+  char * result = 0;
+  if (stackPointer_ > 0)
+  {
+    stackPointer_--;
+    result = stackValue_[stackPointer_];
+    stackValue_[stackPointer_] = NULL;
+  }
+  return result;
+}
+
+
 size_t NADefaults::numDefaultAttributes()
 {
   return (size_t)__NUM_DEFAULT_ATTRIBUTES;
@@ -3817,7 +3890,7 @@ void NADefaults::initCurrentDefaultsWithDefaultDefaults()
   currentFloats_	= new NADHEAP float * [numAttrs];
   currentTokens_	= new NADHEAP DefaultToken * [numAttrs];
   currentState_		= INIT_DEFAULT_DEFAULTS;
-  heldDefaults_	        = new NADHEAP char * [numAttrs];
+  heldDefaults_	        = new NADHEAP HeldDefaults * [numAttrs];
 
   // reset all entries
   size_t i = 0;
@@ -3832,7 +3905,7 @@ void NADefaults::initCurrentDefaultsWithDefaultDefaults()
   memset( currentDefaults_, 0, sizeof(char *) * numAttrs );
   memset( currentFloats_, 0, sizeof(float *) * numAttrs );
   memset( currentTokens_, 0, sizeof(DefaultToken *) * numAttrs );
-  memset( heldDefaults_, 0, sizeof(char *) * numAttrs );
+  memset( heldDefaults_, 0, sizeof(HeldDefaults *) * numAttrs );
 
   #ifndef NDEBUG
     // This env-var turns on consistency checking of default-defaults and
@@ -4155,7 +4228,7 @@ void NADefaults::deleteMe()
 
   if (heldDefaults_) {
     for (size_t i = numDefaultAttributes(); i--; )
-      NADELETEBASIC(heldDefaults_[i], NADHEAP);
+      NADELETE(heldDefaults_[i], HeldDefaults, NADHEAP);
     NADELETEBASIC(heldDefaults_, NADHEAP);
   }
 
@@ -6054,11 +6127,6 @@ enum DefaultConstants NADefaults::holdOrRestore	(const char *attrName,
   char * value = NULL;
   if (holdOrRestoreCQD == 1) // hold cqd
     {
-      if (heldDefaults_[attrEnum])
-	{
-	  NADELETEBASIC(heldDefaults_[attrEnum], NADHEAP);
-	}
-
       if (currentDefaults_[attrEnum])
 	{
 	  value = new NADHEAP char[strlen(currentDefaults_[attrEnum]) + 1];
@@ -6069,23 +6137,39 @@ enum DefaultConstants NADefaults::holdOrRestore	(const char *attrName,
 	  value = new NADHEAP char[strlen(defaultDefaults[defDefIx_[attrEnum]].value) + 1];
 	  strcpy(value, defaultDefaults[defDefIx_[attrEnum]].value);
 	}
-      heldDefaults_[attrEnum] = value;
+
+      if (! heldDefaults_[attrEnum])
+        heldDefaults_[attrEnum] = new NADHEAP HeldDefaults();
+
+      heldDefaults_[attrEnum]->pushDefault(value);
     }
   else
     {
       // restore cqd from heldDefaults_ array, if it was held.
       if (! heldDefaults_[attrEnum])
+        return attrEnum;
+
+      value = heldDefaults_[attrEnum]->popDefault();
+      if (! value)
 	return attrEnum;
 
+      // there is an odd semantic that if currentDefaults_[attrEnum]
+      // is null, we leave it as null, but pop a held value anyway;
+      // this semantic was preserved when heldDefaults_ was converted
+      // to a stack.
+
       if (currentDefaults_[attrEnum])
-	{
-	  NADELETEBASIC(currentDefaults_[attrEnum], NADHEAP);
-	  value = new NADHEAP char[strlen(heldDefaults_[attrEnum]) + 1];
-	  strcpy(value, heldDefaults_[attrEnum]);
-	  currentDefaults_[attrEnum] = value;
-	}
-      NADELETEBASIC(heldDefaults_[attrEnum], NADHEAP);
-      heldDefaults_[attrEnum] = NULL;
+        {
+          // do a validateAndInsert so the caches (such as currentToken_)
+          // get updated and so appropriate semantic actions are taken.
+          // Note that validateAndInsert will take care of deleting the
+          // storage currently held by currentDefaults_[attrEnum].
+          NAString valueS(value);
+          validateAndInsert(lookupAttrName(attrEnum), // sad that we have to do a lookup again
+                            valueS,
+                            FALSE);
+        }     
+      NADELETEBASIC(value, NADHEAP);
     }
 
   return attrEnum;
@@ -6474,7 +6558,8 @@ DefaultToken NADefaults::token(Int32 attrEnum,
         (attrEnum == USE_HIVE_SOURCE) ||
         (attrEnum == HIVE_FILE_CHARSET) ||
         (attrEnum == HBASE_DATA_BLOCK_ENCODING_OPTION) ||
-        (attrEnum == HBASE_COMPRESSION_OPTION))
+        (attrEnum == HBASE_COMPRESSION_OPTION) ||
+        (attrEnum == HBASE_ENCRYPTION_OPTION))
       return DF_USER;
 
     if ( attrEnum == NATIONAL_CHARSET ||
@@ -7378,3 +7463,5 @@ void NADefaults::setSchemaAsLdapUser(const NAString val)
 			<< DgString1("SCHEMA");
   }
 }
+
+

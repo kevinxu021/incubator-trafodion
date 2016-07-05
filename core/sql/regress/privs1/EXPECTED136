@@ -834,7 +834,9 @@ REGISTER USER "DONALD/DUCK@DISNEY.COM" AS "DONALD";
 >>--error 1337
 >>alter user DB__ROOT set offline;
 
---- SQL operation complete.
+*** ERROR[1337] DB__ROOT is a reserved authorization identifier.
+
+--- SQL operation failed with errors.
 >>--error 1335
 >>alter user mickey set external name "donald/duck@disney.com";
 
@@ -854,7 +856,7 @@ REGISTER USER "DONALD/DUCK@DISNEY.COM" AS "DONALD";
 DB_USER_NAME                                                                      AUTH_EXT_NAME                                                                     AUTH_ID  VALID  AUTH_TYPE
 --------------------------------------------------------------------------------  --------------------------------------------------------------------------------  -------  -----  ---------
 
-DB__ROOT                                                                          ROOT                                                                              SYSTEM   N      USER     
+DB__ROOT                                                                          ROOT                                                                              SYSTEM   Y      USER     
 
 --- 1 row(s) selected.
 >>
@@ -863,7 +865,7 @@ DB__ROOT                                                                        
 DB_USER_NAME                                                                      AUTH_EXT_NAME                                                                     AUTH_ID  VALID  AUTH_TYPE
 --------------------------------------------------------------------------------  --------------------------------------------------------------------------------  -------  -----  ---------
 
-DB__ROOT                                                                          ROOT                                                                              SYSTEM   N      USER     
+DB__ROOT                                                                          ROOT                                                                              SYSTEM   Y      USER     
 
 --- 1 row(s) selected.
 >>log;

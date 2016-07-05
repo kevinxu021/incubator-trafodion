@@ -51,6 +51,7 @@
 #include "OrcFileWriter.h"
 #include "cli_stdh.h"
 #include "HBaseClient_JNI.h"
+#include "ComSmallDefs.h"
 
 
 //----------------------------------------------------------------------
@@ -834,17 +835,6 @@ void ExHdfsFastExtractTcb::createORCcolInfoLists
       temp = attr->getPrecision();
       typeInfo.append((char*)&temp, sizeof(temp));
 
-#ifdef __ignore
-      temp = attr->getLength();
-      typeInfo.append((char*)&temp, sizeof(temp));
-      temp = attr->getPrecision();
-      typeInfo.append((char*)&temp, sizeof(temp));
-      temp = attr->getScale();
-      typeInfo.append((char*)&temp, sizeof(temp));
-      short temp2 = (attr->getNullFlag() ? -1 : 0);
-      typeInfo.append((char*)&temp2, sizeof(temp2));
-#endif
-
       colTypeInfoList.push_back(typeInfo);
     }  
 }
@@ -856,7 +846,8 @@ ExWorkProcRetcode ExHdfsFastExtractTcb::work()
   OFW_RetCode ofwRetCode = OFW_OK;
   ULng32 recSepLen = strlen(myTdb().getRecordSeparator());
   ULng32 delimLen = strlen(myTdb().getDelimiter());
-  ULng32 nullLen = strlen(myTdb().getNullString());
+  ULng32 nullLen = 
+    (myTdb().getNullString() ? strlen(myTdb().getNullString()) : 0);
   if (myTdb().getIsHiveInsert())
   {
     recSepLen = 1;
@@ -888,6 +879,9 @@ ExWorkProcRetcode ExHdfsFastExtractTcb::work()
 
     case EXTRACT_CHECK_MOD_TS:
     {
+      // if no tgt file or input timestamp is -1, skip data mod check.
+      // Also, if this insert is being done with overwrite, then data mod
+      // check has already been done during directory cleanup. Skip it here.
       if ((! myTdb().getTargetFile()) ||
           (myTdb().getModTSforDir() == -1) ||
           (myTdb().getOverwriteHiveTable()))
@@ -1281,7 +1275,9 @@ ExWorkProcRetcode ExHdfsFastExtractTcb::work()
           if (sfwRetCode != SFW_OK)
             {
               createSequenceFileError(sfwRetCode);
-              delete currPartn_->sequenceFileWriter_;
+              NADELETE(currPartn_->sequenceFileWriter_,
+                       SequenceFileWriter,
+                       heap_);
               currPartn_->sequenceFileWriter_ = NULL;
               pstate.step_ = EXTRACT_ERROR;
               break;
@@ -1299,7 +1295,9 @@ ExWorkProcRetcode ExHdfsFastExtractTcb::work()
           if (sfwRetCode != SFW_OK)
             {
               createSequenceFileError(sfwRetCode);
-              delete currPartn_->sequenceFileWriter_;
+              NADELETE(currPartn_->sequenceFileWriter_,
+                       SequenceFileWriter,
+                       heap_);
               currPartn_->sequenceFileWriter_ = NULL;
               pstate.step_ = EXTRACT_ERROR;
               break;
@@ -1938,7 +1936,9 @@ int ExHdfsFastExtractTcb::closePartition(ExHdfsFastExtractPartition *part)
               result = sfwRetCode;
             }
         }
-      delete part->sequenceFileWriter_;
+      NADELETE(part->sequenceFileWriter_,
+               SequenceFileWriter,
+               heap_);
       part->sequenceFileWriter_ = NULL;
       totalNumOpens_--;
     }

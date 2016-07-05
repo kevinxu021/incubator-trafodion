@@ -73,7 +73,7 @@ class AbstractFastStatsHist;
 Lng32 AddNecessaryColumns();
 Lng32 AddAllColumnsForIUS();
 
-Lng32 createSampleOption(Lng32 sampleType, double samplePercent, NAString &sampleOpt,
+void createSampleOption(Lng32 sampleType, double samplePercent, NAString &sampleOpt,
                         Int64 sampleValue1=0, Int64 sampleValue2=0);
 Lng32 doubleToHSDataBuffer(const double dbl, HSDataBuffer& dbf);
 Lng32 managePersistentSamples();
@@ -1135,6 +1135,7 @@ struct HSColGroupStruct : public NABasicObject
     Int64            prevUEC;                      /* uec from existing histogram */
     Int64            colSecs;                      /* Time to sort/group data for column */
     CountingBloomFilter* cbf;                      /* A bloom filter for IUS */
+    NAString& cbfFileNameSuffix() { return *colSet[0].colname; }
 
     void* boundaryValues;                          /* List of bounary values for IUS */
     void* MFVValues;                               /* List of MFV values for IUS */
@@ -1203,13 +1204,7 @@ class IUSValueIterator
     virtual ~IUSValueIterator()
     {}
     
-    void init(HSColGroupStruct* group)
-    {
-      // Strings must be contiguous in the strData buffer for this iterator to
-      // work correctly.
-      HS_ASSERT(group->strDataConsecutive);
-      vp = (T*)group->data;
-    }
+    void init(HSColGroupStruct* group);
     
     void next()
     {
@@ -1485,6 +1480,9 @@ public:
     //Log the current contents of this class.
     void log(HSLogMan* LM);
 
+    // Takes action necessary before throwing exception for an assertion failure.
+    void preAssertionFailure(const char* condition, const char* fileName, Lng32 lineNum);
+
     // Derive a return code from the contents of the diagnostics area.
     Lng32 getRetcodeFromDiags();
 
@@ -1503,10 +1501,12 @@ public:
                                              NABoolean forceToFetch = TRUE);
     Lng32 updatePersistentSampleTableForIUS(NAString& sampleTableName, double sampleRate,
                                             NAString& targetTableName);
+    void getCBFFilePrefix(NAString& sampleTableName, NAString& filePrefix);
     void detectPersistentCBFsForIUS(NAString& sampleTableName, HSColGroupStruct *group);
+    Lng32 UpdateIUSPersistentSampleTable();
     Lng32 readCBFsIntoMemForIUS(NAString& sampleTableName, HSColGroupStruct* group);
     Lng32 writeCBFstoDiskForIUS(NAString& sampleTableName, HSColGroupStruct* group);
-    Lng32 deletePersistentCBFsForIUS(NAString& sampleTableName, HSColGroupStruct* group);
+    Lng32 deletePersistentCBFsForIUS(NAString& sampleTableName, HSColGroupStruct* group, SortState stateToDelete);
 
     void logDiagArea(const char* title);
 
@@ -1950,6 +1950,13 @@ private:
     double jitLogThreshold;
     Int64 stmtStartTime;
     NABoolean jitLogOn;
+
+    // For IUS, was the SB_PERSISTENT_SAMPLES row for the source table updated?
+    // The change is undone by the HSGlobalsClass dtor, so we need to account for
+    // the possibility that an IUS statement failed prior to making the change.
+    // Otherwise, a concurrent IUS operation could have its changes to the row
+    // overwritten.
+    NABoolean PSRowUpdated;
 
     static THREAD_P NABoolean performISForMC_;
 
@@ -2498,6 +2505,16 @@ class HSInMemoryTable : public NABasicObject
                              NAString& queryText, NABoolean rollback);
    
     Lng32 populate(NAString& queryText);
+
+    // The data is actually deallocated by calling freeISMemory() from
+    // HSGlobalsClass::incrementHistograms() for each column as soon as the
+    // column is successfully handled by IUS (the data is preserved for use
+    // by RUS/IS if IUS can't be performed). This function just resets the
+    // flag that would cause assertion failure when populate() is called, as
+    // it must be to load data for the next batch of IUS columns.
+    void depopulate() {
+      isPopulated_ = FALSE;
+    }
 
     void logState(const char* title);
 

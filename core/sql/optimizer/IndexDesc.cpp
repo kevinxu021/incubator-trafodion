@@ -122,6 +122,13 @@ IndexDesc::IndexDesc(TableDesc *tdesc,
   // of the order that the index provides
   // ---------------------------------------------------------------------
   const NAColumnArray & indexKeyColumns = fileSet_->getIndexKeyColumns();
+
+
+//NAString tname((this->getPrimaryTableDesc()->getNATable()->getTableName()).getQualifiedNameAsAnsiString());
+//cout << "in IndexDesc::IndexDesc(), for " << tname.data() << endl;
+//cout << ", indexKeyColumns.entries() = " << indexKeyColumns.entries() << endl;
+
+
   for (i = 0; i < indexKeyColumns.entries(); i++)
     {
       // which column of the index is this (usually this will be == i)
@@ -209,10 +216,6 @@ IndexDesc::IndexDesc(TableDesc *tdesc,
         allColumns.getColumnPosition(partitioningKeyColumns[i]->getColName());
 
       found = (ixColNumber != NULL_COLL_INDEX);
-      if (NOT found)
-        {
-          Lng32 ij = 1;
-        }
 
       // insert the value id of the index column into the partitioningkey column
       // value id list

@@ -1,6 +1,6 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2016 Esgyn Corporation
+// (C) Copyright 2015-2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
@@ -87,7 +87,8 @@ public class SystemQueryCache {
 
 	public static final String EXPLAIN_ACTIVE_QUERY = "EXPLAIN_ACTIVE_QUERY";
 	public static final String EXPLAIN_USING_QID = "EXPLAIN_USING_QID";
-	public static final String TEXT_EXPLAIN_USING_QID = "TEXT_EXPLAIN_USING_QID";
+	public static final String TEXT_EXPLAIN_USING_QID_RMS = "TEXT_EXPLAIN_USING_QID_RMS";
+	public static final String TEXT_EXPLAIN_USING_QID_REPO = "TEXT_EXPLAIN_USING_QID_REPO";
 	public static final String EXPLAIN_USING_QTEXT = "EXPLAIN_USING_QTEXT";
 	
 	public static final String SPJ_PUT = "SPJ_PUT";

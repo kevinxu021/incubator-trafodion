@@ -179,6 +179,7 @@ public class TransactionManager {
   public static final int HBASE_DURABILITY = 20;
   public static final int HBASE_MEMSTORE_FLUSH_SIZE = 21;
   public static final int HBASE_SPLIT_POLICY = 22;
+  public static final int HBASE_ENCRYPTION = 23;
 
   public static final int TM_COMMIT_FALSE = 0;
   public static final int TM_COMMIT_READ_ONLY = 1;
@@ -322,9 +323,13 @@ public class TransactionManager {
 
                Map<byte[], CommitResponse> result = null;
                try {
-                 if (LOG.isTraceEnabled()) LOG.trace("doCommitX -- before coprocessorService txid: " + transactionId +
+            	 if (ignoreUnknownTransaction){
+            	   if(LOG.isDebugEnabled())
+            		   LOG.debug("doCommitX -- Recovery Redrive before coprocessorService txid: " + transactionId +
                         " ignoreUnknownTransaction: " + ignoreUnknownTransaction + " table: " +
-                        table.toString() + " startKey: " + new String(startKey, "UTF-8") + " endKey: " + new String(endKey, "UTF-8"));
+                        table.toString() + " startKey: " + new String(startKey, "UTF-8") + " endKey: " + new String(endKey, "UTF-8")
+                        + "Region :" + regionName.toString());
+            	 }
                  result = table.coprocessorService(TrxRegionService.class, startKey, endKey, callable);
                } catch (ServiceException se) {
                   String msg = new String ("ERROR occurred while calling doCommitX coprocessor service in doCommitX for transaction: "
@@ -2815,6 +2820,11 @@ public class TransactionManager {
            case HBASE_BLOCKSIZE:
                colDesc.setBlocksize
                    (Integer.parseInt(tableOption));
+               returnStatus.setColumnDescriptorChanged();
+               break ;
+           case HBASE_ENCRYPTION:
+               if (tableOption.equalsIgnoreCase("AES"))
+                   colDesc.setEncryptionType("AES");
                returnStatus.setColumnDescriptorChanged();
                break ;
            case HBASE_DATA_BLOCK_ENCODING:

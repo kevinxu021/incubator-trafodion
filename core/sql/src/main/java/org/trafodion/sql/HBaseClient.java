@@ -141,6 +141,7 @@ public class HBaseClient {
     public static final int HBASE_DURABILITY = 20;
     public static final int HBASE_MEMSTORE_FLUSH_SIZE = 21;
     public static final int HBASE_SPLIT_POLICY = 22;
+    public static final int HBASE_ENCRYPTION = 23;
 
     
     public HBaseClient() {
@@ -373,6 +374,11 @@ public class HBaseClient {
            case HBASE_BLOCKSIZE:
                colDesc.setBlocksize
                    (Integer.parseInt(tableOption));
+               returnStatus.setColumnDescriptorChanged();
+               break ;
+           case HBASE_ENCRYPTION:
+               if (tableOption.equalsIgnoreCase("AES"))
+                   colDesc.setEncryptionType("AES");
                returnStatus.setColumnDescriptorChanged();
                break ;
            case HBASE_DATA_BLOCK_ENCODING:
@@ -1119,6 +1125,15 @@ public class HBaseClient {
       long estimatedTotalPuts = 0;
       boolean more = true;
 
+      // Make sure the config doesn't specify HBase bucket cache. If it does,
+      // then the CacheConfig constructor may fail with a Java OutOfMemory 
+      // exception because our JVM isn't configured with large enough memory.
+
+      String ioEngine = config.get(HConstants.BUCKET_CACHE_IOENGINE_KEY,null);
+      if (ioEngine != null) {
+          config.unset(HConstants.BUCKET_CACHE_IOENGINE_KEY); // delete the property
+      }
+
       // Access the file system to go directly to the table's HFiles.
       // Create a reader for the file to access the entry count stored
       // in the trailer block, and a scanner to iterate over a few
@@ -1362,6 +1377,14 @@ public class HBaseClient {
         nano2 = System.nanoTime();
         logger.debug("FileSystem.get() took " + ((nano2 - nano1) + 500000) / 1000000 + " milliseconds.");
       }
+
+      // Make sure the config doesn't specify HBase bucket cache. If it does,
+      // then the CacheConfig constructor may fail with a Java OutOfMemory 
+      // exception because our JVM isn't configured with large enough memory.
+      String ioEngine = config.get(HConstants.BUCKET_CACHE_IOENGINE_KEY,null);
+      if (ioEngine != null) {
+          config.unset(HConstants.BUCKET_CACHE_IOENGINE_KEY); // delete the property
+      }
       CacheConfig cacheConf = new CacheConfig(config);
       String hbaseRootPath = config.get(HConstants.HBASE_DIR).trim();
       if (hbaseRootPath.charAt(0) != '/')
@@ -1500,13 +1523,13 @@ public class HBaseClient {
       hblc.release();
    }
   
-  public  BackupRestoreClient getBackupRestoreClient() throws IOException 
+  public  org.trafodion.pit.BackupRestoreClient getBackupRestoreClient() throws IOException 
   {
     if (logger.isDebugEnabled()) logger.debug("HBaseClient.getBackupRestoreClient() called.");
-    BackupRestoreClient brc = null;
+    org.trafodion.pit.BackupRestoreClient brc = null;
     try 
     {
-       brc = new BackupRestoreClient( config);
+       brc = new org.trafodion.pit.BackupRestoreClient( config);
     
     if (brc == null)
       throw new IOException ("brc is null");
@@ -1519,7 +1542,7 @@ public class HBaseClient {
     return brc;
     
   }
-  public void releaseBackupRestoreClient(BackupRestoreClient brc) 
+  public void releaseBackupRestoreClient(org.trafodion.pit.BackupRestoreClient brc) 
       throws IOException 
   {
      if (brc == null)

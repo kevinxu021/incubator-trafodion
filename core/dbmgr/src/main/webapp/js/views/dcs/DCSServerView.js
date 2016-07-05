@@ -36,13 +36,13 @@ define([
 	PSTACK_CONTAINER = '#pStackContainer';
 
 	var oDataTable = null;
-	var _that = null;
+	var _this = null;
 
 	var DCSServerView = BaseView.extend({
 		template:  _.template(DcsServerT),
 
 		doInit: function (){
-			_that = this;
+			_this = this;
 			serverHandler.on(serverHandler.FETCHDCS_SUCCESS, this.displayResults);
 			serverHandler.on(serverHandler.FETCHDCS_ERROR, this.showErrorMessage);			
 			serverHandler.on(serverHandler.DCS_SUMMARY_SUCCESS, this.displaySummary);
@@ -91,7 +91,7 @@ define([
 			$(LOADING_SELECTOR).hide();
 		},
 		fetchDcsServers: function () {
-			_that.showLoading();
+			_this.showLoading();
 			$(SUMMARY_LOADING_SELECTOR).show();
 			$(ERROR_CONTAINER).hide();
 			$(SUMMARY_ERROR_CONTAINER).hide();
@@ -129,13 +129,13 @@ define([
 			
  		},
 		displayResults: function (result){
-			_that.hideLoading();
+			_this.hideLoading();
 			$(ERROR_CONTAINER).hide();
 			$(RESULT_CONTAINER).show();
 			var keys = result.columnNames;
 
 			if(keys != null && keys.length > 0) {
-				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="dcs-query-results"></table>';
+				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table nowrap" id="dcs-query-results"></table>';
 				$(RESULT_CONTAINER).html( sb );
 
 				var aoColumns = [];
@@ -158,7 +158,8 @@ define([
 					"oLanguage": {
 						"sEmptyTable": "Could not find any master executor processes"
 					},
-					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					//dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					dom: "<'row'<'col-md-8'lB><'col-md-4'f>>" +"<'row'<'col-md-12'<'datatable-scroll'tr>>><'row'<'col-md-12'ip>>",
 					processing: true,
 					paging: bPaging,
 					//autoWidth: true,
@@ -182,16 +183,13 @@ define([
 	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
 	                        	   title: 'Connectivity Servers'} ,
 	                           { extend : 'print', orientation: 'landscape', exportOptions: { columns: ':visible' }, title: 'Connectivity Servers' }
-				          ],
-					fnDrawCallback: function(){
-						$('#dcs-query-results td').css("white-space","nowrap");
-					}
+				          ]
 				});
 			}
 		},
 		showErrorMessage: function (jqXHR) {
 			if(jqXHR.statusText != 'abort'){
-				_that.hideLoading();
+				_this.hideLoading();
 				$(RESULT_CONTAINER).hide();
 				$(ERROR_CONTAINER).show();
 				if (jqXHR.responseText) {

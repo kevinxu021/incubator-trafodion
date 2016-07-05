@@ -138,13 +138,16 @@ struct hive_sd_desc
 
    char fieldTerminator_;
    char recordTerminator_;
+   char* nullFormat_;
 
    const char *partitionColValues_;
 
    struct hive_sd_desc* next_;
 
    hive_sd_desc(Int32 sdID, const char* loc, Int64 creationTS, Int32 buckets,
-                const char* ift, const char* of, char knd,
+                const char* ift, const char* of, 
+                const char* nf,
+                char knd,
                 struct hive_column_desc* column,
                 struct hive_skey_desc* skey,
                 struct hive_bkey_desc* bkey,
@@ -163,6 +166,7 @@ struct hive_sd_desc
      location_ = strduph(loc, CmpCommon::contextHeap());
      inputFormat_ = strduph(ift, CmpCommon::contextHeap()); 
      outputFormat_= strduph(of, CmpCommon::contextHeap());
+     nullFormat_ = (nf ? strduph(nf, CmpCommon::contextHeap()) : NULL);
      if (pColVals)
        partitionColValues_ = strduph(pColVals, CmpCommon::contextHeap());
      else
@@ -173,6 +177,7 @@ struct hive_sd_desc
 
    char getFieldTerminator() const { return fieldTerminator_; }
    char getRecordTerminator() const { return recordTerminator_;}
+   char *getNullFormat() const {return nullFormat_; }
 
    NABoolean isSequenceFile() const;
    NABoolean isOrcFile() const;

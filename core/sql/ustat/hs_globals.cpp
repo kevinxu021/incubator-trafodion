@@ -1575,6 +1575,13 @@ NABoolean HSColGroupStruct::allocateISMemory(Int64 rows,
 // avoid freeing strData when this fn is called to remove the old data array.
 void HSColGroupStruct::freeISMemory(NABoolean freeStrData, NABoolean freeMCData)
 {
+  HSLogMan *LM = HSLogMan::Instance();
+  if (LM->LogNeeded())
+    {
+      sprintf(LM->msg, "Freeing IS memory for column %s", colNames->data());
+      LM->Log(LM->msg);
+    }
+
   // used by MC in-memory since a column might have been processed but kept
   // in memory to be used by MCs
   mcis_memFreed = TRUE;
@@ -2862,6 +2869,7 @@ HSGlobalsClass::HSGlobalsClass(ComDiagsArea &diags)
     sampleRateAsPercetageForIUS(0),
     minRowCtPerPartition_(-1),
     sample_I_generated(FALSE),
+    PSRowUpdated(FALSE),
     jitLogThreshold(0),
     stmtStartTime(0),
     jitLogOn(FALSE),
@@ -2892,6 +2900,12 @@ HSGlobalsClass::HSGlobalsClass(ComDiagsArea &diags)
 
 HSGlobalsClass::~HSGlobalsClass()
 {
+  // If this was an IUS execution, make sure the row for the source table in
+  // SB_PERSISTENT_SAMPLES is modified to reflect that an IUS operation is no
+  // longer in progress.
+  if (PSRowUpdated)
+    end_IUS_work();
+
   // reset the parser flags that were set in the constructor
   SQL_EXEC_ResetParserFlagsForExSqlComp_Internal(savedParserFlags);
 
@@ -3028,11 +3042,12 @@ Lng32 HSGlobalsClass::Initialize()
     actualRowCount = objDef->getRowCount(currentRowCountIsEstimate_,
                                          inserts, deletes, updates,
                                          numPartitions,
-                                         minRowCtPerPartition_);
+                                         minRowCtPerPartition_,
+                                         optFlags & (SAMPLE_REQUESTED | IUS_OPT));
     LM->StopTimer();
     if (LM->LogNeeded())
       {
-        sprintf(LM->msg, "\tcurrentRowCountIsEstimate_=%d from GetRowCount()", currentRowCountIsEstimate_);
+        sprintf(LM->msg, "\tcurrentRowCountIsEstimate_=%d from getRowCount()", currentRowCountIsEstimate_);
         LM->Log(LM->msg);
       }
 
@@ -3056,47 +3071,28 @@ Lng32 HSGlobalsClass::Initialize()
                 LM->Log(LM->msg);
               }
           }
-        else if (!((optFlags & SAMPLE_REQUESTED) &&
-                   convertInt64ToDouble(actualRowCount) >=
-                     CmpCommon::getDefaultNumeric(USTAT_MIN_ESTIMATE_FOR_ROWCOUNT)))
+        else if (convertInt64ToDouble(actualRowCount) <   // may be 0 (no estimate) or -1 (error doing estimation)
+                     CmpCommon::getDefaultNumeric(USTAT_MIN_ESTIMATE_FOR_ROWCOUNT))
           {
-            actualRowCount = 0;
-            if (hs_globals->isHbaseTable &&
-                CmpCommon::getDefault(USTAT_ESTIMATE_HBASE_ROW_COUNT) == DF_ON)
+            if (LM->LogNeeded() && actualRowCount > 0)
+            {
+              sprintf(LM->msg, "Estimated row count " PF64 " rejected (below size threshhold).",
+                      actualRowCount);
+              LM->Log(LM->msg);
+            }
+            LM->StartTimer("Execute query to get row count");
+            query  = "SELECT COUNT(*) FROM ";
+            query += getTableName(user_table->data(), nameSpace);
+            query += " FOR READ UNCOMMITTED ACCESS";
+            retcode = cursor.fetchNumColumn(query, NULL, &actualRowCount);
+            LM->StopTimer();
+            HSHandleError(retcode);
+            currentRowCountIsEstimate_ = FALSE;
+            if (LM->LogNeeded())
               {
-                LM->StartTimer("Estimate row count for HBase table");
-                actualRowCount = objDef->getNATable()->estimateHBaseRowCount();
-                LM->StopTimer();
-                if (LM->LogNeeded())
-                  {
-                    snprintf(LM->msg, sizeof(LM->msg),
-                             "Call to estimateHBaseRowCount() returned " PF64 ".",
-                             actualRowCount);
-                    LM->Log(LM->msg);
-                  }
-              }
-
-            // If actualRowCount is still 0 then the table is not an HBase table
-            // (or the cqd is not set). If it is HIST_NO_STATS_ROWCOUNT, then
-            // estimateHBaseRowCount() was not able to produce an estimate. In either
-            // of these cases, we need to resort to a count(*).
-            if (actualRowCount == 0 ||
-                actualRowCount == ActiveSchemaDB()->getDefaults().getAsDouble(HIST_NO_STATS_ROWCOUNT))
-              {
-                LM->StartTimer("Execute query to get row count");
-                query  = "SELECT COUNT(*) FROM ";
-                query += getTableName(user_table->data(), nameSpace);
-                query += " FOR READ UNCOMMITTED ACCESS";
-                retcode = cursor.fetchNumColumn(query, NULL, &actualRowCount);
-                LM->StopTimer();
-                HSHandleError(retcode);
-                currentRowCountIsEstimate_ = FALSE;
-                if (LM->LogNeeded())
-                  {
-                    convertInt64ToAscii(actualRowCount, intStr);
-                    sprintf(LM->msg, "\n\t\tUsing select count(*): rows=%s", intStr);
-                    LM->Log(LM->msg);
-                  }
+                convertInt64ToAscii(actualRowCount, intStr);
+                sprintf(LM->msg, "\n\t\tUsing select count(*): rows=%s", intStr);
+                LM->Log(LM->msg);
               }
           }
       }
@@ -3415,7 +3411,7 @@ NABoolean HSGlobalsClass::isAuthorized(NABoolean isShowStats)
     return TRUE;
 
    // no privilege support available for hbase and hive tables
-   assert (objDef->getNATable());
+   HS_ASSERT (objDef->getNATable());
    if (CmpSeabaseDDL::isHbase(objDef->getCatName()) || isHiveCat(objDef->getCatName()))
      return TRUE;
 
@@ -3639,8 +3635,6 @@ void HSGlobalsClass::startJitLogging(const char* checkPointName, Int64 elapsedSe
 /* METHOD: createSampleOption()               */
 /* PURPOSE: create text for use in sample     */
 /*          query.                            */
-/* RETCODE: 0 - on success                    */
-/*          non-zero otherwise                */
 /* INPUT:  sampleType - the sample option type*/
 /*           set when parsing.                */
 /*         samplePercent - %                  */
@@ -3648,10 +3642,9 @@ void HSGlobalsClass::startJitLogging(const char* checkPointName, Int64 elapsedSe
 /*          when parsing.                     */
 /* OUTPUT: sampleOpt - sample text option.    */
 /**********************************************/
-Lng32 createSampleOption(Lng32 sampleType, double samplePercent, NAString &sampleOpt,
+void createSampleOption(Lng32 sampleType, double samplePercent, NAString &sampleOpt,
                         Int64 sampleValue1, Int64 sampleValue2)
 {
-  Lng32 retcode = 0;
   char floatStr[30], intStr[30];
   switch (sampleType)
   {
@@ -3683,10 +3676,9 @@ Lng32 createSampleOption(Lng32 sampleType, double samplePercent, NAString &sampl
       sampleOpt += " ROWS ";
       break;
     default:                     // Invalid option.
-      retcode = -1;
+      HS_ASSERT(FALSE);
       break;
   }
-  return retcode;
 }
 
 
@@ -3823,10 +3815,10 @@ Lng32 HSSample::make(NABoolean rowCountIsEstimate, // input
 
     // Create sample option based on sampling type, using 'samplePercent'.
     if (hs_globals)
-         retcode = createSampleOption(sampleType, samplePercent, sampleOption, 
-                                      hs_globals->sampleValue1, hs_globals->sampleValue2);
-    else retcode = createSampleOption(sampleType, samplePercent, sampleOption);
-    HSHandleError(retcode);
+      createSampleOption(sampleType, samplePercent, sampleOption,
+                         hs_globals->sampleValue1, hs_globals->sampleValue2);
+    else
+      createSampleOption(sampleType, samplePercent, sampleOption);
 
     //Normally, we want to create an AUDITED scratch table. Although, for
     //performance and TMF timeouts, we should use a NON-AUDITED table and
@@ -4477,6 +4469,7 @@ static void mapInternalSortTypes(HSColGroupStruct *groupList, NABoolean forHive 
     {
      HSColumnStruct &col = group->colSet[0];
      NAString columnName, dblQuote="\"";
+     group->ISSelectExpn = "";
 
      // If retrieving from the Hive backing sample for a table, positional names
      // are used. This avoids any issues with Trafodion delimited ids that do
@@ -4984,9 +4977,10 @@ Int64 HSGlobalsClass::getInternalSortMemoryRequirements(NABoolean performISForMC
 Lng32 HSGlobalsClass::validateIUSWhereClause()
 {
   Lng32 retcode = 0;
-  ULng32 savedParserFlags = Get_SqlParser_Flags(0xFFFFFFFF);
 
-  Set_SqlParser_Flags(PARSING_IUS_WHERE_CLAUSE); // ORs this bit into the flags
+  // set PARSING_IUS_WHERE_CLAUSE bit in Sql_ParserFlags; return it to
+  // its entry value on exit
+  PushAndSetSqlParserFlags savedParserFlags(PARSING_IUS_WHERE_CLAUSE);
 
   NAString query = "select count(*) from ";
   query.append(getTableName(strrchr(user_table->data(), '.')+1, nameSpace));
@@ -5023,9 +5017,6 @@ Lng32 HSGlobalsClass::validateIUSWhereClause()
       else
         retcode = diagsArea.mainSQLCODE();
     }
-
-  // Restore parser flags to prior settings.
-  Assign_SqlParser_Flags (savedParserFlags);
 
   return retcode;
 }
@@ -5212,9 +5203,9 @@ Lng32 HSGlobalsClass::CollectStatistics()
            //
            if ( colsSelected == 0 ) {
              if ( ranOutOfMem ) {
-               diagsArea << DgSqlCode(UERR_IUS_NO_SUFFICIENT_MEMORY);
-               retcode = -1;
-               HSHandleErrorIUS(retcode);
+               diagsArea << DgSqlCode(UERR_WARNING_IUS_INSUFFICIENT_MEMORY)
+                         << DgInt0(moreColsForIUS());
+               break;  // Let RUS handle the rest
              } else {
                if (LM->LogNeeded())
                  LM->Log("Empty IUS batch, not because of memory.");
@@ -5328,7 +5319,7 @@ Lng32 HSGlobalsClass::CollectStatistics()
              // are left undeleted, the encoded intervals (as
              // # of buckets) in CBF can be in conflict with 
              // the actual # of intervals computed by RUS.
-             retcode = deletePersistentCBFsForIUS(*hssample_table, singleGroup);
+             retcode = deletePersistentCBFsForIUS(*hssample_table, singleGroup, PENDING);
              HSHandleErrorIUS(retcode);
 
              retcode = sortByColInMem();
@@ -5342,7 +5333,12 @@ Lng32 HSGlobalsClass::CollectStatistics()
            }
         }
 
-
+        // If the _I table exists, some IUS work was done and the persistent
+        // sample table must be updated (and the _I table dropped).
+        if (sampleIExists_) {
+          retcode = UpdateIUSPersistentSampleTable();
+          HSHandleErrorIUS(retcode);
+        }
              
         Int32 iusUnprocessed  = 0;
         // Reverse the NO_STATS state to UNPROCESSED and count 
@@ -5367,18 +5363,34 @@ Lng32 HSGlobalsClass::CollectStatistics()
           // process even one batch of columns, or there is no stats as a base to 
           // compute IUS.
 
-          // Remove all persistent CBFs with PENDING state
+          // Remove all persistent CBFs with UNPROCESSED state
           // because RUS may generates a histogram with different
           // #intervals than that recorded in CBF! If the CBFs
-          retcode = deletePersistentCBFsForIUS(*hssample_table, singleGroup);
+          // are left undeleted, the encoded intervals (as
+          // # of buckets) in CBF can be in conflict with
+          // the actual # of intervals computed by RUS.
+          retcode = deletePersistentCBFsForIUS(*hssample_table, singleGroup, UNPROCESSED);
           HSHandleErrorIUS(retcode);
 
-
-          // setup the sample size
+          // Set the sample parameters to do an RUS corresponding to the existing
+          // persistent sample.
+          optFlags |= SAMPLE_RAND_1;
           sampleRowCount = futureSampleSize;
+          sampleTblPercent = sampleRateAsPercetageForIUS * 100;
+          useSampling = TRUE;
+          sampleTable.setSampleType(optFlags & SAMPLE_REQUESTED);
+          sampleTable.setSampleTablePercent(sampleTblPercent);
 
+          // Set the external sample table name if specified by cqd, or set
+          // externalSampleTable to FALSE, so a temporary sample table will
+          // be created by the RUS code.
+          if (!IsNAStringSpaceOrEmpty(sampleTableFromCQD)) {
+              *hssample_table = sampleTableFromCQD;
+              externalSampleTable = TRUE;
+          } else {
+            externalSampleTable = FALSE;
+          }
         } else {
-
           if (multiGroup)  // don't return if there are MCs to process
             sampleRowCount = futureSampleSize;
           else
@@ -5393,8 +5405,8 @@ Lng32 HSGlobalsClass::CollectStatistics()
         // internal sort disabled
         if (LM->LogNeeded()) LM->Log("Internal sort is disabled");
         if (useSampling && !externalSampleTable)
-          retcode = sampleTable.make(currentRowCountIsEstimate_, 
-                                     *hssample_table, 
+          retcode = sampleTable.make(currentRowCountIsEstimate_,
+                                     *hssample_table,
                                      actualRowCount, sampleRowCount);
             // hssample_table assigned, actualRowCount and sampleRowCount may get adjusted.
         else if (!externalSampleTable)
@@ -5517,10 +5529,9 @@ Lng32 HSGlobalsClass::CollectStatistics()
                 LM->Log("Internal sort: reading sample directly from base table; no sample table created");
               *hssample_table = getTableName(user_table->data(), nameSpace);
                 // sampleTblPercent and sampleRowCount may get adjusted.
-              retcode = createSampleOption(optFlags & SAMPLE_REQUESTED, 
-                                           sampleTblPercent, *sampleOption, 
-                                           sampleValue1, sampleValue2);
-              HSHandleError(retcode);
+              createSampleOption(optFlags & SAMPLE_REQUESTED,
+                                 sampleTblPercent, *sampleOption,
+                                 sampleValue1, sampleValue2);
               sampleTableUsed = FALSE;
               samplingUsed    = TRUE;
 
@@ -5533,8 +5544,8 @@ Lng32 HSGlobalsClass::CollectStatistics()
         else
           {
               if (useSampling && !externalSampleTable)
-                retcode = sampleTable.make(currentRowCountIsEstimate_, 
-                                           *hssample_table, 
+                retcode = sampleTable.make(currentRowCountIsEstimate_,
+                                           *hssample_table,
                                            actualRowCount, sampleRowCount);
                // hssample_table assigned, actualRowCount and sampleRowCount may get adjusted.
               else if (!externalSampleTable)
@@ -5733,22 +5744,43 @@ Lng32 HSGlobalsClass::CollectStatistics()
         group = group->next;
       }
 
-    // If we used cqd USTAT_ESTIMATE_HBASE_ROW_COUNT 'ON', then actualRowCount
-    // is the estimate of the row count given by HBase. If we also did not do
-    // sampling, we know the true row count; this is in sampleRowCount. We
-    // take the opportunity here to correct the actualRowCount in this case.
-    if (!samplingUsed && isHbaseTable &&
-        CmpCommon::getDefault(USTAT_ESTIMATE_HBASE_ROW_COUNT) == DF_ON)
+    // If the current row count for an Hbase table is an estimate, then
+    // actualRowCount is the estimate of the row count given by HBase. This
+    // estimate can sometimes be inaccurate. Now that we have actually read
+    // the data, we can improve the estimate. If we used sampling, we can
+    // divide our sampleRowCount by the sampling ratio. If we did not use
+    // sampling, the sampleRowCount is the true row count.
+
+    // Note: After a recent code change, we no longer do an estimate
+    // when not doing sampling. So the "else" case below is actually dead
+    // code. But I'm leaving the code here on the chance that we change
+    // our minds about estimates in the non-sampling case.
+
+    if (isHbaseTable && currentRowCountIsEstimate_)
       {
-        if (LM->LogNeeded())
-          {
-            sprintf(LM->msg, "Correcting actualRowCount (was " PF64 ") from sampleRowCount (" PF64 ")",
-                             actualRowCount,sampleRowCount);
-            LM->Log(LM->msg);
+        if (samplingUsed)
+          {  
+            HS_ASSERT(sampleTblPercent > 0 && sampleTblPercent <= 100.00);
+            Int64 newActualRowCount = (Int64)((100 * sampleRowCount) / sampleTblPercent);
+            if (LM->LogNeeded())
+              {
+                sprintf(LM->msg, "Re-estimating actualRowCount (was " PF64 ") as " PF64,
+                                 actualRowCount,newActualRowCount);
+                LM->Log(LM->msg);
+              }
+            actualRowCount = newActualRowCount;           
           }
-        actualRowCount = sampleRowCount;
-      }
-         
+        else
+          {
+            if (LM->LogNeeded())
+              {
+                sprintf(LM->msg, "Correcting actualRowCount (was " PF64 ") from sampleRowCount (" PF64 ")",
+                                 actualRowCount,sampleRowCount);
+                LM->Log(LM->msg);
+              }
+            actualRowCount = sampleRowCount;
+          }
+      }         
 
     if (singleGroup && LM->LogNeeded())
       LM->StopTimer();
@@ -6000,9 +6032,10 @@ Lng32 HSGlobalsClass::begin_IUS_work(char* ius_update_history_buffer)
    HSHandleError(retcode);
 
    //
-   // If we reach here, it means we have successfully stored the bdt and our process info
-   // into the UPDATE_DATE and UPDATER_INFO column. We can return TRUE.
+   // If we reach here, we have successfully stored the bdt and our process info
+   // into the UPDATE_DATE and UPDATER_INFO columns of SB_PERSISTENT_SAMPLES.
    //
+   PSRowUpdated = TRUE;
    return 0;
 }
 
@@ -6118,35 +6151,36 @@ Lng32 HSGlobalsClass::computeSampleSizeForIUS(Int64& currentSampleSize, Int64& f
    return 0;
 }
 
+// Before we have the PERSISTENT_DATA table available to us, we will
+// save the CBFs as binary files on disk. One CBF maps to one binary file.
+// The path of the directory for these files is specified in CQD
+// USTAT_IUS_PERSISTENT_CBF_PATH, and the cbf file name is
+// sampleTableName + '.' + 'colName'. This function builds the common initial
+// text of the path for all columns in the same table, and assigns it to the
+// output parameter filePrefix.
+void HSGlobalsClass::getCBFFilePrefix(NAString& sampleTableName, NAString& filePrefix)
+{
+  filePrefix = ActiveSchemaDB()->getDefaults().getValue(USTAT_IUS_PERSISTENT_CBF_PATH);
+  filePrefix.append("/")
+            .append(sampleTableName)
+            .append(".");
+}
 
 void
 HSGlobalsClass::detectPersistentCBFsForIUS(NAString& sampleTableName, 
                                            HSColGroupStruct *group)
 {
-   // Before we have the PERSISTENT_DATA table available to us, we will
-   // save the CBFs as binary files on disk. One CBF maps to one binary file.
-   // The path of the directory for these files is specified in CQD
-   // USTAT_IUS_PERSISTENT_CBF_PATH, and the cbf binary file name is 
-   // sampleTableName + '.' + 'colName';
-
-   NAString path = 
-     ActiveSchemaDB()->getDefaults().getValue(USTAT_IUS_PERSISTENT_CBF_PATH);
-
-   NAString cbfFilePrefix(path); 
-   cbfFilePrefix.append("/");
-   cbfFilePrefix.append(sampleTableName); 
-   cbfFilePrefix.append(".");
-
+   NAString cbfFilePrefix;
+   getCBFFilePrefix(sampleTableName, cbfFilePrefix);
    struct stat sts;
    while (group) {
-
       NAString cbfFile(cbfFilePrefix);
-      cbfFile.append(group->colSet[0].colname->data());
+      cbfFile.append(group->cbfFileNameSuffix());
 
       if (stat(cbfFile, &sts) == -1 && errno == ENOENT)
         group->delayedRead = FALSE; 
       else
-        group->delayedRead = TRUE; 
+        group->delayedRead = TRUE;
       
       group = group->next;
    }
@@ -6282,6 +6316,10 @@ Lng32 HSGlobalsClass::prepareForIUSAlgorithm1(Int64& rows)
 
 static Lng32 create_I(NAString& sampTblName)
 {
+  HSLogMan *LM = HSLogMan::Instance();
+  if (LM->LogNeeded())
+     LM->StartTimer("IUS: create _I table");
+
   NAString createI("create table ");
   createI += sampTblName;
   createI += "_I LIKE ";
@@ -6290,6 +6328,9 @@ static Lng32 create_I(NAString& sampTblName)
   Lng32 retcode = HSFuncExecQuery(createI, -UERR_INTERNAL_ERROR,
                                   NULL, "IUS create I",
                                   NULL, NULL, TRUE/*doRetry*/);
+  if (LM->LogNeeded())
+     LM->StopTimer();
+
   HSHandleError(retcode);
   return retcode;
 }
@@ -6320,9 +6361,6 @@ Lng32 HSGlobalsClass::generateSampleI(Int64 currentSampleSize,
     HSTranMan *TM = HSTranMan::Instance();
     NABoolean transStarted = (TM->Begin("IUS clean data set I") == 0);
 
-    if (LM->LogNeeded()) LM->StartTimer("IUS: select-insert to form persistent I");
-
-
     NAString insertSelectIQuery;
     iusSampleInsertedInMem->generateInsertSelectIQuery(sampleTable_I, 
                         *user_table, insertSelectIQuery, 
@@ -6351,11 +6389,17 @@ Lng32 HSGlobalsClass::generateSampleI(Int64 currentSampleSize,
 
 static Lng32 drop_I(NAString& sampTblName)
 {
+  HSLogMan *LM = HSLogMan::Instance();
+  if (LM->LogNeeded())
+    LM->StartTimer("IUS: drop _I table");
+
   NAString cleanupI("drop table if exists ");
   cleanupI.append(sampTblName).append("_I");
   Lng32 retcode = HSFuncExecQuery(cleanupI, -UERR_INTERNAL_ERROR,
                                   NULL, "IUS cleanup I",
                                   NULL, NULL, TRUE/*doRetry*/);
+  if (LM->LogNeeded())
+    LM->StopTimer();
   HSHandleError(retcode);
   return retcode;
 }
@@ -6368,44 +6412,49 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
 
   HSLogMan *LM = HSLogMan::Instance();
 
-  // create help table -I 
+  // create help table _I
+  if (!sampleIExists_)
+    {
+      retcode = create_I(*hssample_table);
+      HSHandleError(retcode);
+      sampleIExists_ = TRUE;  // so we remember to drop it
+    }
 
-  retcode = create_I(*hssample_table);
-  HSHandleError(retcode);
-  sampleIExists_ = TRUE;  // so we remember to drop it
-
-  if (LM->LogNeeded()) 
-    LM->StartTimer("IUS: read in Si");
-
+  NABoolean havePending = FALSE;
   HSColGroupStruct *group = singleGroup;
   while (group)
     {
-      if (group->delayedRead && group->state == PENDING)
-        group->state = SKIP ; // temp. set so that the column
-                              // data is not to be read.
+      if (group->state == PENDING)
+        {
+          if (group->delayedRead)
+            group->state = SKIP; // temp. set so that the column data is not to be read
+          else
+            havePending = TRUE;
+        }
       group = group->next;
     }
 
+  // Only read in Si if there is at least one column in this batch that doesn't
+  // already have a persistent CBF.
+  if (havePending)
+    {
+      if (LM->LogNeeded())
+        LM->StartTimer("IUS: read in Si");
 
-  // Populate the selected rows into singleGroup. Use a C scope to allow
-  // the cursor to be deallocated after the reading of S.
-  //
-  // Only read in columns that are in PENDING state 
-  {
-     HSCursor cursor;
-     // Read from the persistent sample table and use smplGroup to 
-     // hold the data read. All columns in PENDING state 
-     // will be read in.
-     retcode = readColumnsIntoMem(&cursor, currentSampleSize);
-     HSHandleError(retcode);
-     checkTime("after reading pending columns into memory for IUS");
-  }
+      // Populate the data areas for the PENDING columns from the persistent
+      // sample table.
+      HSCursor cursor;  // on block exit, dtor will close/dealloc stmt and descriptors
+      retcode = readColumnsIntoMem(&cursor, currentSampleSize);
+      HSHandleError(retcode);
+      checkTime("after reading pending columns into memory for IUS");
 
+      if (LM->LogNeeded())
+        LM->StopTimer();
+    }
+  else if (LM->LogNeeded())
+    LM->Log("IUS: skipped reading in Si; delayedRead true for all columns in batch");
 
-  if (LM->LogNeeded()) 
-    LM->StopTimer();
-
-   // restore the state field to PENDING.
+   // restore the state field to PENDING for any skipped groups.
    group = singleGroup;
    while (group) {
        if (group->delayedRead && group->state == SKIP)
@@ -6484,12 +6533,29 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
   if (LM->LogNeeded()) 
     LM->StopTimer();
 
-  
-  // Update the persistent sample table in several steps
+  // Write CBFs for groups that are PROCESSED and delayedRead back to disk.
+  writeCBFstoDiskForIUS(*hssample_table, singleGroup);
+
+  return retcode;
+}
+
+// Update the persistent sample table, dropping the _I table when finished.
+//   1) Delete rows in the persistent sample satisfying the IUS predicate.
+//   2) Insert the rows from <sampleTblName>_I into the persistent sample.
+//      These rows constitute a random sample of rows from the source table
+//      that satisfy the IUS predicate.
+//   3) Remove the _I table.
+Lng32 HSGlobalsClass::UpdateIUSPersistentSampleTable()
+{
+  Lng32 retcode = 0;
+  Int64 xRows;
+  HSLogMan *LM = HSLogMan::Instance();
+
+  // Start a new scope for the transaction, which is bounded by the ctor/dtor of
+  // the HSTranController object declared within.
   {
      HSFuncExecQuery("CONTROL QUERY DEFAULT ALLOW_DML_ON_NONAUDITED_TABLE 'ON'");
 
-       // start a new scope for the trasaction
      HSTranController TC("IUS: update PS table", &retcode);
      HSHandleError(retcode);
 
@@ -6497,17 +6563,22 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
      NAString deleteQuery;
      iusSampleDeletedInMem->generateDeleteQuery(*hssample_table, deleteQuery);
 
-
      if (LM->LogNeeded()) {
-        LM->Log("query to delete from PS:");
-        LM->Log(deleteQuery.data());
+       LM->Log("query to delete from PS:");
+       LM->Log(deleteQuery.data());
+       LM->StartTimer("IUS: execute query to delete from PS");
      }
 
-
+     xRows = 0;
      retcode = HSFuncExecQuery(deleteQuery, -UERR_INTERNAL_ERROR,
                               &xRows,
                               "IUS delete from PS where",
                               NULL, NULL, TRUE/*doRetry*/ );
+     if (LM->LogNeeded()) {
+       LM->StopTimer();
+       sprintf(LM->msg, PF64 " rows deleted from persistent sample table.", xRows);
+       LM->Log(LM->msg);
+     }
      HSHandleError(retcode);
 
      // step 2  - add all rows from _I to PS
@@ -6517,28 +6588,30 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
      if (LM->LogNeeded()) {
         LM->Log("query to insert into PS:");
         LM->Log(selectInsertQuery.data());
+        LM->StartTimer("IUS: execute query to insert into PS");
      }
-  
+
+     xRows = 0;
      retcode = HSFuncExecQuery(selectInsertQuery, -UERR_INTERNAL_ERROR,
                               &xRows,
                               "IUS insert into PS (select from _I)",
                               NULL, NULL, TRUE/*doRetry*/ );
+     if (LM->LogNeeded()) {
+       LM->StopTimer();
+       sprintf(LM->msg, PF64 " rows inserted into persistent sample table.", xRows);
+       LM->Log(LM->msg);
+     }
      HSHandleError(retcode);
   }   // must end the transaction here; DDL and DML can't be in the same transaction
 
   // step3 - drop _I table
-  sampleIExists_ = FALSE;  // only try to drop it once
-  retcode = drop_I(*hssample_table);  
+  retcode = drop_I(*hssample_table);
   HSHandleError(retcode);
+  sampleIExists_ = FALSE;  // only try to drop it once
 
   HSFuncExecQuery("CONTROL QUERY DEFAULT ALLOW_DML_ON_NONAUDITED_TABLE reset");
 
   checkTime("after updating persistent sample table for IUS");
-
-  // Write CBFs for groups that are PENDING and delayedRead back to disk.
-  Int32 count = writeCBFstoDiskForIUS(*hssample_table,singleGroup);
-
-  return retcode;
 }
 
 // Read in CBFs for groups that are PENDING and delayedRead flag is TRUE 
@@ -6546,25 +6619,13 @@ Int32 HSGlobalsClass::readCBFsIntoMemForIUS(NAString& sampleTableName,
                                             HSColGroupStruct* group
      )
 {
-   // Before we have the PERSISTENT_DATA table available to us, we will
-   // save the CBFs as binary files on disk. One CBF maps to one binary file.
-   // The path of the directory for these files is specified in CQD
-   // USTAT_IUS_PERSISTENT_CBF_PATH, and the cbf binary file name is
-   // sampleTableName + '.' + 'colName';
-
-   NAString path =
-     ActiveSchemaDB()->getDefaults().getValue(USTAT_IUS_PERSISTENT_CBF_PATH);
-
-   NAString cbfFilePrefix(path);
-   cbfFilePrefix.append("/");
-   cbfFilePrefix.append(sampleTableName);
-   cbfFilePrefix.append(".");
+   NAString cbfFilePrefix;
+   getCBFFilePrefix(sampleTableName, cbfFilePrefix);
 
    Lng32 sz;
    Lng32 bufSz = 0;
    char* bufptr = NULL;
    struct stat sts;
-   char buffer[20];
 
    while (group) {
 
@@ -6575,8 +6636,7 @@ Int32 HSGlobalsClass::readCBFsIntoMemForIUS(NAString& sampleTableName,
         group->delayedRead = FALSE;
 
         NAString cbfFile(cbfFilePrefix);
-        str_itoa(group->colSet[0].colnum, buffer);
-        cbfFile.append(buffer);
+        cbfFile.append(group->cbfFileNameSuffix());
 
         if (stat(cbfFile, &sts) == 0) {
            if ( bufSz < sts.st_size ) {
@@ -6687,10 +6747,9 @@ Int32 HSGlobalsClass::writeCBFstoDiskForIUS(NAString& sampleTableName,
                                             HSColGroupStruct* group
      )
 {
-   // We save the CBFs as binary files on disk. One CBF maps to one binary file.
-   // The path of the directory for these files is specified in CQD
-   // USTAT_IUS_PERSISTENT_CBF_PATH, and the cbf binary file name is
-   // sampleTableName + '.' + 'col_position_in_table';
+   HSLogMan *LM = HSLogMan::Instance();
+   if (LM->LogNeeded())
+     LM->StartTimer("IUS: write CBF files to disk");
 
    NAString path =
      ActiveSchemaDB()->getDefaults().getValue(USTAT_IUS_PERSISTENT_CBF_PATH);
@@ -6703,21 +6762,21 @@ Int32 HSGlobalsClass::writeCBFstoDiskForIUS(NAString& sampleTableName,
 
    UInt64 totalSpaceInBlocks = 0;
 
-   if ( !getTotalDiskSizeInBlocks(path, totalSpaceInBlocks) )
+   if ( !getTotalDiskSizeInBlocks(path, totalSpaceInBlocks) ) {
+     if (LM->LogNeeded())
+       LM->StopTimer();
      return 0;
+   }
    
    UInt64 totalAllowedInBlocks = MINOF(totalCBFsizeInMB * 1024 / 2, 
                                        totalSpaceInBlocks * percentage);
 
-   NAString cbfFilePrefix(path);
-   cbfFilePrefix.append("/");
-   cbfFilePrefix.append(sampleTableName);
-   cbfFilePrefix.append(".");
+   NAString cbfFilePrefix;
+   getCBFFilePrefix(sampleTableName, cbfFilePrefix);
 
    Lng32 sz;
    Lng32 bufSz = 0;
    char* bufptr = NULL;
-   char buffer[20];
 
    Int32 count = 0;
 
@@ -6726,9 +6785,7 @@ Int32 HSGlobalsClass::writeCBFstoDiskForIUS(NAString& sampleTableName,
       if ( group->cbf && group->state == PROCESSED ) {
 
         NAString cbfFile(cbfFilePrefix);
-        str_itoa(group->colSet[0].colnum, buffer);
-        cbfFile.append(buffer);
-
+        cbfFile.append(group->cbfFileNameSuffix());
 
         Lng32 cbfSz = group->cbf->getTotalMemSize();
 
@@ -6751,8 +6808,8 @@ Int32 HSGlobalsClass::writeCBFstoDiskForIUS(NAString& sampleTableName,
 
            char* buffer = bufptr;
            sz = group->cbf->packIntoBuffer(buffer, FALSE /* no bytes swapping */ );
-           assert( sz <= bufSz);
-           assert( sz <= buffer - bufptr);
+           HS_ASSERT( sz <= bufSz);
+           HS_ASSERT( sz <= buffer - bufptr);
 
            ssize_t wsz = write(fd, bufptr, sz);
 
@@ -6765,42 +6822,39 @@ Int32 HSGlobalsClass::writeCBFstoDiskForIUS(NAString& sampleTableName,
 
         }
        
+        // Make sure we don't write it again on next batch.
+        delete group->cbf;
+        group->cbf = NULL;
       }
 
       group = group->next;
    }
    NADELETEBASIC(bufptr, STMTHEAP);
 
+   if (LM->LogNeeded())
+     LM->StopTimer();
    return count;
 }
 
 Int32 HSGlobalsClass::deletePersistentCBFsForIUS(NAString& sampleTableName, 
-                                                 HSColGroupStruct* group)
+                                                 HSColGroupStruct* group,
+                                                 SortState stateToDelete)
 {
-   // Before we have the PERSISTENT_DATA table available to us, we will
-   // save the CBFs as binary files on disk. One CBF maps to one binary file.
-   // The path of the directory for these files is specified in CQD
-   // USTAT_IUS_PERSISTENT_CBF_PATH, and the cbf binary file name is
-   // sampleTableName + '.' + 'colName';
-
-   NAString path =
-     ActiveSchemaDB()->getDefaults().getValue(USTAT_IUS_PERSISTENT_CBF_PATH);
-
-   NAString cbfFilePrefix(path);
-   cbfFilePrefix.append("/");
-   cbfFilePrefix.append(sampleTableName);
-   cbfFilePrefix.append(".");
-   char buffer[20];
+   NAString cbfFilePrefix;
+   getCBFFilePrefix(sampleTableName, cbfFilePrefix);
 
    while (group) {
 
-      if ( group->cbf && group->state == PENDING ) {
+      if ( group->cbf && group->state == stateToDelete ) {
 
         NAString cbfFile(cbfFilePrefix);
-        str_itoa(group->colSet[0].colnum, buffer);
-        cbfFile.append(buffer);
+        cbfFile.append(group->cbfFileNameSuffix());
 
         remove(cbfFile.data());
+
+        // Make sure this unused CBF does not get persisted.
+        delete group->cbf;
+        group->cbf = NULL;
       }
 
       group = group->next;
@@ -6812,8 +6866,12 @@ Int32 HSGlobalsClass::deletePersistentCBFsForIUS(NAString& sampleTableName,
 Lng32 HSGlobalsClass::selectIUSBatch(Int64 currentRows, Int64 futureRows, NABoolean& ranOut, Int32& colsSelected)
 {
   HSLogMan *LM = HSLogMan::Instance();
+  if (LM->LogNeeded())
+    LM->StartTimer("IUS: selectIUSBatch()");
 
   colsSelected = 0;
+  iusSampleDeletedInMem->depopulate();
+  iusSampleInsertedInMem->depopulate();
   Int64 memAllowed = getMaxMemory();
   Int64 memLeft = memAllowed;
 
@@ -6957,9 +7015,11 @@ Lng32 HSGlobalsClass::selectIUSBatch(Int64 currentRows, Int64 futureRows, NABool
            memLeft -= totMemNeeded;
 
          } else {
-           // the memory is not enough for the group. Do nothing. 
-           // The group is still in UNPROCESSED state.
+           // Not enough memory for the group. Leave the group in UNPROCESSED state,
+           // and get rid of the HSHistogram object we created for it.
            ranOut = TRUE;
+           delete group->groupHist;
+           group->groupHist = NULL;
            if (LM->LogNeeded()) {
               sprintf(LM->msg, "Not enough memory: memLeft=" PF64 "totMemNeeded=", memLeft);
               formatFixedNumeric((Int64)totMemNeeded, 0, LM->msg+strlen(LM->msg));
@@ -7036,6 +7096,7 @@ Lng32 HSGlobalsClass::selectIUSBatch(Int64 currentRows, Int64 futureRows, NABool
         }
      sprintf(LM->msg, "return from selectIUSBatch(): count=%d", colsSelected); 
      LM->Log(LM->msg);
+     LM->StopTimer();
     }
 
   return retcode;
@@ -7066,8 +7127,11 @@ Lng32 HSGlobalsClass::incrementHistograms()
          } else {
            if ( retcode == 0 ) {
               group->state = PROCESSED; // IUS successful. 
-              delGroup->state = PROCESSED; // IUS successful. 
-              insGroup->state = PROCESSED; // IUS successful. 
+              group->freeISMemory();
+              delGroup->state = PROCESSED; // IUS successful.
+              delGroup->freeISMemory();
+              insGroup->state = PROCESSED; // IUS successful.
+              insGroup->freeISMemory();
            } else
               HSHandleError(retcode);
          }
@@ -7165,6 +7229,9 @@ Lng32 HSGlobalsClass::initIUSIntervals(HSColGroupStruct* smplGroup,
                                        UInt32 histID,
                                        Int16 numIntervals)
 {
+  HSLogMan *LM = HSLogMan::Instance();
+  if (LM->LogNeeded())
+    LM->StartTimer("IUS: initIUSIntervals()");
   typedef Int16 LenType;
   Lng32 retcode = 0;
   Int64 tableUID = objDef->getObjectUID();
@@ -7273,6 +7340,8 @@ Lng32 HSGlobalsClass::initIUSIntervals(HSColGroupStruct* smplGroup,
 
     }
 
+  if (LM->LogNeeded())
+    LM->StopTimer();
   return retcode;
 }
 
@@ -8111,6 +8180,35 @@ NABoolean HSGlobalsClass::allMCGroupsProcessed(NABoolean forIS)
     return TRUE;
 }
 
+
+// This function is called by the HS_ASSERT macro to take care of some things
+// before triggering an assertion failure:
+//   - Log the assertion failure if logging is enabled.
+//   - Roll back transaction if one is in progress.
+//   - Put an assertion error in the diagnostics area. This is supposed to be
+//     done by code executed due to the macro HS_ASSERT invokes for the assertion
+//     failure, but it does not always work properly. Doing it here prevents it
+//     from being attempted downstream.
+// The parameters are the text of the assertion, and the file and line at which
+// it occurred.
+void HSGlobalsClass::preAssertionFailure(const char* condition,
+                                         const char* fileName,
+                                         Lng32 lineNum)
+{
+  HSTranMan *TM = HSTranMan::Instance();
+  HSLogMan *LM = HSLogMan::Instance();
+  if (LM->LogNeeded())
+    {
+      sprintf(LM->msg, "***[ERROR] INTERNAL ASSERTION (%s) AT %s:%i", condition, fileName, lineNum);
+      LM->Log(LM->msg);
+    }
+  if (TM->StartedTransaction())
+    TM->Rollback();
+  diagsArea << DgSqlCode(arkcmpErrorAssert)
+            << DgString0(condition)
+            << DgString1(fileName)
+            << DgInt0(lineNum);
+}
 
 
 /****************************************************************/
@@ -11857,6 +11955,15 @@ Int32 computeKeyLengthInfo(Lng32 datatype)
 }
 
 template <class T>
+void IUSValueIterator<T>::init(HSColGroupStruct* group)
+{
+  // Strings must be contiguous in the strData buffer for this iterator to
+  // work correctly.
+  HS_ASSERT(group->strDataConsecutive);
+  vp = (T*)group->data;
+}
+
+template <class T>
 Int32 HSGlobalsClass::processIUSColumn(T* ptr,
                       const NAWchar* format,
                       HSColGroupStruct* smplGroup,
@@ -12037,7 +12144,11 @@ Int32 HSGlobalsClass::processIUSColumn(T* ptr,
                       << DgString0(smplGroup->colSet[0].colname->data());
 
              
-LM->Log("NONMFV overflow");
+            if (LM->LogNeeded()) {
+              LM->Log("NONMFV overflow");
+              LM->StopTimer();  // Need both of these; there are
+              LM->StopTimer();  //   2 outstanding timer events
+            }
             return UERR_IUS_INSERT_NONMFV_OVERFLOW;
          }
 
@@ -12071,8 +12182,8 @@ LM->Log("NONMFV overflow");
      }
 
   } else {
-
-     assert(cbf->numBuckets() == hist->getNumIntervals());
+     // 1 more bucket than interval so that interval# maps to bucket# directly
+     HS_ASSERT(cbf->numBuckets() == hist->getNumIntervals() + 1);
      cbf->setKenLengthInfo( computeKeyLengthInfo(smplGroup->ISdatatype) );
      sampleRowCount = cbf->totalFreqForAll();
   }
@@ -12165,10 +12276,9 @@ if ( x[0] == (unsigned char)255 && x[1] == (unsigned char)127 ) {
 
       // non-mfv value overflows to mfv. bail out.
       if (insert_status == CountingBloomFilter::NEW_MFV) {
-
          diagsArea << DgSqlCode(UERR_IUS_INSERT_NONMFV_OVERFLOW)
                    << DgString0(smplGroup->colSet[0].colname->data());
-
+         LM->StopTimer();
          return UERR_IUS_INSERT_NONMFV_OVERFLOW;
       }
 
@@ -12385,11 +12495,10 @@ Int32 HSGlobalsClass::estimateAndTestIUSStats(HSColGroupStruct* group,
   HSLogMan *LM = HSLogMan::Instance();
 
   if (LM->LogNeeded()) {
-    sprintf(LM->msg, "IUS estimateAndTest() for column %s, the exist histogram is", 
-                   group->colSet[0].colname->data());
-    hist->logAll(LM->msg);
-
+    sprintf(LM->msg, "IUS: estimateAndTestIUSStats() for column %s",
+                     group->colSet[0].colname->data());
     LM->StartTimer(LM->msg);
+    hist->logAll("The existing histogram is:");
     sprintf(LM->msg, "Total #intervals=%d, scaleFactor=%f,nullCount=%d", 
                       numNonNullIntervals, scaleFactor, nullCount);
     LM->Log(LM->msg);
@@ -12654,6 +12763,7 @@ Int32 HSGlobalsClass::estimateAndTestIUSStats(HSColGroupStruct* group,
         }
      diagsArea << DgSqlCode(shapeTestError)
                << DgString0(group->colSet[0].colname->data());
+     LM->StopTimer();
      return shapeTestError;
      }
 
@@ -12693,6 +12803,7 @@ Int32 HSGlobalsClass::estimateAndTestIUSStats(HSColGroupStruct* group,
       delta((UInt64)origTotalRC, totalRC)/origTotalRC > rcTotalChangeThreshold )  {
      diagsArea << DgSqlCode(UERR_WARNING_IUS_TOO_MUCH_RC_CHANGE_TOTAL)
                << DgString0(group->colSet[0].colname->data());
+     LM->StopTimer();
      return UERR_WARNING_IUS_TOO_MUCH_RC_CHANGE_TOTAL;
   }
 
@@ -12706,6 +12817,7 @@ Int32 HSGlobalsClass::estimateAndTestIUSStats(HSColGroupStruct* group,
       delta((UInt64)origTotalUEC, totalUEC)/origTotalUEC > uecTotalChangeThreshold ) {
      diagsArea << DgSqlCode(UERR_WARNING_IUS_TOO_MUCH_UEC_CHANGE_TOTAL)
                << DgString0(group->colSet[0].colname->data());
+     LM->StopTimer();
      return UERR_WARNING_IUS_TOO_MUCH_UEC_CHANGE_TOTAL;
   }
 
@@ -14064,7 +14176,7 @@ static short convFloat64ToAscii(char *target,
   short err = 0;
 
   Lng32 displaySize = digits + 8; // Mantissa = digits + 3, E = 1, Exponent = 4
-  assert(displaySize <= SQL_DOUBLE_PRECISION_DISPLAY_SIZE);
+  HS_ASSERT(displaySize <= SQL_DOUBLE_PRECISION_DISPLAY_SIZE);
   char tempTarget[SQL_DOUBLE_PRECISION_DISPLAY_SIZE + 1];
   //char format[8];
 
@@ -15592,12 +15704,13 @@ Lng32 HSGlobalsClass::processFastStatsBatch(CollIndex numCols, HSColGroupStruct*
     {
       group = colGroups[i];
 
-      //@ZXbl -- memory alloc may be moved later
+      //@ZXbl -- memory alloc may be moved later. Also needs to be able to recover
+      //         from insufficient memory.
       if (!group->allocateISMemory(MAX_ROWSET,
                                    TRUE,        // alloc strdata if a char type
                                    FALSE))      // no recalc memneeded (IUS)
         {
-          diagsArea << DgSqlCode(UERR_IUS_NO_SUFFICIENT_MEMORY);
+          diagsArea << DgSqlCode(UERR_FASTSTATS_MEM_ALLOCATION_ERROR);
           retcode = -1;
           HSHandleError(retcode);
         }
@@ -15722,8 +15835,8 @@ Lng32 HSGlobalsClass::CollectStatisticsWithFastStats()
   {
     numCols = selectFastStatsBatch(colGroups);
     if (numCols > 0)
-      processFastStatsBatch(numCols, colGroups);
-  } while (numCols > 0);
+      retcode = processFastStatsBatch(numCols, colGroups);
+  } while (numCols > 0 && retcode >= 0);
 
   return retcode;
 }

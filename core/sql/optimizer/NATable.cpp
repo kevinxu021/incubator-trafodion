@@ -3618,9 +3618,16 @@ NAType* getSQColTypeForHive(const char* hiveType, NAMemory* heap)
   if ( !strcmp(hiveType, "string"))
     {
       Int32 len = CmpCommon::getDefaultLong(HIVE_MAX_STRING_LENGTH);
+      Int32 lenInBytes = CmpCommon::getDefaultLong(HIVE_MAX_STRING_LENGTH_IN_BYTES);
+      if( lenInBytes != 31999 ) 
+        len = lenInBytes;
       NAString hiveCharset =
         ActiveSchemaDB()->getDefaults().getValue(HIVE_DEFAULT_CHARSET);
-      return new (heap) SQLVarChar(CharLenInfo((hiveCharset == CharInfo::UTF8 ? 0 : len),len),
+      hiveCharset.toUpper();
+      CharInfo::CharSet hiveCharsetEnum = CharInfo::getCharSetEnum(hiveCharset);
+      Int32 maxNumChars = 0;
+      Int32 storageLen = len;
+      return new (heap) SQLVarChar(CharLenInfo(maxNumChars, storageLen),
                                    TRUE, // allow NULL
                                    FALSE, // not upshifted
                                    FALSE, // not case-insensitive
@@ -3640,6 +3647,60 @@ NAType* getSQColTypeForHive(const char* hiveType, NAMemory* heap)
 
   if ( !strcmp(hiveType, "timestamp"))
     return new (heap) SQLTimestamp(TRUE /* allow NULL */ , 6, heap);
+
+  if ( !strcmp(hiveType, "date"))
+    return new (heap) SQLDate(TRUE /* allow NULL */ , heap);
+
+  if ( !strncmp(hiveType, "varchar", 7) )
+  {
+    char maxLen[32];
+    memset(maxLen, 0, 32);
+    int i=0,j=0;
+    int copyit = 0;
+
+    //get length
+    for(i = 0; i < strlen(hiveType) ; i++)
+    {
+      if(hiveType[i] == '(') //start
+      {
+        copyit=1;
+        continue;
+      }
+      else if(hiveType[i] == ')') //stop
+        break; 
+      if(copyit > 0)
+      {
+        maxLen[j] = hiveType[i];
+        j++;
+      }
+    }
+    Int32 len = atoi(maxLen);
+
+    if(len == 0) return NULL;  //cannot parse correctly
+
+    NAString hiveCharset =
+        ActiveSchemaDB()->getDefaults().getValue(HIVE_DEFAULT_CHARSET);
+
+    hiveCharset.toUpper();
+    CharInfo::CharSet hiveCharsetEnum = CharInfo::getCharSetEnum(hiveCharset);
+    Int32 maxNumChars = 0;
+    Int32 storageLen = len;
+    if (CharInfo::isVariableWidthMultiByteCharSet(hiveCharsetEnum))
+    {
+      // For Hive VARCHARs, the number specified is the max. number of characters,
+      // while we count in bytes when using HIVE_MAX_STRING_LENGTH for Hive STRING
+      // columns. Set the max character constraint and also adjust the required storage length.
+       maxNumChars = len;
+       storageLen = len * CharInfo::maxBytesPerChar(hiveCharsetEnum);
+    }
+    return new (heap) SQLVarChar(CharLenInfo(maxNumChars, storageLen),
+                                   TRUE, // allow NULL
+                                   FALSE, // not upshifted
+                                   FALSE, // not case-insensitive
+                                   CharInfo::getCharSetEnum(hiveCharset),
+                                   CharInfo::DefaultCollation,
+                                   CharInfo::IMPLICIT);
+  } 
 
   return NULL;
 }
@@ -4889,6 +4950,8 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
       Int64 estimatedRC = 0;
       Int64 estimatedRecordLength = 0;
 
+      Lng32 blockSize = (Lng32)hiveHDFSTableStats->getEstimatedBlockSize();
+
       if ( isORC ) {
          // We cannot use colArray.getTotalStorageSize() for estimating row length,
          // since we make worst-case assumptions about string column sizes. 
@@ -4903,6 +4966,11 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
          else
            // we think the table is empty so there are no strings! avoid divide by zero
            estimatedRecordLength = nonStringsPart;
+
+         // The block size is purposely set to CQD NCM_SEQ_IO_WEIGHT so that the 
+         // seq IO to scan ORC table is the amount of data scanned.
+         blockSize = ActiveSchemaDB()->getDefaults().getAsDouble(NCM_SEQ_IO_WEIGHT);
+
       } else if ( !sd_desc->isTrulyText() ) {
          //
          // Poor man's estimation by assuming the record length in hive is the 
@@ -4919,8 +4987,7 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
                        hiveHDFSTableStats->getEstimatedBlockSize()-100));
       }
 		  
-      Lng32 blockSize = MAXOF((Lng32)hiveHDFSTableStats->getEstimatedBlockSize(),
-                              (Lng32)estimatedRecordLength);
+      blockSize = MAXOF(blockSize, (Lng32)estimatedRecordLength);
       
       ((NATable*)table)-> setOriginalRowCount((double)estimatedRC);
 
@@ -6194,6 +6261,9 @@ NATable::NATable(BindWA *bindWA,
     tableConstructionHadWarnings_=TRUE;
 
   hiveDefaultStringLen_ = CmpCommon::getDefaultLong(HIVE_MAX_STRING_LENGTH);
+  Int32 hiveDefaultStringLenInBytes = CmpCommon::getDefaultLong(HIVE_MAX_STRING_LENGTH_IN_BYTES);
+  if( hiveDefaultStringLenInBytes != 31999 ) 
+      hiveDefaultStringLen_ = hiveDefaultStringLenInBytes;
 
   if (!(corrName.isSeabaseMD() || corrName.isSpecialTable()))
     setupPrivInfo();
@@ -7716,6 +7786,10 @@ NATable * NATableDB::get(const ExtendedQualName* key, BindWA* bindWA, NABoolean 
               (Int64) CmpCommon::getDefaultLong(HIVE_METADATA_REFRESH_INTERVAL);
             Int32 defaultStringLen = 
               CmpCommon::getDefaultLong(HIVE_MAX_STRING_LENGTH);
+            Int32 defaultStringLenInBytes = 
+              CmpCommon::getDefaultLong(HIVE_MAX_STRING_LENGTH_IN_BYTES);
+            if(defaultStringLenInBytes != 31999)
+              defaultStringLen = defaultStringLenInBytes;
             Int64 expirationTimestamp = refreshInterval;
             NAString defSchema =
               ActiveSchemaDB()->getDefaults().getValue(HIVE_DEFAULT_SCHEMA);
@@ -8174,6 +8248,13 @@ short NATable::updateExtTableAttrs(NATable *etTable)
 
   addVirtualHiveColumns(colArray_, this, colcount_-1, heap_);
   colcount_ += 4;
+
+  // mark the partition columns in the external table
+  NAColumnArray &myCols = fileset->allColumns_;
+
+  for (CollIndex i=0; i<myCols.entries(); i++)
+    if (myCols[i]->isHivePartColumn())
+      etFileset->markAsHivePartitioningColumn(i);
 
   fileset->allColumns_ = etFileset->getAllColumns();
   addVirtualHiveColumns(fileset->allColumns_, this, 
@@ -8719,7 +8800,7 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
           //was not able to get cache size below
           //max allowed cache size
           #ifndef NDEBUG
-          CMPASSERT(FALSE);
+          //          CMPASSERT(FALSE);
           #endif
         }
       }

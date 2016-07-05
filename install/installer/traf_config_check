@@ -212,6 +212,21 @@ else
       MY_NODES="$MY_NODES -w $node"
    done
 
+   if [[ "$ELASTICITY_ENABLED" == "Y" ]]; then
+      node_id="0"
+      TRAF_EXCLUDE_LIST=""
+      while [[ "$node_id" -lt "$NUM_ELASTIC_NODES" ]]
+      do
+          TRAF_EXCLUDE_LIST="$TRAF_EXCLUDE_LIST extranode$node_id"
+          ((node_id++))
+      done
+      
+      sudo chmod 777 $TRAF_CONFIG
+      sed -i '/TRAF_EXCLUDE_LIST\=/d' $TRAF_CONFIG
+      echo "export TRAF_EXCLUDE_LIST=\"$TRAF_EXCLUDE_LIST\"" >> $TRAF_CONFIG
+      sudo chmod 777 $TRAF_CONFIG
+   fi
+
    sudo chmod 777 $TRAF_CONFIG
    sed -i '/MY_NODES\=/d' $TRAF_CONFIG
    echo "export MY_NODES=\"$MY_NODES\"" >> $TRAF_CONFIG
@@ -375,14 +390,18 @@ sudo chmod 777 $TRAF_CONFIG
 }
 
 function checkJavaVersion {
+
+source /etc/trafodion/trafodion_config
+
 if [[ -z "$JAVA_HOME" ]]; then
    errorFound=1
    echo "JAVA HOME" >> $ERROR_LOG
    echo "***ERROR: JAVA_HOME variable not set in config file." >> $ERROR_LOG   
 else
 
-   REQ_VER="1.7.0_65"
+   REQ_VER="1.7.0_65" 
    JAVA7="7"
+   JAVA8="8"
    JAVA65="65"
    error=""
 
@@ -418,6 +437,13 @@ else
             error="true"
          fi
 
+         if [[ "$JAVA_8_SUPPORT" == "Y" ]]; then
+            if [[ "$temp_JAVA" -ne "$JAVA8" ]]; then
+               error="true"
+            fi
+
+         fi
+
          #Checking if using 1.7.0_n
          if [[ "${THIS_JVM_VER:18:1}" -eq "0" ]] && [[ "$temp_JAVA" -eq "$JAVA7" ]]; then
             if [[ "${THIS_JVM_VER:20:1}" -eq "0" ]] || [[ "${THIS_JVM_VER:20:2}" -lt $JAVA65 ]]; then
@@ -434,9 +460,16 @@ else
          if [[ -n $error ]]; then
             errorFound=1
             echo "JAVA HOME" >> $ERROR_LOG
-            echo "***ERROR: Your existing JAVA_HOME on $node is less than $REQ_VER"  >> $ERROR_LOG
-            echo "***ERROR: Your Java Version on $node = $THIS_JVM_VER"  >> $ERROR_LOG
-            echo "***ERROR: Required java version on $node should be greater than $REQ_VER"  >> $ERROR_LOG
+            if [[ "$JAVA_8_SUPPORT" == "Y" ]]; then
+               #Get used to this error. You are going to see it alot. 
+               echo "***ERROR: Your existing JAVA_HOME on $node is not JAVA 8"  >> $ERROR_LOG
+               echo "***ERROR: Your Java Version on $node = $THIS_JVM_VER"  >> $ERROR_LOG
+               echo "***ERROR: Required java version is JAVA 8, any other version is not supported"  >> $ERROR_LOG 
+            else
+               echo "***ERROR: Your existing JAVA_HOME on $node is less than $REQ_VER"  >> $ERROR_LOG
+               echo "***ERROR: Your Java Version on $node = $THIS_JVM_VER"  >> $ERROR_LOG
+               echo "***ERROR: Required java version on $node should be greater than $REQ_VER"  >> $ERROR_LOG
+            fi
          fi
        done
     fi
@@ -924,6 +957,56 @@ fi
 
 }
 
+function checkJavaSupport {
+
+if [[ "$ONE_TAR_INSTALL" == "N" ]] || [[ -z "$ONE_TAR_INSTALL" ]] ; then
+   TRAF_BUILD=$(tar -tf $TRAF_PACKAGE | grep "trafodion_.*server")
+   tar -xzf $TRAF_PACKAGE --directory $LOCAL_WORKDIR
+   TRAF_BUILD_PATH=$LOCAL_WORKDIR/$TRAF_BUILD
+   install_features_path=$(tar -tf $TRAF_BUILD_PATH | grep "install_features")
+
+else
+   TRAF_BUILD_PATH=$TRAF_PACKAGE
+   install_features_path=$(tar -tf $TRAF_PACKAGE | grep "install_features")
+
+fi
+
+if [[ ! -z $install_features_path ]]; then
+   if [[ "$ONE_TAR_INSTALL" == "N" ]]; then
+      tar -xzf $TRAF_BUILD_PATH $install_features_path
+      if [[ $? -ne "0" ]]; then
+         echo "***ERROR: Error with untar of $TRAF_BUILD_PATH"
+         exit -1
+      fi
+   else
+      tar -xzf $TRAF_PACKAGE $install_features_path
+      if [[ $? -ne "0" ]]; then
+         echo "***ERROR: Error with untar of $TRAF_BUILD_PATH"
+         exit -1
+      fi
+   fi
+   source $install_features_path
+   
+   if [[ -z $JAVA_8_SUPPORT ]]; then
+      sudo chmod 777 $TRAF_CONFIG
+      echo "export JAVA_8_SUPPORT=\"N\"" >> $TRAF_CONFIG
+      sudo chmod 777 $TRAF_CONFIG
+   else
+      sudo chmod 777 $TRAF_CONFIG
+      echo "export JAVA_8_SUPPORT=\"$JAVA_8_SUPPORT\"" >> $TRAF_CONFIG
+      sudo chmod 777 $TRAF_CONFIG
+   fi
+else
+   JAVA_8_SUPPORT="N"
+   sudo chmod 777 $TRAF_CONFIG
+   echo "export JAVA_8_SUPPORT=\"$JAVA_8_SUPPORT\"" >> $TRAF_CONFIG
+   sudo chmod 777 $TRAF_CONFIG
+fi
+
+
+
+}
+
 function checkHadoopSupport {
 
 if [[ "$ONE_TAR_INSTALL" == "N" ]] || [[ -z "$ONE_TAR_INSTALL" ]] ; then
@@ -1036,6 +1119,8 @@ fi
 createAllNodes
 
 createPDSH
+
+checkJavaSupport
 
 checkJavaVersion
 

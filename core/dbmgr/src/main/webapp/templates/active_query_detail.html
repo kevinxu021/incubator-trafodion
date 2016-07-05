@@ -46,6 +46,14 @@
 									ID</label> <input class="dbmgr-form-workload-cell-label"
 								style="width: 800px; border: none;" readonly id="query-id"
 								maxlength="255"></li>
+							<li id="parentQid-container" class="dbmgr-form-item-row" style="width:90%;"><label
+									class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Parent
+										Query ID</label> <a href="" class="dbmgr-form-workload-cell-label"
+									style="width: 800px; border: none;" id="parentQid"></a></li>
+							<li id="childQid-container" class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Child
+									Query ID</label> <a href="" class="dbmgr-form-workload-cell-label"
+								style="width: 800px; border: none;" id="childQid"></a></li>
 						</ul>
 					</fieldset>
 					<div style="clear:both;"></div>
@@ -87,11 +95,6 @@
 								style="width: 300px; border: none;" readonly id="State"
 								maxlength="25"></li>
 							<li class="dbmgr-form-item-row" style="width: 90%"><label
-								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Rows
-									Affected</label> <input class="dbmgr-form-workload-cell-label"
-								style="width: 300px; border: none;" readonly id="RowsAffected"
-								maxlength="25"></li>
-							<li class="dbmgr-form-item-row" style="width: 90%"><label
 								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">SQL
 									Error Code</label> <input class="dbmgr-form-workload-cell-label"
 								style="width: 300px; border: none;" readonly id="SqlErrorCode"
@@ -128,23 +131,16 @@
 								maxlength="25"></li>
 						</ul>
 					</fieldset>
+					<div style="overflow:auto">
 					<fieldset class="dbmgr-fieldset-table" style="float:left">
 						<ul>
-							<li class="dbmgr-form-item-row"><label
-									class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Parent
-										Query ID</label> <input class="dbmgr-form-workload-cell-label"
-									style="width: 600px; border: none;" readonly id="parentQid"
-									maxlength="25"></li>
+							
 							<li class="dbmgr-form-item-row" style="width: 90%"><label
 								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Parent
 									Query System</label> <input class="dbmgr-form-workload-cell-label"
 								style="width: 300px; border: none;" readonly
 								id="parentQidSystem" maxlength="25"></li>
-							<li class="dbmgr-form-item-row" style="width: 90%"><label
-								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Child
-									Query ID</label> <input class="dbmgr-form-workload-cell-label"
-								style="width: 600px; border: none;" readonly id="childQid"
-								maxlength="25"></li>
+							
 							<li class="dbmgr-form-item-row" style="width: 90%"><label
 								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Number
 									of SQL Process</label> <input class="dbmgr-form-workload-cell-label"
@@ -164,6 +160,11 @@
 								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">SQL
 									Source Length</label> <input class="dbmgr-form-workload-cell-label"
 								style="width: 300px; border: none;" readonly id="sqlSrcLen"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Rows
+									Affected</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 300px; border: none;" readonly id="RowsAffected"
 								maxlength="25"></li>
 							<li class="dbmgr-form-item-row" style="width: 90%"><label
 								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Rows
@@ -207,6 +208,7 @@
 								maxlength="25"></li>
 						</ul>
 					</fieldset>
+					</div>
 					<div style="clear:both;"></div>
 					<fieldset class="dbmgr-fieldset-table" style="float:left">
 						<ul  style="padding: 0px;">
@@ -245,4 +247,28 @@
 			</div>
 		</div>
 	</div>
+	<div class="modal fade" id="cancel-query-dialog" tabindex="-1" role="dialog"
+		aria-labelledby="cancel-query-dialog-label" data-backdrop="static"
+		data-keyboard="false">
+		<div class="modal-dialog" role="document" style="width:800px">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"
+						aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+					<h4 class="modal-title" id="cancel-query-dialog-label">Confirm Query Cancel Request</h4>
+				</div>
+				<div class="modal-body">
+					<form id="wprofile-delete-form">
+                    Are you sure you want to cancel the query <label id="cancel-query-id"></label>  ? 
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button id="cancel-query-yes-btn" type="button" class="btn btn-primary" data-dismiss="modal">Yes</button>
+					<button type="button" class="btn btn-primary" data-dismiss="modal">No</button>
+				</div>
+			</div>
+		</div>
+	</div>	
 </div>

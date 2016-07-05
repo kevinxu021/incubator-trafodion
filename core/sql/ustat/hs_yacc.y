@@ -431,7 +431,10 @@ incremental_clause :   INCREMENTAL WHERE WHERE_CONDITION
                        if (LM->LogNeeded() )
                          LM->Log("incremental clause identified");
                            
-                         
+                       if (CmpCommon::getDefault(USTAT_INCREMENTAL_UPDATE_STATISTICS) == DF_OFF) {
+                         HSFuncMergeDiags(-UERR_IUS_IS_DISABLED);
+                       }
+                       
                        if (CmpCommon::getDefault(USTAT_IUS_SIMPLE_SYNTAX) == DF_ON) {
                          // Via grammar, the incremental clause can only used without the
                          // on_clause. So it is safe to set the IUS_OPT flag.

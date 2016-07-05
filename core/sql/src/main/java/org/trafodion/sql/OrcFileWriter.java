@@ -67,6 +67,8 @@ public class OrcFileWriter {
 
     // this set of constants MUST be kept in sync with 
     // datatype defines in common/dfs2rec.h and cli/sqlcli.h
+    private static final int REC_BIN8_SIGNED     = 136;
+    private static final int REC_BIN8_UNSIGNED   = 137;
     private static final int REC_BIN16_SIGNED    = 130;
     private static final int REC_BIN16_UNSIGNED  = 131;
     private static final int REC_BIN32_SIGNED    = 132;
@@ -113,9 +115,15 @@ public class OrcFileWriter {
 
             ObjectInspector oi;
             switch (type) {
+            case REC_BIN8_UNSIGNED:
+            case REC_BIN8_SIGNED:
+                oi = PrimitiveObjectInspectorFactory.writableByteObjectInspector;
+                break;
+
             case REC_BIN16_SIGNED:
             case REC_BIN16_UNSIGNED:
-                oi = PrimitiveObjectInspectorFactory.writableShortObjectInspector;
+                // oi = PrimitiveObjectInspectorFactory.writableShortObjectInspector;
+                oi = PrimitiveObjectInspectorFactory.writableIntObjectInspector;
                 break;
 
             case REC_BIN32_SIGNED:
@@ -216,7 +224,14 @@ public class OrcFileWriter {
                     byte[] colVal = new byte[length];
                     bb.get(colVal, 0, length);
                     
-                    if (oi.getTypeName() == "short") {
+                    // System.out.println("typeName = " + oi.getTypeName());
+
+                    if (oi.getTypeName() == "tinyint") {
+                        colVals[j] = new ByteWritable();
+                        byte v = Byte.parseByte(Bytes.toString(colVal, 0, length));
+                        ((ByteWritable)colVals[j]).set(v);
+                    }
+                    else if (oi.getTypeName() == "smallint") {
                         colVals[j] = new ShortWritable();
                         ((ShortWritable)colVals[j]).set
                             (Short.parseShort(Bytes.toString(colVal, 0, length)));
@@ -226,10 +241,10 @@ public class OrcFileWriter {
                         ((IntWritable)colVals[j]).set
                             (Integer.parseInt(Bytes.toString(colVal, 0, length)));
                     }
-                    else if (oi.getTypeName() == "long") {
+                    else if (oi.getTypeName() == "bigint") {
                         colVals[j] = new LongWritable();
                         ((LongWritable)colVals[j]).set
-                            (Integer.parseInt(Bytes.toString(colVal, 0, length)));
+                            (Long.parseLong(Bytes.toString(colVal, 0, length)));
                     }
                     else if (oi.getTypeName() == "float") {
                         colVals[j] = new FloatWritable();

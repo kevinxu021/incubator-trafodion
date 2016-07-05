@@ -43,7 +43,6 @@ define(['handlers/EventDispatcher', 'common'],
 				this.sessionTimeout = function() {
 					window.location.hash = '/stimeout';
 				};
-
 				this.fetchDcsServers = function(){
 					var xhr = xhrs["fetchDcsServers"];
 					if(xhr && xhr.readyState !=4){

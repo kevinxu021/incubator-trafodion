@@ -130,6 +130,7 @@ public:
                                            totalRows_(-1),
                                            totalStringLengths_(0),
                                            totalSize_(0),
+                                           numStripes_(0),
                                            modificationTS_(0),
                                            sampledBytes_(0),
                                            sampledRows_(0),
@@ -143,6 +144,7 @@ public:
   Int64 getNumBlocks() const { return numBlocks_; }
   Int64 getTotalRows() const { return totalRows_; }
   Int64 getTotalStringLengths() { return totalStringLengths_; }
+  Int64 getNumStripes() const { return numStripes_; }
   Int64 getSampledBytes() const { return sampledBytes_; }
   Int64 getSampledRows() const { return sampledRows_; }
   time_t getModificationTS() const { return modificationTS_; }
@@ -159,6 +161,7 @@ protected:
   Int64 numBlocks_;
   Int64 numFiles_;
   Int64 totalRows_;  // for ORC files
+  Int64 numStripes_;  // for ORC files
   Int64 totalStringLengths_;  // for ORC files
   Int64 totalSize_;
   time_t modificationTS_; // last modification time of this object (file, partition/directory, bucket or table)
@@ -278,7 +281,11 @@ public:
   virtual OsimHHDFSStatsBase* osimSnapShot();
 
   static void resetTotalAccumulatedRows() 
-   { totalAccumulatedRows_ = 0; totalAccumulatedTotalSize_ = 0; }
+   { 
+      totalAccumulatedRows_ = 0;
+      totalAccumulatedTotalSize_ = 0;
+      totalAccumulatedStripes_ = 0;
+   }
 
 protected:
   // Assign all stripes in this to ESPs, considering locality
@@ -308,6 +315,7 @@ protected:
 
   static THREAD_P Int64 totalAccumulatedRows_;
   static THREAD_P Int64 totalAccumulatedTotalSize_;
+  static THREAD_P Int64 totalAccumulatedStripes_;
 };
 
 class HHDFSBucketStats : public HHDFSStatsBase
@@ -432,6 +440,7 @@ public:
                                     totalNumPartitions_(0),
                                     recordTerminator_(0),
                                     fieldTerminator_(0),
+                                    nullFormat_(NULL),
                                     validationJTimestamp_(-1),
                                     listPartitionStatsList_(heap),
                                     hiveStatsSize_(0),
@@ -473,6 +482,7 @@ public:
 
   char getRecordTerminator() const {return recordTerminator_;}
   char getFieldTerminator() const {return fieldTerminator_;}
+  char *getNullFormat() const { return nullFormat_; }
 
   Int32 getNumPartitions() const {return totalNumPartitions_;}
 
@@ -543,6 +553,8 @@ private:
 
   char recordTerminator_ ;
   char fieldTerminator_ ;
+
+  char *nullFormat_;
 
   Int64 validationJTimestamp_;
   // heap size used by the hive stats

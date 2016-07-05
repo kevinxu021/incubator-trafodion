@@ -11,11 +11,15 @@ define([
         'common',
         'handlers/ServerHandler',
         'bootstrapNotify',
-        'jqueryui'
+        'jqueryui',
+        'jquerylocalize'
         ], function ($, _, Backbone, common, serverHandler) {
 	'use strict';
 	var _this = null;
 	var __this=null;
+	var resizeTimer = null,
+		sidebarTimer = null;
+
 	var BaseView = Backbone.View.extend({
 
 		el: $('#content-wrapper'),
@@ -25,7 +29,7 @@ define([
 		initialized: false,
 
 		TASK_MENU:'#notify',
-
+		
 		pageWrapper: null,
 
 		pageIdentifier:null,
@@ -127,6 +131,7 @@ define([
 		init: function(args){
 			__this=this;
 			common.on(common.NOFITY_MESSAGE, this.collectNewNotifyMessage);
+			common.on(common.SIDEBAR_TOGGLE_EVENT, this.onSideBarToggle);
 			if(this.doInit){
 				this.doInit(args);
 				this.currentURL=window.location.hash;
@@ -143,7 +148,8 @@ define([
 				$('#content-wrapper').removeClass('no-transition');
 				$('#content-wrapper').removeClass('col-md-12').addClass('col-md-10');
 			}
-
+			$('.modal-dialog').draggable();
+			$(window).on('resize', this.onWindowResize);
 			$('#content-wrapper').css('padding-top','60px');
 			$('#notification-btn').unbind().on('click', this.hideOrDisplaySideBar);
 			/*$('#notification-btn').on('shown.bs.dropdown', function(){
@@ -178,18 +184,29 @@ define([
 				//  $('#sidebar-wrapper').show();
 				$('#content-wrapper').removeClass('no-transition');
 				$('#content-wrapper').removeClass('col-md-12').addClass('col-md-10');
-			}			
+			}	
+			common.fire(common.SIDEBAR_TOGGLE_EVENT,'');
 		},
 		resume: function(args){
 			if(this.doResume){
 				this.doResume(args);
 				this.currentURL=window.location.hash;
 			}
+			$(window).on('resize', this.onWindowResize);
+			common.on(common.SIDEBAR_TOGGLE_EVENT, this.onSideBarToggle);
 			common.on(common.NOFITY_MESSAGE, this.collectNewNotifyMessage);
-			$('#notifyMenu').unbind().on('click', this.hideOrDisplaySideBar);
+			$('#notification-btn').unbind().on('click', this.hideOrDisplaySideBar);
 		},
 		pause: function() {
-			$('#notifyMenu').off('click', this.hideOrDisplaySideBar);
+			$('#notification-btn').off('click', this.hideOrDisplaySideBar);
+			if($('#sidebar-wrapper').is(':visible')){
+				$('#content-wrapper').removeClass('col-md-10').addClass('col-md-12');
+				$.cookie('offcanvas', 'hide');
+				$('#sidebar-wrapper').hide();
+			}
+			common.off(common.SIDEBAR_TOGGLE_EVENT, this.onSideBarToggle);
+			$(window).off('resize', this.onWindowResize);
+			$('#notification-btn').off('click', this.hideOrDisplaySideBar);
 			if(this.doPause){
 				this.doPause();
 			}
@@ -217,6 +234,7 @@ define([
 			}
 		},
 		collectNewNotifyMessage:function(obj){
+			$("#total").remove();
 			var notifyIndicator = $('#notification-btn').find('.dbmgr-notify-icon');
 			if(notifyIndicator.length == 0&& $('#content-wrapper').hasClass('col-md-12') && $('#sidebar-wrapper').is(':hidden')){
 				$('#notification-btn').append('<i class="dbmgr-notify-icon fa fa-exclamation-circle fa-stack-1x" style="color:yellow"></i>');
@@ -251,62 +269,59 @@ define([
 				$.each(common.MESSAGE_LIST, function (index , value){
 					if(obj.url == value.url){
 						common.MESSAGE_LIST.splice(index, 1);
-						common.MESSAGE_COUNT --;
+						/*common.MESSAGE_COUNT --;*/
 					}
 				});
 
 				//Delete the older messages from the UI, by matching the hash string
-				var itemList = $('#notifyMenu>ul.odd');
+				var itemList = $('#notifyMenu>ul.odd>li');
 				if(itemList.length > 0){
 					for(var i=0;i<itemList.length;i++){
-						if($(itemList[i]+">li").attr("hashstr") && $(itemList[i]).attr("hashstr") == hs){
-							$(itemList[i]+">li").remove();
-							if($(itemList[i+1]+">li").hasClass("divider")){
-								$(itemList[i+1]+">li").remove();
+						if($(itemList[i]).attr("hashstr") && $(itemList[i]).attr("hashstr") == hs){
+							$(itemList[i]).remove();
+							if($(itemList[i+1]).hasClass("divider")){
+								$(itemList[i+1]).remove();
 								i++;								
 							}
 						}
 					}
 				}
 			}
-
-			/*$("#notifyMenu").prepend('<li hashstr="'+hs+'"><a class="active"><div class="notifyDetail"><i class="fa '+ alertClass + ' fa-fw"></i><i style="padding-left:2px">'+ obj.shortMsg.substr(0,35)+'</i> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span><button type="button" aria-hidden="true" class="pull-right close" data-notify="dismiss" style="color: black;">Ãƒâ€”</button></div></a></li><li class="divider"></li>');*/
+			var totalCount=common.MESSAGE_LIST.length+1;
+			/*$("#notifyMenu").prepend('<li hashstr="'+hs+'"><a class="active"><div class="notifyDetail"><i class="fa '+ alertClass + ' fa-fw"></i><i style="padding-left:2px">'+ obj.shortMsg.substr(0,35)+'</i> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span><button type="button" aria-hidden="true" class="pull-right close" data-notify="dismiss" style="color: black;">ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã¯Â¿Â½</button></div></a></li><li class="divider"></li>');*/
+			var messgeElem='<ul class="odd" style="padding-left: 30px;margin-bottom:0px;margin-top:6px"><li hashstr="'+hs+'" style="list-style: none">'
+			+ '<div class="notifyDetail">'
+			+ '<i class="fa '+ alertClass + ' fa-fw"></i>'
+			+ '<i style="padding-left: 2px">'+ obj.shortMsg.substr(0,35)+'</i><br/> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span>'
+			+ '<button type="button" aria-hidden="true"'
+			+ 'class="pull-right close" data-notify="dismiss"'
+			+ 'style="color: black;font-size:small;margin-right:10px">x</button>'
+			+ '</div></li></ul>'
+			+ '<ul class="even" style="padding-left: 30px;display:none">'
+			+ '<li style="list-style: none"><a class="active">'
+			+ '<div class="notifyDetail">';
 			if(obj.url!=null){
 				$("#notifyMenu")
-				.prepend(
-						'<ul class="odd" style="padding-left: 30px;margin-bottom:0px;margin-top:6px"><li hashstr="'+hs+'" style="list-style: none">'
-						+ '<div class="notifyDetail">'
-						+ '<i class="fa '+ alertClass + ' fa-fw"></i>'
-						+ '<i style="padding-left: 2px">'+ obj.shortMsg.substr(0,35)+'</i><br/> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span>'
-						+ '<button type="button" aria-hidden="true"'
-						+ 'class="pull-right close" data-notify="dismiss"'
-						+ 'style="color: black;font-size:small;margin-right:10px">x</button>'
-						+ '</div></li></ul>'
-						+ '<ul class="even" style="padding-left: 30px;display:none">'
-						+ '<li style="list-style: none"><a class="active">'
-						+ '<div class="notifyDetail">'
+				.prepend(messgeElem
 						+ '<i style="padding-left: 2px;"><a  href='+ obj.url +' style="color:black;font-size:small">'+obj.msg+'</a></i>'
 						+ '</div></a></li></ul><hr style="margin-top:6px;margin-bottom:0px"/>');							
 			}else{
 				$("#notifyMenu")
-				.prepend(
-						'<ul class="odd" style="padding-left: 30px;margin-bottom:0px;margin-top:6px"><li hashstr="'+hs+'" style="list-style: none">'
-						+ '<div class="notifyDetail">'
-						+ '<i class="fa '+ alertClass + ' fa-fw"></i>'
-						+ '<i style="padding-left: 2px">'+ obj.shortMsg.substr(0,35)+'</i><br/> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span>'
-						+ '<button type="button" aria-hidden="true"'
-						+ 'class="pull-right close" data-notify="dismiss"'
-						+ 'style="color: black;font-size:small;margin-right:10px">x</button>'
-						+ '</div></li></ul>'
-						+ '<ul class="even" style="padding-left: 30px;display:none">'
-						+ '<li hashstr="" style="list-style: none"><a class="active">'
-						+ '<div class="notifyDetail">'
+				.prepend(messgeElem
 						+ '<i style="padding-left: 2px;color:black;font-size:small">'+obj.msg+'</i>'
-						+ '</div></a></li></ul><hr style="margin-top:6px;margin-bottom:0px"/>');	
+						+ '</div></li></ul><hr style="margin-top:6px;margin-bottom:0px"/>');	
 			}
+			$("#notifyMenu").prepend('<ul id="total" class="panel-heading" style="cursor:hand;text-align: center;border: 1px solid #e5e5e5;padding-top: 5px;color: #7b8a8b;">There are '+totalCount+' notifications<a id="deleteAll" style="list-style:none;color: black;" class="pull-right">Delete All</a></ul>');
+			$("#deleteAll").on("click",_this.removeAllNotification);
 			common.MESSAGE_LIST.splice(0,0,{msg:obj.msg,tag:obj.tag,url:obj.url,time:currentTime});
 			$('#notifyMenu>ul.odd').unbind().on("click",_this.openCloseMessage);
-			$(".close").unbind().on("click",__this.removeNotificationMessage);
+			$("#notifyMenu .close").unbind().on("click",__this.removeNotificationMessage);
+		},
+		removeAllNotification:function(){
+			$("#notifyMenu>ul").remove();
+			$("#notifyMenu>hr").remove();
+			$("#notifyMenu").prepend('<ul>No available notifications</ul>');
+			common.MESSAGE_LIST=[];
 		},
 		removeNotificationMessage:function(event,index){
 			var i;
@@ -317,9 +332,19 @@ define([
 				//triggered by the popup x mark waiting for plugin bower download available of onclick function..
 				i=index;
 			}*/
-			$("#notifyMenu>ul").eq((2*i/3)).remove();
-			$("#notifyMenu>ul").eq((2*i/3)).remove();
-			$("hr").eq(i/3).remove();
+			for(var j =0;j<3;j++){
+				$("#notifyMenu").children().eq(i).remove();
+			}
+			common.MESSAGE_LIST.splice((i-1)/3,1);
+			if(common.MESSAGE_LIST.length==0){
+				$("#notifyMenu>ul").remove();
+				$("#notifyMenu>hr").remove();
+				$("#notifyMenu").prepend('<ul>No available notifications</ul>');
+			}else{
+				$("#total").remove();
+				$("#notifyMenu").prepend('<ul id="total" class="panel-heading" style="cursor:hand;text-align: center;border: 1px solid #e5e5e5;padding-top: 5px;color: #7b8a8b;">There are '+common.MESSAGE_LIST.length+' notifications<a id="deleteAll" style="list-style:none;color: black;" class="pull-right">Delete All</a></ul>');
+				$("#deleteAll").on("click",_this.removeAllNotification);
+			}
 			event.stopPropagation();
 		},
 		popupNotificationMessage:function(event,obj){
@@ -372,6 +397,25 @@ define([
 			if(this.doReset){
 				this.doReset();
 			}
+		},
+		onWindowResize: function() {
+			clearTimeout(resizeTimer);
+			resizeTimer = setTimeout(_this.doWindowResize, 300);
+		},
+		doWindowResize: function() {
+			if(_this.handleWindowResize){
+				_this.handleWindowResize();
+			}
+		},
+		onSideBarToggle: function(){
+			clearTimeout(sidebarTimer);
+			sidebarTimer = setTimeout(_this.doSideBarToggle, 500);
+
+		},
+		doSideBarToggle:function(){
+			if(_this.handleSideBarToggle){
+				_this.handleSideBarToggle();
+			}			
 		}
 	});
 

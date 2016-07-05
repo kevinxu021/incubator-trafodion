@@ -242,7 +242,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 				$(LOADING).css('visibility', 'hidden');
 				$(CREATE_BTN).prop('disabled', false);
 				$(CLEAR_BTN).prop('disabled', false);
-				var msgObj={msg: msg,tag:"success",url:null,shortMsg:'Library was ' + msgPrefix + ' successfully.'};
+				var msgObj={msg: msg,tag:"success",url:_this.currentURL,shortMsg:'Library was ' + msgPrefix + ' successfully.'};
 				if(_this.redirectFlag==false){
 					_this.popupNotificationMessage(null,msgObj);
 				}else{
@@ -276,7 +276,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 				}
 			}
 			//alert(errorString);
-			var msgObj={msg:msg,tag:"danger",url:null,shortMsg:msgPrefix};
+			var msgObj={msg:msg,tag:"danger",url:_this.currentURL,shortMsg:msgPrefix};
 			if(_this.redirectFlag==false){
 				_this.popupNotificationMessage(null,msgObj);
 			}else{

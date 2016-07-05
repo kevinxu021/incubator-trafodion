@@ -3428,6 +3428,10 @@ ScanOptimizer::isMdamEnabled() const
   if (isHbaseNativeTable)
     mdamIsEnabled = FALSE;
 
+  // disable MDAM for ORC tables
+  if (idesc->getPrimaryTableDesc()->getNATable()->isORC())
+    mdamIsEnabled = FALSE;
+
   // If the table to be optimized is the base table and has divisioning
   // columns defined on it, no more check is necessary.
   if ( idesc == idesc->getPrimaryTableDesc()->getClusteringIndex() ) {
@@ -3462,6 +3466,12 @@ ScanOptimizer::isMdamEnabled() const
       return TRUE;
     }
 
+    // If the input logical property indicates exactly one, then we
+    // allow MDAM in spite of NJ.
+    NABoolean isInputCardinalityOne = 
+      getContext().getInputLogProp()->isCardinalityEqOne();
+    if (isInputCardinalityOne)
+      return TRUE;
 
     /*
      Right side Scan of a Nested Join will use MDAM disjuncts if and only if

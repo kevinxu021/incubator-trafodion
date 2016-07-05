@@ -48,7 +48,6 @@
             };
         }
 
-        
         internal EsgynDBException(EsgynDBMessage msg, params object[] objs)
         {
             this._errors = new EsgynDBErrorCollection();
@@ -57,7 +56,7 @@
             EsgynDBError error = new EsgynDBError()
             {
                 ErrorCode = 0,
-                Message = (objs != null)?EsgynDBResources.FormatMessage(msg, objs):EsgynDBResources.GetMessage(msg),
+                Message = EsgynDBResources.GetMessage(msg, objs),
                 RowId = -1,
                 State = "00000"
             };

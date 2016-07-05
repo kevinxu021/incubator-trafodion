@@ -231,8 +231,6 @@ public class WorkloadsResource {
 		qDetail.setQueryID(queryID);
 
 		HashMap<String, Object> metrics = new HashMap<String, Object>();
-
-		Session soc = SessionModel.getSession(servletRequest, servletResponse);
 		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_REPO_QUERY_DETAIL),
 				queryID);
 		_LOG.debug(sqlText);
@@ -240,8 +238,6 @@ public class WorkloadsResource {
 		Connection connection = null;
 		PreparedStatement stmt;
 		ResultSet rs;
-
-		String url = ConfigurationResource.getInstance().getJdbcUrl();
 
 		try {
 
@@ -388,7 +384,6 @@ public class WorkloadsResource {
 			@QueryParam("time") String time, @Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
 
-		Session soc = SessionModel.getSession(servletRequest, servletResponse);
 		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_ACTIVE_QUERY_DETAIL_NEW),
 				queryID);
 		_LOG.debug(sqlText);
@@ -403,14 +398,14 @@ public class WorkloadsResource {
 			TabularResult result1 = QueryResource.executeAdminSQLQuery(sqlText);
 			List<String> columnNames = Arrays.asList(result1.columnNames);
 			int vIndex = columnNames.indexOf("VARIABLE_INFO");
-			int tIndex = columnNames.indexOf("TDB_ID");
+			// int tIndex = columnNames.indexOf("TDB_ID");
 			ObjectNode summaryNode = resultObject.putObject("summary");
 			ArrayNode operatorNodes = mapper.createArrayNode();
 			resultObject.set("operators", operatorNodes);
 
 			for (Object[] rowData : result1.resultArray) {
 				Map<String, String> parsedMap = parseVariableInfo((String) rowData[vIndex]);
-				String tdbID = String.valueOf(rowData[tIndex]);
+				// String tdbID = String.valueOf(rowData[tIndex]);
 
 				String statsRowType = (String) parsedMap.get("statsRowType");
 				// parsedMap.remove("statsRowType");
@@ -544,7 +539,6 @@ public class WorkloadsResource {
 	public TabularResult getActiveQueriesFromRMS(@Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
 		try {
-			Session soc = SessionModel.getSession(servletRequest, servletResponse);
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_ACTIVE_QUERIES),
 					" sqlSrc: ", 30);
 			_LOG.debug(queryText);
@@ -568,8 +562,6 @@ public class WorkloadsResource {
 		Session soc = SessionModel.getSession(servletRequest, servletResponse);
 		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.CANCEL_QUERY),
 				JdbcHelper.EncloseInDoubleQuotes(queryID));
-
-		String url = ConfigurationResource.getInstance().getJdbcUrl();
 
 		try {
 			connection = JdbcHelper.getInstance().getConnection(soc.getUsername(), soc.getPassword());

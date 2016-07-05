@@ -429,7 +429,7 @@ define([
 			var keys = result.columnNames;
 
 			if(keys != null && keys.length > 0) {
-				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="alerts-results"></table>';
+				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table nowrap" id="alerts-results"></table>';
 				$(RESULT_CONTAINER).html( sb );
 
 				var aoColumns = [];
@@ -452,15 +452,14 @@ define([
 					"oLanguage": {
 						"sEmptyTable": "No alerts found for selected time range and/or filters."
 					},
-					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					//dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					dom: "<'row'<'col-md-8'lB><'col-md-4'f>>" +"<'row'<'col-md-12'<'datatable-scroll'tr>>><'row'<'col-md-12'ip>>",
 					"bProcessing": true,
 					"bPaginate" : bPaging, 
 					"bAutoWidth": true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "full_numbers",
-					//"scrollY":        "800px",
 					"scrollCollapse": true,
-					//"bJQueryUI": true,
 					stateSave: true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
@@ -496,13 +495,10 @@ define([
 	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
 	                        	   title: 'Alerts' } ,
 	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Alerts' }
-				          ],
-				    fnDrawCallback: function(){
-					        	  //$('#alerts-results td').css("white-space","nowrap");
-					          }
+				          ]
 				});
 
-				$('#alerts-results td').css("white-space","nowrap");
+				//$('#alerts-results td').css("white-space","nowrap");
 			}
 
 		},

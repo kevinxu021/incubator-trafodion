@@ -72,6 +72,7 @@ enum HbaseOptionEnum
     HBASE_DURABILITY                  = 20,   //   "
     HBASE_MEMSTORE_FLUSH_SIZE         = 21,   //   "
     HBASE_SPLIT_POLICY                = 22,   //   "
+    HBASE_ENCRYPTION                  = 23,   //   "
     HBASE_MAX_OPTIONS
   };
 

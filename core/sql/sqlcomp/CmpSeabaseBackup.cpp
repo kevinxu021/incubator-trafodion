@@ -60,7 +60,6 @@ short CmpSeabaseDDL::lockSQL()
   }
   
   ComDiagsArea *tempDiagsArea = CmpCommon::diags();
-  tempDiagsArea->clear();
   
   IpcServer *ssmpServer = ssmpManager->getSsmpServer(
                             cliGlobals->myNodeName(), 
@@ -112,7 +111,6 @@ short CmpSeabaseDDL::unlockSQL()
   }
   
   ComDiagsArea *tempDiagsArea = CmpCommon::diags();
-  tempDiagsArea->clear();
   
   IpcServer *ssmpServer = ssmpManager->getSsmpServer(
                             cliGlobals->myNodeName(), 
@@ -202,10 +200,29 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
 	short rc;
 	Lng32 retcode;
 	
-  if(isSQLLocked())
+	if(isSQLLocked())
 	{
 		*CmpCommon::diags() << DgSqlCode(-CAT_BACKUP_IN_PROGRESS);
         return -1;
+	}
+  
+	ExpHbaseInterface * ehi = allocBRCEHI();
+	if (ehi == NULL)
+	{
+		//Diagnostic already populated.
+		return -1;
+	}
+	
+	//Lock before getting the list of snapshot tables.
+	//This ensures we get a consistent list.
+	rc = lockAll();
+	if(rc != FEOK)
+	{
+		*CmpCommon::diags() << DgSqlCode(-CAT_BACKUP_LOCK_ERROR)
+        << DgInt0(rc);
+        
+		ehi->close();
+		return -1;
 	}
 	
 	//snapshot all trafodion tables
@@ -214,25 +231,18 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
 	
 	char query[1000];
 	Lng32 cliRC;
-	str_sprintf(query, "select catalog_name,schema_name,object_name from %s.\"%s\".%s where object_type in ('BT', 'IX') ",
-				getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_OBJECTS);
+	str_sprintf(query, "select distinct catalog_name,schema_name,object_name from %s.\"%s\".%s where schema_name not like '|_HV|_%%|_' escape '|' and schema_name not like '|_HB|_%%|_' escape '|' and object_type in ('BT', 'IX') ", getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_OBJECTS);
 	  
 	Queue * tableQueue = NULL;
 	cliRC = cliInterface->fetchAllRows(tableQueue, query, 0, FALSE, FALSE, TRUE);
 	if (cliRC < 0)
 	{
 		cliInterface->retrieveSQLDiagnostics(CmpCommon::diags());
+		ehi->close();
 		return -1;
     }
 	
-    
-	ExpHbaseInterface * ehi = allocBRCEHI();
-	if (ehi == NULL)
-    {
-		//Diagnostic already populated.
-        return -1;
-    }
-	
+  
 	char * cat = NULL;
 	char * sch = NULL;
 	char * tbl = NULL;
@@ -243,17 +253,7 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
     HbaseStr hbaseTable;
     TextVec tableList;
     
-    rc = lockAll();
-	if(rc != FEOK)
-	{
-		*CmpCommon::diags() << DgSqlCode(-CAT_BACKUP_LOCK_ERROR)
-        << DgInt0(rc);
-        
-		ehi->close();
-		return -1;
-	}
-	
-	
+  
 	for (Lng32 idx = 0; idx < tableQueue->numEntries(); idx++)
     {
 		OutputInfo * vi = (OutputInfo*)tableQueue->getNext();

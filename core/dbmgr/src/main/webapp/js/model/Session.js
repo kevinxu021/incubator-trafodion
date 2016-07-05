@@ -20,6 +20,7 @@ define([ 'jquery',
 		};
 		var USER = "user";
 		var LOGIN_TIME = "loginTime";
+		var LOCALE="locale";
 		var TOKEN = "token";
 		var HISTORY_LOCATION = "hisLocation";
 		
@@ -76,6 +77,12 @@ define([ 'jquery',
             this.saveLoginTime = function(loginTime) {
                 setCookie(LOGIN_TIME, loginTime);
             };
+            this.saveLocale=function(locale){
+            	setCookie(LOCALE,locale);
+            };
+            this.getLocale=function(){
+            	return getCookie(LOCALE);
+            }
 
             this.getLoginTime = function() {
                 return getCookie(LOGIN_TIME);
