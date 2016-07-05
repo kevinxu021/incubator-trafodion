@@ -35,10 +35,9 @@ import java.util.*;
 
 public class EsgynLocalizeMapping {
 	
-	private static Locale locale;
-
   
-	public static String getLocalizedValue(String key) {
+	public static String getLocalizedValue(String language,String key) {
+		Locale locale=getLocale(language);
       ResourceBundle resource = 
     	         ResourceBundle.getBundle("dbmgrBundle",locale);
       String value  = resource.getString(key);
@@ -46,30 +45,29 @@ public class EsgynLocalizeMapping {
    }
    static public void main(String[] args) {
       
-
-      System.out.println(getLocalizedValue("s2"));
+      System.out.println(getLocalizedValue("zh-CN","s2"));
 
    } 
-   public static Locale getLocale() {
-		return locale;
-	}
-   public static void setLocale(String locale) {
-	   switch (locale) {
+   private static Locale getLocale(String language) {
+	   Locale tmpLocale=null;
+	   switch (language) {
 	case "fr":
-		EsgynLocalizeMapping.locale=Locale.FRANCE;
+		tmpLocale=Locale.FRANCE;
 		break;
 	case "en":
-		EsgynLocalizeMapping.locale=Locale.ENGLISH;
+		tmpLocale=Locale.ENGLISH;
 		break;
 	case "de":
-		EsgynLocalizeMapping.locale=Locale.GERMANY;
+		tmpLocale=Locale.GERMANY;
 		break;
 	case "zh-CN":
-		EsgynLocalizeMapping.locale=Locale.SIMPLIFIED_CHINESE;
+		tmpLocale=Locale.SIMPLIFIED_CHINESE;
 		break;
 	default:
-		EsgynLocalizeMapping.locale=Locale.ENGLISH;
+		tmpLocale=Locale.ENGLISH;
+		break;
 	}
+	   return tmpLocale;
 	}
 
 } 

@@ -8,7 +8,7 @@
 <meta name="description" content="">
 <meta name="author" content="">
 
-<title>EsgynDB Manager</title>
+<title data-localize="dbmgr-title">EsgynDB Manager</title>
 
 <!-- Bootstrap Core CSS -->
 <link href="bower_components/bootswatch/flatly/bootstrap.min.css"
@@ -51,7 +51,7 @@
 			</button>
 			<div style="display: inline-flex">
 				<!--<img id="title-img" src="img/DBMgr_Logo.png" alt="logo"/>-->
-				<a class="navbar-brand dbmgr-title"> EsgynDB Manager</a>
+				<a class="navbar-brand dbmgr-title" data-localize="dbmgr-title"> </a>
 			</div>
 		</div>
 	</nav>
@@ -62,7 +62,7 @@
 					style="margin-bottom: 150px; margin-left: auto; margin-right: auto; margin-top: 30px; width: 400px;">
 					<div class="panel-heading">
 						<header id="title-header">
-							<h1 style="text-align: center; font-size: 24px;">Login</h1>
+							<h1 style="text-align: center; font-size: 24px;" data-localize="login"></h1>
 						</header>
 					</div>
 					<div class="panel-body">
@@ -70,24 +70,24 @@
 							<fieldset>
 								<div class="form-group">
 									<label for="username"><i
-										class="glyphicon glyphicon-user"></i> Username</label> <input
+										class="glyphicon glyphicon-user" data-localize="username"></i> </label> <input
 										name="username" id="username" class="form-control"
 										style="height: 40px; font-size: 18px" autofocus>
 								</div>
 								<div class="form-group">
 									<label for="password"><i
-										class="glyphicon glyphicon-lock"></i> Password</label> <input
+										class="glyphicon glyphicon-lock" data-localize="passwd"></i> </label> <input
 										name="password" id="password" class="form-control"
 										type="password" value="" style="height: 40px; font-size: 18px">
 								</div>
 								<!-- Change this to a button or input when using this as a form -->
 								<button id="loginBtn" class="btn btn-success btn-block"
-									style="font-weight: bold">Login</button>
+									style="font-weight: bold" data-localize="login"></button>
 							</fieldset>
 							<label id="login-error-text"
 								style="color: red; font-weight: 500; display: none"></label>
-							<div id="loadingImg">
-								Authenticating the user... <img src="img/ajax-loader.gif"
+							<div id="loadingImg" data-localize="anthenticating-user">
+								<img src="img/ajax-loader.gif"
 									style="padding-top: 5px;" />
 							</div>
 						</form>
@@ -100,7 +100,7 @@
 		<footer class="footer"
 			style="margin-top: 40px; position: relative; width: 100%; height: 60px;">
 			<div class="container">
-				<a title="EsgynDB Manager" href="/" class="dbmgr-login-footer">EsgynDB
+				<a title="EsgynDB Manager" href="/" class="dbmgr-login-footer" data-localize="dbmgr-title">EsgynDB
 					Manager</a>
 				<p class="text-muted"
 					style="text-align: center; margin: 0 auto -1em;">

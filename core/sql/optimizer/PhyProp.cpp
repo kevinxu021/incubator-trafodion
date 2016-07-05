@@ -1341,3 +1341,8 @@ PushDownCSRequirement::compare(const PushDownRequirement &other) const
   return result;
 }
 
+void ReqdPhysicalProperty::display() const
+{ 
+  print(); 
+}
+

@@ -13090,7 +13090,7 @@ computeDP2CostDataThatDependsOnSPP(
   // -----------------------------------------------------------------------
   dp2CostInfo.setRepeatCountForOperatorsInDP2(
      (myContext.getInputLogProp()->getResultCardinality()).minCsOne());
-
+     
    // check if we are doing updates
   if (scan.getOperator().match(REL_ANY_LEAF_GEN_UPDATE) ||
       scan.getOperator().match(REL_ANY_UNARY_GEN_UPDATE) )
@@ -14744,7 +14744,7 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
         SinglePartitionPartitioningFunction(myNodeMap);
     }
 
- 
+
   if ( !canUseSearchKey ) {
      // create a very simple physical property for now, no sort order
      // and no partitioning key for now

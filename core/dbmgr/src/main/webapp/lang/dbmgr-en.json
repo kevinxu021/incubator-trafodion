@@ -1,3 +1,7 @@
 {
-  "dbmgr-title":Esgyn test!
+  "dbmgr-title":"EsgynDB Manager",
+  "login":"Login",
+  "username":"Username",
+  "passwd":"Password",
+  "anthenticating-user":"Authenticating the user... "
 }

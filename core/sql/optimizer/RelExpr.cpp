@@ -8191,6 +8191,13 @@ NABoolean Scan::isHiveTable() const
 	  FALSE);
 }
 
+NABoolean Scan::isHiveOrcTable() const 
+{
+  return (getTableDesc() && getTableDesc()->getNATable() ?
+	  getTableDesc()->getNATable()->isORC() :
+	  FALSE);
+}
+
 NABoolean Scan::isHbaseTable() const 
 {
   return (getTableDesc() && getTableDesc()->getNATable() ?

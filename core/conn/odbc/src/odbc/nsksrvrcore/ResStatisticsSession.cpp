@@ -614,7 +614,7 @@ void publishAggrStatsToTSDB(std::tr1::shared_ptr<SESSION_AGGREGATION> pAggr_info
 		     default:
 		        break;
 		} //end of switch
-		cc << "\"tags\":{\"host\":\"localhost"  << "\",\"SessionID\":\"" << pAggr_info->m_sessionId.c_str() << "\"}";
+                cc << "\"tags\":{\"host\":\"" << srvrGlobal->HostName << "\",\"SessionID\":\"" << pAggr_info->m_sessionId.c_str() << "\"}";
 		cc << "}]";
 		ccStr = cc.str();
                 tmpString[0]='\0';

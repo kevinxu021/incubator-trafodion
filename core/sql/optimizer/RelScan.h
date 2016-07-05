@@ -371,6 +371,7 @@ public:
   static const Lng32 MAX_NUM_INDEX_JOINS;
 
   NABoolean isHiveTable() const;
+  NABoolean isHiveOrcTable() const;
   NABoolean isHbaseTable() const;
   NABoolean isSeabaseTable() const;
 

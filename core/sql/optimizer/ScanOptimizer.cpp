@@ -1878,6 +1878,11 @@ Histograms::append(const ColStatDescSharedPtr& colStatDesc)
   colStatDescList_.insertDeepCopyAt(entries(), colStatDesc);
 }
 
+void
+Histograms::append(const ColStatDescList& list)
+{
+  colStatDescList_.appendDeepCopy(list, list.entries());
+}
 
 Histograms::~Histograms()
 {
