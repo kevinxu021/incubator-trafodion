@@ -437,7 +437,7 @@ copytoolslibs:
 	# download Hadoop-common distro
 	get_libhdfs_files --verbose
         # C++ ORC Reader
-	-cp -Pf $(ORCCPPREADER)/lib/liborc.so $(LIBROOT)
+	cp -Pf $(ORCCPPREADER)/lib/liborc.so $(LIBROOT)
 
 linuxmklinksdebug linuxmklinksrelease: copytoolslibs
 	(OUTDIR=$(dir $(shell pwd))$(TOPLIBDIR)/$(TARGTYPE)/$(ARCHBITS)/$(FLAVOR);\
