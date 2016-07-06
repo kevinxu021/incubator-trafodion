@@ -137,9 +137,7 @@ endif
 # compiling C++ code.  This rule must appear after the lex and yacc
 # rules above.
 ifdef CPPSRC
-  OBJ_PATHS_TMP = $(patsubst %.cpp,$(TARGOBJDIR)/%.$(OBJSUFFIX),$(CPPSRC))
-  #Accept .cc files as well.
-  OBJ_PATHS += $(patsubst %.cc,$(TARGOBJDIR)/%.$(OBJSUFFIX),$(OBJ_PATHS_TMP))
+  OBJ_PATHS += $(patsubst %.cpp,$(TARGOBJDIR)/%.$(OBJSUFFIX),$(CPPSRC))
   $(foreach srcfile,$(CPPSRC),$(eval $(call CPP_BUILD_template,\
   $(call find_first,$(srcfile),$(SRCPATH)))))
 endif
