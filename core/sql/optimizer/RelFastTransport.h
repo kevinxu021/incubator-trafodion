@@ -221,6 +221,7 @@ public :
   // above those that are produced as Characteristic Outputs.
   // --------------------------------------------------------------------
   virtual void getPotentialOutputValues(ValueIdSet & vs) const;
+  virtual void recomputeOuterReferences();
   virtual void pullUpPreds();
 
   virtual void pushdownCoveredExpr(
