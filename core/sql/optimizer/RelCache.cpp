@@ -1394,6 +1394,20 @@ void FastExtract::generateCacheKey(CacheWA &cwa) const
   cwa += " targName_ ";
   cwa += getTargetName();
 
+  ItemExpr *selList = selectList_.rebuildExprTree();
+  if (selList)
+    {
+      cwa += " selList:";
+      selList->generateCacheKey(cwa);
+    }
+
+  ItemExpr *reqOrd = reqdOrder_.rebuildExprTree();
+  if (reqOrd)
+    {
+      cwa += " reqOrd:";
+      reqOrd->generateCacheKey(cwa);
+    }
+
   cwa += " delim_ ";
   cwa += getDelimiter();
 
