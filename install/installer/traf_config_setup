@@ -241,7 +241,7 @@ node_count=$(echo $NODE_LIST | wc -w)
 
 
 #==============================================
-#Elasticit
+#Elasticity
 echo -n "Enable elasticity (Y/N), default is N: "
 read answer
 if [[ "${answer}" =~ ^[Yy]$ ]]; then
