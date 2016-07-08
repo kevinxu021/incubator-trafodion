@@ -230,7 +230,7 @@ public class MTableClient {
      scan.setSmall(smallScanner);
 
  */         
-     scan.setCaching(numCacheRows);
+     scan.setClientQueueSize(numCacheRows);
      numRowsCached = numCacheRows;
      if (columns != null) {
        numColsInScan = columns.length;
