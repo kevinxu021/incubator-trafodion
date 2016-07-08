@@ -5590,19 +5590,19 @@ Lng32 HSGlobalsClass::CollectStatistics()
     return retcode;
   }
 
-// Do the setup work for IUS, and call either doFullIUS() or doLimitedIUS(),
-// depending on whether the USTAT_INCREMENTAL_UPDATE_STATISTICS cqd is
-// ON or SAMPLE. In the latter case doLimitedIUS() is called to update the
-// persistent sample incrementally, and then the normal Update Stats
-// algorithm executes using the persistent sample table.
+// Do the setup work for IUS, and call either doFullIUS() or prepareToUsePersistentSample(),
+// depending on whether the USTAT_INCREMENTAL_UPDATE_STATISTICS cqd is ON or
+// SAMPLE. In the latter case prepareToUsePersistentSample() is called to update
+// the persistent sample incrementally, and then the normal Update Stats algorithm
+// executes using the persistent sample table.
 //
-// The 'done' parameter is returned with a value of TRUE if stats are
-// completely handled by doFullIUS(). If doLimitedIUS() is called instead,
-// or if doFullIUS() is unable to incrementally update the stats for one
-// or more columns (e.g., shape test failure), 'done' will be set to FALSE.
+// The 'done' parameter is returned with a value of TRUE if stats are  completely
+// handled by doFullIUS(). If prepareToUsePersistentSample() is called instead,
+// or if doFullIUS() is unable to incrementally update the stats for one or more
+// columns (e.g., shape test failure), 'done' will be set to FALSE.
 Lng32 HSGlobalsClass::doIUS(NABoolean& done)
 {
-  done = FALSE;  // set to TRUE if IUS handles all columns
+  done = FALSE;  // set to TRUE if IUS successfully updates the stats for all columns
   Lng32 retcode = 0;
 
   // Make sure the Where clause doesn't contain any constructs we don't allow
@@ -5610,8 +5610,7 @@ Lng32 HSGlobalsClass::doIUS(NABoolean& done)
   retcode = validateIUSWhereClause();
   HSHandleError(retcode);
 
-  char ius_update_history_buffer[129];
-  retcode = begin_IUS_work(ius_update_history_buffer);
+  retcode = begin_IUS_work();
   HSHandleError(retcode);
 
   Int64 currentSampleSize = 0;
@@ -5624,9 +5623,9 @@ Lng32 HSGlobalsClass::doIUS(NABoolean& done)
   if (iusOption == DF_ON)
     return doFullIUS(currentSampleSize, futureSampleSize, done);
   else if (iusOption == DF_SAMPLE)
-    // Leave 'done' FALSE; doLimitedIUS() just updates the persistent sample
+    // Leave 'done' FALSE; prepareToUsePersistentSample() just updates the persistent sample
     // table in preparation for use by RUS.
-    return doLimitedIUS(currentSampleSize);
+    return prepareToUsePersistentSample(currentSampleSize);
   else
     {
       // Exception will be thrown, ~HSGlobalsClass will call end_IUS_work().
@@ -5878,10 +5877,10 @@ Lng32 HSGlobalsClass::doFullIUS(Int64 currentSampleSize,
   return retcode;
 }
 
-// This function incrementally updates the persistent sample table. Stats will
-// subsequently be created from scratch using the updated persistent sample
-// rather than attempting to incrementally update the existing histograms.
-Lng32 HSGlobalsClass::doLimitedIUS(Int64 currentSampleSize)
+// This function makes all preparations for doing RUS using an updated IUS
+// persistent sample table. The sample table is updated, obsolete CBFs discarded,
+// and the correct sampling rate for use with row count upscaling is set.
+Lng32 HSGlobalsClass::prepareToUsePersistentSample(Int64 currentSampleSize)
 {
   Lng32 retcode = 0;
   retcode = UpdateIUSPersistentSampleTable(currentSampleSize, sampleRowCount);
@@ -5977,8 +5976,8 @@ void genArkcmpInfo(NAString& nidpid)
 // CQD(USTAT_IUS_MAX_TRANSACTION_DURATION)), the ongoing transaction is 
 // considered legitimate, and the current call to the method will return an error
 // indicating that a concurrent IUS is in progress.
-// The argument ius_update_history_buffer will be filled with the string 
-// read from the corresponding field UPDATER_INFO.
+// ius_update_history_buffer will be filled with the string read from the
+// UPDATER_INFO column.
 // 
 // When P2-P1 > CQD(USTAT_IUS_MAX_TRANSACTION_DURATION), the on-going transaction is
 // considered over-due and will be discarded. The method proceeds as if there was
@@ -5991,7 +5990,7 @@ void genArkcmpInfo(NAString& nidpid)
 // The CQD USTAT_IUS_MAX_TRANSACTION_DURATION specifies the max transaction
 // duration allowed with the unit in minutes. The default value is 720 minutes (12 hours).
 
-Lng32 HSGlobalsClass::begin_IUS_work(char* ius_update_history_buffer)
+Lng32 HSGlobalsClass::begin_IUS_work()
 {
    sampleIExists_ = FALSE;  // keep track of whether a _I table needs to be dropped
 
@@ -6009,7 +6008,7 @@ Lng32 HSGlobalsClass::begin_IUS_work(char* ius_update_history_buffer)
    HSTranMan *TM = HSTranMan::Instance();
    TM->Begin("READ AND UPDATE THE UPDATE DATE AND HISTORY from PERSISTENT SAMPLE TABLE");
    
-
+   char ius_update_history_buffer[129];
    Lng32 retcode =
      sampleList->readIUSUpdateInfo(objDef, ius_update_history_buffer, &updTimestamp);
    if (retcode == 100)
@@ -11819,7 +11818,8 @@ NAString& HSGlobalsClass::getWherePredicateForIUS()
 
 // Return the following string in the queryText parameter:
 // delete from <smplTable> where <whereCondition>
-void HSGlobalsClass::generateIUSDeleteQuery(NAString& smplTable, NAString& queryText)
+void HSGlobalsClass::generateIUSDeleteQuery(const NAString& smplTable,
+                                            NAString& queryText)
 {
   queryText = "DELETE FROM ";
 
@@ -11843,8 +11843,8 @@ void HSGlobalsClass::generateIUSDeleteQuery(NAString& smplTable, NAString& query
 // the source for the upsert is the source table with the IUS where predicate
 // and sampling rate applied:
 //       (select * from <sourceTable> where <predicate> sample random <sampleRate> percent)
-void HSGlobalsClass::generateIUSSelectInsertQuery(NAString& smplTable,
-                                                  NAString& sourceTable,
+void HSGlobalsClass::generateIUSSelectInsertQuery(const NAString& smplTable,
+                                                  const NAString& sourceTable,
                                                   NAString& queryText)
 {
   queryText.append("UPSERT USING LOAD INTO "); // for algorithm 1

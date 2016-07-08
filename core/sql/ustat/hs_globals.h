@@ -1501,9 +1501,9 @@ public:
                                              NABoolean forceToFetch = TRUE);
     Lng32 updatePersistentSampleTableForIUS(NAString& sampleTableName, double sampleRate,
                                             NAString& targetTableName);
-    void generateIUSDeleteQuery(NAString& smplTable, NAString& queryText);
-    void generateIUSSelectInsertQuery(NAString& smplTable,
-                                      NAString& sourceTable,
+    void generateIUSDeleteQuery(const NAString& smplTable, NAString& queryText);
+    void generateIUSSelectInsertQuery(const NAString& smplTable,
+                                      const NAString& sourceTable,
                                       NAString& queryText);
     void getCBFFilePrefix(NAString& sampleTableName, NAString& filePrefix);
     void detectPersistentCBFsForIUS(NAString& sampleTableName, HSColGroupStruct *group);
@@ -1514,7 +1514,7 @@ public:
 
     void logDiagArea(const char* title);
 
-    Lng32 begin_IUS_work(char* buffer);
+    Lng32 begin_IUS_work();
     Lng32 end_IUS_work();
 
     // Populate the hash table used to determine when a ustat statement has run
@@ -1768,9 +1768,9 @@ private:
     // sample is also incrementally updated.
     Lng32 doFullIUS(Int64 currentSampleSize, Int64 futureSampleSize, NABoolean& done);
 
-    // Collect stats by incrementally updating the persistent sample table, and then
-    // constructing histograms from scratch using the sample.
-    Lng32 doLimitedIUS(Int64 currentSampleSize);
+    // Causes persistent sample table to be incrementally updated, and other
+    // preparatory tasks so RUS can be performed using persistent sample.
+    Lng32 prepareToUsePersistentSample (Int64 currentSampleSize);
 
     // Incrementally update histograms for a selected batch of columns
     Lng32 CollectStatisticsForIUS(Int64 currentSampleSize, Int64 futureSampleSize);
