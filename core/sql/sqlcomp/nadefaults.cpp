@@ -1417,7 +1417,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
  // upper and lower limit (2,10) must be in sync with error values in 
  //ExFastTransport.cpp
   DDkwd__(FAST_EXTRACT_DIAGS,			"OFF"),
-  DDui2_10(FAST_EXTRACT_IO_BUFFERS,             "1"),
+  DDui1_10(FAST_EXTRACT_IO_BUFFERS,             "1"),
   DDui___(FAST_EXTRACT_IO_TIMEOUT_SEC,          "60"),
   DDui___(FAST_EXTRACT_MAX_PARTITIONS,          "64"),
   DDkwd__(FAST_REPLYDATA_MOVE,			"ON"),

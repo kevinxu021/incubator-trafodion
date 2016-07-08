@@ -526,12 +526,14 @@ Lng32 HSSample::create(NAString& tblName, NABoolean unpartitioned, NABoolean isP
            tableOptions = " WITH PARTITIONS";
         // If a transaction is running, the table needs to be created as audited.
         // Otherwise, create table as non-audited.
+        /* TEMPTEMP. Dave need to validate this change.
         if (TM->InTransaction())
           tableOptions += " ATTRIBUTE AUDIT";
         else
           tableOptions += " ATTRIBUTE NO AUDIT";
 
         tableOptions += getTempTablePartitionInfo(unpartitioned, isPersSample);
+        */
 
         ddl  = "CREATE TABLE ";
         ddl += tempTabName;

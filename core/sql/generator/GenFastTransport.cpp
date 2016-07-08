@@ -443,7 +443,11 @@ static short ft_codegen(Generator *generator,
       {
         // regular column
         childDataVids.insert(lmExpr->getValueId());
-        cnvChildDataVids.insert(lmExpr2->getValueId());
+        if (lmExpr2)
+          {
+            lmExpr2->bindNode(generator->getBindWA());
+            cnvChildDataVids.insert(lmExpr2->getValueId());
+          }
 
         // create tuple desc that describes the target hive columns.
         if (naColArray)
