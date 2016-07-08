@@ -176,7 +176,7 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
                      final RpcRetryingCallerFactory rpcCallerFactory,
                      final RpcControllerFactory rpcControllerFactory,
                      final ExecutorService pool) throws IOException {
-       super(tableName, connection, tableConfig, rpcCallerFactory, rpcControllerFactory, pool);
+       super(tableName, connection, pool);
        this.rpcCallerFactory = rpcCallerFactory;
        this.rpcControllerFactory = rpcControllerFactory;
     }
