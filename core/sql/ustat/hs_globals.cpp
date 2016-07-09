@@ -5136,6 +5136,12 @@ Lng32 HSGlobalsClass::CollectStatistics()
         HSHandleError(retcode);
         if (done)
           return retcode;
+
+        // Set sampling parameters to do an RUS corresponding to the existing
+        // persistent sample.
+        useSampling = TRUE;
+        externalSampleTable = TRUE;
+        sampleTblPercent = sampleRateAsPercetageForIUS * 100;  // used for scaling results
       }
 
     NAString internalSortCQDValue = ActiveSchemaDB()->getDefaults().getValue(USTAT_INTERNAL_SORT);
@@ -5623,7 +5629,7 @@ Lng32 HSGlobalsClass::doIUS(NABoolean& done)
   if (iusOption == DF_ON)
     return doFullIUS(currentSampleSize, futureSampleSize, done);
   else if (iusOption == DF_SAMPLE)
-    // Leave 'done' FALSE; prepareToUsePersistentSample() just updates the persistent sample
+    // Leave 'done' FALSE; prepareToUsePersistentSample() updates the persistent sample
     // table in preparation for use by RUS.
     return prepareToUsePersistentSample(currentSampleSize);
   else
@@ -5878,8 +5884,8 @@ Lng32 HSGlobalsClass::doFullIUS(Int64 currentSampleSize,
 }
 
 // This function makes all preparations for doing RUS using an updated IUS
-// persistent sample table. The sample table is updated, obsolete CBFs discarded,
-// and the correct sampling rate for use with row count upscaling is set.
+// persistent sample table. The sample table is updated, and obsolete CBFs
+// are discarded,
 Lng32 HSGlobalsClass::prepareToUsePersistentSample(Int64 currentSampleSize)
 {
   Lng32 retcode = 0;
@@ -5890,10 +5896,6 @@ Lng32 HSGlobalsClass::prepareToUsePersistentSample(Int64 currentSampleSize)
   // completes.
   retcode = deletePersistentCBFsForIUS(*hssample_table, singleGroup, UNPROCESSED);
   HSHandleErrorIUS(retcode);
-
-  // Set the member variable used to scale sample row counts to the sampling rate
-  // used for IUS on this table.
-  sampleTblPercent = sampleRateAsPercetageForIUS * 100;
 
   return retcode;
 }
