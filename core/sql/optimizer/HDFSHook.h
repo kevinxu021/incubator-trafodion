@@ -274,8 +274,8 @@ public:
                 NABoolean doEstimation = TRUE,
                 char recordTerminator = '\n'
                 ); 
-  void populateDirect(HHDFSDiags &diags, hdfsFS fs, hdfsFileInfo *fileInfo, NABoolean readStripeInfo, NABoolean readNumRows, NABoolean needToOpenORCI);
-  void populateJNI(HHDFSDiags &diags, NABoolean readStripeInfo, NABoolean readNumRows, NABoolean needToOpenORCI);
+  void populateWithCplus(HHDFSDiags &diags, hdfsFS fs, hdfsFileInfo *fileInfo, NABoolean readStripeInfo, NABoolean readNumRows, NABoolean needToOpenORCI);
+  void populateWithJNI(HHDFSDiags &diags, NABoolean readStripeInfo, NABoolean readNumRows, NABoolean needToOpenORCI);
 
   // find the block number for the stripe with offset x
   Int64 findBlockForStripe(Int64 x);

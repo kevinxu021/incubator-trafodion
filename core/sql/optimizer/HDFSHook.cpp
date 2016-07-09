@@ -1797,10 +1797,12 @@ THREAD_P Int64 HHDFSORCFileStats::totalAccumulatedStripes_ = 0;
 void HHDFSORCFileStats::print(FILE *ofd)
 {
   fprintf(ofd, ">>>> ORC File:    %s\n", getFileName().data());
+  fprintf(ofd, "---numOfRows_.entries(): %d---\n", numOfRows_.entries());
+  fprintf(ofd, "---offsets_.entries(): %d---\n", offsets_.entries());
+  fprintf(ofd, "---totalBytes_.entries(): %d---\n", totalBytes_.entries());
+  fprintf(ofd, "---numStrips_.entries(): %d---\n", numStripes_);
+  fprintf(ofd, "---totalRows_: %d---\n", totalRows_);
   // per stripe info
-  fprintf(ofd, "---numOfRows: %d---\n", numOfRows_.entries());
-  fprintf(ofd, "---offset: %d---\n", offsets_.entries());
-  fprintf(ofd, "---totalBytes: %d---\n", totalBytes_.entries());
   for(int i = 0; i < numOfRows_.entries(); i++)
   {
       fprintf(ofd, "---strip: %d---\n", i);
@@ -1810,10 +1812,11 @@ void HHDFSORCFileStats::print(FILE *ofd)
   }
   fprintf(ofd, "totalAccumulatedRows: %lu\n", totalAccumulatedRows_);
   fprintf(ofd, "totalAccumulatedTotalSize: %lu\n", totalAccumulatedTotalSize_);
+  fprintf(ofd, "totalAccumulatedStripes: %lu\n", totalAccumulatedStripes_);
   HHDFSStatsBase::print(ofd, "file");
 }
 
-void HHDFSORCFileStats::populateDirect(HHDFSDiags &diags, hdfsFS fs, hdfsFileInfo *fileInfo, NABoolean readStripeInfo, NABoolean readNumRows, NABoolean needToOpenORCI)
+void HHDFSORCFileStats::populateWithCplus(HHDFSDiags &diags, hdfsFS fs, hdfsFileInfo *fileInfo, NABoolean readStripeInfo, NABoolean readNumRows, NABoolean needToOpenORCI)
 {
            //use C++ code to decode ORC stream read from libhdfs.so
            std::unique_ptr<orc::Reader> cppReader (0);
@@ -1867,7 +1870,7 @@ void HHDFSORCFileStats::populateDirect(HHDFSDiags &diags, hdfsFS fs, hdfsFileInf
 	   }
 }
 
-void HHDFSORCFileStats::populateJNI(HHDFSDiags &diags, NABoolean readStripeInfo, NABoolean readNumRows, NABoolean needToOpenORCI)
+void HHDFSORCFileStats::populateWithJNI(HHDFSDiags &diags, NABoolean readStripeInfo, NABoolean readNumRows, NABoolean needToOpenORCI)
 {
    ExpORCinterface* orci = NULL;
    Lng32 rc = 0;
@@ -1980,9 +1983,9 @@ void HHDFSORCFileStats::populate(hdfsFS fs,
    NABoolean needToOpenORCI = (readStripeInfo || readNumRows );
    
    if(CmpCommon::getDefault(ORC_USE_CPP_READER) == DF_OFF)
-     populateJNI(diags, readStripeInfo, readNumRows, needToOpenORCI);
+     populateWithJNI(diags, readStripeInfo, readNumRows, needToOpenORCI);
    else
-     populateDirect(diags, fs, fileInfo, readStripeInfo, readNumRows, needToOpenORCI);
+     populateWithCplus(diags, fs, fileInfo, readStripeInfo, readNumRows, needToOpenORCI);
    //print log for regression test
    NAString logFile = 
         ActiveSchemaDB()->getDefaults().getValue(ORC_HDFS_STATS_LOG_FILE);
