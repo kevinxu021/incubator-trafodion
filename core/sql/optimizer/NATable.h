@@ -502,7 +502,6 @@ public:
   NABoolean isOfflinePartition(const NAString &partitionName) const
   { return !partitionName.isNull() && !containsPartition(partitionName); }
 
-
   // move relevant attributes from etTable to this.
   // Currently, column and key info is moved.
   short updateExtTableAttrs(NATable *etTable);
@@ -752,6 +751,16 @@ public:
   static const char *getNameOfRowInRangeCol()
                                           { return "ROW__NUMBER__IN__RANGE"; }
 
+  void setHiveExtColAttrs( NABoolean value )
+  {  value ? flags_ |= HIVE_EXT_COL_ATTRS : flags_ &= ~HIVE_EXT_COL_ATTRS; }
+  NABoolean hiveExtColAttrs() const
+  {  return (flags_ & HIVE_EXT_COL_ATTRS) != 0; }
+
+  void setHiveExtKeyAttrs( NABoolean value )
+  {  value ? flags_ |= HIVE_EXT_KEY_ATTRS : flags_ &= ~HIVE_EXT_KEY_ATTRS; }
+  NABoolean hiveExtKeyAttrs() const
+  {  return (flags_ & HIVE_EXT_KEY_ATTRS) != 0; }
+ 
   const CheckConstraintList &getCheckConstraints() const
                                                 { return checkConstraints_; }
   const AbstractRIConstraintList &getUniqueConstraints() const
@@ -970,7 +979,9 @@ private:
     IS_EXTERNAL_TABLE         = 0x00080000,
     HAS_EXTERNAL_TABLE        = 0x00100000,
     IS_HISTOGRAM_TABLE        = 0x00200000,
-    HAS_HIVE_EXT_TABLE        = 0x00400000
+    HAS_HIVE_EXT_TABLE        = 0x00400000,
+    HIVE_EXT_COL_ATTRS        = 0x00800000,
+    HIVE_EXT_KEY_ATTRS        = 0x01000000,
   };
     
   UInt32 flags_;

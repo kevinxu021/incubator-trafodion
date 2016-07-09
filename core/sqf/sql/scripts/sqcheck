@@ -33,7 +33,7 @@ function Usage {
     echo 
     echo "Usage: $0 [ -c <cc> | -i <nn> | -d <nn> | -h | -f | -q | -v | -r | -j ]"
     echo 
-    echo "-i <nn>  Number of times the check for Trafodion processes be done (Default $max_checks)"
+    echo "-i <nn>  Number of times the check for Trafodion processes will be done (Default $max_checks)"
     echo "-d <nn>  Duration of sleep (in seconds) between each check  (Default $sleep_duration)"
     echo "-c <cc>  Which component to check: [all | dtm | dcs | rms | rest ] (Default $sqck_component)"
     echo "-f       fast - (it's like running $0 -i 1 -d 0)"
@@ -625,7 +625,7 @@ else
 
         echo -e "DcsMaster\t$cfg_dcsmaster_cnt\t\t$actual_dcsmaster_cnt\t    $down_dcsmaster_cnt"
         echo -e "DcsServer\t$cfg_dcsserver_cnt\t\t$actual_dcsserver_cnt\t    $down_dcsserver_cnt"
-        echo -e "mxosrvr\t\t$cfg_mxo_cnt\t\t$act_mxo_cnt\t    ${act_mxo_down_cnt}"
+        echo -e "mxosrvr\t\t$cfg_mxo_cnt\t\t$act_mxo_cnt\t    ${act_mxo_down_cnt}\n"
         echo -e "RestServer\t$cfg_restserver_cnt\t\t$actual_restserver_cnt\t    $down_restserver_cnt\n"
     elif [[ $sqck_component == "dtm" ]]; then
         echo -e "DTM\t\t$cfg_dtm_cnt\t\t$act_dtm_cnt\t    ${down_dtms[*]}\n"
