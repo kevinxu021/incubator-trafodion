@@ -1501,16 +1501,20 @@ public:
                                              NABoolean forceToFetch = TRUE);
     Lng32 updatePersistentSampleTableForIUS(NAString& sampleTableName, double sampleRate,
                                             NAString& targetTableName);
+    void generateIUSDeleteQuery(const NAString& smplTable, NAString& queryText);
+    void generateIUSSelectInsertQuery(const NAString& smplTable,
+                                      const NAString& sourceTable,
+                                      NAString& queryText);
     void getCBFFilePrefix(NAString& sampleTableName, NAString& filePrefix);
     void detectPersistentCBFsForIUS(NAString& sampleTableName, HSColGroupStruct *group);
-    Lng32 UpdateIUSPersistentSampleTable();
+    Lng32 UpdateIUSPersistentSampleTable(Int64 oldSampleSize, Int64& newSampleSize);
     Lng32 readCBFsIntoMemForIUS(NAString& sampleTableName, HSColGroupStruct* group);
     Lng32 writeCBFstoDiskForIUS(NAString& sampleTableName, HSColGroupStruct* group);
     Lng32 deletePersistentCBFsForIUS(NAString& sampleTableName, HSColGroupStruct* group, SortState stateToDelete);
 
     void logDiagArea(const char* title);
 
-    Lng32 begin_IUS_work(char* buffer);
+    Lng32 begin_IUS_work();
     Lng32 end_IUS_work();
 
     // Populate the hash table used to determine when a ustat statement has run
@@ -1758,6 +1762,17 @@ private:
 
     // Collect statistics by incrementally updating persistent sample table and
     // possibly histograms as well.
+    Lng32 doIUS(NABoolean& done);
+
+    // Collect stats by incrementally updating histograms where possible. Persistent
+    // sample is also incrementally updated.
+    Lng32 doFullIUS(Int64 currentSampleSize, Int64 futureSampleSize, NABoolean& done);
+
+    // Causes persistent sample table to be incrementally updated, and other
+    // preparatory tasks so RUS can be performed using persistent sample.
+    Lng32 prepareToUsePersistentSample (Int64 currentSampleSize);
+
+    // Incrementally update histograms for a selected batch of columns
     Lng32 CollectStatisticsForIUS(Int64 currentSampleSize, Int64 futureSampleSize);
 
     //
@@ -2492,11 +2507,6 @@ class HSInMemoryTable : public NABasicObject
 
     void generateSelectDQuery(NAString& smplTable, NAString& queryTex);
     void generateSelectIQuery(NAString& smplTable, NAString& queryText);
-
-    void generateDeleteQuery(NAString& smplTable, NAString& queryText);
-
-    void generateSelectInsertQuery(NAString& smplTable, NAString& sourceTable,
-                                   NAString& queryText);
 
 
     // method for algorithm 1
