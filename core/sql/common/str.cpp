@@ -1710,7 +1710,7 @@ void printBrief(char* dataPointer, Lng32 keyLen)
         }
       }
     }    
-  cout << local;
+  cout << local << endl;
   // cout << *(Lng32 *)dataPointer;
   // End test change
 }
