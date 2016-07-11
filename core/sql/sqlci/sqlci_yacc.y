@@ -514,6 +514,7 @@ static char * FCString (const char *idString, int isFC)
 %token SET_TRANSACTIONtoken
 %token TERMINAL_CHARSET
 %token TRANSFORM
+%token TRUNCATE
 %token UNLOCK
 %token UPD_STATS
 %token UPD_HIST_STATS
@@ -2246,6 +2247,7 @@ dml_type :
 	|	MVLOG			{$$ = DML_CONTROL_TYPE;} 
 	|	DUP			{$$ = DML_DDL_TYPE;}
 	|	PURGEDATA		{$$ = DML_DDL_TYPE;}
+	|	TRUNCATE		{$$ = DML_DDL_TYPE;}
 	|	POPULATE		{$$ = DML_DDL_TYPE;}
         |       VALIDATEtoken           {$$ = DML_DDL_TYPE;}
 	|	RECOVER 		{$$ = DML_DDL_TYPE;}

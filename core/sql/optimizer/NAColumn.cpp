@@ -68,6 +68,7 @@ NABoolean NAColumn::operator==(const NAColumn& other) const
 	  (*getType() == *other.getType()));
 }
 
+
 NABoolean NAColumn::operator==(const NAString& otherColName) const
 {
   return (getColName() == otherColName);
@@ -219,7 +220,42 @@ NABoolean NAColumn::createNAType(columns_desc_struct *column_desc	/*IN*/,
       SQLBPInt(column_desc->precision, column_desc->null_flag, FALSE, heap);
       break;
 
-    case REC_BIN16_SIGNED:
+    case REC_BIN8_SIGNED:
+      if (column_desc->precision > 0)
+	type = new (heap)
+	SQLNumeric(column_desc->length,
+		   column_desc->precision,
+		   column_desc->scale,
+		   TRUE,
+		   column_desc->null_flag,
+                   heap
+		   );
+      else
+	type = new (heap)
+	SQLTiny(TRUE,
+		 column_desc->null_flag,
+                 heap
+		 );
+      break;
+    case REC_BIN8_UNSIGNED:
+      if (column_desc->precision > 0)
+	type = new (heap)
+	SQLNumeric(column_desc->length,
+		   column_desc->precision,
+		   column_desc->scale,
+		   FALSE,
+		   column_desc->null_flag,
+                   heap
+		   );
+      else
+	type = new (heap)
+	SQLTiny(FALSE,
+		 column_desc->null_flag,
+                 heap
+		 );
+      break;
+
+   case REC_BIN16_SIGNED:
       if (column_desc->precision > 0)
 	type = new (heap)
 	SQLNumeric(column_desc->length,
@@ -253,6 +289,7 @@ NABoolean NAColumn::createNAType(columns_desc_struct *column_desc	/*IN*/,
                  heap
 		 );
       break;
+
     case REC_BIN32_SIGNED:
       if (column_desc->precision > 0)
 	type = new (heap)
@@ -341,16 +378,6 @@ NABoolean NAColumn::createNAType(columns_desc_struct *column_desc	/*IN*/,
 		  column_desc->null_flag,
 		  heap
 		  );
-      break;
-
-    case REC_TDM_FLOAT32:
-      type = new (heap)
-	SQLRealTdm(column_desc->null_flag, heap, column_desc->precision);
-      break;
-
-    case REC_TDM_FLOAT64:
-      type = new (heap)
-	SQLDoublePrecisionTdm(column_desc->null_flag, heap, column_desc->precision);
       break;
 
     case REC_FLOAT32:
@@ -506,7 +533,7 @@ NABoolean NAColumn::createNAType(columns_desc_struct *column_desc	/*IN*/,
 
       }
       break;
-case REC_BLOB :
+    case REC_BLOB :
       type = new (heap)
 	SQLBlob(column_desc->precision, Lob_Invalid_Storage,
 		column_desc->null_flag);
@@ -856,7 +883,8 @@ Int32 NAColumnArray::getTotalStorageSize() const
   Int32 total = 0;
   for (CollIndex i=0;i<entries();i++)
     {
-       total += at(i)->getType()->getNominalSize();
+       if (!at(i)->isHiveVirtualColumn())
+          total += at(i)->getType()->getNominalSize();
     }
 
   return total;
@@ -867,9 +895,11 @@ Int32 NAColumnArray::getTotalStorageSizeForNonChars() const
   Int32 total = 0;
   for (CollIndex i=0;i<entries();i++)
     {
-       const NAType * type = at(i)->getType();
-       if (type->getTypeQualifier() != NA_CHARACTER_TYPE)
-         total += type->getNominalSize();
+       if (!at(i)->isHiveVirtualColumn()) {
+          const NAType * type = at(i)->getType();
+          if (type->getTypeQualifier() != NA_CHARACTER_TYPE)
+            total += type->getNominalSize();
+       }
     }
 
   return total;

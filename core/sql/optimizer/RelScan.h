@@ -371,6 +371,7 @@ public:
   static const Lng32 MAX_NUM_INDEX_JOINS;
 
   NABoolean isHiveTable() const;
+  NABoolean isHiveOrcTable() const;
   NABoolean isHbaseTable() const;
   NABoolean isSeabaseTable() const;
 
@@ -1050,6 +1051,10 @@ public:
 
   void convertBeginKeyKeyToPredicatesForORC(ValueIdSet& preds, CollHeap* heap);
   void convertKeyToPredicate(ValueIdList& key, OperatorTypeEnum op, ValueIdSet& preds, CollHeap* heap);
+
+  // Compute the total width of all columns in this scan that involve in 
+  // the executor predicates
+  Lng32 getTotalColumnWidthForExecPreds() const;
 
 private:
 

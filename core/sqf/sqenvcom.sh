@@ -813,6 +813,11 @@ if [ -z $ICU ]; then
   export ICU="${TOOLSDIR}/icu4c_4.4"
 fi
 
+if [ -z $ORCCPPREADER ]; then
+  export ORCCPPREADER="${TOOLSDIR}/orc-cpp-reader"
+fi
+
+
 #######################
 # Developer Local over-rides  (see sqf/LocalSettingsTemplate.sh)
 # Cannot rely on this, the connectivity build overwrites the .trafodion file
@@ -982,7 +987,4 @@ if [[ "$SQ_VERBOSE" == "1" ]]; then
   echo $CLASSPATH | sed -e's/:/ /g' | fmt -w2 | xargs printf '\t%s\n'
   echo
 fi
-
-export DCS_INSTALL_DIR=/opt/trafodion/0525/dcs-2.2.0
-export REST_INSTALL_DIR=/opt/trafodion/0525/rest-2.2.0
 

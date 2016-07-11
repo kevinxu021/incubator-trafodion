@@ -117,14 +117,14 @@ inline const  NAString &StmtDDLAlterLibrary::getClientFilename() const
 }
 
 inline QualifiedName &
-StmtDDLAlterLibrary::getLibraryNameAsQualifiedName()
-{
-  return libraryName_;
-}
-
-inline const QualifiedName &
-StmtDDLAlterLibrary::getLibraryNameAsQualifiedName() const
-{
-  return libraryName_;
-}
+ StmtDDLAlterLibrary::getLibraryNameAsQualifiedName()
+ {
+   return libraryName_;
+ }
+ 
+ inline const QualifiedName &
+ StmtDDLAlterLibrary::getLibraryNameAsQualifiedName() const
+ {
+   return libraryName_;
+ }
 #endif  // STMTDDLALTERLIBRARY

@@ -137,6 +137,7 @@ class ElemDDLLikeOptWithoutConstraints;
 class ElemDDLLikeOptWithHeadings;
 class ElemDDLLikeOptWithHorizontalPartitions;
 class ElemDDLLikeOptWithoutSalt;
+class ElemDDLLikeSaltClause;
 class ElemDDLLikeOptWithoutDivision;
 class ElemDDLList;
 class ElemDDLLocation;
@@ -460,6 +461,7 @@ public:
   virtual ElemDDLLikeOptWithHeadings    * castToElemDDLLikeOptWithHeadings();
   virtual ElemDDLLikeOptWithHorizontalPartitions    * castToElemDDLLikeOptWithHorizontalPartitions();
   virtual ElemDDLLikeOptWithoutSalt     * castToElemDDLLikeOptWithoutSalt();
+  virtual ElemDDLLikeSaltClause         * castToElemDDLLikeSaltClause();
   virtual ElemDDLLikeOptWithoutDivision * castToElemDDLLikeOptWithoutDivision();
   virtual ElemDDLList                   * castToElemDDLList();
   virtual ElemDDLLocation               * castToElemDDLLocation();

@@ -252,6 +252,11 @@ private:
   Cost* scmComputeCostVectorsForHbase();
   Cost* scmComputeCostVectorsMultiProbesForHbase();
 
+  // Compute cost for ORC tables, single or multiple probes, 
+  // based on an approximation of how the ORC reader works internally.
+  Cost* scmComputeCostVectorsForORC();
+  Cost* scmComputeCostVectorsMultiProbesForORC();
+
   // Compute the sequential KBytes accessed to produce the first and
   // last rows. 
   //

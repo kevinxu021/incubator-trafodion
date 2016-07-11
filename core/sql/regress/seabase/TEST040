@@ -19,90 +19,97 @@
 --
 -- @@@ END COPYRIGHT @@@
 --
--- Tests for Monarch/Ampool storage 
+-- test for CREATE TABLE LIKE
 --
-
-create schema if not exists test040_sch;
-set schema test040_sch;
-set parserflags 1;
-
-obey TEST040(clean_up);
-
 log LOG040 clear;
-obey TEST040(creates);
-obey TEST040(inserts);
-obey TEST040(selects);
 
-obey TEST040(drop_index);
-obey TEST040(deletes_1);
-obey TEST040(selects_base_table);
-obey TEST040(deletes_all);
-obey TEST040(selects_base_table);
+?section set_up
 
-obey TEST040(create_index);
-obey TEST040(inserts);
-obey TEST040(deletes_1);
-obey TEST040(selects_all);
-obey TEST040(deletes_all);
-obey TEST040(selects_all);
+-- set-up
 
---obey TEST040(clean_up);
+drop schema if exists t040sch cascade;
+
+create schema t040sch;
+
+set schema t040sch;
+
+create table t040salt(a int not null, b int not null, c int, primary key (a,b))
+ salt using 4 partitions;
+
+showddl t040salt;
+
+create table t040nosalt(a int not null, b int not null, c int, primary key (a,b));
+
+showddl t040nosalt;
+
+?section positive_tests
+
+-- positive tests
+
+create table t040salt1 like t040salt without salt;
+
+showddl t040salt1;
+
+create table t040salt5 like t040salt salt using 5 partitions;
+
+showddl t040salt5;
+
+create table t040salt6 like t040salt salt using 6 partitions on (a);
+
+showddl t040salt6;
+
+create table t040salt7 like t040salt salt using 7 partitions on (b);
+
+showddl t040salt7;
+
+create table t040salt8 like t040salt salt using 8 partitions on (a,b);
+
+showddl t040salt8;
+
+create table t040nosalt1 like t040nosalt without salt;
+
+showddl t040nosalt1;
+
+create table t040nosalt4 like t040nosalt salt using 4 partitions;
+
+showddl t040nosalt4;
+
+create table t040saltsame like t040salt;
+
+showddl t040saltsame;
+
+create table t040nosaltsame like t040nosalt;
+
+showddl t040nosaltsame;
+
+?section negative_tests
+
+-- negative tests
+
+-- non-key column, should fail
+create table t040saltbad1 like t040salt salt using 5 partitions on (c);
+
+-- non-existent column, should fail
+create table t040saltbad2 like t040salt salt using 5 partitions on (d);
+
+-- should fail with error 3154
+create table t040saltbad3 like t040salt without salt salt using 4 partitions;
+
+-- should fail, duplicate clauses
+create table t040saltbad4 like t040salt without salt without salt;
+
+-- and now an extravaganza of errors
+create table t040saltbad5 like t040salt salt using 4 partitions without salt salt using 7 partitions;
+
+-- syntax error; clause not supported with LIKE
+create table t040saltbad6 like t040salt store by (b);
+
 log;
 
-exit;
-
 ?section clean_up
-drop table if exists t040t1 cascade;
 
-?section drop_index
-drop index t040t1i1;
+-- clean up
 
-?section create_index
-create index t040t1i1 on t040t1 (b);
-
-?section creates
-create table t040t1 (a int not null primary key, b int)
-  attribute storage monarch;
-invoke t040t1;
-create index t040t1i1 on t040t1 (b);
-invoke t040t1;
-
-?section inserts
-explain options 'f' insert into t040t1 values (1,2);
-insert into t040t1 values (1,2);
-explain options 'f' upsert into t040t1 values (3,4);
-upsert into t040t1 values (3,4);
-upsert into t040t1 values (5,6), (7,8);
-
-?section selects
-control query shape scan(path 'T040T1');
-explain options 'f' select * from t040t1;
-select * from t040t1;
-control query shape cut;
-explain options 'f' select * from table(index_table t040t1i1);
-select * from table(index_table t040t1i1);
-explain options 'f' select * from t040t1 where a = 1;
-select * from t040t1 where a = 1;
-select * from t040t1 where a = 0;
-
-?section selects_base_table
-control query shape scan(path 'T040T1');
-select * from t040t1;
-control query shape cut;
-
-?section selects_all
-control query shape scan(path 'T040T1');
-select * from t040t1;
-control query shape cut;
-select * from table(index_table t040t1i1);
-
-?section deletes_1
-explain options 'f' delete from t040t1 where a = 1;
-delete from t040t1 where a = 1;
-
-?section deletes_all
-explain options 'f' delete from t040t1;
-delete from t040t1;
-
+drop schema if exists t040sch cascade;
 
 

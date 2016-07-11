@@ -1,4 +1,7 @@
 {
-  "ENTER_VALID_STARTTIME" : "Please enter a valid start time",
-  "ENTER_VALID_ENDTIME": "Please enter a valid end time"
+  "dbmgr-title":"EsgynDB Manager",
+  "login":"Login",
+  "username":"Username",
+  "passwd":"Password",
+  "anthenticating-user":"Authenticating the user... "
 }

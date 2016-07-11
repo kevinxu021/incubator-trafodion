@@ -130,6 +130,7 @@ public:
                                            totalRows_(-1),
                                            totalStringLengths_(0),
                                            totalSize_(0),
+                                           numStripes_(0),
                                            modificationTS_(0),
                                            sampledBytes_(0),
                                            sampledRows_(0),
@@ -143,6 +144,7 @@ public:
   Int64 getNumBlocks() const { return numBlocks_; }
   Int64 getTotalRows() const { return totalRows_; }
   Int64 getTotalStringLengths() { return totalStringLengths_; }
+  Int64 getNumStripes() const { return numStripes_; }
   Int64 getSampledBytes() const { return sampledBytes_; }
   Int64 getSampledRows() const { return sampledRows_; }
   time_t getModificationTS() const { return modificationTS_; }
@@ -159,6 +161,7 @@ protected:
   Int64 numBlocks_;
   Int64 numFiles_;
   Int64 totalRows_;  // for ORC files
+  Int64 numStripes_;  // for ORC files
   Int64 totalStringLengths_;  // for ORC files
   Int64 totalSize_;
   time_t modificationTS_; // last modification time of this object (file, partition/directory, bucket or table)
@@ -192,7 +195,7 @@ public:
                         { return blockHosts_[replicate*numBlocks_+blockNum]; }
   const ComCompressionInfo &getCompressionInfo() const
                                                   { return compressionInfo_; }
-  void print(FILE *ofd);
+  virtual void print(FILE *ofd);
 
   // Assign all blocks in this to ESPs, considering locality
   // return: total # of bytes assigned for the hive file
@@ -271,6 +274,8 @@ public:
                 NABoolean doEstimation = TRUE,
                 char recordTerminator = '\n'
                 ); 
+  void populateWithCplus(HHDFSDiags &diags, hdfsFS fs, hdfsFileInfo *fileInfo, NABoolean readStripeInfo, NABoolean readNumRows, NABoolean needToOpenORCI);
+  void populateWithJNI(HHDFSDiags &diags, NABoolean readStripeInfo, NABoolean readNumRows, NABoolean needToOpenORCI);
 
   // find the block number for the stripe with offset x
   Int64 findBlockForStripe(Int64 x);
@@ -278,8 +283,13 @@ public:
   virtual OsimHHDFSStatsBase* osimSnapShot();
 
   static void resetTotalAccumulatedRows() 
-   { totalAccumulatedRows_ = 0; totalAccumulatedTotalSize_ = 0; }
+   { 
+      totalAccumulatedRows_ = 0;
+      totalAccumulatedTotalSize_ = 0;
+      totalAccumulatedStripes_ = 0;
+   }
 
+  void print(FILE *ofd);
 protected:
   // Assign all stripes in this to ESPs, considering locality
   Int64 assignToESPs(Int64 *espDistribution,
@@ -308,6 +318,7 @@ protected:
 
   static THREAD_P Int64 totalAccumulatedRows_;
   static THREAD_P Int64 totalAccumulatedTotalSize_;
+  static THREAD_P Int64 totalAccumulatedStripes_;
 };
 
 class HHDFSBucketStats : public HHDFSStatsBase

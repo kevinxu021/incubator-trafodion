@@ -205,6 +205,7 @@ OTHER_INCLUDES := -include "$(MY_SQROOT)/inc/seaquest/sqtypes.h" \
 	-I$(LLVM_INC_ROOT) \
 	-I$(LLVM_INC_ROOT2) \
 	-I$(UDIS86_INC_ROOT) \
+	-I$(ORCCPPREADER)/include \
 	-I$(MY_SQROOT)/../dbsecurity/auth/inc \
 	-I$(MY_SQROOT)/commonLogger
 
@@ -435,6 +436,8 @@ copytoolslibs:
 	-cp -Pf $(HADOOP_BLD_INC)/hdfs.h $(MY_SQROOT)/export/include
 	# download Hadoop-common distro
 	get_libhdfs_files --verbose
+        # C++ ORC Reader
+	cp -Pf $(ORCCPPREADER)/lib/liborc.so $(LIBROOT)
 
 linuxmklinksdebug linuxmklinksrelease: copytoolslibs
 	(OUTDIR=$(dir $(shell pwd))$(TOPLIBDIR)/$(TARGTYPE)/$(ARCHBITS)/$(FLAVOR);\

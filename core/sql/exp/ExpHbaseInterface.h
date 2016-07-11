@@ -66,7 +66,6 @@ class ExHbaseAccessStats;
 Int64 getTransactionIDFromContext();
 Int32 checkAndWaitSnapshotInProgress();
 
-// ===========================================================================
 class ExpHbaseInterface : public NABasicObject
 {
  public:

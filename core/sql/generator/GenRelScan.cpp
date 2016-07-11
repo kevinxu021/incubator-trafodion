@@ -1114,6 +1114,7 @@ short FileScan::codeGenForHive(Generator * generator)
   //   by making sure that the output ValueIds created during
   //   binding refer to the outputs of the move expression
   ValueIdList origExprVids;
+
   NABoolean longVC = FALSE;
   for (int ii = 0; ii < (int)allHdfsVals.entries();ii++)
   {
@@ -1157,17 +1158,17 @@ short FileScan::codeGenForHive(Generator * generator)
       longVC = TRUE;
   } // for (ii = 0; ii < allHdfsVals; ii++)
     
-  // use CIF if there are long varchars (> 1K length) and CIF has not
-  // been explicitly turned off.
-  if (longVC && (CmpCommon::getDefault(COMPRESSED_INTERNAL_FORMAT) != DF_OFF))
-    generator->setCompressedInternalFormat();
-
   UInt32 hiveScanMode = CmpCommon::getDefaultLong(HIVE_SCAN_SPECIAL_MODE);
   //enhance pCode to handle this mode in the future
   //this is for JIRA 1920
   if((hiveScanMode & 2 ) > 0)   //if HIVE_SCAN_SPECIAL_MODE is 2, disable pCode
     exp_gen->setPCodeMode(ex_expr::PCODE_NONE);
 
+  // use CIF if there are long varchars (> 1K length) and CIF has not
+  // been explicitly turned off.
+  if (longVC && (CmpCommon::getDefault(COMPRESSED_INTERNAL_FORMAT) != DF_OFF))
+    generator->setCompressedInternalFormat();
+ 
   // Add ascii columns to the MapTable. After this call the MapTable
   // has ascii values in the work ATP at index asciiTuppIndex.
   exp_gen->processValIdList(

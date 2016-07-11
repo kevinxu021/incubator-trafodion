@@ -696,9 +696,18 @@ CostMethodDP2Scan::scmComputeOperatorCostInternal(RelExpr* op,
 Cost *
 SimpleFileScanOptimizer::scmComputeCostVectors()
 {
+      
+  //NAString tname((getIndexDesc()->getPrimaryTableDesc()->getNATable()->getTableName()).getQualifiedNameAsAnsiString());
+  //cout << "SimpleFileScanOptimizer::scmComputeCostVectors() called, for " << tname.data() << endl;
+
   // if the table is Hbase, then call scmComputeCostVectorsForHbase()
   if (getIndexDesc()->getPrimaryTableDesc()->getNATable()->isHbaseTable())
     return scmComputeCostVectorsForHbase();
+
+  if ( getIndexDesc()->getPrimaryTableDesc()->getNATable()->isORC() &&
+       CmpCommon::getDefault(NCM_ORC_COSTING) == DF_ON ) {
+     return scmComputeCostVectorsForORC();
+  } 
 
   const LogPhysPartitioningFunction *logPhysPartFunc =
     getContext().getPlan()->getPhysicalProperty()->getPartitioningFunction()->
@@ -753,6 +762,137 @@ SimpleFileScanOptimizer::scmComputeCostVectors()
   return scanCost;
 } // scmComputeCostVectors
 
+Cost *
+SimpleFileScanOptimizer::scmComputeCostVectorsForORC()
+{
+  const LogPhysPartitioningFunction *logPhysPartFunc =
+    getContext().getPlan()->getPhysicalProperty()->getPartitioningFunction()->
+    castToLogPhysPartitioningFunction();
+
+  NABoolean syncAccess = FALSE; 
+  CostScalar numActivePartitions;
+  CostScalar tuplesProcessed, tuplesProduced, tuplesSent = csZero;
+
+  numActivePartitions = getEstNumActivePartitionsAtRuntime();
+  if (logPhysPartFunc != NULL)
+    syncAccess = logPhysPartFunc->getSynchronousAccess(); 
+
+  if (syncAccess)
+  {
+    tuplesProcessed = getSingleSubsetSize();
+    tuplesProduced = getResultSetCardinality();
+  }
+  else
+  {
+    tuplesProcessed = (getSingleSubsetSize()/numActivePartitions).getCeiling();
+    tuplesProduced = getResultSetCardinalityPerScan();
+  }
+
+  setProbes(1);
+  setTuplesProcessed(tuplesProcessed);
+  setEstRowsAccessed(getSingleSubsetSize());
+
+  //
+  // Estimate the amount of the data to be scanned. 
+  //
+  //   f = (involvedColSize / rowSize) * totalFileSize * skipRatio
+  //   skipRatio = tuplesProduced / tuplesProcessed
+  //
+  // This estimation does not consider the following factors:
+  //    the read of the ORC file postscript
+  //    the read of the ORF file footer
+  //    the read of the footer for each stripe
+  //    the use of stripe index to skip row groups
+  //    the use of stripe column stats to skip stripes
+  //
+  CostScalar involvedColSize = getFileScan().getTotalColumnWidthForExecPreds();
+
+  CostScalar rowSize = recordSizeInKb_ * csOneKiloBytes;
+
+  const HHDFSTableStats* hdfsStats = 
+             getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
+
+  CMPASSERT(hdfsStats);
+
+  CostScalar totalFileSizeOriginal = hdfsStats->getTotalSize();
+  CostScalar totalFileSize = totalFileSizeOriginal;
+
+  if (!syncAccess)
+    totalFileSize /= numActivePartitions;
+
+  CostScalar skipRatio = 1;
+
+  if ( CmpCommon::getDefault(NCM_ORC_COSTING_APPLY_SKIP_RATIO) == DF_ON )
+    skipRatio = tuplesProduced / MAXOF(tuplesProcessed, 1.0);
+  
+  CostScalar dataScanned = 
+           totalFileSize * skipRatio * (involvedColSize/rowSize);
+
+  CostScalar blockSize = getIndexDesc()->getNAFileSet()->getBlockSize();
+  
+  CostScalar numBlocks = (dataScanned / blockSize).getCeiling();
+
+  Lng32 seqIOWeight = ActiveSchemaDB()->getDefaults().getAsDouble(NCM_SEQ_IO_WEIGHT);
+     
+  CostScalar numBlocksScaleFactor(1.0);
+
+  // Redefine numBlocks in seqIOWeight units
+  if ( blockSize > seqIOWeight ) {
+     numBlocksScaleFactor = blockSize / seqIOWeight;
+     numBlocks *= numBlocksScaleFactor;
+  }
+
+  if ( CmpCommon::getDefault(NCM_ORC_COSTING_DEBUG) == DF_ON  &&
+       getIndexDesc()->getPrimaryTableDesc()->getNATable()->isORC() )
+    {
+      NAString tname((getIndexDesc()->getPrimaryTableDesc()->getNATable()->getTableName()).getQualifiedNameAsAnsiString());
+       printf("Single-subset cost for %s:\n", tname.data());
+       printf("tuple processed=%f \n", tuplesProcessed.getValue());
+       printf("tuple produced=%f \n", tuplesProduced.getValue());
+       printf("totalFileSizeOriginal=%f\n", totalFileSizeOriginal.getValue());
+       printf("totalFileSize=%f\n", totalFileSize.getValue());
+       printf("dataScanned=%f\n", dataScanned.getValue());
+       printf("involvedColSize=%f\n", involvedColSize.getValue());
+       printf("recordLength=%f\n", rowSize.getValue());
+       printf("blockSize=%f\n", blockSize.getValue());
+       printf("blocks scale factor=%f\n", numBlocksScaleFactor.getValue());
+       printf("numBlocks=%f\n", numBlocks.getValue());
+       printf("numActivePartitions=%d\n", getEstNumActivePartitionsAtRuntime());
+    }
+
+
+  setNumberOfBlocksToReadPerAccess(numBlocks);
+
+  // Factor in row sizes.
+  CostScalar rowSizeFactor = scmRowSizeFactor(rowSize);
+  CostScalar outputRowSize = getRelExpr().getGroupAttr()->getRecordLength();
+  CostScalar outputRowSizeFactor = scmRowSizeFactor(outputRowSize);
+  tuplesProcessed *= rowSizeFactor;
+  tuplesProduced *= outputRowSizeFactor;
+
+  /*
+  CostScalar seqIORowSizeFactor = scmRowSizeFactor(rowSize, SEQ_IO_ROWSIZE_FACTOR);
+  numBlocks *= seqIORowSizeFactor;
+  */
+
+  // fix Bugzilla #1110.
+  setEstRowsAccessed(getSingleSubsetSize());
+
+  Cost* scanCost = 
+    scmCost(tuplesProcessed, tuplesProduced, csZero, csZero, numBlocks, csOne,
+	    rowSize, csZero, outputRowSize, csZero);
+
+  if ( CmpCommon::getDefault(NCM_ORC_COSTING_DEBUG) == DF_ON  &&
+       getIndexDesc()->getPrimaryTableDesc()->getNATable()->isORC() ) 
+  {
+    scanCost->display();
+    ElapsedTime et = scanCost->convertToElapsedTime();
+  }
+
+  return scanCost;
+} //scmComputeCostVectorsForORC 
+
+
 // SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbes()
 // Computes the cost vectors for this multi-probe scan using the simple costing model.
 // Computes:
@@ -772,6 +912,10 @@ SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbes()
        (CmpCommon::getDefault(NCM_HBASE_COSTING) == DF_ON) )
     return scmComputeCostVectorsMultiProbesForHbase();
 
+  if ( getIndexDesc()->getPrimaryTableDesc()->getNATable()->isORC() &&
+       CmpCommon::getDefault(NCM_ORC_COSTING) == DF_ON )
+    return scmComputeCostVectorsMultiProbesForORC();
+  
   CostScalar numOuterProbes = (getContext().getInputLogProp())->getResultCardinality();
   CostScalar numActivePartitions =  getNumActivePartitions();
   CostScalar ioSeq, ioRand, numRandIOs;
@@ -1080,6 +1224,160 @@ SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbes()
   return scanCostMultiProbes;
  
 } // SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbes(...)
+
+Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
+{
+      
+  estimateEffTotalRowCount(totalRowCount_, effectiveTotalRowCount_);
+  
+  NABoolean isAnIndexJoin = FALSE;
+  categorizeMultiProbes(&isAnIndexJoin);
+
+  // define some variables used locally
+  CostScalar numUniqueProbes = uniqueProbes_;
+  CostScalar numProbes = probes_;
+  CostScalar numSuccessfulProbes = successfulProbes_;
+  CostScalar numUniqueSuccessfulProbes = successfulProbes_ - duplicateSuccProbes_;
+  CostScalar numfailedProbes = numProbes - successfulProbes_;
+
+  const HHDFSTableStats* hdfsStats =
+             getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
+
+  CMPASSERT(hdfsStats);
+
+  CostScalar totalFileSizeOriginal = hdfsStats->getTotalSize();
+  CostScalar totalFileSizeNormalized = totalFileSizeOriginal;
+
+  // collect fact about whether some columns are sorted. 
+  NABoolean leadingColumnsSorted = 
+      getIndexDesc()->isSortedORCHive() && isLeadingKeyColCovered();
+
+  // if the scan is on a sorted leading, the total scan size is the amount
+  // of data in one stripe
+  if (leadingColumnsSorted)
+  {
+     totalFileSizeNormalized /= hdfsStats->getNumStripes();
+  }
+
+  CollIndex numActivePartitions = getEstNumActivePartitionsAtRuntime();
+
+  totalFileSizeNormalized /= numActivePartitions;
+
+  // width of columns involved in predicates against the scan
+  CostScalar involvedColSize = getFileScan().getTotalColumnWidthForExecPreds();
+  CostScalar rowSize = recordSizeInKb_ * csOneKiloBytes;
+
+  CostScalar tuplesProduced = getResultSetCardinality();
+  
+  // # of rows accessed by successful probes
+  CostScalar tuplesProcessed = getDataRows(); 
+
+  // add # of rows accessed by failed probes
+  CostScalar avgRowsPerStripe = 
+         hdfsStats->getTotalRows() / hdfsStats->getNumStripes();
+
+  tuplesProcessed += numfailedProbes * 
+          ((leadingColumnsSorted) ? avgRowsPerStripe : effectiveTotalRowCount_);
+
+  tuplesProcessed = MAXOF(tuplesProcessed, tuplesProduced); 
+
+  // Now compute the sequential I/O
+  CostScalar skipRatio = 1;
+
+  if ( CmpCommon::getDefault(NCM_ORC_COSTING_APPLY_SKIP_RATIO) == DF_ON )
+    skipRatio = tuplesProduced / MAXOF(tuplesProcessed, 1.0);
+
+  CostScalar totalProbes = numUniqueSuccessfulProbes + numfailedProbes;
+
+  // factor in the column design in ORC reader in that only the data for the
+  // columns needed is scanned.
+  CostScalar totalDataScanned =
+           totalProbes * totalFileSizeNormalized * skipRatio * (involvedColSize/rowSize);
+
+  CostScalar blockSize = getIndexDesc()->getNAFileSet()->getBlockSize();
+
+  // aka seq IO
+  CostScalar numBlocks = (totalDataScanned / blockSize).getCeiling();
+
+  Lng32 seqIOWeight = ActiveSchemaDB()->getDefaults().getAsDouble(NCM_SEQ_IO_WEIGHT);
+  CostScalar numBlocksScaleFactor(1.0);
+
+  // Redefine numBlocks in seqIOWeight units
+  if ( blockSize > seqIOWeight ) {
+    numBlocksScaleFactor = blockSize / seqIOWeight;
+    numBlocks *= numBlocksScaleFactor;
+  }
+
+  // Some book keeping: 
+  // set the field before it is normalized and mutiplied by the row size factor.
+  setTuplesProcessed(tuplesProcessed);
+  setEstRowsAccessed(tuplesProduced);
+  setNumberOfBlocksToReadPerAccess(numBlocks);
+
+  // Normalize by number of partitions, if necessary.  Normalization is not 
+  // needed for NJs into ORC table when the inner table is accessed through 
+  // a rep-n partitioning function.
+  const ReplicateNoBroadcastPartitioningFunction* repN =
+    getContext().getPlan()->getPhysicalProperty()->getPartitioningFunction()->
+      castToReplicateNoBroadcastPartitioningFunction();
+
+  if ( !repN ) {
+    tuplesProduced  /= numActivePartitions;
+    tuplesProcessed /= numActivePartitions;
+  }
+
+  if ( CmpCommon::getDefault(NCM_ORC_COSTING_DEBUG) == DF_ON  &&
+       getIndexDesc()->getPrimaryTableDesc()->getNATable()->isORC() )
+    {
+      
+      NAString tname((getIndexDesc()->getPrimaryTableDesc()->getNATable()->getTableName()).getQualifiedNameAsAnsiString());
+       printf("Multi-set cost for %s:\n", tname.data());
+       printf("numProbes=%f \n", numProbes.getValue());
+       printf("successful probes=%f \n", successfulProbes_.getValue());
+       printf("numUniqueSuccessfulProbes=%f \n", numUniqueSuccessfulProbes.getValue());
+       printf("failed probes=%f \n", numfailedProbes.getValue());
+       printf("tuple processed=%f \n", tuplesProcessed.getValue());
+       printf("tuple produced=%f \n", tuplesProduced.getValue());
+       printf("totalProbes=%f\n", totalProbes.getValue());
+       printf("totalFileSizeOriginal=%f\n", totalFileSizeOriginal.getValue());
+       printf("totalFileSizeNormalized=%f\n", totalFileSizeNormalized.getValue());
+       printf("totalNumStripes=%d\n", hdfsStats->getNumStripes());
+       printf("totalDataScanned=%f\n", totalDataScanned.getValue());
+       printf("involvedColSiz=%f\n", involvedColSize.getValue());
+       printf("recordLength=%f\n", rowSize.getValue());
+       printf("blockSize=%f\n", blockSize.getValue());
+       printf("blocksScaleFactor=%f\n", numBlocksScaleFactor.getValue());
+       printf("numBlocks=%f\n", numBlocks.getValue());
+       printf("numActivePartitions=%d\n", numActivePartitions);
+    }
+ 
+
+  // Factor in row sizes.
+  CostScalar rowSizeFactor = scmRowSizeFactor(rowSize);
+  CostScalar outputRowSize = getRelExpr().getGroupAttr()->getRecordLength();
+  CostScalar outputRowSizeFactor = scmRowSizeFactor(outputRowSize);
+
+  tuplesProcessed *= rowSizeFactor;
+  tuplesProduced *= outputRowSizeFactor;
+
+  ValueIdSet charInputs = getRelExpr().getGroupAttr()->getCharacteristicInputs();
+  CostScalar probeRowSize = charInputs.getRowLength();
+  
+  /*
+  CostScalar seqIORowSizeFactor = scmRowSizeFactor(rowSize, SEQ_IO_ROWSIZE_FACTOR);
+   numBlocks *= seqIORowSizeFactor;
+  */
+  
+  Cost* scanCost = scmCost(tuplesProcessed, tuplesProduced, csZero, csZero, numBlocks, numProbes,
+	    rowSize, csZero, outputRowSize, probeRowSize);
+
+  if ( CmpCommon::getDefault(NCM_ORC_COSTING_DEBUG) == DF_ON  &&
+       getIndexDesc()->getPrimaryTableDesc()->getNATable()->isORC() ) 
+   scanCost->display();
+ 
+  return scanCost;
+}
+
 
 // Compute the Cost for this single subset Scan using the simple cossting model.
 //

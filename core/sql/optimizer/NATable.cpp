@@ -3046,6 +3046,41 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
       SQLBPInt(column_desc->precision, column_desc->null_flag, FALSE, heap);
       break;
 
+    case REC_BIN8_SIGNED:
+      if (column_desc->precision > 0)
+	type = new (heap)
+	SQLNumeric(column_desc->length,
+		   column_desc->precision,
+		   column_desc->scale,
+		   TRUE,
+		   column_desc->null_flag,
+                   heap
+		   );
+      else
+	type = new (heap)
+	SQLTiny(TRUE,
+		 column_desc->null_flag,
+                 heap
+		 );
+      break;
+    case REC_BIN8_UNSIGNED:
+      if (column_desc->precision > 0)
+	type = new (heap)
+	SQLNumeric(column_desc->length,
+		   column_desc->precision,
+		   column_desc->scale,
+		   FALSE,
+		   column_desc->null_flag,
+                   heap
+		   );
+      else
+	type = new (heap)
+	SQLTiny(FALSE,
+		 column_desc->null_flag,
+                 heap
+		 );
+      break;
+
     case REC_BIN16_SIGNED:
       if (column_desc->precision > 0)
 	type = new (heap)
@@ -3080,6 +3115,7 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
                  heap
 		 );
       break;
+
     case REC_BIN32_SIGNED:
       if (column_desc->precision > 0)
 	type = new (heap)
@@ -3168,16 +3204,6 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
 		  column_desc->null_flag,
 		  heap
 		  );
-      break;
-
-    case REC_TDM_FLOAT32:
-      type = new (heap)
-	SQLRealTdm(column_desc->null_flag, heap, column_desc->precision);
-      break;
-
-    case REC_TDM_FLOAT64:
-      type = new (heap)
-	SQLDoublePrecisionTdm(column_desc->null_flag, heap, column_desc->precision);
       break;
 
     case REC_FLOAT32:
@@ -3605,8 +3631,15 @@ static NABoolean createNAColumns(desc_struct *column_desc_list	/*IN*/,
       
 NAType* getSQColTypeForHive(const char* hiveType, NAMemory* heap)
 {
-  if ( !strcmp(hiveType, "tinyint") || 
-       !strcmp(hiveType, "smallint")) 
+  if ( !strcmp(hiveType, "tinyint"))
+    {
+      if (CmpCommon::getDefault(TRAF_TINYINT_SUPPORT) == DF_OFF)
+        return new (heap) SQLSmall(TRUE /* neg */, TRUE /* allow NULL*/, heap);
+      else
+        return new (heap) SQLTiny(TRUE /* neg */, TRUE /* allow NULL*/, heap);
+    }
+
+  if ( !strcmp(hiveType, "smallint"))
     return new (heap) SQLSmall(TRUE /* neg */, TRUE /* allow NULL*/, heap);
  
   if ( !strcmp(hiveType, "int")) 
@@ -3627,13 +3660,16 @@ NAType* getSQColTypeForHive(const char* hiveType, NAMemory* heap)
       CharInfo::CharSet hiveCharsetEnum = CharInfo::getCharSetEnum(hiveCharset);
       Int32 maxNumChars = 0;
       Int32 storageLen = len;
-      return new (heap) SQLVarChar(CharLenInfo(maxNumChars, storageLen),
-                                   TRUE, // allow NULL
-                                   FALSE, // not upshifted
-                                   FALSE, // not case-insensitive
-                                   CharInfo::getCharSetEnum(hiveCharset),
-                                   CharInfo::DefaultCollation,
-                                   CharInfo::IMPLICIT);
+      SQLVarChar * nat = 
+        new (heap) SQLVarChar(CharLenInfo(maxNumChars, storageLen),
+                              TRUE, // allow NULL
+                              FALSE, // not upshifted
+                              FALSE, // not case-insensitive
+                              CharInfo::getCharSetEnum(hiveCharset),
+                              CharInfo::DefaultCollation,
+                              CharInfo::IMPLICIT);
+      nat->setWasHiveString(TRUE);
+      return nat;
     }
   
   if ( !strcmp(hiveType, "float"))
@@ -4950,6 +4986,8 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
       Int64 estimatedRC = 0;
       Int64 estimatedRecordLength = 0;
 
+      Lng32 blockSize = (Lng32)hiveHDFSTableStats->getEstimatedBlockSize();
+
       if ( isORC ) {
          // We cannot use colArray.getTotalStorageSize() for estimating row length,
          // since we make worst-case assumptions about string column sizes. 
@@ -4964,6 +5002,11 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
          else
            // we think the table is empty so there are no strings! avoid divide by zero
            estimatedRecordLength = nonStringsPart;
+
+         // The block size is purposely set to CQD NCM_SEQ_IO_WEIGHT so that the 
+         // seq IO to scan ORC table is the amount of data scanned.
+         blockSize = ActiveSchemaDB()->getDefaults().getAsDouble(NCM_SEQ_IO_WEIGHT);
+
       } else if ( !sd_desc->isTrulyText() ) {
          //
          // Poor man's estimation by assuming the record length in hive is the 
@@ -4980,8 +5023,7 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
                        hiveHDFSTableStats->getEstimatedBlockSize()-100));
       }
 		  
-      Lng32 blockSize = MAXOF((Lng32)hiveHDFSTableStats->getEstimatedBlockSize(),
-                              (Lng32)estimatedRecordLength);
+      blockSize = MAXOF(blockSize, (Lng32)estimatedRecordLength);
       
       ((NATable*)table)-> setOriginalRowCount((double)estimatedRC);
 
@@ -5532,9 +5574,16 @@ NATable::NATable(BindWA *bindWA,
       (!(corrName.isSeabaseMD() || corrName.isSpecialTable())))
      setupPrivInfo();
 
-  if ((table_desc->body.table_desc.tableFlags & SEABASE_OBJECT_IS_EXTERNAL_HIVE) != 0 ||
-      (table_desc->body.table_desc.tableFlags & SEABASE_OBJECT_IS_EXTERNAL_HBASE) != 0)
+  if ((table_desc->body.table_desc.objectFlags & SEABASE_OBJECT_IS_EXTERNAL_HIVE) != 0 ||
+      (table_desc->body.table_desc.objectFlags & SEABASE_OBJECT_IS_EXTERNAL_HBASE) != 0)
     setIsExternalTable(TRUE);
+
+  if (CmpSeabaseDDL::isMDflagsSet
+      (table_desc->body.table_desc.tablesFlags, MD_TABLES_HIVE_EXT_COL_ATTRS))
+    setHiveExtColAttrs(TRUE);
+  if (CmpSeabaseDDL::isMDflagsSet
+      (table_desc->body.table_desc.tablesFlags, MD_TABLES_HIVE_EXT_KEY_ATTRS))
+    setHiveExtKeyAttrs(TRUE);
 
   rcb_ = table_desc->body.table_desc.rcb;
   rcbLen_ = table_desc->body.table_desc.rcbLen;
@@ -8289,7 +8338,6 @@ short NATable::updateExtTableAttrs(NATable *etTable)
   return 0;
 }
 
-
 // get details of this NATable cache entry
 void NATableDB::getEntryDetails(
      Int32 ii,                      // (IN) : NATable cache iterator entry
@@ -8662,7 +8710,11 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
            table = new (naTableHeap) NATable
              (bindWA, corrName, naTableHeap, htbl);
 
-           if  (CmpCommon::getDefault(HIVE_USE_EXT_TABLE_ATTRS) == DF_ON)
+           // 'table' is the NATable for underlying hive table.
+           // That table may also have an associated external table.
+           // Skip processing the external table defn, if only the 
+           // underlying hive table is needed.
+           if (NOT bindWA->returnHiveTableDefn())
              {
                // if this hive/orc table has an associated external table, 
                // get table desc for it.
@@ -8678,26 +8730,39 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
                     qn.getObjectName(),
                     COM_BASE_TABLE_OBJECT);
                
-               if (etDesc)
+               if (table && etDesc)
                  {
                    CorrName cn(qn);
                    NATable * etTable = new (naTableHeap) NATable
                      (bindWA, cn, naTableHeap, etDesc);
                    
-                   short rc = table->updateExtTableAttrs(etTable);
-                   if ((rc) && (NOT bindWA->externalTableDrop()))
+                   // if ext and hive columns dont match, return error
+                   // unless it is a drop stmt.
+                   if ((table->getUserColumnCount() != etTable->getUserColumnCount()) &&
+                       (NOT bindWA->externalTableDrop()))
                      {
                        *CmpCommon::diags()
                          << DgSqlCode(-8437);
-
+                       
                        bindWA->setErrStatus();
                        return NULL;
                      }
-
+                   
+                   if (etTable->hiveExtColAttrs() || etTable->hiveExtKeyAttrs())
+                     {
+                       // attrs were explicitly specified for this external
+                       // table. Merge them with the hive table attrs.
+                       short rc = table->updateExtTableAttrs(etTable);
+                       if (rc)
+                         {
+                           bindWA->setErrStatus();
+                           return NULL;
+                         }
+                     }
                    table->setHasHiveExtTable(TRUE);
-                 }
-             } // use  hive ext attrs
-	 }
+                 } // ext table 
+             } // allowExternalTables
+         } // htbl
        else 
          {
            if ((hiveMetaDB_->getErrCode() == 0)||

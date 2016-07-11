@@ -28,7 +28,11 @@
 
 --- SQL operation complete.
 >>
->>create table t015presp4 like t015presp2
+>>create table t015presp4 
++>                      (a integer not null,
++>                        "b" date not null,
++>                        c integer,
++>                        primary key (a,"b" desc))
 +>range split by (a, "b" desc)
 +>  (add first key (4000, date '2015-01-01'),
 +>   add first key (5000),
@@ -355,12 +359,13 @@ A            B                           C
 +>   add first key (6000, date '2000-12-31'),
 +>   add first key (6000, date '2000-06-30'));
 
-*** ERROR[3103] Duplicate SPLIT BY clauses were specified.
+*** ERROR[15001] A syntax error occurred at or before: 
+create table terr7 like t015presp2 with partitions range split by (a, "b")   (a
+                                                       ^ (56 characters from start of SQL statement)
 
 *** ERROR[8822] The statement was not prepared.
 
---- SQL operation failed with errors.
->>-- both with partitions and split by not allowed
+>>-- with partitions and split by not allowed in a LIKE stmt.
 >>
 >>---------------------------------------------
 >>-- SALT with more salt values than regions --

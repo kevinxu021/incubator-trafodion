@@ -19,7 +19,7 @@
 //
 // @@@ END COPYRIGHT @@@
 
-package org.apache.hadoop.hbase.client.transactional;
+package org.trafodion.pit;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -56,7 +56,6 @@ import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.transactional.PeerInfo;
 import org.apache.hadoop.hbase.client.transactional.STRConfig;
 import org.apache.hadoop.hbase.client.transactional.TransactionRegionLocation;
-import org.apache.hadoop.hbase.client.transactional.SnapshotMetaRecord;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;

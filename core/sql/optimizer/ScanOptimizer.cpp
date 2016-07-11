@@ -1878,6 +1878,11 @@ Histograms::append(const ColStatDescSharedPtr& colStatDesc)
   colStatDescList_.insertDeepCopyAt(entries(), colStatDesc);
 }
 
+void
+Histograms::append(const ColStatDescList& list)
+{
+  colStatDescList_.appendDeepCopy(list, list.entries());
+}
 
 Histograms::~Histograms()
 {
@@ -3426,6 +3431,10 @@ ScanOptimizer::isMdamEnabled() const
     idesc->getPrimaryTableDesc()->getNATable()->isHbaseCellTable() ||
     idesc->getPrimaryTableDesc()->getNATable()->isHbaseRowTable();
   if (isHbaseNativeTable)
+    mdamIsEnabled = FALSE;
+
+  // disable MDAM for ORC tables
+  if (idesc->getPrimaryTableDesc()->getNATable()->isORC())
     mdamIsEnabled = FALSE;
 
   // If the table to be optimized is the base table and has divisioning

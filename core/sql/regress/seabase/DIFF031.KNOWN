@@ -1,0 +1,10 @@
+465c465,467
+< --- 10 row(s) inserted.
+---
+> *** ERROR[8446] An error occurred during hdfs buffer fetch. Error Detail: No record delimiter found in buffer from hdfsRead.
+> 
+> --- 0 row(s) inserted.
+471c473
+<  10
+---
+>  0

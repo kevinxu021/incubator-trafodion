@@ -112,10 +112,6 @@ import org.apache.hadoop.hbase.client.transactional.UnknownTransactionException;
 import org.apache.hadoop.hbase.client.transactional.BatchException;
 import org.apache.hadoop.hbase.client.transactional.TransState;
 import org.apache.hadoop.hbase.client.transactional.STRConfig;
-import org.apache.hadoop.hbase.client.transactional.MutationMeta;
-import org.apache.hadoop.hbase.client.transactional.MutationMetaRecord;
-import org.apache.hadoop.hbase.client.transactional.SnapshotMeta;
-import org.apache.hadoop.hbase.client.transactional.SnapshotMetaRecord;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
@@ -192,7 +188,6 @@ import org.apache.hadoop.hbase.protobuf.ResponseConverter;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.MutationType;
 import org.apache.hadoop.hbase.coprocessor.transactional.TrxRegionObserver;
-import org.apache.hadoop.hbase.coprocessor.transactional.MutationCapture;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.AbortTransactionRequest;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.AbortTransactionResponse;
@@ -256,6 +251,11 @@ import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
 import com.google.protobuf.ServiceException;
 
+import org.trafodion.pit.MutationCapture;
+import org.trafodion.pit.MutationMeta;
+import org.trafodion.pit.MutationMetaRecord;
+import org.trafodion.pit.SnapshotMeta;
+import org.trafodion.pit.SnapshotMetaRecord;
 
 @InterfaceAudience.LimitedPrivate(HBaseInterfaceAudience.COPROC)
 @InterfaceStability.Evolving
@@ -386,8 +386,9 @@ CoprocessorService, Coprocessor {
   private static final int LEASE_CHECK_FREQUENCY = 1000;
   private static final int DEFAULT_SLEEP = 60 * 1000; // 60 seconds
   private static final int DEFAULT_MEMORY_THRESHOLD = 100; // 100% memory used
+  private static final int DEFAULT_STARTUP_MEMORY_THRESHOLD = 90; // initial value : 90% memory used
   private static final int DEFAULT_MEMORY_SLEEP = 15 * 1000;
-  private static final boolean DEFAULT_MEMORY_WARN_ONLY = true;        
+  private static final boolean DEFAULT_MEMORY_WARN_ONLY = false;        
   private static final boolean DEFAULT_MEMORY_PERFORM_GC = false;
   private static final int DEFAULT_ASYNC_WAL = 1;
   private static final boolean DEFAULT_SKIP_WAL = false;
@@ -2526,9 +2527,6 @@ CoprocessorService, Coprocessor {
                              if (LOG.isTraceEnabled()) LOG.trace("adding transid: " + transidToken + " to result list");
                              results.add(result);
                              count++;
-                          } else {
-                             if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval skipping asn: " + asnToken + ", transid: "
-                                         + transidToken + ", state: " + stateToken);
                           }
                        } // if (st.hasMoreElements()
                     } // for (Cell cell : result.rawCells()
@@ -3599,7 +3597,7 @@ CoprocessorService, Coprocessor {
         this.scannerThreadWakeFrequency = config.getInt(HConstants.THREAD_WAKE_FREQUENCY, 10 * 1000);
 
         this.cleanTimer = config.getInt(SLEEP_CONF, DEFAULT_SLEEP);
-        this.memoryUsageThreshold = config.getInt(MEMORY_THRESHOLD, DEFAULT_MEMORY_THRESHOLD);
+        this.memoryUsageThreshold = config.getInt(MEMORY_THRESHOLD, DEFAULT_STARTUP_MEMORY_THRESHOLD);
         this.memoryUsagePerformGC = config.getBoolean(MEMORY_PERFORM_GC, DEFAULT_MEMORY_PERFORM_GC);
         this.asyncWal = config.getInt(CONF_ASYNC_WAL, DEFAULT_ASYNC_WAL);
         this.skipWal = config.getBoolean(CONF_SKIP_WAL, DEFAULT_SKIP_WAL);
@@ -4043,6 +4041,13 @@ CoprocessorService, Coprocessor {
 
     synchronized (cleanScannersForTransactions) {
       cleanScannersForTransactions.add(transId);
+    }
+    
+    synchronized (commitPendingTransactions) {
+         if (commitPendingTransactions.remove(state)) {
+            LOG.info("TrxRegionEndpoint coprocessor:retireTransaction: Detected and removed read only branch in commitPendingList. " + transId 
+                        + "Region: " + regionInfo.getRegionNameAsString());
+         }
     }
 
     if (LOG.isTraceEnabled()) LOG.trace("retireTransaction calling remove entry for: " + key + " , from transactionById map ");
@@ -4626,6 +4631,10 @@ CoprocessorService, Coprocessor {
             throw new IOException("commit failure");
          }
       }
+    }
+    else {
+      LOG.info("Commit: Did not delete ts commitPendingTransactions " + state.hasWrite() + " size " + state.writeSize() 
+                + " reinstated " + state.isReinstated() + "Region : " + regionInfo.getRegionNameAsString());
     }
 
     if (LOG.isDebugEnabled()) LOG.debug("commit(tstate) -- EXIT TrxTransactionState: " + 
@@ -5525,8 +5534,14 @@ CoprocessorService, Coprocessor {
    * @throws IOException 
    */
   public void commit(final long transactionId, final long commitId, final int participantNum, final boolean ignoreUnknownTransactionException) throws IOException {
-    if (LOG.isTraceEnabled()) LOG.trace("commit(txId) -- ENTRY txId: " + transactionId +
-              " commitId " + commitId + " ignoreUnknownTransaction: " + ignoreUnknownTransactionException);
+    if (ignoreUnknownTransactionException)
+    {
+     if(LOG.isDebugEnabled())
+     	LOG.debug("commit(txId) -- ENTRY txId: " + transactionId +
+              " commitId " + commitId + " ignoreUnknownTransaction: " + ignoreUnknownTransactionException
+              + "Region : " + m_Region.getRegionInfo().getRegionNameAsString());
+  	}
+  	
     CommitProgress commitStatus = CommitProgress.NONE;
     TrxTransactionState state;
 
@@ -5536,7 +5551,8 @@ CoprocessorService, Coprocessor {
       state = getTransactionState(transactionId);
     } catch (UnknownTransactionException e) {
       if (ignoreUnknownTransactionException == true) {
-         if (LOG.isTraceEnabled()) LOG.trace("ignoring UnknownTransactionException in commit : " + transactionId
+         if (LOG.isDebugEnabled())
+         	LOG.debug("ignoring UnknownTransactionException in commit : " + transactionId
                 + " in region "
                 + m_Region.getRegionInfo().getRegionNameAsString());
          return;

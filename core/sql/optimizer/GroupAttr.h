@@ -766,6 +766,9 @@ ValueIdList recommendedOrderForNJProbing(
   NABoolean allHiveORCTables();
   NABoolean allHiveORCTablesSorted();
 
+  // get the name of the ith index (table)
+  NAString getIndexName(CollIndex i=0);
+
 private:
 
   // --------------------------------------------------------------------
