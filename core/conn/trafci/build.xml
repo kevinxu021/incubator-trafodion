@@ -34,6 +34,7 @@
 
     <property environment="my_env"/>
     <property name="source.version" value="1.7" />
+    <property name="target.version" value="1.7" />
     <property id="base.dir" name="base.dir" value="."/>
     <property name="jdbcT4" value="${base.dir}/../../sqf/export/lib/jdbcT4-${my_env.TRAFODION_VER}.jar"/>
     <property name="platform-install.dir" value="${base.dir}/../../sqf/trafci"/>
@@ -101,12 +102,12 @@
       <replace file="${tempsrc.dir}/${vproc.class}" token="@@@" value="${vproc.version}"/>
       <replace file="${tempinstall.dir}/${Install.class}" token="@@@VPROC@@@" value="${vproc.version}"/>
 
-      <javac destdir="${classes.dir}" classpath="${jdbcT4}" debug="on" deprecation="no" includeAntRuntime="false" source="${source.version}">
+      <javac destdir="${classes.dir}" classpath="${jdbcT4}" debug="on" deprecation="no" includeAntRuntime="false" source="${source.version}" target="${target.version}">
          <src path="${tempsrc.dir}"/>
          <compilerarg value="-XDignore.symbol.file"/>
       </javac>
 
-      <javac destdir="${installclasses.dir}" debug="on" includeAntRuntime="false" deprecation="yes" source="${source.version}">
+      <javac destdir="${installclasses.dir}" debug="on" includeAntRuntime="false" deprecation="yes" source="${source.version}" target="${target.version}">
          <src path="${tempinstall.dir}"/>
          <compilerarg value="-XDignore.symbol.file"/>
       </javac>
