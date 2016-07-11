@@ -256,7 +256,6 @@ if [[ "${answer}" =~ ^[Yy]$ ]]; then
    else
      echo "export NUM_ELASTIC_NODES=\"$answer\"" >> $LOCAL_TRAF_CONFIG
    fi
-   echo "export ELASTICITY_ENABLED=\"N\"" >> $LOCAL_TRAF_CONFIG
 else
    echo "export ELASTICITY_ENABLED=\"N\"" >> $LOCAL_TRAF_CONFIG
 fi
