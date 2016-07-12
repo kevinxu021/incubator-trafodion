@@ -6,12 +6,13 @@
 >>invoke t041t1;
 
 -- Definition of Monarch table TRAFODION.TEST041_SCH.T041T1
--- Definition current  Mon Mar 21 18:03:14 2016
+-- Definition current  Tue Jul 12 01:39:35 2016
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
   , B                                INT DEFAULT NULL
   )
+  PRIMARY KEY (A ASC)
 
 --- SQL operation complete.
 >>create index t041t1i1 on t041t1 (b);
@@ -20,12 +21,13 @@
 >>invoke t041t1;
 
 -- Definition of Monarch table TRAFODION.TEST041_SCH.T041T1
--- Definition current  Mon Mar 21 18:03:17 2016
+-- Definition current  Tue Jul 12 01:39:36 2016
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
   , B                                INT DEFAULT NULL
   )
+  PRIMARY KEY (A ASC)
 
 --- SQL operation complete.
 >>
@@ -186,8 +188,6 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 
 --- 3 row(s) deleted.
 >>
->>
->>
 >>obey TEST041(selects_base_table);
 >>control query shape scan(path 'T041T1');
 
@@ -301,8 +301,6 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>delete from t041t1;
 
 --- 3 row(s) deleted.
->>
->>
 >>
 >>obey TEST041(selects_all);
 >>control query shape scan(path 'T041T1');

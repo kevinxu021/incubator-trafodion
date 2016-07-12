@@ -103,3 +103,4 @@ delete from t041t1 where a = 1;
 ?section deletes_all
 explain options 'f' delete from t041t1;
 delete from t041t1;
+
