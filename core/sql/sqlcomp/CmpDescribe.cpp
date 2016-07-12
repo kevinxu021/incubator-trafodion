@@ -2867,6 +2867,7 @@ short CmpDescribeSeabaseTable (
 
   NABoolean isVolatile = naTable->isVolatileTable();
   NABoolean isExternalTable = naTable->isExternalTable();
+  ComStorageType storageType = naTable->storageType();
 
   NABoolean isExternalHbaseTable = FALSE;
   NABoolean isExternalHiveTable = FALSE;
@@ -3024,8 +3025,9 @@ short CmpDescribeSeabaseTable (
                 "-- Definition current  %s",
                 tableName.data(), ctime(&tp));
       else
-        sprintf(buf,  "-- Definition of Trafodion%stable %s\n"
+        sprintf(buf,  "-- Definition of %s%stable %s\n"
                 "-- Definition current  %s",
+                ((storageType == COM_STORAGE_MONARCH) ? "Monarch" : "Trafodion"),
                 (isVolatile ? " volatile " : isExternalTable ? " external " : " "), 
                 tableName.data(), 
                 ctime(&tp));
@@ -3299,7 +3301,7 @@ short CmpDescribeSeabaseTable (
             {
               strcat(attrs, "DEFAULT COLUMN FAMILY '");
               strcat(attrs, naTable->defaultColFam());
-              strcat(attrs, "'");
+              strcat(attrs, "' ");
             }
           outputShortLine(*space, attrs);
 
@@ -3308,7 +3310,6 @@ short CmpDescribeSeabaseTable (
 
       if (xnRepl != COM_REPL_NONE)
         {
-          strcpy(attrs, "  ");
           if (NOT attributesSet)
             {
               strcpy(attrs, " ATTRIBUTES ");
@@ -3323,6 +3324,14 @@ short CmpDescribeSeabaseTable (
           outputShortLine(*space, attrs);
         }
 
+      if (storageType == COM_STORAGE_MONARCH) {
+         if (NOT attributesSet) {
+            strcpy(attrs, " ATTRIBUTES ");
+            attributesSet = TRUE;
+         }
+         strcat(attrs, "STORAGE MONARCH ");
+         outputShortLine(*space, attrs);
+      }
       if (!isView && (naTable->hbaseCreateOptions()) &&
           (naTable->hbaseCreateOptions()->entries() > 0))
         {
@@ -3400,10 +3409,10 @@ short CmpDescribeSeabaseTable (
 	      if (naf->uniqueIndex())
 		strcat(vu, "unique ");
 
-	      sprintf(buf,  "\n-- Definition of%sTrafodion%sindex %s\n"
+	      sprintf(buf,  "\n-- Definition of%s%s%sindex %s\n"
 		      "-- Definition current  %s",
 		      ((NOT naf->isCreatedExplicitly()) ? " implicit " : " "),
-		      vu,
+                      ((storageType == COM_STORAGE_MONARCH) ? "Monarch" : "Trafodion"),		      vu,
 		      indexName.data(),
 		      ctime(&tp));
 	      outputShortLine(*space, buf);
@@ -4551,7 +4560,7 @@ static short CmpDescribeTableHDFSCache(const CorrName  &dtName, char *&outbuf, U
     tableList.push_back(naTable->getTableName().getQualifiedNameAsAnsiString().data());
     //Call Java method to get hdfs cache information for this table.
     CmpSeabaseDDL cmpSBD(STMTHEAP);
-    ExpHbaseInterface * ehi = cmpSBD.allocEHI();
+    ExpHbaseInterface * ehi = cmpSBD.allocEHI(naTable->isMonarch());
     NAArray<HbaseStr> * rows = ehi->showTablesHDFSCache(tableList);
     if(rows == NULL)
         return -1;
@@ -4693,7 +4702,7 @@ static short CmpDescribeSchemaHDFSCache(const NAString  & schemaText, char *&out
     }
     CmpSeabaseDDL cmpSBD(STMTHEAP);
     //Call Java method to get hdfs cache information for this table.
-    ExpHbaseInterface * ehi = cmpSBD.allocEHI();
+    ExpHbaseInterface * ehi = cmpSBD.allocEHI(FALSE);
     if (ehi == NULL) 
         return -1; 
     NAArray<HbaseStr> *rows = ehi->showTablesHDFSCache(tableList);
@@ -4762,6 +4771,7 @@ static short CmpDescribeSchemaHDFSCache(const NAString  & schemaText, char *&out
         outputShortLine(space, "");
         outputShortLine(space, msg.c_str());
     }
+    deleteNAArray(STMTHEAP, rows);
     outbuflen = space.getAllocatedSpaceSize();
     outbuf = new (heap) char[outbuflen];
     space.makeContiguous(outbuf, outbuflen);

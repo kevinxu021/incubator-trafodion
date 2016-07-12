@@ -449,6 +449,24 @@ ExHdfsScanTcb::ExHdfsScanTcb(
   registerSubtasks();
   registerResizeSubtasks();
 
+  Lng32 fileNum = getGlobals()->castToExExeStmtGlobals()->getMyInstanceNumber();
+  ExHbaseAccessTcb::buildLoggingPath(((ExHdfsScanTdb &)hdfsScanTdb).getLoggingLocation(),
+                     (char *)((ExHdfsScanTdb &)hdfsScanTdb).getErrCountRowId(),
+                     ((ExHdfsScanTdb &)hdfsScanTdb).tableName(),
+                     "hive_scan_err",
+                     fileNum,
+                     loggingFileName_);
+  LoggingFileCreated_ = FALSE;
+  //shoud be move to work method
+  int jniDebugPort = 0;
+  int jniDebugTimeout = 0;
+  ehi_ = ExpHbaseInterface::newInstance(glob->getDefaultHeap(),
+                                        (char*)"",  //Later replace with server cqd
+                                        (char*)"", ////Later replace with port cqd
+                                        ((ComTdbHbaseAccess *)getTdb())->getStorageType(),
+                                        ((ComTdbHbaseAccess *)getTdb())->replSync(),
+                                        jniDebugPort,
+                                        jniDebugTimeout);
 }
     
 ExHdfsScanTcb::~ExHdfsScanTcb()

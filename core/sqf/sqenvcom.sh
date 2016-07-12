@@ -116,11 +116,11 @@ fi
 
 
 # Use JAVA_HOME if set, else look for installed openjdk, finally toolsdir
-REQ_JDK_VER="1.7.0_67"
+REQ_JDK_VER="1.8.0_65"
 if [[ -z "$JAVA_HOME" && -d "${TOOLSDIR}/jdk${REQ_JDK_VER}" ]]; then
   export JAVA_HOME="${TOOLSDIR}/jdk${REQ_JDK_VER}"
-elif [[ -z "$JAVA_HOME" && -d /usr/lib/jvm/java-1.7.0-openjdk.${ARCH}/ ]]; then
-  export JAVA_HOME="/usr/lib/jvm/java-1.7.0-openjdk.${ARCH}"
+elif [[ -z "$JAVA_HOME" && -d /usr/lib/jvm/java-1.8.0-openjdk.${ARCH}/ ]]; then
+  export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk.${ARCH}"
 elif [[ -z "$JAVA_HOME" ]]; then
   echo "Please set JAVA_HOME to version jdk${REQ_JDK_VER}"
 fi

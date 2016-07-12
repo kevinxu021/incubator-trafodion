@@ -1759,6 +1759,13 @@ enum ComReplType
     COM_REPL_ASYNC = 2     // asyn replication at a later time
   };
 
+// storage system of a trafodion table
+enum ComStorageType
+  {
+    COM_STORAGE_HBASE = 0,
+    COM_STORAGE_MONARCH = 1
+  };
+
 // DDL Operation literals
 
 #define COM_OP_NONE_LIT                            "  "
