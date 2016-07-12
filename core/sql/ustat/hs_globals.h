@@ -1507,7 +1507,7 @@ public:
                                       NAString& queryText);
     void getCBFFilePrefix(NAString& sampleTableName, NAString& filePrefix);
     void detectPersistentCBFsForIUS(NAString& sampleTableName, HSColGroupStruct *group);
-    Lng32 UpdateIUSPersistentSampleTable(Int64 oldSampleSize, Int64& newSampleSize);
+    Lng32 UpdateIUSPersistentSampleTable(Int64 oldSampleSize, Int64 requestedSampleSize, Int64& newSampleSize);
     Lng32 readCBFsIntoMemForIUS(NAString& sampleTableName, HSColGroupStruct* group);
     Lng32 writeCBFstoDiskForIUS(NAString& sampleTableName, HSColGroupStruct* group);
     Lng32 deletePersistentCBFsForIUS(NAString& sampleTableName, HSColGroupStruct* group, SortState stateToDelete);
@@ -1770,7 +1770,7 @@ private:
 
     // Causes persistent sample table to be incrementally updated, and other
     // preparatory tasks so RUS can be performed using persistent sample.
-    Lng32 prepareToUsePersistentSample (Int64 currentSampleSize);
+    Lng32 prepareToUsePersistentSample (Int64 currentSampleSize, Int64 futureSampleSize);
 
     // Incrementally update histograms for a selected batch of columns
     Lng32 CollectStatisticsForIUS(Int64 currentSampleSize, Int64 futureSampleSize);
@@ -1817,6 +1817,15 @@ private:
 
     // used by IUS code for clean up purposes
     NABoolean sampleIExists_;
+
+    // For IUS, once the persistent sample table has been successfully updated
+    // in accordance with the IUS predicate, these ptrs will point to the requested
+    // (expected) and actual number of rows in the sample table. end_IUS_work will
+    // pass these ptrs to the function that updates the sample table's row in
+    // SB_PERSISTENT_SAMPLES. If non-null, the values are used for the corresponding
+    // columns in that table.
+    Int64* PST_IUSrequestedSampleRows_;
+    Int64* PST_IUSactualSampleRows_;
 
     template <class T>
     Int32 processIUSColumn(T* ptr,

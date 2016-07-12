@@ -1909,12 +1909,17 @@ void doubleUpSingleQuotes(const char *text, NAString & result)
 /*          updWhereCondition - if not null, the where predicate of  */
 /*          the last completed IUS operation. (If null, we don't     */
 /*          update this column.)                                     */
+/*          requestedSampleRows - if non-null, points to expected #  */
+/*          of rows in sample table (based on sampling rate).        */
+/*          actualSampleRows - if non-null, actual # of rows.        */
 /* RETCODE: Status code from the update operation.                   */
 /*********************************************************************/
 Lng32 HSPersSamples::updIUSUpdateInfo(HSTableDef* tblDef,
                                       const char* updHistory,
                                       const char* updTimestampStr,
-                                      const char* updWhereCondition)
+                                      const char* updWhereCondition,
+                                      const Int64* requestedSampleRows,
+                                      const Int64* actualSampleRows)
 {
   Lng32 retcode = 0;
   HSErrorCatcher errorCatcher(retcode, - UERR_INTERNAL_ERROR, "updIUSUpdateInfo", TRUE);
@@ -1934,8 +1939,7 @@ Lng32 HSPersSamples::updIUSUpdateInfo(HSTableDef* tblDef,
                                    STMTHEAP);
   NAString updTable = persSampTblObjName.getExternalName();
   Int64 uid = tblDef->getObjectUID();
-  char uidStr[30];
-  convertInt64ToAscii(uid,uidStr);
+  char buf[30];
 
   HSCursor writeIUSInfoCursor(STMTHEAP,"writeIUSUpdateInfo");
 
@@ -1969,8 +1973,21 @@ Lng32 HSPersSamples::updIUSUpdateInfo(HSTableDef* tblDef,
           query += "'";
         }
     }
+  if (requestedSampleRows)
+    {
+      convertInt64ToAscii(*requestedSampleRows, buf);
+      query += ", REQUESTED_SAMPLE_ROWS = ";
+      query += buf;
+    }
+  if (actualSampleRows)
+    {
+      convertInt64ToAscii(*actualSampleRows, buf);
+      query += ", ACTUAL_SAMPLE_ROWS = ";
+      query += buf;
+    }
   query += " WHERE TABLE_UID = ";
-  query += uidStr;
+  convertInt64ToAscii(uid,buf);
+  query += buf;
 
   retcode = writeIUSInfoCursor.prepareQuery(query, 0, 0);
   HSLogError(retcode);

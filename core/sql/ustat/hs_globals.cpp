@@ -2872,6 +2872,8 @@ HSGlobalsClass::HSGlobalsClass(ComDiagsArea &diags)
     iusSampleDeletedInMem(NULL),
     iusSampleInsertedInMem(NULL),
     sampleIExists_(FALSE),
+    PST_IUSrequestedSampleRows_(NULL),
+    PST_IUSactualSampleRows_(NULL),
     sampleRateAsPercetageForIUS(0),
     minRowCtPerPartition_(-1),
     sample_I_generated(FALSE),
@@ -2911,6 +2913,10 @@ HSGlobalsClass::~HSGlobalsClass()
   // longer in progress.
   if (PSRowUpdated)
     end_IUS_work();
+
+  // Used in end_IUS_work(), must call it first.
+  NADELETEBASIC(PST_IUSrequestedSampleRows_, STMTHEAP);
+  NADELETEBASIC(PST_IUSactualSampleRows_, STMTHEAP);
 
   // reset the parser flags that were set in the constructor
   SQL_EXEC_ResetParserFlagsForExSqlComp_Internal(savedParserFlags);
@@ -5642,7 +5648,7 @@ Lng32 HSGlobalsClass::doIUS(NABoolean& done)
   else if (iusOption == DF_SAMPLE)
     // Leave 'done' FALSE; prepareToUsePersistentSample() updates the persistent sample
     // table in preparation for use by RUS.
-    return prepareToUsePersistentSample(currentSampleSize);
+    return prepareToUsePersistentSample(currentSampleSize, futureSampleSize);
   else
     {
       // Exception will be thrown, ~HSGlobalsClass will call end_IUS_work().
@@ -5853,7 +5859,7 @@ Lng32 HSGlobalsClass::doFullIUS(Int64 currentSampleSize,
   // The _I table can be dropped after using it to update the persistent sample
   // table, which must be done before doing RUS on any unprocessed columns (RUS
   // will use the updated persistent sample).
-  retcode = UpdateIUSPersistentSampleTable(currentSampleSize, sampleRowCount);
+  retcode = UpdateIUSPersistentSampleTable(currentSampleSize, futureSampleSize, sampleRowCount);
   HSHandleErrorIUS(retcode);
   if (sampleIExists_) {
     retcode = drop_I(*hssample_table);
@@ -5897,10 +5903,11 @@ Lng32 HSGlobalsClass::doFullIUS(Int64 currentSampleSize,
 // This function makes all preparations for doing RUS using an updated IUS
 // persistent sample table. The sample table is updated, and obsolete CBFs
 // are discarded,
-Lng32 HSGlobalsClass::prepareToUsePersistentSample(Int64 currentSampleSize)
+Lng32 HSGlobalsClass::prepareToUsePersistentSample(Int64 currentSampleSize,
+                                                   Int64 futureSampleSize)
 {
   Lng32 retcode = 0;
-  retcode = UpdateIUSPersistentSampleTable(currentSampleSize, sampleRowCount);
+  retcode = UpdateIUSPersistentSampleTable(currentSampleSize, futureSampleSize, sampleRowCount);
   HSHandleErrorIUS(retcode);
 
   // If there are existing CBFs, they will be obsolete once the current operation
@@ -6141,7 +6148,9 @@ Lng32 HSGlobalsClass::end_IUS_work()
      sampleList->updIUSUpdateInfo(objDef,
                                   (char*)"",
                                   (char*)updTimestampStr.data(),
-                                  getWherePredicateForIUS());
+                                  getWherePredicateForIUS(),
+                                  PST_IUSrequestedSampleRows_,
+                                  PST_IUSactualSampleRows_);
    HSHandleError(retcode);
 
    return 0;
@@ -6618,6 +6627,7 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
 // table to indicate that IUS is no longer in progress on the source table.
 // The persistent sample table itself is only modified if IUS is successful.
 Lng32 HSGlobalsClass::UpdateIUSPersistentSampleTable(Int64 oldSampleSize,
+                                                     Int64 requestedSampleSize,
                                                      Int64& newSampleSize)
 {
   Lng32 retcode = 0;
@@ -6676,6 +6686,11 @@ Lng32 HSGlobalsClass::UpdateIUSPersistentSampleTable(Int64 oldSampleSize,
   }
   HSHandleError(retcode);
   newSampleSize += rowsAffected;
+
+  PST_IUSrequestedSampleRows_ = new(STMTHEAP) Int64;
+  *PST_IUSrequestedSampleRows_ = requestedSampleSize;
+  PST_IUSactualSampleRows_ = new(STMTHEAP) Int64;
+  *PST_IUSactualSampleRows_ = newSampleSize;
 
   HSFuncExecQuery("CONTROL QUERY DEFAULT ALLOW_DML_ON_NONAUDITED_TABLE reset");
 
