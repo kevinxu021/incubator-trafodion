@@ -122,7 +122,7 @@ public class OrcFileReader
         
         for (int i = 0; i < ppi_vec.length; i++) {
             ByteBuffer bb = ByteBuffer.wrap((byte[])ppi_vec[i]);
-            bb.order(ByteOrder.LITTLE_ENDIAN);
+            bb.order(m_byteorder);
 
             int type = bb.getInt();
             if (logger.isDebugEnabled()) logger.debug("type = " + type);
@@ -134,14 +134,25 @@ public class OrcFileReader
                 bb.get(colName, 0, colNameLen);
             }
 
+	    int operType = bb.getInt();
             int operLen = bb.getInt();
             byte[] oper = null;
+	    Object operObject = null;
+
             if (operLen > 0) {
                 oper = new byte[operLen];
                 bb.get(oper, 0, operLen);
             } else {
                 oper = new byte[0];
             }
+
+	    if (operType == 1) {
+		operObject = java.sql.Timestamp.valueOf(Bytes.toString(oper));
+	    }
+	    else {
+		operObject = Bytes.toString(oper);
+	    }
+	    
             if (logger.isDebugEnabled()) 
                logger.debug("operLen = " + operLen + " oper " + Bytes.toString(oper));
 
@@ -151,37 +162,47 @@ public class OrcFileReader
 
             switch (type) {
             case UNKNOWN_OPER:
+		if (logger.isDebugEnabled()) logger.debug("Operator is UNKNOWN_OPER");
                 break;
             case STARTAND:
+		if (logger.isDebugEnabled()) logger.debug("Operator is STARTAND");
                 builder.startAnd();
 //System.out.println("AND");
                 break;
             case STARTOR:
+		if (logger.isDebugEnabled()) logger.debug("Operator is STARTOR");
                 builder.startOr();
                 break;
             case STARTNOT:
+		if (logger.isDebugEnabled()) logger.debug("Operator is STARTNOT");
                 builder.startNot();
                 break;
             case END:
+		if (logger.isDebugEnabled()) logger.debug("Operator is END");
                 builder.end();
                 break;
             case EQUALS:
+		if (logger.isDebugEnabled()) logger.debug("Operator is EQUALS" + " operand: " + operObject);
 //System.out.println("=: " + Bytes.toString(oper));
-                builder.equals(Bytes.toString(colName), Bytes.toString(oper));
+                builder.equals(Bytes.toString(colName), operObject);
                 break;
             case LESSTHAN:
+		if (logger.isDebugEnabled()) logger.debug("Operator is LESSTHAN");
 //System.out.println("< " + Bytes.toString(oper));
-                builder.lessThan(Bytes.toString(colName), Bytes.toString(oper));
+                builder.lessThan(Bytes.toString(colName), operObject);
                 break;
             case LESSTHANEQUALS:
+		if (logger.isDebugEnabled()) logger.debug("Operator is LESSTHANEQUALS");
 //System.out.println("<= " + Bytes.toString(oper));
-                builder.lessThanEquals(Bytes.toString(colName), Bytes.toString(oper));
+                builder.lessThanEquals(Bytes.toString(colName), operObject);
                 break;
             case ISNULL:
+		if (logger.isDebugEnabled()) logger.debug("Operator is ISNULL");
                 builder.isNull(Bytes.toString(colName));
                 break;
             case IN:
-                builder.in(Bytes.toString(colName), Bytes.toString(oper));
+		if (logger.isDebugEnabled()) logger.debug("Operator is IN");
+                builder.in(Bytes.toString(colName), operObject);
                 break;
             }
         }
@@ -189,7 +210,7 @@ public class OrcFileReader
         SearchArgument sarg = builder.build();
 
         return sarg;
-    }
+    } 
 
     public String open(String pv_file_name, 
 		       int    pv_num_cols_to_project,
@@ -289,14 +310,15 @@ public class OrcFileReader
                 String[] colNames = new String[1+ppi_all_cols.length];
                 colNames[0] = null;
                 for (int i = 0; i < ppi_all_cols.length; i++) {
-                    //                    colNames[i+1] = new String("_col" + (i+1));
                     colNames[i+1] = new String((String)ppi_all_cols[i]);
-                    //                    System.out.println("colNames for i " + i + " " + colNames[i]);
+		    if (logger.isDebugEnabled()) logger.debug("colNames for i " + i + " " + colNames[i]);
                 }
 
-                for (int i = 0; i <= ppi_all_cols.length; i++) {
-                    //System.out.println("colNames for i " + i + " " + colNames[i]);
-                }
+		if (logger.isDebugEnabled()) {
+		    for (int i = 0; i <= ppi_all_cols.length; i++) {
+			logger.debug("colNames for i " + i + " " + colNames[i]);
+		    }
+		}
 
                 /*
                 boolean[] include = new boolean[1 + ppi_all_cols.length];
@@ -1446,10 +1468,12 @@ public class OrcFileReader
 //.startNot().equals("_col2", "2").end()
 //.startAnd().between("_col2", 2, 3).end()
 //.startAnd().in("_col2", 1, 3, 4).end()
+//	java.sql.Timestamp lv_ts = new java.sql.Timestamp.(116, 9, 20, 10, 10, 10, 0);
+//      The following is equivalent to the above:
+	java.sql.Timestamp lv_ts = java.sql.Timestamp.valueOf("2016-10-20 10:10:10");
         SearchArgument sarg = builder
 	    .startAnd()
-	    .equals("_col3", 6928)
-	    .equals("_col4", 68284)
+	    .equals("_col1", lv_ts)
 	    .end()
         .build();
 	
@@ -1476,6 +1500,7 @@ public class OrcFileReader
                     .searchArgument(sarg, colNames));
 
 	} catch (java.io.IOException e1) {
+	    e1.printStackTrace();
            return (e1.getMessage());
 	}
 	
@@ -1515,11 +1540,60 @@ public class OrcFileReader
 	return null;
     }
 
+    // test push-down with ORC
+    public String selectiveScanX(String pv_file_name) throws IOException {
+
+	Object[] lv_obj = new Object[3];
+
+	byte[] lv_ba1 = new byte[1024];
+	ByteBuffer lv_bb1 = ByteBuffer.wrap(lv_ba1);
+	lv_bb1.putInt(STARTAND); //operator type
+	lv_bb1.putInt(0); // col name len
+	lv_bb1.putInt(0); // operand type
+	lv_bb1.putInt(0); // operand len
+	lv_obj[0] = lv_ba1;
+
+	byte[] lv_ba2 = new byte[1024];
+	ByteBuffer lv_bb2 = ByteBuffer.wrap(lv_ba2);
+	lv_bb2.putInt(EQUALS); //operator type
+	String lv_col_name = new String("A");
+	lv_bb2.putInt(lv_col_name.length()); // col name len
+	lv_bb2.put(lv_col_name.getBytes()); // col name
+	String lv_operator = new String("2016-10-20 10:10:10.000000");
+	lv_bb2.putInt(1); // operand type: java.sql.Timestamp
+	lv_bb2.putInt(lv_operator.length()); // operand len
+	lv_bb2.put(lv_operator.getBytes());
+	lv_obj[1] = lv_ba2;
+	
+	byte[] lv_ba3 = new byte[1024];
+	ByteBuffer lv_bb3 = ByteBuffer.wrap(lv_ba3);
+	lv_bb3.putInt(END); //operator type
+	lv_bb3.putInt(0); // operand type
+	lv_bb3.putInt(0); // col name len
+	lv_bb3.putInt(0); // operand len
+	lv_obj[2] = lv_ba3;
+
+	String[] colNames = new String[1];
+	colNames[0] = new String("A");
+
+	this.close();
+	this.open(pv_file_name,
+		  0,
+		  Long.MAX_VALUE,
+		  -1,
+		  null,
+		  lv_obj,
+		  colNames);
+
+	return null;
+    }
+
     public static void main(String[] args) throws Exception
     {
 	boolean lv_print_info = false;
 	boolean lv_perform_scans = false;
         boolean lv_perform_selective_scans = false;
+        boolean lv_perform_selective_scans_x = false;
         boolean lv_perform_vectorized_scans = false;
 	boolean lv_done = false;
 
@@ -1536,6 +1610,9 @@ public class OrcFileReader
 	    }
 	    if (lv_arg.compareTo("-ss") == 0) {
 		lv_perform_selective_scans = true;
+	    }
+	    if (lv_arg.compareTo("-ssx") == 0) {
+		lv_perform_selective_scans_x = true;
 	    }
 	    if (lv_arg.compareTo("-vs") == 0) {
 		lv_perform_vectorized_scans = true;
@@ -1766,6 +1843,9 @@ public class OrcFileReader
 	}
         else if ( lv_perform_selective_scans ) {
 	    System.out.println(lv_this.selectiveScan(args[1]));
+        }
+        else if ( lv_perform_selective_scans_x ) {
+	    System.out.println(lv_this.selectiveScanX(args[1]));
         }
     }
 
