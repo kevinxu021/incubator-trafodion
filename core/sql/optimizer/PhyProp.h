@@ -1010,6 +1010,7 @@ public:
   // ---------------------------------------------------------------------
   //  Utility functions
   // ---------------------------------------------------------------------
+  void display() const;
   void print(FILE* ofd = stdout,
 	     const char * prefix = DEFAULT_INDENT,
              const char * suffix = "") const;

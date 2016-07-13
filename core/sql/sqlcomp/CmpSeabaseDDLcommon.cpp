@@ -955,9 +955,9 @@ NABoolean CmpSeabaseDDL::isSeabase(const NAString &catName)
       NAString seabaseDefCatName = "";
       CmpCommon::getDefault(SEABASE_CATALOG, seabaseDefCatName, FALSE);
       seabaseDefCatName.toUpper();
-      
+
       if (catName == seabaseDefCatName)
-         return TRUE;
+        return TRUE;
     }
   
   return FALSE;
@@ -1098,12 +1098,15 @@ std::vector<std::string> CmpSeabaseDDL::getHistogramTables()
 
 ExpHbaseInterface* CmpSeabaseDDL::allocEHI(const char * server, 
                                            const char * zkPort,
-                                           NABoolean raiseError)
+                                           NABoolean raiseError,
+                                           NABoolean isMonarchTable)
 {
   ExpHbaseInterface * ehi =  NULL;
-
+  NABoolean replSync = FALSE;
   ehi = ExpHbaseInterface::newInstance
-    (heap_, server, zkPort);
+    (heap_, server, zkPort, 
+     (isMonarchTable ? COM_STORAGE_MONARCH : COM_STORAGE_HBASE),
+     replSync); 
     
   Lng32 retcode = ehi->init(NULL);
   if (retcode < 0)
@@ -1124,7 +1127,7 @@ ExpHbaseInterface* CmpSeabaseDDL::allocEHI(const char * server,
   return ehi;
 }
 
-ExpHbaseInterface* CmpSeabaseDDL::allocEHI(NADefaults * defs)
+ExpHbaseInterface* CmpSeabaseDDL::allocEHI(NABoolean isMonarchTable, NADefaults * defs)
 {
   ExpHbaseInterface * ehi =  NULL;
 
@@ -1132,10 +1135,19 @@ ExpHbaseInterface* CmpSeabaseDDL::allocEHI(NADefaults * defs)
   if (!defsL)
     defsL = &ActiveSchemaDB()->getDefaults();
   
-  const char * server = defsL->getValue(HBASE_SERVER);
-  const char* zkPort = defsL->getValue(HBASE_ZOOKEEPER_PORT);
+  const char *server;
+  const char *zkPort;
 
-  ehi = allocEHI(server, zkPort, TRUE);
+  if (isMonarchTable) {
+     server = defsL->getValue(MONARCH_LOCATOR_ADDRESS);
+     zkPort = defsL->getValue(MONARCH_LOCATOR_PORT);
+  }
+  else {
+     server = defsL->getValue(HBASE_SERVER);
+     zkPort = defsL->getValue(HBASE_ZOOKEEPER_PORT);
+  }
+     
+  ehi = allocEHI(server, zkPort, TRUE, isMonarchTable);
     
   return ehi;
 }
@@ -1150,9 +1162,9 @@ ExpHbaseInterface* CmpSeabaseDDL::allocBRCEHI(NADefaults * defs)
   
   const char * server = defsL->getValue(HBASE_SERVER);
   const char* zkPort = defsL->getValue(HBASE_ZOOKEEPER_PORT);
-
+  NABoolean replSync = FALSE;
   ehi = ExpHbaseInterface::newInstance
-  (heap_, server, zkPort);
+  (heap_, server, zkPort, COM_STORAGE_HBASE, replSync);
   
   Lng32 retcode = ehi->initBRC(NULL);
   if (retcode != 0)
@@ -1237,7 +1249,7 @@ short CmpSeabaseDDL::readAndInitDefaultsFromSeabaseDefaultsTable
   char *col1 = NULL;
   char *col2 = NULL;
 
-  ExpHbaseInterface * ehi = allocEHI(server, zkPort, FALSE);
+  ExpHbaseInterface * ehi = allocEHI(server, zkPort, FALSE, FALSE);
   if (! ehi)
     {
       retcode = -1398;
@@ -1387,7 +1399,7 @@ short CmpSeabaseDDL::validateVersions(NADefaults *defs,
       const char * server = defs->getValue(HBASE_SERVER);
       const char * zkPort = defs->getValue(HBASE_ZOOKEEPER_PORT);
       
-      ehi = allocEHI(server, zkPort, TRUE);
+      ehi = allocEHI(server, zkPort, TRUE, FALSE);
       if (! ehi)
         {
           // extract error info from diags area.
@@ -1765,7 +1777,7 @@ short CmpSeabaseDDL::isMetadataInitialized(ExpHbaseInterface * ehi)
   ExpHbaseInterface * ehil = ehi;
   if (ehil == NULL)
     {
-      ehil = allocEHI();
+      ehil = allocEHI(FALSE);
       if (ehil == NULL)
         return 0;
     }
@@ -1877,7 +1889,7 @@ short CmpSeabaseDDL::isPrivMgrMetadataInitialized(NADefaults *defs,
   const char * server = defs->getValue(HBASE_SERVER);
   const char * zkPort = defs->getValue(HBASE_ZOOKEEPER_PORT);
 
-  ExpHbaseInterface * ehi = allocEHI(server, zkPort, FALSE);
+  ExpHbaseInterface * ehi = allocEHI(server, zkPort, FALSE, FALSE);
   if (! ehi)
     {
       // This code is not expected to be called, perhaps a core dump should be
@@ -1940,7 +1952,8 @@ short CmpSeabaseDDL::existsInHbase(const NAString &objName,
   ExpHbaseInterface * ehil = ehi;
   if (! ehi)
     {
-      ehil = allocEHI();
+       NABoolean isMonarchTable = FALSE;
+      ehil = allocEHI(isMonarchTable);
       if (ehil == NULL)
         return -1;
     }
@@ -2416,6 +2429,75 @@ short CmpSeabaseDDL::generateHbaseOptionsArray(
   return 0;
 }
 
+short CmpSeabaseDDL::createMonarchTable(ExpHbaseInterface *ehi, 
+                                        HbaseStr *table,
+                                        const int tableType,
+                                        NAList<HbaseStr> &cols,
+                                        NAList<HbaseCreateOption*> * monarchCreateOptions,
+                                        const int numSplits,
+                                        const int keyLength,
+                                        char** encodedKeysBuffer,
+                                        NABoolean doRetry)
+{
+  // TEMPTEMP Monarch
+  //  return 0;
+  // TEMPTEMP
+
+  short retcode = 0;
+
+  retcode = ehi->exists(*table);
+  if (retcode == -1)
+    {
+      *CmpCommon::diags() << DgSqlCode(-1390)
+                          << DgString0(table->val);
+      return -1;
+    } 
+  
+  if (retcode < 0)
+    {
+      *CmpCommon::diags() << DgSqlCode(-8448)
+                          << DgString0((char*)"ExpHbaseInterface::exists()")
+                          << DgString1(getHbaseErrStr(-retcode))
+                          << DgInt0(-retcode)
+                          << DgString2((char*)GetCliGlobals()->getJniErrorStr().data());
+      
+      return -1;
+    }
+
+  NABoolean isMVCC = true;
+  if (CmpCommon::getDefault(TRAF_TRANS_TYPE) == DF_SSCC)
+    isMVCC = false;
+
+  NABoolean noXn =
+    (CmpCommon::getDefault(DDL_TRANSACTIONS) == DF_OFF) ?  true : false;
+
+  NAText monarchCreateOptionsArray[HBASE_MAX_OPTIONS];
+  if (generateHbaseOptionsArray(monarchCreateOptionsArray,
+                                monarchCreateOptions) < 0) {
+      // diags already set             
+      return -1;
+  }
+  
+  retcode = ehi->create(*table, tableType, cols, monarchCreateOptionsArray,
+                        numSplits, keyLength,
+                        (const char **)encodedKeysBuffer,
+                        noXn,
+                        isMVCC);
+
+  if (retcode < 0)
+  {
+      *CmpCommon::diags() << DgSqlCode(-8448)
+                          << DgString0((char*)"ExpHbaseInterface::create()")
+                          << DgString1(getHbaseErrStr(-retcode))
+                          << DgInt0(-retcode)
+                          << DgString2((char*)GetCliGlobals()->getJniErrorStr().data());
+      
+      return -1;
+  }
+  
+  return 0;
+}
+
 short CmpSeabaseDDL::createHbaseTable(ExpHbaseInterface *ehi, 
                                       HbaseStr *table,
                                       std::vector<NAString> &colFamVec,
@@ -2653,6 +2735,49 @@ short CmpSeabaseDDL::dropHbaseTable(ExpHbaseInterface *ehi,
     }
   
   return 0;
+}
+
+short CmpSeabaseDDL::dropMonarchTable(HbaseStr *table, NABoolean asyncDrop,
+                                    NABoolean ddlXns)
+{
+  
+  short retcode = 0;
+
+  NABoolean isMonarchTable = TRUE;
+  ExpHbaseInterface * ehi = allocEHI(isMonarchTable);
+  if (ehi == NULL)
+    return;
+
+  retcode = ehi->exists(*table);
+  if (retcode == -1) // exists
+    {    
+      retcode = ehi->drop(*table, TRUE, (NOT ddlXns));
+      deallocEHI(ehi);
+      if (retcode < 0)
+        {
+          *CmpCommon::diags() << DgSqlCode(-8448)
+                              << DgString0((char*)"ExpHbaseInterface::drop()")
+                              << DgString1(getHbaseErrStr(-retcode))
+                              << DgInt0(-retcode)
+                              << DgString2((char*)GetCliGlobals()->getJniErrorStr().data());
+          
+          return -1;
+        }
+    }
+
+  if (retcode != 0)
+    {
+      deallocEHI(ehi);
+      *CmpCommon::diags() << DgSqlCode(-8448)
+                          << DgString0((char*)"ExpHbaseInterface::exists()")
+                          << DgString1(getHbaseErrStr(-retcode))
+                          << DgInt0(-retcode)
+                          << DgString2((char*)GetCliGlobals()->getJniErrorStr().data());
+      
+      return -1;
+    }
+   deallocEHI(ehi);
+   return 0;
 }
 
 short CmpSeabaseDDL::copyHbaseTable(ExpHbaseInterface *ehi, 
@@ -4556,6 +4681,7 @@ short CmpSeabaseDDL::updateSeabaseMDTable(
   Int32 objOwnerID = (tableInfo) ? tableInfo->objOwnerID : SUPER_USER;
   Int32 schemaOwnerID = (tableInfo) ? tableInfo->schemaOwnerID : SUPER_USER;
   Int64 objectFlags = (tableInfo) ? tableInfo->objectFlags : 0;
+  Int64 tablesFlags = (tableInfo) ? tableInfo->tablesFlags : 0;
   
   if (updateSeabaseMDObjectsTable(cliInterface,catName,schName,objName,objectType,
                                   validDef,objOwnerID, schemaOwnerID, objectFlags, inUID))
@@ -4860,6 +4986,13 @@ short CmpSeabaseDDL::updateSeabaseMDTable(
                 CmpSeabaseDDL::setMDflags
                   (flags,CmpSeabaseDDL::MD_TABLES_REPL_ASYNC_FLG);
             }
+
+          if (tableInfo->storageType == COM_STORAGE_MONARCH)
+            {
+              CmpSeabaseDDL::setMDflags
+                (flags, CmpSeabaseDDL::MD_TABLES_STORAGE_MONARCH_FLG);
+            }
+
         }
 
       str_sprintf(buf, "upsert into %s.\"%s\".%s values (%Ld, '%s', '%s', %d, %d, %d, %d, %Ld) ",
@@ -5496,12 +5629,12 @@ void CmpSeabaseDDL::cleanupObjectAfterError(
                                             const NAString &schName,
                                             const NAString &objName,
                                             const ComObjectType objectType,
-                                            NABoolean ddlXns)
+                                            NABoolean dontForceCleanup)
 {
 
   //if ddlXns are being used, no need of additional cleanup.
   //transactional rollback will take care of cleanup.
-  if (ddlXns)
+  if (dontForceCleanup)
     return;
     
   Lng32 cliRC = 0;
@@ -5536,6 +5669,55 @@ void CmpSeabaseDDL::cleanupObjectAfterError(
 
   return;
 }
+
+void CmpSeabaseDDL::purgedataObjectAfterError(
+                                            ExeCliInterface &cliInterface,
+                                            const NAString &catName, 
+                                            const NAString &schName,
+                                            const NAString &objName,
+                                            const ComObjectType objectType,
+                                            NABoolean dontForceCleanup)
+{
+
+  //if ddlXns are being used, no need of additional cleanup.
+  //transactional rollback will take care of cleanup.
+  if (dontForceCleanup)
+    return;
+
+  PushAndSetSqlParserFlags savedParserFlags(INTERNAL_QUERY_FROM_EXEUTIL);
+    
+  Lng32 cliRC = 0;
+  char buf[1000];
+
+  // save current diags area
+  ComDiagsArea * tempDiags = ComDiagsArea::allocate(heap_);
+  tempDiags->mergeAfter(*CmpCommon::diags());
+  
+  CmpCommon::diags()->clear();
+  if (objectType == COM_BASE_TABLE_OBJECT)
+    str_sprintf(buf, "purgedata \"%s\".\"%s\".\"%s\" ",
+                catName.data(), schName.data(), objName.data());
+  else if (objectType == COM_INDEX_OBJECT)
+    str_sprintf(buf, "purgedata table(index_table \"%s\".\"%s\".\"%s\" ) ",
+                catName.data(), schName.data(), objName.data());
+  else 
+    ex_assert(0, "purgedata object is not supported");
+    
+  cliRC = cliInterface.executeImmediate(buf);
+  CmpCommon::diags()->clear();
+  CmpCommon::diags()->mergeAfter(*tempDiags);
+
+  if (cliRC < 0)
+    {
+      cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
+    }
+
+  tempDiags->clear();
+  tempDiags->deAllocate();
+
+  return;
+}
+
 
 // user created traf stored col fam is of the form:  #<1-byte-num>
 //  1-byte-num is character '2' through '9', or 'a' through 'x'.
@@ -5914,7 +6096,7 @@ short CmpSeabaseDDL::buildKeyInfoArray(
           
           return -1;
         }
-         
+ 
       NAString nas((*keyArray)[index]->getColumnName());
       keyInfoArray[index].tableColNum = (Lng32)
         (colArray ?
@@ -6689,7 +6871,8 @@ short CmpSeabaseDDL::dropSeabaseObject(ExpHbaseInterface * ehi,
                                        const ComObjectType objType,
                                        NABoolean ddlXns,
                                        NABoolean dropFromMD,
-                                       NABoolean dropFromHbase)
+                                       NABoolean dropFromStorage,
+                                       NABoolean isMonarch)
 {
   Lng32 retcode = 0;
 
@@ -6737,21 +6920,20 @@ short CmpSeabaseDDL::dropSeabaseObject(ExpHbaseInterface * ehi,
                                    catalogNamePart, schemaNamePart, objectNamePart, objType ))
         return -1;
     }
-
-  if (dropFromHbase)
+  
+ 
+  if (dropFromStorage && objType != COM_VIEW_OBJECT)
     {
-      if (objType != COM_VIEW_OBJECT)
-        {
-          HbaseStr hbaseTable;
-          hbaseTable.val = (char*)extNameForHbase.data();
-          hbaseTable.len = extNameForHbase.length();
+      HbaseStr hbaseTable;
+      hbaseTable.val = (char*)extNameForHbase.data();
+      hbaseTable.len = extNameForHbase.length();
 
-          retcode = dropHbaseTable(ehi, &hbaseTable, FALSE, ddlXns);
-          if (retcode < 0)
-            {
-              return -1;
-            }
-        }
+      if (! isMonarch) 
+         retcode = dropHbaseTable(ehi, &hbaseTable, FALSE, ddlXns);
+      else
+         retcode = dropMonarchTable(&hbaseTable, FALSE, ddlXns); 
+      if (retcode < 0)
+         return -1;
     }
 
   return 0;
@@ -6918,7 +7100,7 @@ void CmpSeabaseDDL::initSeabaseMD(NABoolean ddlXns)
   Queue * tempQueue = NULL;
 
   // create metadata tables in hbase
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(FALSE);
   if (ehi == NULL)
     return;
 
@@ -7850,7 +8032,7 @@ void  CmpSeabaseDDL::dropSeabaseSequence(StmtDDLDropSequence  * dropSequenceNode
 short CmpSeabaseDDL::dropSeabaseObjectsFromHbase(const char * pattern,
                                                  NABoolean ddlXns)
 {
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(FALSE);
   if (ehi == NULL)
     return -1;
 
@@ -8423,20 +8605,12 @@ void CmpSeabaseDDL::purgedataHbaseTable(DDLExpr * ddlExpr,
 
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL,
     CmpCommon::context()->sqlSession()->getParentQid());
-  ExpHbaseInterface * ehi = allocEHI();
-  if (ehi == NULL)
-    {
-      processReturn();
-      
-      return;
-    }
 
   if ((isSeabaseReservedSchema(tableName)) &&
       (!Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL)))
     {
       *CmpCommon::diags() << DgSqlCode(-CAT_USER_CANNOT_DROP_SMD_TABLE)
                           << DgTableName(extTableName);
-      deallocEHI(ehi); 
 
       processReturn();
 
@@ -8469,6 +8643,14 @@ void CmpSeabaseDDL::purgedataHbaseTable(DDLExpr * ddlExpr,
     {
       processReturn();
 
+      return;
+    }
+
+  ExpHbaseInterface * ehi = allocEHI(naTable->isMonarch());
+  if (ehi == NULL)
+    {
+      processReturn();
+      
       return;
     }
 
@@ -9208,15 +9390,15 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
           
           dropSeabaseLibrary(dropLibraryParseNode, currCatName, currSchName);
         }
-      else if (ddlNode->getOperatorType() == DDL_ALTER_LIBRARY)
-        {
-          // create seabase library
-          StmtDDLAlterLibrary * alterLibraryParseNode =
-            ddlNode->castToStmtDDLNode()->castToStmtDDLAlterLibrary();
-          
-          alterSeabaseLibrary(alterLibraryParseNode, currCatName, 
-                              currSchName);
-        }
+       else if (ddlNode->getOperatorType() == DDL_ALTER_LIBRARY)
+         {
+           // create seabase library
+           StmtDDLAlterLibrary * alterLibraryParseNode =
+             ddlNode->castToStmtDDLNode()->castToStmtDDLAlterLibrary();
+           
+           alterSeabaseLibrary(alterLibraryParseNode, currCatName, 
+                               currSchName);
+         }
       else if (ddlNode->getOperatorType() == DDL_CREATE_ROUTINE)
         {
           // create seabase routine

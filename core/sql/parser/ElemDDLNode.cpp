@@ -435,6 +435,12 @@ ElemDDLNode::castToElemDDLFileAttrXnRepl()
   return NULL;
 }
 
+ElemDDLFileAttrStorageType *
+ElemDDLNode::castToElemDDLFileAttrStorageType()
+{
+  return NULL;
+}
+
 //++ MV
 ElemDDLFileAttrRangeLog *
 ElemDDLNode::castToElemDDLFileAttrRangeLog()
@@ -560,6 +566,11 @@ ElemDDLNode::castToElemDDLLikeOptWithHorizontalPartitions()
 }
 
 ElemDDLLikeOptWithoutSalt * ElemDDLNode::castToElemDDLLikeOptWithoutSalt()
+{
+  return NULL;
+}
+
+ElemDDLLikeSaltClause * ElemDDLNode::castToElemDDLLikeSaltClause()
 {
   return NULL;
 }
@@ -3327,6 +3338,33 @@ NABoolean
 ElemDDLSaltOptionsClause::getLikeTable() const
 {
   return likeTable_;
+}
+
+void
+ElemDDLSaltOptionsClause::unparseIt(NAString & result) const
+{
+  if (likeTable_)
+    result = "SALT LIKE TABLE";
+  else
+    {  
+      char buf[40];
+      sprintf(buf," SALT USING %d PARTITIONS",numPartitions_);
+      result = buf;
+
+      if (saltColumnArray_.entries() > 0)
+        {
+          result += " ON (";
+          const ElemDDLColRef * colRef = saltColumnArray_[0];
+          result += colRef->getColumnName();
+          for (CollIndex i = 1; i < saltColumnArray_.entries(); i++)
+            {
+              result += ",";
+              colRef = saltColumnArray_[i];
+              result += colRef->getColumnName();
+            }
+          result += ")";
+        }
+    }
 }
 
 //

@@ -386,9 +386,9 @@ for i in $prettyfiles; do
     fi
   fi
   
-  # TEST034 will generate expected file
+  # TEST034 TEST036 will generate expected file
   # in $REGRRUNDIR
-  if [ "$tnum" = "034" ]; then
+  if [ "$tnum" = "034" ] || [ "$tnum" = "036" ]; then
       expfile=$REGRRUNDIR/$exp
       echo $expfile
   fi

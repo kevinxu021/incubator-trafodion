@@ -202,7 +202,8 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
   hbaseCellTS_(-1),
   comHbaseAccessOptions_(comHbaseAccessOptions),
   trafLoadFlushSize_(0),
-  firstNRows_(-1)
+  firstNRows_(-1),
+  storageType_(COM_STORAGE_HBASE)
 {};
 
 ComTdbHbaseAccess::ComTdbHbaseAccess(

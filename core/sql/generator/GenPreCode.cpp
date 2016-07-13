@@ -2784,17 +2784,17 @@ RelExpr * ExeUtilExpr::preCodeGen(Generator * generator,
   return this;
 }
 
-// returns true if the whole ddl operation can run in one transaction
-// and transaction can be started by caller(master executor or arkcmp)
-// before executing this ddl.
+// xnCanBeStarted is set to true if the whole ddl operation can run in one transaction
+// It is set to false, then the DDL implementation methods manages the transaction
 short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
 {
   ExprNode * ddlNode = getDDLNode();
 
   xnCanBeStarted = TRUE;
-  // no DDL transactions.
-  if ((NOT ddlXns()) &&
-      ((dropHbase()) ||
+  // When the DDL transaction is not turned on via CQD
+  if (NOT ddlXns()) 
+  { 
+     if ((dropHbase()) ||
        (purgedataHbase()) ||
        (initHbase()) ||
        (createMDViews()) ||
@@ -2809,14 +2809,13 @@ short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
        (backup()) ||
        (restore()) ||
        (unlockTraf()) ||
-       (updateVersion())))
-    {
-      // transaction will be started and commited in called methods.
-      xnCanBeStarted = FALSE;
-    }
+       (updateVersion()))
+     {
+        // transaction will be started and commited in called methods.
+         xnCanBeStarted = FALSE;
+     }
   
-  // no DDL transactions
-  if (((ddlNode) && (ddlNode->castToStmtDDLNode()) &&
+     if (((ddlNode) && (ddlNode->castToStmtDDLNode()) &&
        (NOT ddlNode->castToStmtDDLNode()->ddlXns())) &&
       ((ddlNode->getOperatorType() == DDL_DROP_SCHEMA) ||
        (ddlNode->getOperatorType() == DDL_CLEANUP_OBJECTS) ||
@@ -2828,47 +2827,34 @@ short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
        (ddlNode->getOperatorType() == DDL_ALTER_TABLE_DROP_COLUMN) ||
        (ddlNode->getOperatorType() == DDL_ALTER_TABLE_ALTER_COLUMN_DATATYPE) ||
        (ddlNode->getOperatorType() == DDL_DROP_TABLE)))
-    {
-      // transaction will be started and commited in called methods.
-      xnCanBeStarted = FALSE;
-    }
+     {
+        // transaction will be started and commited in called methods.
+        xnCanBeStarted = FALSE;
+     }
+     isDDLxn = FALSE;
+  }
+  else  // When the DDL transaction is turned on
+  {
+     isDDLxn = FALSE;
+     if (ddlNode && ddlNode->castToStmtDDLNode() &&
+        ddlNode->castToStmtDDLNode()->ddlXns())
+     isDDLxn = TRUE;
 
-  isDDLxn = FALSE;
-  if ((ddlXns()) || 
-      ((ddlNode && ddlNode->castToStmtDDLNode() &&
-        ddlNode->castToStmtDDLNode()->ddlXns())))
-    isDDLxn = TRUE;
-
-  // ddl transactions are on.
-  // Following commands currently require transactions be started and
-  // committed in the called methods.
-  if ((ddlXns()) &&
-      (
-           (purgedataHbase()) ||
-           (backup()) ||
-           (restore()) ||
-           (unlockTraf()) ||
-           (upgradeRepos())
-       )
-      )
-    {
-      // transaction will be started and commited in called methods.
-      xnCanBeStarted = FALSE;
-    }
-
-  // ddl transactions are on.
-  // Cleanup and alter commands requires transactions to be started and commited
-  // in the called method.
-  if ((ddlNode && ddlNode->castToStmtDDLNode() &&
-       ddlNode->castToStmtDDLNode()->ddlXns()) &&
-      ((ddlNode->getOperatorType() == DDL_CLEANUP_OBJECTS) ||
-       (ddlNode->getOperatorType() == DDL_ALTER_TABLE_DROP_COLUMN) ||
-       (ddlNode->getOperatorType() == DDL_ALTER_TABLE_ALTER_COLUMN_DATATYPE)))
-    {
-      // transaction will be started and commited in called methods.
-      xnCanBeStarted = FALSE;
-    }
-
+     if (purgedataHbase() || upgradeRepos())
+        // transaction will be started and commited in called methods.
+        xnCanBeStarted = FALSE;
+     if ((ddlNode && ddlNode->castToStmtDDLNode() &&
+          ddlNode->castToStmtDDLNode()->ddlXns()) &&
+            ((ddlNode->getOperatorType() == DDL_CLEANUP_OBJECTS) ||
+             (ddlNode->getOperatorType() == DDL_ALTER_TABLE_DROP_COLUMN) ||
+             (ddlNode->getOperatorType() == DDL_CREATE_INDEX) ||
+             (ddlNode->getOperatorType() == DDL_POPULATE_INDEX) ||
+             (ddlNode->getOperatorType() == DDL_ALTER_TABLE_ALTER_COLUMN_DATATYPE)))
+     {
+        // transaction will be started and commited in called methods.
+        xnCanBeStarted = FALSE;
+     }
+  } 
   return 0;
 }
 
@@ -3768,10 +3754,14 @@ NABoolean FileScan::processMinMaxKeys(Generator* generator,
     NABoolean minMaxKeyUpdated = FALSE;
     // impossible to satisfy such request.
     if ( !getSearchKey() && updateSearchKeyOnly )
-      return minMaxKeyUpdated;
+      return FALSE;
+
+    // if the table has no index key, bail out.
+    if ( getIndexDesc()->getIndexKey().entries() == 0 )
+      return FALSE;
 
     CollIndex leadKeyIdx = 0;
-    if (getIndexDesc()->getPrimaryTableDesc()->getNATable()->isHbaseTable() &
+    if (getIndexDesc()->getPrimaryTableDesc()->getNATable()->isHbaseTable() &&
         getIndexDesc()->getPrimaryTableDesc()->getNATable()->hasSaltedColumn()) 
     { 
        leadKeyIdx = 1;
@@ -5407,6 +5397,10 @@ RelExpr * HbaseDelete::preCodeGen(Generator * generator,
          (NOT generator->isRIinliningForTrafIUD()) &&
          (NOT getTableDesc()->getNATable()->hasLobColumn()))
        uniqueRowsetHbaseOper() = TRUE;
+
+     // TEMP_MONARCH Rowset opers not supported yet.
+     if (getTableDesc()->getNATable()->isMonarch())
+       uniqueRowsetHbaseOper() = FALSE;
   }
   else
   if (isUnique)
@@ -5463,7 +5457,11 @@ RelExpr * HbaseDelete::preCodeGen(Generator * generator,
   // if unique oper with no index maintanence and autocommit is on, then
   // do not require a trnsaction. Hbase guarantees single row consistency.
   Int64 transId = -1;
-  if (((uniqueHbaseOper()) &&
+  if (getTableDesc()->getNATable()->isMonarch())
+    {
+      // TEMP_MONARCH Transactional operations not yet supported
+    }
+  else if (((uniqueHbaseOper()) &&
        (NOT cursorHbaseOper()) &&
        (NOT uniqueRowsetHbaseOper()) &&
        (NOT inlinedActions) &&
@@ -5785,7 +5783,11 @@ RelExpr * HbaseUpdate::preCodeGen(Generator * generator,
   // if unique oper with no index maintanence and autocommit is on, then
   // do not require a transaction. Hbase guarantees single row consistency.
   Int64 transId = -1;
-  if (((uniqueHbaseOper()) &&
+  if (getTableDesc()->getNATable()->isMonarch())
+    {
+      // TEMP_MONARCH Transactional operations not yet supported
+    }
+  else if (((uniqueHbaseOper()) &&
        (NOT isMerge()) &&
        (NOT cursorHbaseOper()) &&
        (NOT uniqueRowsetHbaseOper()) &&
@@ -6088,7 +6090,11 @@ RelExpr * HbaseInsert::preCodeGen(Generator * generator,
   // if unique oper with no index maintanence and autocommit is on, then
   // do not require a trnsaction. Hbase guarantees single row consistency.
   Int64 transId = -1;
-  if (((uniqueHbaseOper()) &&
+  if (getTableDesc()->getNATable()->isMonarch())
+    {
+      // TEMP_MONARCH Transactional operations not yet supported
+    }
+  else if (((uniqueHbaseOper()) &&
        (NOT uniqueRowsetHbaseOper()) &&
        (NOT inlinedActions) &&
        (generator->getTransMode()->getAutoCommit() == TransMode::ON_) &&
@@ -6124,6 +6130,16 @@ RelExpr * HbaseInsert::preCodeGen(Generator * generator,
 RelExpr * ExeUtilFastDelete::preCodeGen(Generator * generator,
 					const ValueIdSet & externalInputs,
 					ValueIdSet &pulledNewInputs)
+{
+  if (nodeIsPreCodeGenned())
+    return this;
+
+  return ExeUtilExpr::preCodeGen(generator,externalInputs,pulledNewInputs);
+}
+
+RelExpr * ExeUtilHiveTruncate::preCodeGen(Generator * generator,
+                                          const ValueIdSet & externalInputs,
+                                          ValueIdSet &pulledNewInputs)
 {
   if (nodeIsPreCodeGenned())
     return this;
@@ -6286,7 +6302,10 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
           aggrPushdown = FALSE;
         }
 
-      if (aggrPushdown && isSeabase && (NOT selectionPred().isEmpty()))
+      // TEMP_MONARCH Aggr pushdown not yet supported
+      if (aggrPushdown && isSeabase && 
+          ((NOT selectionPred().isEmpty()) ||
+           (naTable->isMonarch())))
         aggrPushdown = FALSE;
     }
   
@@ -9339,42 +9358,35 @@ ItemExpr * Cast::preCodeGen(Generator * generator)
         }
     }
 
-  // Conversion to/from a tandem float type is only supported if
-  // the from/to type is a float type.
-  // If target is a tandem float type and source is not float or
-  // target is not float and source is tandem, then convert source
-  // to ieee float type (ieee double).
-  short srcFsType = child(0)->getValueId().getType().getFSDatatype();
-  short tgtFsType = getValueId().getType().getFSDatatype();
+  const NAType &srcNAType = child(0)->getValueId().getType();
+  const NAType &tgtNAType = getValueId().getType();
+  short srcFsType = srcNAType.getFSDatatype();
+  short tgtFsType = tgtNAType.getFSDatatype();
 
-  if ((((tgtFsType == REC_TDM_FLOAT32) ||
-	(tgtFsType == REC_TDM_FLOAT64)) &&
-       ! ((srcFsType >= REC_MIN_FLOAT) &&
-	  (srcFsType <= REC_MAX_FLOAT))) ||
-
-      (((srcFsType == REC_TDM_FLOAT32) ||
-	(srcFsType == REC_TDM_FLOAT64)) &&
-       ! ((tgtFsType >= REC_MIN_FLOAT) &&
-	  (tgtFsType <= REC_MAX_FLOAT))))
+  // Currently, Tinyint conversions are only supported to/from smallint.
+  // if source is TINYINT, then convert it to SMALLINT first.
+  if (((srcNAType.getTypeName() == LiteralTinyInt) &&
+       (tgtNAType.getTypeName() != LiteralSmallInt)) ||
+      ((srcNAType.getTypeName() != LiteralSmallInt) &&
+       (tgtNAType.getTypeName() == LiteralTinyInt)))
     {
-      NAType * intermediateType =
-	new(generator->wHeap()) SQLDoublePrecision(
-	     child(0)->getValueId().getType().supportsSQLnull(),
-	     generator->wHeap());
-
-      // Genesis case 10-040126-9823.
-      // Match the scales of the source with that of the intermediate type. If
-      // this is not done, the cast to the intermediate type does not get scaled
-      // properly, leading to incorrect results.
-      child(0) = generator->getExpGenerator()->matchScales(
-        child(0)->getValueId(), *intermediateType);
-
-      child(0) = new(generator->wHeap()) Cast(child(0),intermediateType);
-
-      child(0)->bindNode(generator->getBindWA());
-
-      sourceTypeQual =
-	child(0)->getValueId().getType().getTypeQualifier();
+      // add a Cast node to convert from/to tinyint to/from small int.
+      ItemExpr * newChild =
+        new (generator->wHeap())
+        Cast(child(0),
+             new (generator->wHeap())
+             SQLSmall(TRUE,
+                      srcNAType.supportsSQLnull()));
+      ((Cast*)newChild)->setFlags(getFlags());
+      //      ((Cast*)newChild)->setSrcIsVarcharPtr(srcIsVarcharPtr());
+      setSrcIsVarcharPtr(FALSE);
+      newChild = newChild->bindNode(generator->getBindWA());
+      newChild = newChild->preCodeGen(generator);
+      if (! newChild)
+        return NULL;
+      
+      setChild(0, newChild);
+      srcFsType = child(0)->getValueId().getType().getFSDatatype();
     }
 
   if ((sourceTypeQual == NA_NUMERIC_TYPE) &&
@@ -9661,18 +9673,6 @@ ItemExpr * Cast::preCodeGen(Generator * generator)
 	      {
 		intermediatePrecision = 634; // (2 x 308) + 17 + 1 = 634
 		intermediateScale = 324;  // 308 + 17 - 1 = 324
-	      }
-
-	    else if (sourceNumType->getFSDatatype() == REC_TDM_FLOAT32)
-	      {
-		intermediatePrecision = 164; // (2 x 78) + 7 + 1 = 164
-		intermediateScale = 84;  // 78 + 7 - 1 = 84
-	      }
-
-	    else if (sourceNumType->getFSDatatype() == REC_TDM_FLOAT64)
-	      {
-		intermediatePrecision = 175; // (2 x 78) + 18 + 1 = 175
-		intermediateScale = 95;  // 78 + 18 - 1 = 95
 	      }
 
 	    NAType * intermediateType =
@@ -12614,7 +12614,10 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
   ValueIdSet newExePreds;
   ValueIdSet* originExePreds = new (generator->wHeap())ValueIdSet(executorPred()) ;//saved for futur nullable column check
 
-  if (CmpCommon::getDefault(HBASE_FILTER_PREDS) != DF_MINIMUM){ // the check for V2 and above is moved up before calculating retrieved columns
+  // TEMP_MONARCH Pred pushdown not yet supported for monarch
+  if ((NOT getTableDesc()->getNATable()->isMonarch()) &&
+      (CmpCommon::getDefault(HBASE_FILTER_PREDS) != DF_MINIMUM)) { 
+        // the check for V2 and above is moved up before calculating retrieved columns
       if ((NOT isUnique) &&
           (extractHbaseFilterPredsVX(generator, executorPred(), newExePreds)))
         return this;
@@ -12712,7 +12715,10 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
       // value is needed to retrieve a row.
       //only if needed. If there is already a non nullable non added non nullable with default columns in the set, we should not need to add
       //any other columns.
-      if (CmpCommon::getDefault(HBASE_FILTER_PREDS) == DF_MEDIUM && getMdamKeyPtr() == NULL){ //only enable column retrieval optimization with DF_MEDIUM and not for MDAM scan
+      // TEMP_MONARCH Pred pushdown not yet supported for monarch
+      if ((NOT getTableDesc()->getNATable()->isMonarch()) &&
+          (CmpCommon::getDefault(HBASE_FILTER_PREDS) == DF_MEDIUM && getMdamKeyPtr() == NULL)){ 
+        //only enable column retrieval optimization with DF_MEDIUM and not for MDAM scan
           bool needAddingNonNullableColumn = true; //assume we need to add one non nullable column
           for (ValueId vid = retColRefSet_.init();// look for each column in th eresult set if one match the criteria non null non added non nullable with default
                   retColRefSet_.next(vid);
@@ -12790,7 +12796,10 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
   // if hbase filter preds are enabled, then extracts those preds from executorPred()
   // which could be pushed down to hbase.
   // Do this only for non-unique scan access.
-  if (CmpCommon::getDefault(HBASE_FILTER_PREDS) == DF_MINIMUM){ //keep the check for pushdown after column retrieval for pushdown V1.
+  // TEMP_MONARCH Pred pushdown not yet supported for monarch
+  if ((NOT getTableDesc()->getNATable()->isMonarch()) &&
+      (CmpCommon::getDefault(HBASE_FILTER_PREDS) == DF_MINIMUM)){ 
+    //keep the check for pushdown after column retrieval for pushdown V1.
     if ((NOT isUnique) &&
         (extractHbaseFilterPreds(generator, executorPred(), newExePreds)))
       return this;
