@@ -62,12 +62,15 @@ public class OrderEntryLoader extends Thread {
 	public static volatile int commitsize = 1;
 	public static volatile boolean option_trace = false;
 	public static volatile boolean option_debug = false;
+	public static volatile boolean option_aligned = false;
 	public static volatile int number_of_streams = 1;
 	public static volatile int length_of_interval = 60;
 	public static volatile int timer_minutes = 0;
 	public static volatile boolean timer_pop = false;
 
 	public static volatile int scale_factor;
+	public static volatile int start_sf = -1;
+	public static volatile int end_sf = -1;
 
 	public static volatile String customer_table_name = null;
 	public static volatile String district_table_name = null;
@@ -667,6 +670,10 @@ public class OrderEntryLoader extends Thread {
 					default:
 				}
 
+                                if ( option_aligned) {
+                                        sql_statement = sql_statement + " attribute aligned format ";
+                                }
+
 				if ( option_compression) {
 					sql_statement = sql_statement + " hbase_options ( compression = 'LZ4')";
 				}
@@ -1049,21 +1056,30 @@ public class OrderEntryLoader extends Thread {
 			stream[strm_idx] = new OrderEntryLoader();
 		}
 
-		int scale_per_stream = scale_factor / number_of_streams;
+		int scale_per_stream;
+
+                if (start_sf > 0) {
+                  scale_per_stream  = (end_sf - start_sf + 1) / number_of_streams;
+                }
+                else {
+                  scale_per_stream  = scale_factor / number_of_streams;
+                  start_sf = 1;
+                  end_sf   = scale_factor;
+                }
 		if ( scale_per_stream == 0 ) {
 			scale_per_stream = 1;
 		}
 
-		int scale_indx = 1;
+		int scale_indx = start_sf;
 
 		for ( int strm_idx = 0; strm_idx < number_of_streams; strm_idx++ ) {
 			stream[strm_idx].stream_number = strm_idx;
 			stream[strm_idx].start_scale = scale_indx;
 			stream[strm_idx].stop_scale = scale_indx + scale_per_stream - 1;
 
-			if ( strm_idx < scale_factor ) {
+			if ( strm_idx < end_sf ) {
 				if ( strm_idx == (number_of_streams - 1 )) { // Last stream
-					stream[strm_idx].stop_scale = scale_factor;
+					stream[strm_idx].stop_scale = end_sf;
 				}
 
 				stream[strm_idx].start();
@@ -2159,7 +2175,7 @@ public class OrderEntryLoader extends Thread {
 			System.out.println("OrderEntryLoader " + command_line);
 
 			String syntax = "\n"
-				+ "OrderEntry: OrderEntryLoader <scale_factor> <load_scope> [<load_option>]\n"
+				+ "OrderEntry: OrderEntryLoader <scale_factor> [<load_option>]\n"
 
 				+ "   <scale_factor> : positive integer representing largest generated table (2^n rows)\n"
 
@@ -2178,11 +2194,12 @@ public class OrderEntryLoader extends Thread {
 				+ "     batchsize <batchsize> : Load using jdbc batches of the given size.\n"
 				+ "     commitsize <commitsize> : Disable Autocommit and commit every <commitsize> rows_added.\n"
 				+ "     salt <saltsize> : Create the table with salting.\n"
+                                + "     aligned : Create each table with aligned format attribute.\n"
 				+ "     compression : Create the table with compression.\n"
 				+ "     upsert : Use upsert syntax instead of insert syntax.\n"
 				+ "     usingload : Use using load syntax in insert/upsert.\n"
 				+ "     randomload : Will load in a random permutations of key values.\n"
-				+ "     intervallength <length_of_interval> : Lenght of reporting interval in seconds.(Default 10)\n"
+				+ "     intervallength <length_of_interval> : Length of reporting interval in seconds.(Default 10)\n"
 				+ "     timer <time_minutes> : Load tables until single load exceed time_minutes minutes.\n"
 				+ "     trace : Enable Statement Tracing.\n"
 				+ "     debug : Enable Debug Tracing.\n"
@@ -2206,6 +2223,8 @@ public class OrderEntryLoader extends Thread {
 				switch ( option ) {
 					case "schema": schema = args[++indx]; break;
 					case "streams": number_of_streams = Integer.parseInt(args[++indx]); break;
+					case "streamrange": start_sf = Integer.parseInt(args[++indx]); 
+					                    end_sf = Integer.parseInt(args[++indx]); break;
 					case "dropcreate": option_dropcreate = true; break;
 					case "drop": option_drop = true; break;
 					case "create": option_create = true; break;
@@ -2225,6 +2244,7 @@ public class OrderEntryLoader extends Thread {
 					case "timer": timer_minutes = Integer.parseInt(args[++indx]); break;
 					case "trace": option_trace = true; break;
 					case "debug": option_debug = true; break;
+					case "aligned": option_aligned = true; break;
 					case "table": String temptables[] = { args[++indx] };
 					              tables = temptables;
 					              break;
@@ -2299,12 +2319,13 @@ public class OrderEntryLoader extends Thread {
 			System.out.println("   " + String.format("%16s", "Schema" ) + " : " + schema);
 			System.out.println("   " + String.format("%16s", "ScaleFactor" ) + " : " + scale_factor);
 			System.out.println("   " + String.format("%16s", "Streams" ) + " : " + number_of_streams);
+			if (start_sf > -1) { System.out.println("   " + String.format("%16s", "Streamrange" ) + " : " + start_sf + " - " + end_sf); }
 			if (option_dropcreate) { System.out.println("   " + String.format("%16s", "DropCreate" ) + " : " + option_dropcreate); }
 			if (option_drop) { System.out.println("   " + String.format("%16s", "Drop" ) + " : " + option_drop); }
 			if (option_createschema) { System.out.println("   " + String.format("%16s", "CreateSchema" ) + " : " + option_createschema); }
 			if (option_create) { System.out.println("   " + String.format("%16s", "Create" ) + " : " + option_create); }
 			if (option_delete) { System.out.println("   " + String.format("%16s", "Delete" ) + " : " + option_delete); }
-			if (option_maintain) { System.out.println("   " + String.format("%16s", "Maintian" ) + " : " + option_maintain); }
+			if (option_maintain) { System.out.println("   " + String.format("%16s", "Maintain" ) + " : " + option_maintain); }
 			if (option_check) { System.out.println("   " + String.format("%16s", "Check" ) + " : " + option_check); }
 			if (option_load) { System.out.println("   " + String.format("%16s", "Load" ) + " : " + option_load); }
 
@@ -2316,6 +2337,7 @@ public class OrderEntryLoader extends Thread {
 			if (option_salt) { System.out.println("   " + String.format("%16s", "Salt" ) + " : " + saltsize); }
 			if (option_compression) { System.out.println("   " + String.format("%16s", "Compression" ) + " : " + option_compression); }
 			if (option_randomload) { System.out.println("   " + String.format("%16s", "RandomLoad" ) + " : " + option_randomload); }
+			if (option_aligned) { System.out.println("   " + String.format("%16s", "Aligned" ) + " : " + option_aligned); }
 
 			System.out.println("   " + String.format("%16s", "IntervalLength" ) + " : " + length_of_interval);
 			if (timer_minutes != 0) { System.out.println("   " + String.format("%16s", "TimerMinutes" ) + " : " + timer_minutes); }
