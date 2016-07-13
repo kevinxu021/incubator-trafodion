@@ -742,6 +742,8 @@ short FileScan::genForOrc(Generator * generator,
          
           ValueId &colValId = ppi.colValId();
           char * colName = NULL;
+	  NAString colType;
+
           if (colValId != NULL_VALUE_ID)
             {
               ItemExpr * ie = colValId.getItemExpr();
@@ -770,6 +772,7 @@ short FileScan::genForOrc(Generator * generator,
 
               const NAType &typ = operValId.getType();
               Lng32 dl = typ.getDisplayLength();
+	      colType = typ.getTypeName();
               
               if (typ.getTypeQualifier() != NA_CHARACTER_TYPE)
                 {
@@ -787,7 +790,7 @@ short FileScan::genForOrc(Generator * generator,
             }
 
           ComTdbOrcPPI * tdbPPI = 
-            new(space) ComTdbOrcPPI(type, colName, operAttrIndex);
+            new(space) ComTdbOrcPPI(type, colName, operAttrIndex, colType);
           tdbListOfOrcPPI->insert(tdbPPI);
         } // for
 
