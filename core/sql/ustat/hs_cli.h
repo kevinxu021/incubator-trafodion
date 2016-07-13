@@ -416,7 +416,9 @@ class HSPersSamples
          Lng32 updIUSUpdateInfo(HSTableDef* tblDef,
                                 const char* updHistory,
                                 const char* updTimestampStr,
-                                const char* updWhereCondition);
+                                const char* updWhereCondition,
+                                const Int64* requestedSampleRows = NULL,
+                                const Int64* actualSampleRows = NULL);
 
          Lng32 readIUSUpdateInfo(HSTableDef* tblDef,
                                  char* updHistory,
