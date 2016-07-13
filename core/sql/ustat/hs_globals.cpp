@@ -6687,6 +6687,7 @@ Lng32 HSGlobalsClass::UpdateIUSPersistentSampleTable(Int64 oldSampleSize,
   HSHandleError(retcode);
   newSampleSize += rowsAffected;
 
+  // Save sample count values to update row in SB_PERSISTENT_SAMPLES table.
   PST_IUSrequestedSampleRows_ = new(STMTHEAP) Int64;
   *PST_IUSrequestedSampleRows_ = requestedSampleSize;
   PST_IUSactualSampleRows_ = new(STMTHEAP) Int64;
