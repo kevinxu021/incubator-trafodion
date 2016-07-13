@@ -55,6 +55,7 @@ public class DebitCreditLoader extends Thread {
 	public static volatile int commitsize = 1;
 	public static volatile boolean option_trace = false;
 	public static volatile boolean option_debug = false;
+        public static volatile boolean option_aligned = false;
 	public static volatile String option_table_name = null;
 	public static volatile boolean option_responsecurve = false;
 	public static volatile boolean option_perstreamsummary = false;
@@ -518,6 +519,10 @@ public class DebitCreditLoader extends Thread {
 
 					default:
 				}
+
+                                if ( option_aligned) {
+                                        sql_statement = sql_statement + " attribute aligned format ";
+                                }
 
 				if ( option_compression) {
 					sql_statement = sql_statement + " hbase_options ( compression = 'LZ4')";
@@ -1581,11 +1586,12 @@ public class DebitCreditLoader extends Thread {
 				+ "     batchsize <batchsize> : Load using jdbc batches of the given size.\n"
 				+ "     commitsize <commitsize> : Disable Autocommit and commit every <commitsize> rows_added.\n"
 				+ "     salt <saltsize> : Create the table with salting.\n"
+                                + "     aligned : Create each table with aligned format attribute.\n"
 				+ "     compression : Create the table with compression.\n"
 				+ "     upsert : Use upsert syntax instead of insert syntax.\n"
 				+ "     usingload : Use using load syntax in insert/upsert.\n"
 				+ "     randomload : Will load in a random permutations of key values.\n"
-				+ "     intervallength <length_of_interval> : Lenght of reporting interval in seconds.(Default 10)\n"
+				+ "     intervallength <length_of_interval> : Length of reporting interval in seconds.(Default 10)\n"
 				+ "     trace : Enable Statement Tracing.\n"
 				+ "     debug : Enable Debug Tracing.\n"
 				;
@@ -1630,6 +1636,7 @@ public class DebitCreditLoader extends Thread {
 					case "intervallength": length_of_interval = Integer.parseInt(args[++indx]); break;
 					case "trace": option_trace = true; break;
 					case "debug": option_debug = true; break;
+                                        case "aligned": option_aligned = true; break;
 					default: {
 						System.out.println(syntax);
 						throw new Exception("ERROR : Invalid option specified ( option = " + option + " )");
@@ -1691,7 +1698,7 @@ public class DebitCreditLoader extends Thread {
 			if (option_createschema) { System.out.println("   " + String.format("%16s", "CreateSchema" ) + " : " + option_createschema); }
 			if (option_create) { System.out.println("   " + String.format("%16s", "Create" ) + " : " + option_create); }
 			if (option_delete) { System.out.println("   " + String.format("%16s", "Delete" ) + " : " + option_delete); }
-			if (option_maintain) { System.out.println("   " + String.format("%16s", "Maintian" ) + " : " + option_maintain); }
+			if (option_maintain) { System.out.println("   " + String.format("%16s", "Maintain" ) + " : " + option_maintain); }
 			if (option_check) { System.out.println("   " + String.format("%16s", "Check" ) + " : " + option_check); }
 			if (option_load) { System.out.println("   " + String.format("%16s", "Load" ) + " : " + option_load); }
 
@@ -1703,7 +1710,7 @@ public class DebitCreditLoader extends Thread {
 			if (option_salt) { System.out.println("   " + String.format("%16s", "Salt" ) + " : " + saltsize); }
 			if (option_compression) { System.out.println("   " + String.format("%16s", "Compression" ) + " : " + option_compression); }
 			if (option_randomload) { System.out.println("   " + String.format("%16s", "RandomLoad" ) + " : " + option_randomload); }
-
+                        if (option_aligned) { System.out.println("   " + String.format("%16s", "Aligned" ) + " : " + option_aligned); }
 			if ( number_of_intervals != VERY_LONG_TIME ) { System.out.println("   " + String.format("%16s", "Intervals" ) + " : " + number_of_intervals); }
 			System.out.println("   " + String.format("%16s", "IntervalLength" ) + " : " + length_of_interval);
 			if (option_trace) { System.out.println("   " + String.format("%16s", "Trace" ) + " : " + option_trace); }
