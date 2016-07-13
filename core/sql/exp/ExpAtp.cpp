@@ -285,11 +285,27 @@ void atp_struct::print(char* title, Int16 dt, char* ptr, UInt32 len)
              cout << ptr[i];
         }
         break;
+      case REC_BIN32_UNSIGNED: 
+        {
+           cout << *(unsigned int*)ptr;
+        }
+        break;
+      case REC_BIN32_SIGNED: 
+        {
+           cout << *(int*)ptr;
+        }
+        break;
+      case REC_BIN64_SIGNED: 
+        {
+           cout << *(long*)ptr;
+        }
+        break;
 
       default:
-         cout << "unimplemented, skip for now";
+        cout << "unimplemented, skip for now";
         break;
    }
+
    cout << "\"" << endl;
 }
 

@@ -1,5 +1,3 @@
--- test for CREATE TABLE LIKE
---
 -- @@@ START COPYRIGHT @@@
 --
 -- Licensed to the Apache Software Foundation (ASF) under one
@@ -20,7 +18,9 @@
 -- under the License.
 --
 -- @@@ END COPYRIGHT @@@
-
+--
+-- test for CREATE TABLE LIKE
+--
 log LOG040 clear;
 
 ?section set_up
