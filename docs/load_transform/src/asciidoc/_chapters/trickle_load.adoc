@@ -321,6 +321,8 @@ src=TRAFODION.MAURIZIO.PART:splitby=P_PARTKEY
 src=TRAFODION.MAURIZIO.LINEITEM:splitby=L_PARTKEY
 ```
 
+<<<
+
 [[trickle-load-odb-extract]]
 === odb Extract
 
