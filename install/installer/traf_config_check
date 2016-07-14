@@ -662,8 +662,17 @@ source $TRAF_CONFIG
 }
 
 function setHBaseDistro {
+if [[ "$HADOOP_TYPE" == "mapr" ]]; then
+   export HBASE_DISTRO="MAPR"
+fi
 
-export HBASE_DISTRO="APACHE" 
+if [[ "$HADOOP_TYPE" == "apache" ]]; then
+   export HBASE_DISTRO="APACHE"
+fi
+
+if [[ "$HADOOP_TYPE" == "hortonworks" ]]; then
+   export HBASE_DISTRO="HDP"
+fi
 
 sudo chmod 777 $TRAF_CONFIG
 sed -i '/HBASE_DISTRO\=/d' $TRAF_CONFIG
@@ -676,6 +685,10 @@ source $TRAF_CONFIG
 function getHadoopNodes {
 
 echo "***INFO: Getting list of all $HADOOP_TYPE nodes"
+
+if [[ "$HADOOP_TYPE" == "mapr" ]]; then
+   HADOOP_TYPE="apache"
+fi
 
 if [[ $MULTI_CLUSTER == "N" ]] && [[ $HADOOP_TYPE != "apache" ]]; then
    $LOCAL_WORKDIR/traf_getHadoopNodes
@@ -1131,7 +1144,7 @@ checkEPEL
 
 checkHadoopSupport
 
-if [[ "$HADOOP_TYPE" != "apache" ]]; then
+if [[ "$HADOOP_TYPE" != "apache" ]] && [[ "$HADOOP_TYPE" != "mapr" ]]; then
    checkBackupUser
 
    checkHadoopUserPass
@@ -1140,14 +1153,17 @@ if [[ "$HADOOP_TYPE" != "apache" ]]; then
 
 fi
 
-if [[ "$HADOOP_TYPE" == "apache" ]]; then
+if [[ "$HADOOP_TYPE" == "apache" ]] && [[ "$HADOOP_TYPE" != "mapr" ]]; then
    setPath
-   setHBaseDistro
 fi
+
+setHBaseDistro
 
 getHadoopNodes
 
-checkHadoopNames
+if [[ "$HADOOP_TYPE" != "mapr" ]]; then
+   checkHadoopNames
+fi
 
 checkSQROOT
 
