@@ -28,9 +28,9 @@
   <artifactId>jdbct4-ref-guide</artifactId>
   <version>${env.TRAFODION_VER}</version>
   <packaging>pom</packaging>
-  <name>Trafodion JDBC Type 4 Programmer's Reference Guide</name>
+  <name>EsgynDB JDBC Type 4 Programmer's Reference Guide</name>
   <description>This document describes how to use the JDBC Type 4 Driver.</description>
-  <url>http://trafodion.incubator.apache.org</url>
+  <url>http://esgyn.com</url>
   <inceptionYear>2015</inceptionYear>
 
   <parent>
@@ -184,12 +184,13 @@
                 <!-- Location of centralized stylesheet -->
                 <stylesheet>${basedir}/../shared/trafodion-manuals.css</stylesheet>
                 <project-version>${env.TRAFODION_VER}</project-version>
-                <project-name>Trafodion</project-name>
-                <project-logo>${basedir}/../shared/trafodion-logo.jpg</project-logo>
-                <project-support>user@trafodion.incubator.apache.org</project-support>
-                <docs-url>http://trafodion.incubator.apache.org/docs</docs-url>
+                <project-name>EsgynDB</project-name>
+                <project-logo>${basedir}/../shared/esgyn-logo.jpg</project-logo>
+                <project-support>https://esgyn.com/forms/report-problem</project-support>
+                <docs-url>http://esgyn.com/docs</docs-url>
+                <download-url>https://esgyn.com/developers/</download-url>
                 <build-date>${maven.build.timestamp}</build-date>
-                <google-analytics-account>UA-72491210-1</google-analytics-account>
+                <google-analytics-account>UA-65582244-1</google-analytics-account>
               </attributes>
             </configuration>
           </execution>
@@ -213,10 +214,11 @@
                 <idprefix/>
                 <idseparator>-</idseparator>
                 <project-version>${env.TRAFODION_VER}</project-version>
-                <project-name>Trafodion</project-name>
-                <project-logo>${basedir}/../shared/trafodion-logo.jpg</project-logo>
-                <project-support>user@trafodion.incubator.apache.org</project-support>
-                <docs-url>http://trafodion.incubator.apache.org/docs</docs-url>
+                <project-name>EsgynDB</project-name>
+                <project-logo>${basedir}/../shared/esgyn-logo.jpg</project-logo>
+                <project-support>https://esgyn.com/forms/report-problem</project-support>
+                <docs-url>http://esgyn.com/docs</docs-url>
+                <download-url>https://esgyn.com/developers/</download-url>
                 <build-date>${maven.build.timestamp}</build-date>
               </attributes>
             </configuration>
