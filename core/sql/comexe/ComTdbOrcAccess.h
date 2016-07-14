@@ -29,11 +29,13 @@ class ComTdbOrcPPI : public NAVersionedObject
 {
 public:
   ComTdbOrcPPI(OrcPushdownOperatorType type, char * colName,
-               Lng32 operAttrIndex)
+               Lng32 operAttrIndex,
+	       NAString colType)
        :  NAVersionedObject(-1),
           type_((short)type),
           colName_(colName),
-          operAttrIndex_(operAttrIndex)
+          operAttrIndex_(operAttrIndex),
+          colType_(colType)
   {}
   
   virtual unsigned char getClassVersionID()
@@ -54,10 +56,12 @@ public:
   
   OrcPushdownOperatorType type() { return (OrcPushdownOperatorType)type_; }
   char * colName() { return colName_; }
+  NAString colType() { return colType_; }
   Lng32 operAttrIndex() { return operAttrIndex_; }
   Lng32 type_;
   Lng32 operAttrIndex_;
   NABasicPtr colName_;
+  NAString colType_;
 };
 
 // ComTdbOrcAccess

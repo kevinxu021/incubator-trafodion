@@ -174,16 +174,22 @@
 			<!-- The development profile is active by default -->
 			<activation>
 				<activeByDefault>true</activeByDefault>
+                                 <jdk>[1.8,)</jdk>
 			</activation>
 			<properties>
 				<env.TRAFODION_VER>2.2.0</env.TRAFODION_VER>
+                                <additionalparam>-Xdoclint:none</additionalparam>
 			</properties>
 		</profile>
 		<!-- The configuration of the production profile -->
 		<profile>
 			<id>prod</id>
-			<properties>
-			</properties>
+                           <activation>
+                              <jdk>[1.8,)</jdk>
+                           </activation>
+                           <properties>
+                              <additionalparam>-Xdoclint:none</additionalparam>
+			   </properties>
 		</profile>
 	</profiles>
 	<build>
@@ -213,12 +219,11 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>2.5.1</version>
-				<inherited>true</inherited>
-				<configuration>
-					<source>1.7</source>
-					<target>1.7</target>
-				</configuration>
+				<version>3.5.1</version>
+                                <configuration>
+                                   <source>1.7</source>
+                                   <target>1.7</target>
+                                </configuration>
 			</plugin>
 			<!-- This plugin is needed for running a servlet -->
 			<plugin>

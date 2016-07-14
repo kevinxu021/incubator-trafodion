@@ -313,7 +313,7 @@ void CmpSeabaseDDL::createSeabaseLibrary(
      
   ExpHbaseInterface * ehi = NULL;
 
-  ehi = allocEHI();
+  ehi = allocEHI(FALSE);
   if (ehi == NULL)
     {
       processReturn();
@@ -449,7 +449,7 @@ void CmpSeabaseDDL::dropSeabaseLibrary(StmtDDLDropLibrary * dropLibraryNode,
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
     CmpCommon::context()->sqlSession()->getParentQid());
 
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(FALSE);
   if (ehi == NULL)
     return;
 
@@ -525,7 +525,7 @@ void CmpSeabaseDDL::dropSeabaseLibrary(StmtDDLDropLibrary * dropLibraryNode,
      if (dropSeabaseObject(ehi, routineName,
                            currCatName, currSchName, objectType,
                            dropLibraryNode->ddlXns(),
-                           TRUE, FALSE))
+                           TRUE, FALSE, FALSE))
      {
        deallocEHI(ehi); 
        processReturn();
@@ -553,7 +553,7 @@ void CmpSeabaseDDL::dropSeabaseLibrary(StmtDDLDropLibrary * dropLibraryNode,
   if (dropSeabaseObject(ehi, objName,
                         currCatName, currSchName, COM_LIBRARY_OBJECT,
                         dropLibraryNode->ddlXns(),
-                        TRUE, FALSE))
+                        TRUE, FALSE, FALSE))
     {
       deallocEHI(ehi); 
       processReturn();
@@ -744,7 +744,7 @@ void CmpSeabaseDDL::createSeabaseRoutine(
   
   ExpHbaseInterface * ehi = NULL;
 
-  ehi = allocEHI();
+  ehi = allocEHI(FALSE);
   if (ehi == NULL)
     {
       processReturn();
@@ -1326,7 +1326,7 @@ void CmpSeabaseDDL::dropSeabaseRoutine(StmtDDLDropRoutine * dropRoutineNode,
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
     CmpCommon::context()->sqlSession()->getParentQid());
 
-  ehi = allocEHI();
+  ehi = allocEHI(FALSE);
   if (ehi == NULL)
     {
       processReturn();
@@ -1460,7 +1460,7 @@ void CmpSeabaseDDL::dropSeabaseRoutine(StmtDDLDropRoutine * dropRoutineNode,
                         currCatName, currSchName, 
                         COM_USER_DEFINED_ROUTINE_OBJECT,
                         dropRoutineNode->ddlXns(),
-                        TRUE, FALSE))
+                        TRUE, FALSE, FALSE))
     {
       deallocEHI(ehi); 
       processReturn();

@@ -4,6 +4,7 @@ USAGE="usage: load.orderentry.sh
     [ -sc|--scale|scale <<scalefactor>> ]
     [ -s|--streams|streams <<streams>> ] 
     [ -p|--partitions|partitions <<partitions>> ] 
+    [ -a|--aligned|aligned ]
     [ -c|--compress|compress ]
     [ -d|--debug|debug ]
     [ -id|--testid|testid <<testid>> ]
@@ -19,6 +20,7 @@ TESTID=$(date +%y%m%d.%H%M)
 SCALE=$DEBITCREDIT_SCALE
 if (( $MAX_MXOSRVR < 32 )) ; then STREAMS=$MAX_MXOSRVR; else STREAMS=32; fi
 OPTION_COMPRESS=FALSE
+OPTION_ALIGNED=""
 PARTITIONS=$SYSTEM_DEFAULT_PARTITIONS
 
 while [[ $# > 0 ]] ; do
@@ -29,6 +31,7 @@ case ${key,,} in
     -sc|--scale|scale)			SCALE="$1"; shift;;
     -s|--streams|streams)		STREAMS="$1"; shift;;
     -p|--partitions|partitions)		PARTITIONS="$1"; shift;; 
+    -a|--aligned|aligned)  		OPTION_ALIGNED="aligned"; shift;; 
     -c|--compress|compress)		OPTION_COMPRESS="TRUE";;
     -id|--testid|testid)		export TESTID="$1"; shift;;
     -o|--options|options)		OPTIONS="$1"; shift;;
@@ -92,9 +95,9 @@ case ${DATABASE,,} in
 
 		java -Ddbconnect.properties=${DATABASE,,}.properties \
 		  OrderEntryLoader $SCALE schema ${SCHEMA} \
-		  createschema dropcreate salt $PARTITIONS ${OPTIONS}
+		  createschema dropcreate salt $PARTITIONS ${OPTION_ALIGNED} ${OPTIONS}
 
-		# allign
+		# align
 		
 		REGIONSERVERS=($(curl -sS --noproxy '*' http://${SYSTEM_NAMEMGR_URL}:${SYSTEM_NAMEMGR_PORT}/master-status?filter=all#baseStats \
 		  | grep href | grep ",${SYSTEM_REGIONSERVER_PORT}," | sort -u | sed 's/<\/a>//g'| sed 's/<[^][]*>//g' | sed 's/ //g'))

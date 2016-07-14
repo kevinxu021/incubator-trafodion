@@ -733,25 +733,23 @@ public class HBaseClient {
             return true;
     }
 
-    public byte[][] listAll(String pattern) 
+    public String[] listAll(String pattern) 
              throws MasterNotRunningException, IOException {
             if (logger.isDebugEnabled()) logger.debug("HBaseClient.listAll(" + pattern + ") called.");
             HBaseAdmin admin = new HBaseAdmin(config);
 
 	    HTableDescriptor[] htdl = 
                 (pattern.isEmpty() ? admin.listTables() : admin.listTables(pattern));
-            byte[][] hbaseTables = new byte[htdl.length][];
+            if (htdl.length == 0) {
+               admin.close(); 
+               return null;
+            }
+            String[] hbaseTables = new String[htdl.length];
             int i=0;
 	    for (HTableDescriptor htd : htdl) {
-		String tblName = htd.getNameAsString();
-
-                byte[] b = tblName.getBytes();
-                hbaseTables[i++] = b;
+                hbaseTables[i++] = htd.getNameAsString();
 	    }
- 	    
             admin.close();
-            cleanup();
-            
             return hbaseTables;
     }
 

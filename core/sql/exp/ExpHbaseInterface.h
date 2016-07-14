@@ -53,6 +53,9 @@
 #include "ExpHbaseDefs.h"
 
 #include "HBaseClient_JNI.h"
+#include "MonarchClient_JNI.h"
+#include "ComTdbHbaseAccess.h"
+#include "CmpSeabaseDDLincludes.h"
 
 #define INLINE_COLNAME_LEN 256
 
@@ -63,16 +66,15 @@ class ExHbaseAccessStats;
 Int64 getTransactionIDFromContext();
 Int32 checkAndWaitSnapshotInProgress();
 
-
-// ===========================================================================
 class ExpHbaseInterface : public NABasicObject
 {
  public:
   NAHeap *getHeap() { return (NAHeap*)heap_; }
   static ExpHbaseInterface* newInstance(CollHeap* heap, 
-                                        const char* server = NULL, 
-                                        const char *zkPort = NULL, 
-					NABoolean replSync = false,
+                                        const char* server, 
+                                        const char *zkPort, 
+                                        ComStorageType storageType,
+					NABoolean replSync,
                                         int debugPort = 0, 
                                         int DebugTimeout = 0);
 
@@ -96,7 +98,19 @@ class ExpHbaseInterface : public NABasicObject
                        int numSplits, int keyLength,
                        const char ** splitValues,
                        NABoolean noXn,
-                       NABoolean isMVCC) =0;
+                       NABoolean isMVCC) = 0;
+
+  virtual Lng32 create(HbaseStr &tblName,
+                       const NAList<HbaseStr> &cols) = 0;
+
+  virtual Lng32 create(HbaseStr &tblName,
+                                    int tableType,
+                                    const NAList<HbaseStr> &cols,
+                                    NAText * monarchCreateOptionsArray,
+                                    int numSplits, int keyLength,
+                                    const char ** splitValues,
+                                    NABoolean noXn,
+                                    NABoolean isMVCC) = 0;
 
   virtual Lng32 alter(HbaseStr &tblName,
 		      NAText * hbaseCreateOptionsArray,
@@ -413,7 +427,7 @@ protected:
                     const char * zkPort = NULL,
                     int debugPort = 0,
                     int debugTimeout = 0);
-  
+
   CollHeap * heap_;
   ExHbaseAccessStats * hbs_;
   char server_[MAX_SERVER_SIZE+1];
@@ -431,7 +445,8 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
 
   ExpHbaseInterface_JNI(CollHeap* heap,
                         const char* server, bool useTRex, NABoolean replSync, 
-                        const char *zkPort, int debugPort, int debugTimeout);
+                        const char *zkPort, int debugPort, int debugTimeout,
+                        ComStorageType storageType = COM_STORAGE_HBASE);
   
   virtual ~ExpHbaseInterface_JNI();
   
@@ -453,6 +468,18 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
                        const char ** splitValues,
                        NABoolean noXn,
                        NABoolean isMVCC);
+
+  virtual Lng32 create(HbaseStr &tblName,
+                       const NAList<HbaseStr> &cols);
+
+  virtual Lng32 create(HbaseStr &tblName,
+                                    int tableType,
+                                    const NAList<HbaseStr> &cols,
+                                    NAText * monarchCreateOptionsArray,
+                                    int numSplits, int keyLength,
+                                    const char ** splitValues,
+                                    NABoolean noXn,
+                                    NABoolean isMVCC);
 
   virtual Lng32 alter(HbaseStr &tblName,
 		      NAText * hbaseCreateOptionsArray,
@@ -747,6 +774,10 @@ private:
   HiveClient_JNI* hive_;
   HTableClient_JNI *asyncHtc_;
   Int32  retCode_;
+  ComStorageType storageType_;
+  MonarchClient_JNI *mClient_;
+  MTableClient_JNI *mtc_;
+  MTableClient_JNI *asyncMtc_;
 };
 
 #endif

@@ -22,7 +22,6 @@
 #######################################################################
 
 INCLUDE_DIRS += sqludr
-
 # Define the correct compilation and linking flags depending on whether
 # this is a debug or release build.
 ifeq ($(FLAVOR),debug)
@@ -37,7 +36,10 @@ endif
 # if the necessary DLL is present
 CXXFLAGS += -DNA_DEBUG_GUI
 
+SYS_LIBS += -lprotobuf -lsnappy -lorc
+
 SRCPATH += common
+
 CPPSRC := \
 	AccessSets.cpp \
 	Analyzer.cpp \
@@ -151,4 +153,6 @@ CPPSRC := \
 	HbaseSearchSpec.cpp \
 	vers_liboptimizer.cpp \
 	orcPushdownPredInfo.cpp
+
+
 
