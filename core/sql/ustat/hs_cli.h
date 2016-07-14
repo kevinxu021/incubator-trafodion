@@ -424,7 +424,7 @@ class HSPersSamples
 
          // finds a persistent sample table for UID and reason code and returns it in 'table'.
          // (returns ' ' in table if none is found).
-         Lng32 find(HSTableDef *tabDef, NAString &table,
+         Lng32 find(HSTableDef *tabDef, char reason, NAString &table,
                     Int64 &requestedRows, Int64 &sampleRows, double &sampleRate);
 
          // finds a persistent sample table for UID and sample size and returns in 'table'.
@@ -438,10 +438,6 @@ class HSPersSamples
                               NABoolean isEstimate, char reason,
                               NABoolean createDandI=FALSE,
                               Int64 minRowsCtPerPartition = -1);
-         Lng32 createAndInsert(HSTableDef *tabDef, NAString &sampleName,
-                              Int64 &sampleRows, Int64 &actualRows, 
-                              NABoolean isEstimate, NABoolean isManual,
-                              Int64 minRowsCtPerPartition = -1);
 
           // remove persistent sample table(s) based on uid, sampleRows, and the
           // allowed difference between the number of rows and sampleRows.
@@ -450,7 +446,7 @@ class HSPersSamples
          // drop the named sample table and remove its entry from the
          // PERSISTENT_SAMPLES table.
          Lng32 removeSample(HSTableDef* tabDef, NAString& sampTblName,
-                            const char* txnLabel);
+                            char reason, const char* txnLabel);
 
          ~HSPersSamples();
 
