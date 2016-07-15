@@ -361,6 +361,7 @@ ExHbaseAccessTcb::ExHbaseAccessTcb(
 					(char*)hbaseAccessTdb.server_, 
 					//                                        (char*)"2181", 
 					(char*)hbaseAccessTdb.zkPort_,
+                                        ((ComTdbHbaseAccess &) hbaseAccessTdb).getStorageType(),
 					((ComTdbHbaseAccess &) hbaseAccessTdb).replSync(),
                                         jniDebugPort,
                                         jniDebugTimeout);
@@ -713,7 +714,9 @@ short ExHbaseAccessTcb::setupError(Lng32 retcode, const char * str, const char *
       Lng32 intParam1 = -retcode;
       ComDiagsArea * diagsArea = NULL;
       ExRaiseSqlError(getHeap(), &diagsArea, 
-		      (ExeErrorCode)(8448), NULL, &intParam1, 
+                      (hbaseAccessTdb().getStorageType() == COM_STORAGE_HBASE
+                       ? (ExeErrorCode)(8448) : (ExeErrorCode)(8451)),
+                      NULL, &intParam1, 
 		      &cliError, NULL, 
 		      (str ? (char*)str : (char*)" "),
 		      getHbaseErrStr(retcode),
@@ -1178,17 +1181,17 @@ Lng32 ExHbaseAccessTcb::createSQRowFromHbaseFormat(Int64 *latestRowTimestamp)
               Int64 v = 0;
               if (colName.length() == sizeof(char))
                 v = *(char*)colName.data();
-              else if (colName.length() == sizeof(unsigned short))
+              else if (colName.length() == sizeof(UInt16))
                 v = *(UInt16*)colName.data();
-              else if (colName.length() == sizeof(Lng32))
+              else if (colName.length() == sizeof(ULng32))
                 v = *(ULng32*)colName.data();
 
-              char buf[10];
+              char buf[20];
               str_sprintf(buf, "%Ld", v);
               ComDiagsArea * diagsArea = NULL;
               ExRaiseSqlError(getHeap(), &diagsArea,
-                              (ExeErrorCode)(8034),
-                              NULL, NULL, NULL, NULL, buf);
+                              (ExeErrorCode)(EXE_DEFAULT_VALUE_INCONSISTENT_ERROR),
+                              NULL, NULL, NULL, NULL, buf, hbaseAccessTdb().getTableName());
               pentry_down->setDiagsArea(diagsArea);
               return -1;
             }

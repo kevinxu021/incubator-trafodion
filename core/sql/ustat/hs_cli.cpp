@@ -526,12 +526,14 @@ Lng32 HSSample::create(NAString& tblName, NABoolean unpartitioned, NABoolean isP
            tableOptions = " WITH PARTITIONS";
         // If a transaction is running, the table needs to be created as audited.
         // Otherwise, create table as non-audited.
+        /* TEMPTEMP. Dave need to validate this change.
         if (TM->InTransaction())
           tableOptions += " ATTRIBUTE AUDIT";
         else
           tableOptions += " ATTRIBUTE NO AUDIT";
 
         tableOptions += getTempTablePartitionInfo(unpartitioned, isPersSample);
+        */
 
         ddl  = "CREATE TABLE ";
         ddl += tempTabName;
@@ -1907,12 +1909,17 @@ void doubleUpSingleQuotes(const char *text, NAString & result)
 /*          updWhereCondition - if not null, the where predicate of  */
 /*          the last completed IUS operation. (If null, we don't     */
 /*          update this column.)                                     */
+/*          requestedSampleRows - if non-null, points to expected #  */
+/*          of rows in sample table (based on sampling rate).        */
+/*          actualSampleRows - if non-null, actual # of rows.        */
 /* RETCODE: Status code from the update operation.                   */
 /*********************************************************************/
 Lng32 HSPersSamples::updIUSUpdateInfo(HSTableDef* tblDef,
                                       const char* updHistory,
                                       const char* updTimestampStr,
-                                      const char* updWhereCondition)
+                                      const char* updWhereCondition,
+                                      const Int64* requestedSampleRows,
+                                      const Int64* actualSampleRows)
 {
   Lng32 retcode = 0;
   HSErrorCatcher errorCatcher(retcode, - UERR_INTERNAL_ERROR, "updIUSUpdateInfo", TRUE);
@@ -1932,8 +1939,7 @@ Lng32 HSPersSamples::updIUSUpdateInfo(HSTableDef* tblDef,
                                    STMTHEAP);
   NAString updTable = persSampTblObjName.getExternalName();
   Int64 uid = tblDef->getObjectUID();
-  char uidStr[30];
-  convertInt64ToAscii(uid,uidStr);
+  char buf[30];
 
   HSCursor writeIUSInfoCursor(STMTHEAP,"writeIUSUpdateInfo");
 
@@ -1967,8 +1973,21 @@ Lng32 HSPersSamples::updIUSUpdateInfo(HSTableDef* tblDef,
           query += "'";
         }
     }
+  if (requestedSampleRows)
+    {
+      convertInt64ToAscii(*requestedSampleRows, buf);
+      query += ", REQUESTED_SAMPLE_ROWS = ";
+      query += buf;
+    }
+  if (actualSampleRows)
+    {
+      convertInt64ToAscii(*actualSampleRows, buf);
+      query += ", ACTUAL_SAMPLE_ROWS = ";
+      query += buf;
+    }
   query += " WHERE TABLE_UID = ";
-  query += uidStr;
+  convertInt64ToAscii(uid,buf);
+  query += buf;
 
   retcode = writeIUSInfoCursor.prepareQuery(query, 0, 0);
   HSLogError(retcode);
@@ -3268,7 +3287,20 @@ Lng32 HSCursor::buildNAType()
 
       switch(datatype)
         {
-        case REC_BIN16_SIGNED:
+        case REC_BIN8_SIGNED:
+          if (precision <= 0)
+            length = 1;
+          type = ConstructNumericType(addr, i, length, precision, scale,
+                                      TRUE, nullflag, heap_);
+          break;
+        case REC_BIN8_UNSIGNED:
+          if (precision <= 0)
+            length = 1;
+          type = ConstructNumericType(addr, i, length, precision, scale,
+                                      FALSE, nullflag, heap_);
+          break;
+
+       case REC_BIN16_SIGNED:
           if (precision <= 0)
             length = 2;
 #pragma nowarn(1506)   // warning elimination
@@ -3285,6 +3317,7 @@ Lng32 HSCursor::buildNAType()
                                       FALSE, nullflag, heap_);
 #pragma warn(1506)  // warning elimination
           break;
+
         //
         //
         case REC_BIN32_SIGNED:
@@ -3317,12 +3350,6 @@ Lng32 HSCursor::buildNAType()
         //----------------------------------------------------------------
 	case REC_FLOAT32:
 	case REC_FLOAT64:
-	case REC_TDM_FLOAT32:
-	case REC_TDM_FLOAT64:
-	  if (datatype == REC_TDM_FLOAT32)
-	    datatype = REC_FLOAT32;
-	  else if (datatype == REC_TDM_FLOAT64)
-	    datatype = REC_FLOAT64;
 	  //datatype = ((precision <= SQL_REAL_PRECISION) ?
 	  //           REC_FLOAT32 : REC_FLOAT64);
 	  if (datatype == REC_FLOAT32)
@@ -3689,7 +3716,7 @@ Lng32 HSCursor::fetchCharNumColumn(const char *clistr, NAString &value1, Int64 &
   if (retcode_ && retcode_ != HS_EOF) HSHandleError(retcode_);
   if ((colDesc_[0].datatype != REC_BYTE_V_ASCII && colDesc_[0].datatype != REC_BYTE_V_DOUBLE) ||
        colDesc_[1].datatype != REC_BIN64_SIGNED ||
-      (colDesc_[2].datatype != REC_IEEE_FLOAT64 && colDesc_[2].datatype != REC_TDM_FLOAT64))
+      (colDesc_[2].datatype != REC_IEEE_FLOAT64))
     return -1; // Result should be VARCHAR, LARGEINT, and FLOAT64 datatypes.
 
   if (retcode_ != HS_EOF)
@@ -3717,18 +3744,6 @@ Lng32 HSCursor::fetchCharNumColumn(const char *clistr, NAString &value1, Int64 &
     double tmp3;
     if (colDesc_[2].datatype == REC_IEEE_FLOAT64)
       memcpy((char *) &tmp3, colDesc_[2].data, colDesc_[2].length);
-    else // REC_TDM_FLOAT64 - convert to IEEE float.
-    {
-      ComDiagsArea diagsArea;
-      ComDiagsArea *diagsAreaPtr = &diagsArea;
-      Lng32 dataConversionErrorFlag;
-      ex_expr::exp_return_type rc =
-        convDoIt(colDesc_[2].data, colDesc_[2].length, REC_TDM_FLOAT64, 0, 0,
-                 (char *)&tmp3,    sizeof(double),     REC_IEEE_FLOAT64, 0, 0,
-                 NULL, 0, heap_, &diagsAreaPtr, CONV_FLOAT64TDM_FLOAT64IEEE,
-                 &dataConversionErrorFlag, 0);
-      if (rc != ex_expr::EXPR_OK) return -1;
-    }
     value3 = tmp3;
   }
   else value1="";
@@ -6019,6 +6034,12 @@ void profileGaps(HSColGroupStruct *, boundarySet<Int32>*, double&, Int64&,
                  NABoolean);
 template
 void profileGaps(HSColGroupStruct *, boundarySet<UInt32>*, double&, Int64&,
+                 NABoolean);
+template
+void profileGaps(HSColGroupStruct *, boundarySet<Int8>*, double&, Int64&,
+                 NABoolean);
+template
+void profileGaps(HSColGroupStruct *, boundarySet<UInt8>*, double&, Int64&,
                  NABoolean);
 template
 void profileGaps(HSColGroupStruct *, boundarySet<short>*, double&, Int64&,

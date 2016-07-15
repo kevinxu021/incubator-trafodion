@@ -28,6 +28,7 @@ s/\\[A-Z0-9]\{1,\}\.[A-Z0-9][0-9]*,[A-Z0-9][0-9]*/@pid@/g
 s/\\[A-Z0-9]\{1,\}\.\$[A-Z0-9][0-9]*:[A-Z0-9][0-9]*/@pid@/g
 s/\\[A-Z0-9]\{1,\}\.\$:[A-Z0-9][0-9]*:[A-Z0-9][0-9]*:[A-Z0-9][0-9]*/@pid@/g
 s/\\[A-Z0-9]\{1,\}\.\$:[A-Z0-9][0-9]*:[A-Z0-9][0-9]*:[A-Z0-9][0-9]*/@pid@/g
+s/transid [0-9]*/transid @transid@/
 /\[MXUDR\] Container:/s/\(Container: \).*\(\/t100\)/\1@path@\2/
 #s/Conversational Interface [0-9][0-9.]*/Conversational Interface @version@/
 s/^[A-Za-z ]* Conversational Interface [0-9][0-9.]*/Conversational Interface @version@/

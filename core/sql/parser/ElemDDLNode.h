@@ -107,6 +107,7 @@ class ElemDDLFileAttrUID;
 class ElemDDLFileAttrRowFormat;
 class ElemDDLFileAttrColFam;
 class ElemDDLFileAttrXnRepl;
+class ElemDDLFileAttrStorageType;
 class ElemDDLFileAttrNoLabelUpdate;
 class ElemDDLFileAttrOwner;
 //++ MV
@@ -136,6 +137,7 @@ class ElemDDLLikeOptWithoutConstraints;
 class ElemDDLLikeOptWithHeadings;
 class ElemDDLLikeOptWithHorizontalPartitions;
 class ElemDDLLikeOptWithoutSalt;
+class ElemDDLLikeSaltClause;
 class ElemDDLLikeOptWithoutDivision;
 class ElemDDLList;
 class ElemDDLLocation;
@@ -428,6 +430,7 @@ public:
   virtual ElemDDLFileAttrRowFormat	* castToElemDDLFileAttrRowFormat();
   virtual ElemDDLFileAttrColFam	* castToElemDDLFileAttrColFam();
   virtual ElemDDLFileAttrXnRepl	* castToElemDDLFileAttrXnRepl();
+  virtual ElemDDLFileAttrStorageType	* castToElemDDLFileAttrStorageType();
   virtual ElemDDLFileAttrNoLabelUpdate  * castToElemDDLFileAttrNoLabelUpdate();
   virtual ElemDDLFileAttrOwner          * castToElemDDLFileAttrOwner();
 
@@ -458,6 +461,7 @@ public:
   virtual ElemDDLLikeOptWithHeadings    * castToElemDDLLikeOptWithHeadings();
   virtual ElemDDLLikeOptWithHorizontalPartitions    * castToElemDDLLikeOptWithHorizontalPartitions();
   virtual ElemDDLLikeOptWithoutSalt     * castToElemDDLLikeOptWithoutSalt();
+  virtual ElemDDLLikeSaltClause         * castToElemDDLLikeSaltClause();
   virtual ElemDDLLikeOptWithoutDivision * castToElemDDLLikeOptWithoutDivision();
   virtual ElemDDLList                   * castToElemDDLList();
   virtual ElemDDLLocation               * castToElemDDLLocation();

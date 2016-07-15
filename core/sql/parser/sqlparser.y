@@ -632,7 +632,6 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_DOT_STAR
 %token <tokval> TOK_DOUBLE
 %token <tokval> TOK_DOUBLE_IEEE
-%token <tokval> TOK_DOUBLE_TANDEM
 %token <tokval> TOK_DUPLICATE
 %token <tokval> TOK_DYNAMIC
 %token <tokval> TOK_DYNAMIC_FUNCTION    /* ANSI SQL non-reserved word */
@@ -680,7 +679,6 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_FIRST_FSCODE
 %token <tokval> TOK_FLOAT
 %token <tokval> TOK_FLOAT_IEEE
-%token <tokval> TOK_FLOAT_TANDEM
 %token <tokval> TOK_FLOOR
 %token <tokval> TOK_FN                  /* ODBC extension non-reserved word */
 %token <tokval> TOK_FOLLOWING
@@ -974,7 +972,6 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_READ
 %token <tokval> TOK_REAL
 %token <tokval> TOK_REAL_IEEE
-%token <tokval> TOK_REAL_TANDEM
 %token <tokval> TOK_RECOMPUTE             
 %token <tokval> TOK_RECORD_SEPARATOR
 %token <tokval> TOK_RECOVER
@@ -1328,6 +1325,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_LOCKING             /* TD extension that HP wants to ignore */
 %token <tokval> TOK_LOCKONREFRESH		// MV
 %token <tokval> TOK_M                   /* Tandem extension */
+%token <tokval> TOK_MONARCH
 %token <tokval> TOK_MOVE                /* Tandem extension */
 %token <tokval> TOK_MOVEMENT            /* Tandem extension */
 %token <tokval> TOK_MVLOG				// MV
@@ -1615,6 +1613,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
   ComObjectName                 *comObjectName;
   ComObjectType                 objectTypeEnum;
   ComPartitioningScheme         partitionType;
+  ComStorageType                storageTypeEnum;
   ComParamDirection             routineParamMode;
   ComRoutineExecutionMode       routineExecutionMode;
   ComRoutinePassThroughInputType passThroughInputType;
@@ -2035,6 +2034,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <na_type>   		proc_arg_data_type
 %type <na_type>   		data_type
 %type <na_type>   		Set_Cast_Global_False_and_data_type
+%type <na_type>   		routine_predef_type
 %type <na_type>   		predef_type
 %type <na_type>   		predefined_type
 %type <na_type>   		date_time_type
@@ -2655,6 +2655,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <pElemDDL>  		file_attribute_row_format_clause
 %type <pElemDDL>  		file_attribute_default_col_fam
 %type <pElemDDL>                file_attribute_str_clause
+%type <pElemDDL>                file_attribute_storage_clause
+%type <storageTypeEnum>         storage_type
 %type <pElemDDL>  		file_attribute_pos_clause
 %type <pElemDDL>                attribute_num_rows_clause
 %type <pElemDDL>                attribute_inmemory_options_clause
@@ -2872,6 +2874,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 
 %type <relx>                    exe_util_fast_delete
 %type <longint>                 purgedata_options
+%type <relx>                    exe_util_hive_truncate
 
 %type <relx>                    exe_util_get_metadata_info
 %type <relx>                    exe_util_get_version_info
@@ -9017,6 +9020,15 @@ string_function :
 		    $$ = new (PARSERHEAP()) Repeat ($3, $5);
 		  }
 
+     | TOK_REPEAT '(' value_expression ',' value_expression ',' NUMERIC_LITERAL_EXACT_NO_SCALE ')'
+                  {
+                    Int64 value = atoInt64($7->data()); 
+                    if (value == 0)
+                      value = -1; 
+		    $$ = new (PARSERHEAP()) Repeat 
+                      ($3, $5, (Int32)value);
+		  }
+
      | TOK_REPLACE '(' value_expression ',' value_expression ',' value_expression ')'
                   {
 		    $$ = new (PARSERHEAP()) Replace ($3, $5, $7);
@@ -10844,7 +10856,10 @@ int_type : TOK_INTEGER signed_option
        {
          // odbc SQL_TINYINT is exact numeric value with precision 3 &
          // scale 0. signed: -128<=n<=127, unsigned: 0<=n<=255.
-         $$ = new (PARSERHEAP()) SQLSmall( $2, TRUE);
+         if (CmpCommon::getDefault(TRAF_TINYINT_SUPPORT) == DF_OFF)
+           $$ = new (PARSERHEAP()) SQLSmall( $2, TRUE);
+         else
+           $$ = new (PARSERHEAP()) SQLTiny( $2, TRUE);
          // ((SQLSmall *)$$)->setDisplayDataType("TINYINT");
        }
 	 | TOK_BYTEINT signed_option
@@ -11096,34 +11111,14 @@ proc_arg_float_type : TOK_FLOAT_IEEE
              {
 		$$ = new (PARSERHEAP()) SQLDoublePrecision(TRUE, PARSERHEAP(), 0);
              }
-         | TOK_FLOAT_TANDEM
-             {
-		$$ = new (PARSERHEAP()) SQLDoublePrecisionTdm(TRUE, PARSERHEAP(), 0);
-             }
-	 | TOK_FLOAT_TANDEM left_unsigned_right
-             {
-#pragma nowarn(1506)  // warning elimination
-		$$ = new (PARSERHEAP()) SQLDoublePrecisionTdm(TRUE, NULL, $2);
-#pragma warn(1506)  // warning elimination
-                if (! ((SQLDoublePrecision *)$$)->checkValid(SqlParser_Diags))
-                   YYERROR;
-             }
-	 | TOK_REAL_TANDEM
-             {
-		$$ = new (PARSERHEAP()) SQLRealTdm(TRUE, PARSERHEAP(), 0);
-             }
-	 | TOK_DOUBLE_TANDEM
-             {
-		$$ = new (PARSERHEAP()) SQLDoublePrecisionTdm(TRUE, PARSERHEAP(), 0);
-             }
 	 | TOK_FLOAT
              {
-		$$ = new (PARSERHEAP()) SQLDoublePrecisionTdm(TRUE, PARSERHEAP(), 0);
+		$$ = new (PARSERHEAP()) SQLDoublePrecision(TRUE, PARSERHEAP(), 0);
              }
 	 | TOK_FLOAT left_unsigned_right
              {
 #pragma nowarn(1506)  // warning elimination
-		$$ = new (PARSERHEAP()) SQLDoublePrecisionTdm(TRUE, NULL, $2);
+		$$ = new (PARSERHEAP()) SQLDoublePrecision(TRUE, NULL, $2);
 #pragma warn(1506)  // warning elimination
                 if (! ((SQLDoublePrecision *)$$)->checkValid(SqlParser_Diags))
                    YYERROR;
@@ -14798,6 +14793,10 @@ interactive_query_expression:
                                 {
 				  $$ = finalize($1);
 				}
+              | exe_util_hive_truncate
+                                {
+				  $$ = finalize($1);
+				}
               | exe_util_get_uid
                                 {
 				  $$ = finalize($1);
@@ -15638,13 +15637,15 @@ exe_util_get_metadata_info :
             delete $6; // component_name
             delete $7; // user_name
           }
-       | TOK_GET get_info_aus_clause TOK_HBASE TOK_OBJECTS
+       | TOK_GET get_info_aus_clause storage_type TOK_OBJECTS
          {
            NAString ausStr(*$2);
            if (*$2 == "NONE")
              ausStr = "USER";
 
-           NAString infoType("HBASE_OBJECTS");
+           NAString infoType =  (($3 == COM_STORAGE_MONARCH) ? 
+           "MONARCH_OBJECTS" : "HBASE_OBJECTS");
+            
            NAString iofStr;
            NAString objectType;
            CorrName objectName("DUMMY");
@@ -15666,13 +15667,14 @@ exe_util_get_metadata_info :
 
            $$ = gmi;
          }
-       | TOK_GET get_info_aus_clause TOK_HBASE TOK_OBJECTS ',' TOK_MATCH QUOTED_STRING
+       | TOK_GET get_info_aus_clause storage_type TOK_OBJECTS ',' TOK_MATCH QUOTED_STRING
          {
            NAString ausStr(*$2);
            if (*$2 == "NONE")
              ausStr = "USER";
 
-           NAString infoType("HBASE_OBJECTS");
+           NAString infoType =  (($3 == COM_STORAGE_MONARCH) ? 
+           "MONARCH_OBJECTS" : "HBASE_OBJECTS");
            NAString iofStr;
            NAString objectType;
            CorrName objectName("DUMMY");
@@ -17717,11 +17719,6 @@ optional_mt_options :   QUOTED_STRING
 
 exe_util_fast_delete:  TOK_PURGEDATA table_name purgedata_options
 		     {
-		       if (CmpCommon::getDefault(EXE_PARALLEL_PURGEDATA) == DF_OFF)
-			 {
-			   YYERROR;
-			 }
-
 		       short noLog = ($3 & 0x1) != 0;
 		       short ignoreTrigger = ($3 & 0x2) != 0;
 
@@ -17743,8 +17740,6 @@ exe_util_fast_delete:  TOK_PURGEDATA table_name purgedata_options
 					   FALSE,
 					   noLog,
 					   ignoreTrigger,
-					   // (($3 == 1) || ($3 == 3)),
-					   // (($3 == 2) || ($3 == 3)),
 					   TRUE,
 					   PARSERHEAP());
 		       
@@ -17764,6 +17759,24 @@ purgedata_options : /*empty*/ { $$ = 0; }
                   | TOK_NOLOG TOK_WAITEDIO TOK_IGNORE_TRIGGER { $$ = 7; }
                   | TOK_IGNORE_TRIGGER TOK_WAITEDIO TOK_NOLOG { $$ = 7; }
 
+exe_util_hive_truncate:  TOK_TRUNCATE table_name 
+		     {
+		       $$ = new (PARSERHEAP())
+			 ExeUtilHiveTruncate(CorrName(*$2, PARSERHEAP()),
+                                             NULL,
+                                             PARSERHEAP());
+		       
+		       delete $2;
+		     }
+                     | TOK_TRUNCATE table_name TOK_PARTITION '(' quoted_string_list ')'
+		     {
+		       $$ = new (PARSERHEAP())
+			 ExeUtilHiveTruncate(CorrName(*$2, PARSERHEAP()),
+                                             $5,
+                                             PARSERHEAP());
+		       
+		       delete $2;
+		     }
 
 exe_util_aqr: TOK_GET TOK_ALL TOK_AQR TOK_ENTRIES
                {
@@ -18286,6 +18299,13 @@ hbb_unload_option:   hbb_unload_empty_target
 
 
  hbb_unload_empty_target: TOK_PURGEDATA TOK_FROM TOK_TARGET
+                {
+                //purge target folder
+                  UnloadOption *op = 
+                        new (PARSERHEAP ()) UnloadOption(UnloadOption::EMPTY_TARGET_,0,NULL);
+                  $$ = op;
+                }
+                | TOK_TRUNCATE TOK_FROM TOK_TARGET
                 {
                 //purge target folder
                   UnloadOption *op = 
@@ -24304,7 +24324,7 @@ routine_return_param_list : routine_return_param_optional_not_null
                             }
 
 /* type pElemDDL */
-routine_return_param : optional_return_param_mode optional_param_name predef_type
+routine_return_param : optional_return_param_mode optional_param_name routine_predef_type
                        {
                          ElemDDLParamDef *p = new (PARSERHEAP())
                            ElemDDLParamDef($3 /*predef_type*/,
@@ -24319,7 +24339,7 @@ routine_return_param : optional_return_param_mode optional_param_name predef_typ
 routine_return_param_optional_not_null :
   optional_return_param_mode
   optional_param_name
-  predef_type
+  routine_predef_type
   optional_cast_spec_not_null_spec
   {
     ElemDDLParamDef *p = new (PARSERHEAP())
@@ -24446,7 +24466,7 @@ routine_params : routine_param
                                 }
 
 /* type pElemDDL */
-routine_param : optional_param_mode optional_param_name predef_type
+routine_param : optional_param_mode optional_param_name routine_predef_type
                   optional_cast_spec_not_null_spec
                 {
                   if ($4)
@@ -24459,6 +24479,19 @@ routine_param : optional_param_mode optional_param_name predef_type
                                                   PARSERHEAP());
                   delete $2 /*optional_param_name*/;
                 }
+
+/* type na_type */
+routine_predef_type : predef_type
+               {
+                 if (($1->getTypeName() == LiteralTinyInt) &&
+                     ((CmpCommon::getDefault(TRAF_TINYINT_SUPPORT) == DF_OFF) ||
+                      (CmpCommon::getDefault(TRAF_TINYINT_SPJ_SUPPORT) == DF_OFF)))
+                   {
+                     NumericType * nt = (NumericType*)$1;
+                     $$ = new (PARSERHEAP()) 
+                       SQLSmall(NOT nt->isUnsigned(), $1->supportsSQLnull());
+                   }
+               }
 
 /* type pElemDDLParamName */
 optional_param_name : empty
@@ -24982,6 +25015,43 @@ table_definition : create_table_start_tokens ddl_qualified_name
                      delete $1; /*TableTokens*/
 		     delete $2 /*ddl_qualified_name*/;
 		   }
+
+table_definition : create_table_start_tokens ddl_qualified_name
+                        like_definition
+	  	   {
+                     $1->setOptions(TableTokens::OPT_NONE);
+		     QualifiedName * qn;
+                     if ($1->isVolatile())
+                       qn = processVolatileDDLName($2, TRUE, TRUE);
+		     else
+                       qn = processVolatileDDLName($2, FALSE, FALSE);
+		     if (! qn)
+                       YYABORT;
+
+		     StmtDDLCreateTable *pNode =
+		       new (PARSERHEAP())
+		       StmtDDLCreateTable(
+			    *qn /*ddl_qualified_name*/,
+			    $3 /*like_definition*/,
+			    NULL,
+			    NULL,
+			    NULL,
+			    PARSERHEAP());
+
+                     $1->setTableTokens(pNode);
+		     pNode->synthesize();
+
+		     if (ParNameCTLocListPtr)
+		       {
+			 delete ParNameCTLocListPtr;
+			 ParNameCTLocListPtr = NULL;
+		       }
+
+		     $$ = pNode;
+                     delete $1; /*TableTokens*/
+		     delete $2 /*ddl_qualified_name*/;
+		   }
+
 		 | TOK_CREATE special_table_name
                         table_definition_body
                         optional_create_table_attribute_list
@@ -25337,7 +25407,6 @@ create_table_as_token: TOK_AS
 
 /* type pElemDDL */
 table_definition_body : table_element_list
-                      | like_definition
                       | external_table_definition
                       | table_element_list external_table_definition
                         {
@@ -26202,6 +26271,7 @@ like_definition : TOK_LIKE source_table optional_like_option_list
 				    ElemDDLLikeCreateTable(
                                         *$2 /*source_table*/,
                                          $3 /*optional_like_option_list*/,
+                                        FALSE,
                                         PARSERHEAP());
                                   delete $2 /*source_table*/;
                                 }
@@ -26213,6 +26283,7 @@ external_table_definition : TOK_FOR source_table
 				    ElemDDLLikeCreateTable(
                                         *$2 /*source_table*/,
                                         NULL,
+                                        TRUE, 
                                         PARSERHEAP());
                                   delete $2 /*source_table*/;
                                 }
@@ -26337,6 +26408,14 @@ like_option : TOK_WITHOUT TOK_CONSTRAINTS
                                   $$ = new (PARSERHEAP())
 				    ElemDDLLikeOptWithoutDivision();
                                 }
+                      | salt_by_clause
+                                {
+                                  ElemDDLSaltOptionsClause * saltClause = 
+                                    $1->castToElemDDLSaltOptionsClause();
+                                  ComASSERT($1->castToElemDDLSaltOptionsClause());
+                                  $$ = new (PARSERHEAP())
+                                    ElemDDLLikeSaltClause(saltClause);
+                                }
 
 /* type pElemDDL */
 optional_create_table_attribute_list : create_table_as_attr_list_start
@@ -26440,6 +26519,7 @@ file_attribute :        file_attribute_allocate_clause
                       | file_attribute_owner_clause
                       | file_attribute_default_col_fam
                       | file_attribute_str_clause
+                      | file_attribute_storage_clause
 
 /* type pElemDDL */           
 file_attribute_allocate_clause : TOK_ALLOCATE unsigned_smallint
@@ -26880,6 +26960,22 @@ file_attribute_str_clause : TOK_SYNCHRONOUS TOK_REPLICATION
                                 $$ = new (PARSERHEAP()) 
                                   ElemDDLFileAttrXnRepl(COM_REPL_NONE);
                               }
+
+/* type pElemDDL */
+file_attribute_storage_clause : TOK_STORAGE storage_type
+                              {
+                                $$ = new (PARSERHEAP()) 
+                                  ElemDDLFileAttrStorageType($2);
+                              }
+
+storage_type                 : TOK_MONARCH
+                             {
+                                $$ = COM_STORAGE_MONARCH;
+                             }
+                             | TOK_HBASE
+                             {
+                                $$ = COM_STORAGE_HBASE;
+                             }
 
 /* type pElemDDL */
 attribute_inmemory_options_clause : 
@@ -33367,7 +33463,6 @@ nonreserved_word :      TOK_ABORT
                       | TOK_DIVISION
                       | TOK_DO
                       | TOK_DOUBLE_IEEE
-                      | TOK_DOUBLE_TANDEM
                       | TOK_DROP_LIBRARY
                       | TOK_DROP_MV
                       | TOK_DROP_MV_GROUP
@@ -33410,7 +33505,6 @@ nonreserved_word :      TOK_ABORT
                       | TOK_FINAL
 		      | TOK_FIRST_FSCODE
                       | TOK_FLOAT_IEEE
-                      | TOK_FLOAT_TANDEM
                       | TOK_FOLLOWING
                       | TOK_FOR_MAXRUNTIME
                       | TOK_FORMAT
@@ -33524,6 +33618,7 @@ nonreserved_word :      TOK_ABORT
 		      | TOK_MINVALUE
                       | TOK_MODE
                       | TOK_MODULES
+                      | TOK_MONARCH
                       | TOK_MORE
                       | TOK_MOVE
                       | TOK_MOVEMENT
@@ -33622,7 +33717,6 @@ nonreserved_word :      TOK_ABORT
 		      | TOK_RANGELOG   // MV 
                       | TOK_RATE 
                       | TOK_REAL_IEEE
-                      | TOK_REAL_TANDEM
                       | TOK_REBUILD
                       | TOK_RECOMPUTE // MV 
                       | TOK_RECORD_SEPARATOR

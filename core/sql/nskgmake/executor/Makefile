@@ -117,8 +117,9 @@ CPPSRC := Allocator.cpp \
         JavaObjectInterface.cpp \
         SequenceFileReader.cpp \
         OrcFileReader.cpp \
+        HBaseClient_JNI.cpp \
 	OrcFileWriter.cpp \
-        HBaseClient_JNI.cpp
+        MonarchClient_JNI.cpp
 CPPSRC += vers_libexecutor.cpp \
 	ssmpipc.cpp \
 	CancelBroker.cpp \

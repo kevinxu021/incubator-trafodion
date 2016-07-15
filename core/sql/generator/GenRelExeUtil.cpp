@@ -1869,7 +1869,11 @@ short ExeUtilGetMetadataInfo::codeGen(Generator * generator)
     {  "USER",   "HBASE_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::HBASE_OBJECTS_ },
     {  "ALL",   "HBASE_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::HBASE_OBJECTS_ },
     {  "SYSTEM",   "HBASE_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::HBASE_OBJECTS_ },
-    {  "EXTERNAL",   "HBASE_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::HBASE_OBJECTS_ }
+    {  "EXTERNAL",   "HBASE_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::HBASE_OBJECTS_ },
+    {  "USER",   "MONARCH_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::MONARCH_OBJECTS_ },
+    {  "ALL",   "MONARCH_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::MONARCH_OBJECTS_ },
+    {  "SYSTEM",   "MONARCH_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::MONARCH_OBJECTS_ },
+    {  "EXTERNAL",   "MONARCH_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::MONARCH_OBJECTS_ }
 
 //==================================================================================================================================
    // AUSStr   InfoType     IOFStr   ObjectType  Version MaxParts  GroupBy OrderBy QueryType
@@ -2157,8 +2161,15 @@ short ExeUtilGetMetadataInfo::codeGen(Generator * generator)
       strcpy(param1, param1_.data());
     }
 
-  NAString serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
-  NAString zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
+  NAString serverNAS;
+  NAString zkPortNAS;
+  if (queryType == ComTdbExeUtilGetMetadataInfo::MONARCH_OBJECTS_) {
+     serverNAS = ActiveSchemaDB()->getDefaults().getValue(MONARCH_LOCATOR_ADDRESS);
+     zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(MONARCH_LOCATOR_PORT);
+  } else {
+     serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
+     zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
+  }
   char * server = space->allocateAlignedSpace(serverNAS.length() + 1);
   strcpy(server, serverNAS.data());
   char * zkPort = space->allocateAlignedSpace(zkPortNAS.length() + 1);
@@ -2231,7 +2242,8 @@ short ExeUtilGetMetadataInfo::codeGen(Generator * generator)
     gm_exe_util_tdb->setSystemObjs(TRUE);
   else if (ausStr == "ALL")
     gm_exe_util_tdb->setAllObjs(TRUE);
-  else if ((queryType == ComTdbExeUtilGetMetadataInfo::HBASE_OBJECTS_) &&
+  else if ((queryType == ComTdbExeUtilGetMetadataInfo::HBASE_OBJECTS_ || 
+             queryType == ComTdbExeUtilGetMetadataInfo::MONARCH_OBJECTS_) &&
            (ausStr == "EXTERNAL"))
     gm_exe_util_tdb->setExternalObjs(TRUE);
   gm_exe_util_tdb->setGetVersion(getVersion_);
@@ -2252,7 +2264,9 @@ short ExeUtilGetMetadataInfo::codeGen(Generator * generator)
       if (orderBy)
 	gm_exe_util_tdb->setOrderBy(TRUE);
 	}
-
+  if (queryType == ComTdbExeUtilGetMetadataInfo::MONARCH_OBJECTS_) {
+     
+  }
   generator->initTdbFields(exe_util_tdb);
 
   if(!generator->explainDisabled()) {
@@ -3285,17 +3299,7 @@ short ExeUtilFastDelete::codeGen(Generator * generator)
 	}
     }
 
-
-   char * hiveTableLocation = NULL;
-   char * hiveHdfsHost = NULL;
-   Int32 hiveHdfsPort = getHiveHdfsPort();
-
-   hiveTableLocation =
-       space->AllocateAndCopyToAlignedSpace (getHiveTableLocation(), 0);
-   hiveHdfsHost =
-       space->AllocateAndCopyToAlignedSpace (getHiveHostName(), 0);
-
-   Lng32 numEsps = -1;
+  Lng32 numEsps = -1;
 
   ComTdbExeUtilFastDelete * exe_util_tdb = new(space) 
     ComTdbExeUtilFastDelete(tablename, strlen(tablename),
@@ -3314,10 +3318,7 @@ short ExeUtilFastDelete::codeGen(Generator * generator)
 			    (queue_index)getDefault(GEN_DDL_SIZE_DOWN),
 			    (queue_index)getDefault(GEN_DDL_SIZE_UP),
 			    getDefault(GEN_DDL_NUM_BUFFERS),
-			    getDefault(GEN_DDL_BUFFER_SIZE),
-			    isHiveTable(),
-			    hiveTableLocation, hiveHdfsHost, hiveHdfsPort,
-                            hiveModTS_);
+			    getDefault(GEN_DDL_BUFFER_SIZE));
 
   if (doPurgedataCat_)
     exe_util_tdb->setDoPurgedataCat(TRUE);
@@ -3333,9 +3334,6 @@ short ExeUtilFastDelete::codeGen(Generator * generator)
 
   if (doLabelPurgedata_)
     exe_util_tdb->setDoLabelPurgedata(TRUE);
-
-  if (CmpCommon::getDefault(EXE_PARALLEL_PURGEDATA_WARNINGS) == DF_ON)
-    exe_util_tdb->setReturnPurgedataWarn(TRUE);
 
   if ((getUtilTableDesc()) && 
       (getUtilTableDesc()->getNATable()) &&
@@ -3359,6 +3357,98 @@ short ExeUtilFastDelete::codeGen(Generator * generator)
   // {
   generator->setTransactionFlag(0); // transaction is not needed.
   //}
+  
+  return 0;
+}
+
+/////////////////////////////////////////////////////////
+//
+// ExeUtilHiveTruncate::codeGen()
+//
+/////////////////////////////////////////////////////////
+short ExeUtilHiveTruncate::codeGen(Generator * generator)
+{
+  ExpGenerator * expGen = generator->getExpGenerator();
+  Space * space = generator->getSpace();
+
+  // allocate a map table for the retrieved columns
+  generator->appendAtEnd();
+
+  ex_cri_desc * givenDesc
+    = generator->getCriDesc(Generator::DOWN);
+
+  ex_cri_desc * returnedDesc
+    = new(space) ex_cri_desc(givenDesc->noTuples() + 1, space);
+
+  ex_cri_desc * workCriDesc = new(space) ex_cri_desc(4, space);
+  const Int32 work_atp = 1;
+  const Int32 exe_util_row_atp_index = 2;
+
+  short rc = processOutputRow(generator, work_atp, exe_util_row_atp_index,
+                              returnedDesc);
+  if (rc)
+    {
+      return -1;
+    }
+
+  char * partn_loc = NULL;
+  if (pl_)
+    {
+      NAString partnLoc = getHiveTableLocation();
+      partnLoc += "/";
+
+      for (Lng32 i = 0; i < pl_->entries(); i++)
+	{
+	  const NAString *cs = (*pl_)[i];
+
+          partnLoc += *cs;
+          partnLoc += "/";
+          
+	}
+  
+      partn_loc = 
+        space->allocateAndCopyToAlignedSpace
+        (partnLoc.data(), partnLoc.length(), 0);
+    }
+
+  char * tablename = NULL;
+  tablename = space->AllocateAndCopyToAlignedSpace
+    (generator->genGetNameAsAnsiNAString(getTableName()), 0);
+
+  char * hiveTableLocation = NULL;
+  char * hiveHdfsHost = NULL;
+  Int32 hiveHdfsPort = getHiveHdfsPort();
+  
+  hiveTableLocation =
+    space->AllocateAndCopyToAlignedSpace (getHiveTableLocation(), 0);
+  hiveHdfsHost =
+    space->AllocateAndCopyToAlignedSpace (getHiveHostName(), 0);
+
+  ComTdbExeUtilHiveTruncate * exe_util_tdb = new(space) 
+    ComTdbExeUtilHiveTruncate(tablename, strlen(tablename),
+                              hiveTableLocation, partn_loc,
+                              hiveHdfsHost, hiveHdfsPort,
+                              hiveModTS_,
+                              (ex_cri_desc *)(generator->getCriDesc(Generator::DOWN)),
+                              (ex_cri_desc *)(generator->getCriDesc(Generator::DOWN)),
+                              (queue_index)getDefault(GEN_DDL_SIZE_DOWN),
+                              (queue_index)getDefault(GEN_DDL_SIZE_UP),
+                              getDefault(GEN_DDL_NUM_BUFFERS),
+                              getDefault(GEN_DDL_BUFFER_SIZE));
+
+  generator->initTdbFields(exe_util_tdb);
+  
+  if(!generator->explainDisabled()) {
+    generator->setExplainTuple(
+       addExplainInfo(exe_util_tdb, 0, 0, generator));
+  }
+
+  // no tupps are returned 
+  generator->setCriDesc((ex_cri_desc *)(generator->getCriDesc(Generator::DOWN)),
+			Generator::UP);
+  generator->setGenObj(this, exe_util_tdb);
+
+  generator->setTransactionFlag(0); // transaction is not needed.
   
   return 0;
 }

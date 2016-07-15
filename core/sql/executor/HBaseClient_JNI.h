@@ -881,6 +881,8 @@ int convertStringObjectArrayToList(NAHeap *heap, jarray j_objArray,
 int convertLongObjectArrayToList(NAHeap *heap, jlongArray j_longArray, LIST(Int64)&list);
 int convertByteArrayObjectArrayToNAArray(NAHeap *heap, jarray j_objArray, 
              NAArray<HbaseStr> **retArray);
+int convertStringObjectArrayToNAArray(NAHeap *heap, jarray j_objArray, 
+             NAArray<HbaseStr> **retArray);
 void deleteNAArray(CollHeap *heap, NAArray<HbaseStr> *array);
 #endif
 

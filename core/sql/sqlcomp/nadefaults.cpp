@@ -581,7 +581,7 @@ SDDkwd__(CAT_ENABLE_QUERY_INVALIDATION, "ON"),
 
 // This forces an rcb to be created with a different version number
 // A "0" means to take the current mxv version
-  DDui1__(CAT_RCB_VERSION,     "0"),
+  DDui___(CAT_RCB_VERSION,     "0"),
 
 // Controls creation of column privileges for object-level privileges
   DDkwd__(CAT_REDUNDANT_COLUMN_PRIVS, "ON"),
@@ -1360,10 +1360,6 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
 
   DDkwd__(EXE_PARALLEL_DDL,                     "ON"),
 
-  DDkwd__(EXE_PARALLEL_PURGEDATA,               "MINIMUM"),
-
-  DDkwd__(EXE_PARALLEL_PURGEDATA_WARNINGS,      "OFF"),
-
   DDui___(EXE_PA_DP2_STATIC_AFFINITY,           "1"),
 
   DDkwd__(EXE_SINGLE_BMO_QUOTA,                 "ON"),
@@ -1377,7 +1373,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
 
   DDkwd__(EXPAND_DP2_SHORT_ROWS,		"ON"),
 
- XDDui___(EXPLAIN_DESCRIPTION_COLUMN_SIZE,    "-1"),
+ XDDint__(EXPLAIN_DESCRIPTION_COLUMN_SIZE,    "-1"),
 
   DDkwd__(EXPLAIN_DETAIL_COST_FOR_CALIBRATION,  "FALSE"),
 
@@ -1421,14 +1417,12 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
  // upper and lower limit (2,10) must be in sync with error values in 
  //ExFastTransport.cpp
   DDkwd__(FAST_EXTRACT_DIAGS,			"OFF"),
-  DDui2_10(FAST_EXTRACT_IO_BUFFERS,             "1"),
+  DDui1_10(FAST_EXTRACT_IO_BUFFERS,             "1"),
   DDui___(FAST_EXTRACT_IO_TIMEOUT_SEC,          "60"),
   DDui___(FAST_EXTRACT_MAX_PARTITIONS,          "64"),
   DDkwd__(FAST_REPLYDATA_MOVE,			"ON"),
  SDDkwd__(FFDC_DIALOUTS_FOR_MXCMP,		"OFF"),
   DDkwd__(FIND_COMMON_SUBEXPRS_IN_OR,		"ON"),
-
-  DDkwd__(FLOATTYPE,				"IEEE"),
 
   DDui___(FLOAT_ESP_RANDOM_NUM_SEED,    "0"),
 
@@ -1984,6 +1978,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DD_____(HIVE_HDFS_STATS_LOG_FILE,             ""),
   DDint__(HIVE_HDFS_STATS_MAX_SAMPLE_FILES,     "10"),
   DDkwd__(HIVE_HDFS_STATS_SAMPLE_LOB_INTFC,     "ON"),
+  DDui___(HIVE_INSERT_ERROR_MODE,               "1"),
   DDint__(HIVE_LIB_HDFS_PORT_OVERRIDE,          "-1"),
   DDint__(HIVE_LOCALITY_BALANCE_LEVEL,          "3"),
   DDui___(HIVE_MAX_ESPS,                        "9999"),
@@ -2326,7 +2321,8 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   DDkwd__(MODE_SPECIAL_3,                       "OFF"),
   DDkwd__(MODE_SPECIAL_4,                       "OFF"),
   DDkwd__(MODE_SPECIAL_5,                       "OFF"),
-
+  DD_____(MONARCH_LOCATOR_ADDRESS,              "127.0.0.1"),
+  DD_____(MONARCH_LOCATOR_PORT,                 "10334"),
   DDnsklo(MP_CATALOG,				"$SYSTEM.SQL"),
   DDnsksv(MP_SUBVOLUME,				"SUBVOL"),
   DDnsksy(MP_SYSTEM,				""),
@@ -2463,7 +2459,7 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   DDkwd__(MVQR_USE_RI_FOR_EXTRA_HUB_TABLES, "OFF"),
   DD_____(MVQR_WORKLOAD_ANALYSIS_MV_NAME, ""),
 
- XDDMVA__(MV_AGE,				""),
+ XDDMVA__(MV_AGE,				"0 MINUTES"),
  XDDkwd__(MV_ALLOW_SELECT_SYSTEM_ADDED_COLUMNS, "OFF"),
   DDkwd__(MV_AS_ROW_TRIGGER,			"OFF"),
   DDkwd__(MV_AUTOMATIC_LOGGABLE_COLUMN_MAINTENANCE, "ON"),
@@ -2783,10 +2779,12 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
 
   DDkwd__(ORC_AGGR_PUSHDOWN,                    "ON"),
   DDkwd__(ORC_COLUMNS_PUSHDOWN,                 "ON"),
+  DD_____(ORC_HDFS_STATS_LOG_FILE,                ""),
   DDkwd__(ORC_NJS,                              "OFF"),
   DDkwd__(ORC_PRED_PUSHDOWN,                    "ON"),
   DDkwd__(ORC_READ_NUM_ROWS,                    "ON"),
   DDkwd__(ORC_READ_STRIPE_INFO,                 "OFF"),
+  DDkwd__(ORC_USE_CPP_READER,			"ON"),
   DDkwd__(ORC_VECTORIZED_SCAN,                  "ON"),
 
   DDkwd__(ORDERED_HASH_JOIN_CONTROL,            "ON"),
@@ -3448,6 +3446,11 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   //location for temporary links and files produced by snapshot scan
   DD_____(TRAF_TABLE_SNAPSHOT_SCAN_TMP_LOCATION,       "/bulkload/"),
 
+  DDkwd__(TRAF_TINYINT_INPUT_PARAMS,                   "OFF"),
+  DDkwd__(TRAF_TINYINT_RETURN_VALUES,                  "OFF"),
+  DDkwd__(TRAF_TINYINT_SPJ_SUPPORT,                    "OFF"),
+  DDkwd__(TRAF_TINYINT_SUPPORT,                        "ON"),
+
   // DTM Transaction Type: MVCC, SSCC
   XDDkwd__(TRAF_TRANS_TYPE,                            "MVCC"),
 
@@ -3595,7 +3598,7 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDui___(USTAT_IUS_MAX_PERSISTENT_DATA_IN_MB,        "50000"), // 50GB
   DDflt0_(USTAT_IUS_MAX_PERSISTENT_DATA_IN_PERCENTAGE,  "0.20"), // 20% of the total
 
-  DDui1_6(USTAT_IUS_MAX_TRANSACTION_DURATION,  "20"),   // in minutes
+  DDui1_6(USTAT_IUS_MAX_TRANSACTION_DURATION,  "5"),   // in minutes
   DDkwd__(USTAT_IUS_NO_BLOCK,                   "OFF"),
   DDansi_(USTAT_IUS_PERSISTENT_CBF_PATH,        "SYSTEM"),
 
@@ -3962,10 +3965,26 @@ void NADefaults::initCurrentDefaultsWithDefaultDefaults()
         }
       prevAttrName = defaultDefaults[i].attrName;
 
+      // validate initial default default values
+      CMPASSERT(defaultDefaults[i].validator);
+      if (! defaultDefaults[i].validator->validate(
+               defaultDefaults[i].value,
+               this,
+               defaultDefaults[i].attrEnum,
+               +1/*warning*/))
+        {
+          SqlParser_NADefaults_ = NULL;
+
+          cerr << "\nERROR: " << defaultDefaults[i].attrName
+               << " has invalid value" << defaultDefaults[i].value << endl;
+
+          return;
+         }
+
       // LCOV_EXCL_START
       // for debugging only
       #ifndef NDEBUG
-	if (nadval) {	// additional sanity checking we want to do occasionally
+       if (nadval) {	// additional sanity checking we want to do occasionally
 
 	  NAString v;
 
@@ -4024,8 +4043,8 @@ void NADefaults::initCurrentDefaultsWithDefaultDefaults()
 	      CMPASSERT(v == keywords_[j]);
 
 	      CMPASSERT(v.first(' ') == NA_NPOS);
-	    }
 
+	    }
 	}	// if env-var
       #endif	// NDEBUG
       // LCOV_EXCL_STOP
@@ -4879,7 +4898,21 @@ Int32 NADefaults::validateFloat(const char *value, float &result,
 {
   Int32 n = -1;	// NT's scanf("%n") is not quite correct; hence this code-around
   sscanf(value, "%g%n", &result, &n);
-  if (n > 0 && value[n] == '\0') return TRUE;	// a valid float
+  if (n > 0 && value[n] == '\0') 
+    {
+      switch (attrEnum)
+        {
+        case HIVE_INSERT_ERROR_MODE:
+          {
+            Lng32 v = str_atoi(value, str_len(value));
+            if (v >= 0 && v <= 3)
+              return TRUE;
+          }
+          break;
+        default:
+          return TRUE;	// a valid float
+        }
+    }
 
   NAString v(value);
   NABoolean silentIf = (errOrWarn == SilentIfSYSTEM);
@@ -6633,12 +6666,13 @@ DefaultToken NADefaults::token(Int32 attrEnum,
 	  case '3':	return DF_MAXIMUM;
 	}
       // HBASE_FILTER_PREDS
-        if ((attrEnum == HBASE_FILTER_PREDS) && value.length()==1)
+      if ((attrEnum == HBASE_FILTER_PREDS) && value.length()==1)
       switch (*value.data()){
         case '0': return DF_OFF;
         case '1': return DF_MINIMUM;
         case '2': return DF_MEDIUM;
-        // in the future add DF_HIGH and DF_MAXIMUM when we implement more pushdown capabilities
+        // in the future add DF_HIGH and DF_MAXIMUM when we implement more 
+        // pushdown capabilities
       }
     if ( attrEnum == TEMPORARY_TABLE_HASH_PARTITIONS ||
          attrEnum == MVQR_REWRITE_CANDIDATES ||
@@ -6717,20 +6751,9 @@ DefaultToken NADefaults::token(Int32 attrEnum,
 	isValid = TRUE;
       break;
 
-    case FLOATTYPE:
-      if (tok == DF_TANDEM || tok == DF_IEEE)
-	isValid = TRUE;
-      break;
-
     case GROUP_BY_USING_ORDINAL:
       if (tok == DF_ALL || tok == DF_MINIMUM ||
 	  tok == DF_OFF)
-	isValid = TRUE;
-      break;
-
-    case EXE_PARALLEL_PURGEDATA:
-      if (tok == DF_ALL || tok == DF_MINIMUM ||
-	  tok == DF_OFF || tok == DF_ON || tok == DF_MEDIUM)
 	isValid = TRUE;
       break;
 
@@ -6739,6 +6762,11 @@ DefaultToken NADefaults::token(Int32 attrEnum,
 	  tok  == DF_VERTICAL    || tok == DF_INDEXES    || tok == DF_KEYINDEXES)
 	isValid = TRUE;
     break;
+
+    case HIVE_USE_EXT_TABLE_ATTRS:
+      if (tok == DF_ALL || tok == DF_OFF || tok == DF_ON )
+	isValid = TRUE;
+      break;
 
     case INDEX_ELIMINATION_LEVEL:
       if  (tok == DF_MINIMUM	 || tok == DF_MEDIUM ||
@@ -6828,16 +6856,8 @@ DefaultToken NADefaults::token(Int32 attrEnum,
       // sent using sendAllControls method, all values are valid. This will
       // ensure that if this default is not set and is sent over to secondary
       // mxcmp using an internal CQD statement, it doesn't return an error.
-      if (cmpCurrentContext->isSecondaryMxcmp())
-	{
-	  if (tok == DF_ON		 || tok == DF_OFF)
-	    isValid = TRUE;
-	}
-      else
-	{
-	  if (tok == DF_ON)
-	    isValid = TRUE;
-	}
+      if (tok == DF_ON		 || tok == DF_OFF)
+        isValid = TRUE;
       break;
 
     case NVCI_PROCESS:
@@ -6849,16 +6869,8 @@ DefaultToken NADefaults::token(Int32 attrEnum,
       // sent using sendAllControls method, all values are valid. This will
       // ensure that if this default is not set and is sent over to secondary
       // mxcmp using an internal CQD statement, it doesn't return an error.
-      if (cmpCurrentContext->isSecondaryMxcmp())
-	{
-	  if (tok == DF_ON		 || tok == DF_OFF)
-	    isValid = TRUE;
-	}
-      else
-	{
-	  if (tok == DF_ON)
-	    isValid = TRUE;
-	}
+      if (tok == DF_ON		 || tok == DF_OFF)
+        isValid = TRUE;
       break;
 
     case NAMETYPE:

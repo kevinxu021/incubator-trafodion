@@ -58,6 +58,11 @@
 #define MD_COL_CHARSET SQLCHARSETCODE_UTF8
 
 #define TEXTLEN 10000
+ 
+enum MonarchTableType {
+   RANGE_PARTITIONED = 0,
+   HASH_PARTITIONED
+};
 
 struct QString {
 public:
@@ -337,6 +342,14 @@ static const QString seabaseTablesDDL[] =
   {" primary key (table_uid) "},
   {" ; "}
 };
+
+enum SeabaseTablesFlags
+  {
+    MD_TABLES_RESERVED1            = 0x0001,
+    MD_TABLES_RESERVED2            = 0x0002,
+    MD_TABLES_HIVE_EXT_COL_ATTRS   = 0x0004,
+    MD_TABLES_HIVE_EXT_KEY_ATTRS   = 0x0008
+  };
 
 static const QString seabaseTableConstraintsDDL[] =
 {

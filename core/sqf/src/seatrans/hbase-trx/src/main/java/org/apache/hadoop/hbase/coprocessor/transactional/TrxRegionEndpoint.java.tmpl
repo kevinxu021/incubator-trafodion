@@ -388,7 +388,7 @@ CoprocessorService, Coprocessor {
   private static final int DEFAULT_MEMORY_THRESHOLD = 100; // 100% memory used
   private static final int DEFAULT_STARTUP_MEMORY_THRESHOLD = 90; // initial value : 90% memory used
   private static final int DEFAULT_MEMORY_SLEEP = 15 * 1000;
-  private static final boolean DEFAULT_MEMORY_WARN_ONLY = false;
+  private static final boolean DEFAULT_MEMORY_WARN_ONLY = false;        
   private static final boolean DEFAULT_MEMORY_PERFORM_GC = false;
   private static final int DEFAULT_ASYNC_WAL = 1;
   private static final boolean DEFAULT_SKIP_WAL = false;
@@ -2527,9 +2527,6 @@ CoprocessorService, Coprocessor {
                              if (LOG.isTraceEnabled()) LOG.trace("adding transid: " + transidToken + " to result list");
                              results.add(result);
                              count++;
-                          } else {
-                             if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval skipping asn: " + asnToken + ", transid: "
-                                         + transidToken + ", state: " + stateToken);
                           }
                        } // if (st.hasMoreElements()
                     } // for (Cell cell : result.rawCells()

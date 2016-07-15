@@ -5,6 +5,7 @@ USAGE="usage: load.debitcredit.sh
     [ -tb|--table|table <<tablename>> ]
     [ -s|--streams|streams <<streams>> ] 
     [ -p|--partitions|partitions <<partitions>> ] 
+    [ -a|--aligned|aligned ]
     [ -c|--compress|compress ]
     [ -d|--debug|debug ]
     [ -id|--testid|testid <<testid>> ]
@@ -20,6 +21,7 @@ TESTID=$(date +%y%m%d.%H%M)
 SCALE=$DEBITCREDIT_SCALE
 if (( $MAX_MXOSRVR < 32 )) ; then STREAMS=$MAX_MXOSRVR; else STREAMS=32; fi
 OPTION_COMPRESS=FALSE
+OPTION_ALIGNED=""
 PARTITIONS=$SYSTEM_DEFAULT_PARTITIONS
 
 while [[ $# > 0 ]] ; do
@@ -31,6 +33,7 @@ case ${key,,} in
     -tb|--table|table)                  TABLE="$1"; shift;;
     -s|--streams|streams)		STREAMS="$1"; shift;;
     -p|--partitions|partitions)		PARTITIONS="$1"; shift;; 
+    -a|--aligned|aligned)  		OPTION_ALIGNED="aligned"; shift;;
     -c|--compress|compress)		OPTION_COMPRESS="TRUE";;
     -id|--testid|testid)		export TESTID="$1"; shift;;
     -o|--options|options)		OPTIONS="$1"; shift;;
@@ -94,7 +97,7 @@ case ${DATABASE,,} in
 	trafodion)	
 
 		if [[ ${SCHEMA} = "default" ]] ; then
-			SCHEMA=$(grep schema ${JAVABENCH_TEST_HOME}/${DATABASE,,}.properties | awk '{ print $3 }')
+	 		SCHEMA=$(grep schema ${JAVABENCH_TEST_HOME}/${DATABASE,,}.properties | awk '{ print $3 }')
 		fi
 
 for TABLENAME in ${TABLES} ; do
@@ -103,42 +106,42 @@ case ${TABLENAME,,} in
 
 	branch)		
 		# create 
-java -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} createschema dropcreate ${OPTIONS}
+java -Xmx1500m -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} createschema dropcreate ${OPTION_ALIGNED} ${OPTIONS}
 		# partition		
-pdsh -w ${SYSTEM_FIRST_NODE} "cd ${JAVABENCH_TEST_HOME};. profile;java GetDcSplitTableCommand table ${SCHEMA^^}.DC_${TABLENAME^^}_${SCALE} scalefactor ${SCALE} rowsperscale 1 partitions ${PARTITIONS} serialize | hbase shell"
+pdsh -w ${SYSTEM_FIRST_NODE} "cd ${JAVABENCH_TEST_HOME};. profile;java -Xmx1500m GetDcSplitTableCommand table ${SCHEMA^^}.DC_${TABLENAME^^}_${SCALE} scalefactor ${SCALE} rowsperscale 1 partitions ${PARTITIONS} serialize | hbase shell"
 		# align Tables
 align.table.sh table ${SCHEMA^^}.DC_${TABLENAME^^}_${SCALE} testid ${TESTID}
 		# load
-java -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} load upsert usingload maintain ${OPTIONS}
+java -Xmx1500m -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} load upsert usingload maintain ${OPTIONS}
 		;;
 
 	teller)		
 		# create 
-java -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} dropcreate ${OPTIONS}
+java -Xmx1500m -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} dropcreate ${OPTION_ALIGNED} ${OPTIONS}
 		# partition		
-pdsh -w ${SYSTEM_FIRST_NODE} "cd ${JAVABENCH_TEST_HOME};. profile;java GetDcSplitTableCommand table ${SCHEMA^^}.DC_${TABLENAME^^}_${SCALE} scalefactor ${SCALE} rowsperscale 10 partitions ${PARTITIONS} serialize | hbase shell"
+pdsh -w ${SYSTEM_FIRST_NODE} "cd ${JAVABENCH_TEST_HOME};. profile;java -Xmx1500m GetDcSplitTableCommand table ${SCHEMA^^}.DC_${TABLENAME^^}_${SCALE} scalefactor ${SCALE} rowsperscale 10 partitions ${PARTITIONS} serialize | hbase shell"
 		# align Tables
 align.table.sh table ${SCHEMA^^}.DC_${TABLENAME^^}_${SCALE} testid ${TESTID}
 		# load
-java -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} load upsert usingload maintain ${OPTIONS}
+java -Xmx1500m -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} load upsert usingload maintain ${OPTIONS}
 		;;
 
 	account)		
 		# create 
-java -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} dropcreate ${OPTIONS}
+java -Xmx1500m -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} dropcreate ${OPTION_ALIGNED} ${OPTIONS}
 		# partition		
-pdsh -w ${SYSTEM_FIRST_NODE} "cd ${JAVABENCH_TEST_HOME};. profile;java GetDcSplitTableCommand table ${SCHEMA^^}.DC_${TABLENAME^^}_${SCALE} scalefactor ${SCALE} rowsperscale 100000 partitions ${PARTITIONS} serialize | hbase shell"
+pdsh -w ${SYSTEM_FIRST_NODE} "cd ${JAVABENCH_TEST_HOME};. profile;java  -Xmx1500m GetDcSplitTableCommand table ${SCHEMA^^}.DC_${TABLENAME^^}_${SCALE} scalefactor ${SCALE} rowsperscale 100000 partitions ${PARTITIONS} serialize | hbase shell"
 		# align Tables
 align.table.sh table ${SCHEMA^^}.DC_${TABLENAME^^}_${SCALE} testid ${TESTID}
 		# load
-java -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} load upsert usingload batchsize 1000 streams $STREAMS maintain ${OPTIONS}
+java  -Xmx1500m -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} load upsert usingload batchsize 1000 streams $STREAMS maintain ${OPTIONS}
 		;;
 
 	history)		
 		# create 
-java -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} dropcreate maintain ${OPTIONS}
+java -Xmx1500m -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} dropcreate ${OPTION_ALIGNED} maintain ${OPTIONS}
 		# partition		
-pdsh -w ${SYSTEM_FIRST_NODE} "cd ${JAVABENCH_TEST_HOME};. profile;java GetDcSplitTableCommand table ${SCHEMA^^}.DC_${TABLENAME^^}_${SCALE} scalefactor ${SCALE} rowsperscale 1 partitions ${PARTITIONS} serialize | hbase shell"
+pdsh -w ${SYSTEM_FIRST_NODE} "cd ${JAVABENCH_TEST_HOME};. profile;java -Xmx1500m GetDcSplitTableCommand table ${SCHEMA^^}.DC_${TABLENAME^^}_${SCALE} scalefactor ${SCALE} rowsperscale 1 partitions ${PARTITIONS} serialize | hbase shell"
 		# align Tables
 align.table.sh table ${SCHEMA^^}.DC_${TABLENAME^^}_${SCALE} testid ${TESTID}
 		;;
@@ -166,22 +169,22 @@ case ${TABLENAME,,} in
 
 	branch)		
 		# create & load
-java -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} createschema dropcreate load maintain ${OPTIONS}
+java  -Xmx1500m -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} createschema dropcreate load maintain ${OPTION_ALIGNED} ${OPTIONS}
 		;;
 
 	teller)		
 		# create & load
-java -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} dropcreate load maintain ${OPTIONS}
+java -Xmx1500m -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} dropcreate load maintain ${OPTION_ALIGNED} ${OPTIONS}
 		;;
 
 	account)		
 		# create & load
-java -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} dropcreate load batchsize 1000 streams $STREAMS maintain ${OPTIONS}
+java -Xmx1500m -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} dropcreate load batchsize 1000 streams $STREAMS maintain ${OPTION_ALIGNED} ${OPTIONS}
 		;;
 
 	history)		
 		# create
-java -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} dropcreate maintain ${OPTIONS}
+java -Xmx1500m -Ddbconnect.properties=${DATABASE,,}.properties DebitCreditLoader $SCALE schema ${SCHEMA} table ${TABLENAME,,} dropcreate maintain ${OPTION_ALIGNED} ${OPTIONS}
 		;;
 
 	*)		

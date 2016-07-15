@@ -195,7 +195,7 @@ public:
                         { return blockHosts_[replicate*numBlocks_+blockNum]; }
   const ComCompressionInfo &getCompressionInfo() const
                                                   { return compressionInfo_; }
-  void print(FILE *ofd);
+  virtual void print(FILE *ofd);
 
   // Assign all blocks in this to ESPs, considering locality
   // return: total # of bytes assigned for the hive file
@@ -274,6 +274,8 @@ public:
                 NABoolean doEstimation = TRUE,
                 char recordTerminator = '\n'
                 ); 
+  void populateWithCplus(HHDFSDiags &diags, hdfsFS fs, hdfsFileInfo *fileInfo, NABoolean readStripeInfo, NABoolean readNumRows, NABoolean needToOpenORCI);
+  void populateWithJNI(HHDFSDiags &diags, NABoolean readStripeInfo, NABoolean readNumRows, NABoolean needToOpenORCI);
 
   // find the block number for the stripe with offset x
   Int64 findBlockForStripe(Int64 x);
@@ -287,6 +289,7 @@ public:
       totalAccumulatedStripes_ = 0;
    }
 
+  void print(FILE *ofd);
 protected:
   // Assign all stripes in this to ESPs, considering locality
   Int64 assignToESPs(Int64 *espDistribution,

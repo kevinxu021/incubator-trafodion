@@ -1054,7 +1054,9 @@ enum OperatorTypeEnum {
   
                        // default column family for columns specified in CREATE stmt
                         ELM_FILE_ATTR_COL_FAM_ELEM,
+
                         ELM_FILE_ATTR_XN_REPL_ELEM,
+                        ELM_FILE_ATTR_STORAGE_TYPE_ELEM,
 
                         ELM_GRANTEE_ELEM,
                         ELM_KEY_VALUE_ELEM,
@@ -1064,6 +1066,7 @@ enum OperatorTypeEnum {
                         ELM_LIKE_OPT_WITH_HEADINGS_ELEM,
                         ELM_LIKE_OPT_WITH_HORIZONTAL_PARTITIONS_ELEM,
                         ELM_LIKE_OPT_WITHOUT_SALT_ELEM,
+                        ELM_LIKE_OPT_SALT_CLAUSE_ELEM,
                         ELM_LIKE_OPT_WITHOUT_DIVISION_ELEM,
                         ELM_LOCATION_ELEM,
                         ELM_OPTION_LIST,
