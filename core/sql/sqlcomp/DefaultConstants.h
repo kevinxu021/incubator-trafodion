@@ -3920,7 +3920,6 @@ enum DefaultConstants
   // if 3, null inserted if conversion error, and processing continues.
   HIVE_INSERT_ERROR_MODE,
   
->>>>>>> c9674a91a86fdfca130be3833664fbdb68902d2f
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!
   __NUM_DEFAULT_ATTRIBUTES
