@@ -485,8 +485,12 @@ static short ft_codegen(Generator *generator,
 
         // now get the value to use ready, start with an @An, a symbol for
         // the parser to replace with lmExpr2 later (note the n is 1-based)
-        partColValsVids.insert(lmExpr2->getValueId());
-        colExpr.format("@A%d", partColValsVids.entries());
+       if (lmExpr2)
+          {
+            lmExpr2->bindNode(generator->getBindWA());
+            partColValsVids.insert(lmExpr2->getValueId());
+            colExpr.format("@A%d", partColValsVids.entries());
+          }
 
         // some special handling for certain data types
         switch (lmExpr->getValueId().getType().getTypeQualifier())
