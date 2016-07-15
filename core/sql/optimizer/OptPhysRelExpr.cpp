@@ -15016,10 +15016,15 @@ PhysicalProperty * FileScan::synthHbaseScanPhysicalProperty(
           getGroupAttr()->getResultCardinalityForEmptyInput()
            * getGroupAttr()->getRecordLength();
            
+        // Get the threshold in MB of using # of partitions as the scan dop.
+        // Default value is 10MB.
         Lng32 numPartitionsAsDopThreshold = 
                getDefaultAsLong(HBASE_SCAN_DOP_AS_PARTITIONS_THRESHOLD)
                * 1024 * 1024;
 
+        // If the table is partitioned and the # of partitions is less than
+        // maxESPs, and the table size is over the threashold, unconditionally
+        // use the number of partitions of the table as the scan dop.
         if (numOfPartitions > 1 &&
             numOfPartitions <= maxESPs &&
             numPartitionsAsDopThreshold >= 0 &&
