@@ -3889,6 +3889,12 @@ enum DefaultConstants
   NCM_ORC_COSTING_APPLY_SKIP_RATIO,
   NCM_ORC_COSTING_DEBUG,
 
+  // When set to a value >= 0, the Hbase scan DoP will be set to 
+  // that of # of partitions of the table if the scan size is over
+  // this threshold value. 
+  // When set to a value less than 0, turn off the feature.
+  HBASE_SCAN_DOP_AS_PARTITIONS_THRESHOLD,
+
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!
   __NUM_DEFAULT_ATTRIBUTES
