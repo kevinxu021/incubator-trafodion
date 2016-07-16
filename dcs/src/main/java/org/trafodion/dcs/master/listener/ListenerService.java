@@ -47,6 +47,8 @@ import org.trafodion.dcs.Constants;
 import org.trafodion.dcs.util.DcsConfiguration;
 import org.trafodion.dcs.util.DcsNetworkConfiguration;
 import org.trafodion.dcs.master.Metrics;
+import org.trafodion.dcs.master.mapping.DefinedMapping;
+import org.trafodion.dcs.master.registeredServers.RegisteredServers;
 
 public class ListenerService extends Thread{
     private static  final Log LOG = LogFactory.getLog(ListenerService.class);
@@ -65,12 +67,21 @@ public class ListenerService extends Thread{
     private ListenerWorker worker=null;
     private List<PendingRequest> pendingChanges = new LinkedList<PendingRequest>();	//list of PendingRequests instances
     private HashMap<SelectionKey, Long> timeouts = new HashMap<SelectionKey, Long>(); // hash map of timeouts
-
+    private DefinedMapping mapping = null;
+    private RegisteredServers registeredServers = null;
+    
     private void init(){
-        if(metrics != null)metrics.initListenerMetrics(System.nanoTime());
-        worker = new ListenerWorker(zkc,parentZnode);
-        worker.start();
-        this.start();
+        try {
+            mapping = new DefinedMapping(this);
+            registeredServers = new RegisteredServers(this);
+            if(metrics != null)metrics.initListenerMetrics(System.nanoTime());
+            worker = new ListenerWorker(this);
+            worker.start();
+            this.start();
+        } catch (Exception e){
+            LOG.error("Cannot create Profile object: " + e.getMessage());
+            System.exit(1);
+        }
     }
 
     public ListenerService(String[] args) {
@@ -354,6 +365,8 @@ public class ListenerService extends Thread{
             if (clientData.total_read > (clientData.hdr.getTotalLength() + ListenerConstants.HEADER_SIZE)){
                 throw new IOException("Wrong total length in read Header : total_read " + clientData.total_read + ", hdr_total_length + hdr_size " + clientData.hdr.getTotalLength() +  + ListenerConstants.HEADER_SIZE);
             }
+            Util.toHexString("Client buf", clientData.buf[1]);
+
             key.attach(clientData);
             this.worker.processData(this, key);
             if(LOG.isDebugEnabled())
@@ -429,6 +442,18 @@ public class ListenerService extends Thread{
             key.cancel();
             if(metrics != null)metrics.listenerRequestRejected();
         }
+    }
+    public ZkClient getZkc(){
+        return zkc;
+    }
+    public String getParentZnode(){
+        return parentZnode;
+    }
+    public DefinedMapping getMapping(){
+        return mapping;
+    }
+    public RegisteredServers getRegisteredServers(){
+        return registeredServers;
     }
 
     public static void main(String [] args) {

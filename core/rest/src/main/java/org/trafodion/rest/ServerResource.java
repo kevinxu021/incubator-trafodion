@@ -24,6 +24,7 @@
 package org.trafodion.rest;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 
@@ -316,6 +317,20 @@ public class ServerResource extends ResourceBase {
                     obj.put("CLIENT_APPL",aRegisteredServer.getClientAppl());
                     obj.put("CLIENT_IP_ADDRESS",aRegisteredServer.getClientIpAddress());
                     obj.put("CLIENT_PORT",aRegisteredServer.getClientPort());
+                    String state = aRegisteredServer.getState();
+                    if(state.equals("CONNECTED")){
+                        obj.put("MAPPED_SLA",aRegisteredServer.getSla());
+                        obj.put("MAPPED_CONNECT_PROFILE",aRegisteredServer.getConnectProfile());
+                        obj.put("MAPPED_DISCONNECT_PROFILE",aRegisteredServer.getDisconnectProfile());
+                        obj.put("CONNECTED_INTERVAL_SEC",aRegisteredServer.getConnectedInterval());
+                        obj.put("CONNECT_TIME",aRegisteredServer.getConnectTimeAsDate());
+                    } else {
+                        obj.put("MAPPED_SLA","");
+                        obj.put("MAPPED_CONNECT_PROFILE","");
+                        obj.put("MAPPED_DISCONNECT_PROFILE","");
+                        obj.put("CONNECTED_INTERVAL_SEC","");
+                        obj.put("CONNECT_TIME","");
+                    }
                     json.put(obj);
                 }
             }

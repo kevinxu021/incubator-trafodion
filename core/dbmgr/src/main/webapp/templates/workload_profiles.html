@@ -1,0 +1,122 @@
+<div id="page-wrapper">
+	<div class="row">
+		<div class="col-lg-12">
+			<div class="pull-right">
+				<div class="btn-toolbar">
+					<div class="btn-group"
+						style="margin-bottom: 10px; margin-top: 10px;">
+						<button type="button"
+							class="btn btn-primary btn-xs dropdown-toggle"
+							data-toggle="dropdown" style="height: 30px;">
+							Actions <span class="caret"></span>
+						</button>
+						<ul class="dropdown-menu pull-right" role="menu">
+							<li><a id="refreshAction">Refresh</a></li>
+						</ul>
+					</div>
+				</div>
+			</div>
+			<h3 class="page-header">Workload Profiles </h3>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-lg-12">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					Available Profiles
+				</div>
+				<div class="panel-body">
+					<div id="wconfig-profiles-container">
+				    	<div id="profiles-spinner">Fetching workload profiles...<img style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></div>
+				    	<div id="add-profile-div">
+							<button id="add-profile-btn" type="button" class="btn btn-primary btn-xs fa fa-plus" style="height: 30px;margin-bottom:10px">
+								Add Profile
+							</button>
+							<br>
+						</div>
+						<div id="profiles-result-container" class="table-responsive"></div>
+						<textarea id="profiles-error-text" readonly name="profiles-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
+					</div>				
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="wprofile-dialog" tabindex="-1" role="dialog"
+		aria-labelledby="wprofile-dialog-label" data-backdrop="static"
+		data-keyboard="false">
+		<div class="modal-dialog" role="document" style="width:700px;font-size:13px">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"
+						aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+					<h4 class="modal-title" id="wprofile-dialog-label">Add Profile</h4>
+				</div>
+				<div class="modal-body">
+					<form id="wprofile-form">
+                        <div class="form-group">
+                            <label class="control-label">Profile Name<span
+                                style="color: red"> *</span></label>
+                            <div class="input-group" style="width: 650px;">
+                                <input class="form-control input-sm" style="width: 500px;" id="profile_name"
+                                    name="profile_name" maxlength="125">
+                            </div>
+                        </div>
+						<div class="form-group">
+							<label for="profile-cqd-stmts" class="control-label">CQDs: </label><br>
+							<textarea id="profile-cqd-stmts" name="profile-cqd-stmts" rows="4" cols="500" spellcheck="false"
+								placeholder="Enter control query default statements separated by semicolon..."
+								class="textarea" style="width: 650px"></textarea>
+						</div>
+						<div class="form-group">
+							<label for="profile-set-stmts" class="control-label">SETs: </label><br>
+							<textarea id="profile-set-stmts" name="profile-set-stmts" rows="4" cols="500" spellcheck="false"
+								placeholder="Enter SET statements separated by semicolon..."
+								class="textarea" style="width: 650px"></textarea>
+						</div>    
+   						<div class="form-group">
+							<label for="profile-host-list" class="control-label">Host(s): </label><br>
+							<textarea id="profile-host-list" rows="4" cols="500" spellcheck="false"
+								placeholder="Enter comma separated list of host names where this profile will be applied..."
+								class="textarea" style="width: 650px"></textarea>
+						</div>  
+					    <label id="add-profile-error-message" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></label>
+					</form>
+				</div>
+				<div class="modal-footer" style="overflow:hidden">
+				<img id="profile-dialog-spinner" style="padding-right: 5px;" src="img/ajax-loader.gif" />
+					<input id="profileApplyButton" class="btn btn-primary"
+						type="submit" value="Apply">
+					<input id="profileResetButton" class="btn btn-primary"
+						type="submit" value="Reset">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+					</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="profile-delete-dialog" tabindex="-1" role="dialog"
+		aria-labelledby="wprofile-delete-dialog-label" data-backdrop="static"
+		data-keyboard="false">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"
+						aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+					<h4 class="modal-title" id="wprofile-delete-dialog-label">Confirm Delete Profile</h4>
+				</div>
+				<div class="modal-body">
+					<form id="wprofile-delete-form">
+                    Are you sure you want to delete the profile <label id="delete-profile-name"></label>  ? 
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button id="delete-profile-yes-btn" type="button" class="btn btn-primary" data-dismiss="modal">Yes</button>
+					<button type="button" class="btn btn-primary" data-dismiss="modal">No</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

@@ -65,6 +65,10 @@ public class RegisteredServer  {
 	private String clientIpAddress;
 	private String clientPort;
 	private String clientAppl;
+	private long mtime;
+	private String sla;
+	private String cprofile;
+    private String dprofile;
 
 	public void setIsRegistered() {
 		registered = true;
@@ -149,6 +153,30 @@ public class RegisteredServer  {
 	}
 	public String getClientAppl() {
 		return clientAppl;
-	}		
+	}	
+	public void setMtime(long value){
+	    mtime = value;
+	}
+	public long getMtime(){
+	    return mtime;
+	}
+    public void setSla(String value){
+        sla = value;
+    }
+    public String getSla(){
+        return sla;
+    }
+    public void setConnectProfile(String value){
+        cprofile = value;
+    }
+    public String getConnectProfile(){
+        return cprofile;
+    }
+    public void setDisconnectProfile(String value){
+        dprofile = value;
+    }
+    public String getDisconnectProfile(){
+        return dprofile;
+    }
 }
 

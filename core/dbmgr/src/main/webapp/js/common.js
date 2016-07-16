@@ -477,6 +477,13 @@ define(['moment',
 					return $1.toUpperCase();
 				});
 			};
+			
+			this.UpperCaseFirst = function(v){
+				if(v.length > 0)
+					return v.charAt(0).toUpperCase() + v.substr(1);
+				else
+					return v.toUpperCase();
+			};
 
 			this.crackSQLAnsiName = function(ansiName) {
 				var inQuotes = false;

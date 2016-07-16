@@ -12,6 +12,7 @@ namespace EsgynDB.Data
         public string Schema;
         public string Location;
         public string UserRole;
+        public string SessionName;
 
         public short AccessMode;
         public short AutoCommit;

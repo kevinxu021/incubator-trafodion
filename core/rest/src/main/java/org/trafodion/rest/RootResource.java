@@ -82,5 +82,31 @@ public class RootResource extends ResourceBase {
        //
        return new VersionResource();
    }
+   
+   @Path("/v1/wms/slas")
+	public SlaResource getSlaResource() throws IOException {
+		//To test GET and POST:
+		//curl -v -L -k -X GET -H "Accept: application/json" http://<Rest server IP address>:8080/v1/wms/slas
+        //curl -v -L -k -X POST -d "{"name":"default"}" -H "Content-type: application/json" http://<Rest server IP address>/v1/wms/slas
+		//
+		return new SlaResource();
+	}
 
+   @Path("/v1/wms/profiles")
+	public ProfileResource getProfileResource() throws IOException {
+		//To test:
+		//curl -v -L -k -X GET -H "Accept: application/json" http://<Rest server IP address>:8080/v1/wma/profiles
+        //curl -v -L -k -X POST -d "{"name":"default"}" -H "Content-type: application/json" http://<Rest server IP address>/v1/wms/profiles
+		//
+		return new ProfileResource();
+	}
+
+   @Path("/v1/wms/mappings")
+   public MappingResource getMappingResource() throws IOException {
+       //To test:
+       //curl -v -L -k -X GET -H "Accept: application/json" http://<Rest server IP address>:8080/v1/wma/mappings
+       //curl -v -L -k -X POST -d "{"name":"default"}" -H "Content-type: application/json" http://<Rest server IP address>/v1/wms/mappings
+       //
+       return new MappingResource();
+   }
 }
