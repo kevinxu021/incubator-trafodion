@@ -87,7 +87,7 @@ public class HBaseDCZK implements Abortable {
      * @throws Exception
      */
     public HBaseDCZK(final Configuration pv_config) 
-	throws InterruptedException, KeeperException, IOException 
+	throws IOException 
     {
 	if (LOG.isTraceEnabled()) LOG.trace("HBaseDCZK(conf) -- ENTRY");
 	m_config = pv_config;
@@ -100,16 +100,28 @@ public class HBaseDCZK implements Abortable {
      * @throws KeeperException
      */
     private byte [] get_znode_data (String znode) 
-	throws KeeperException, InterruptedException 
+             throws IOException
     {
+        boolean loopBack = false;
+        do
+        {
 	try {
+            loopBack = false;
 	    return ZKUtil.getData(m_zkw, znode);
 	}
+        catch(InterruptedException ie) {
+           loopBack = true;
+        }
 	catch(KeeperException.NoNodeException ke) {
 	    LOG.debug(m_zkw.prefix("Unable to list children of znode " 
 				   + znode + " because node does not exist (not an error)"));
 	    return null;
 	} 
+        catch (KeeperException ke1) {
+            throw new IOException(ke1);
+        }
+        } while (loopBack);
+        return null;
     }
 	
     /**
@@ -118,9 +130,14 @@ public class HBaseDCZK implements Abortable {
      * @throws KeeperException
      */
     private List<String> get_znode_children(String pv_node) 
-	throws KeeperException 
+	throws IOException 
     {
-	return ZKUtil.listChildrenNoWatch(m_zkw, pv_node);
+        try {
+	    return ZKUtil.listChildrenNoWatch(m_zkw, pv_node);
+        }
+        catch (KeeperException ze) {
+           throw new IOException(ze);
+        }
     }
 
     /**
@@ -128,10 +145,14 @@ public class HBaseDCZK implements Abortable {
      * @throws KeeperException
      */
     public void delete_cluster_entry(String pv_cluster_id ) 
-	throws KeeperException 
+	throws IOException 
     {
 	LOG.info("delete_cluster_entry -- ENTRY -- key: " + pv_cluster_id);
-	ZKUtil.deleteNodeFailSilent(m_zkw, m_clusters_node + "/" + pv_cluster_id);
+        try {
+	   ZKUtil.deleteNodeFailSilent(m_zkw, m_clusters_node + "/" + pv_cluster_id);
+        } catch (KeeperException ze) {
+            throw new IOException(ze);
+        }
 	LOG.info("delete_cluster_entry -- EXIT ");
     }
 
@@ -141,7 +162,7 @@ public class HBaseDCZK implements Abortable {
     }
 
     public void register_status_listener(ZooKeeperListener pv_zkl) 
-	throws IOException, KeeperException
+	throws IOException
     {
 	if (pv_zkl == null) {
 	    return;
@@ -155,7 +176,7 @@ public class HBaseDCZK implements Abortable {
      * @throws IOException
      */
     public void watch_status_znode(String pv_cluster_id)
-	throws IOException, KeeperException 
+	throws IOException
     {
 	
 	LOG.info("HBaseDCZK:watch_status_znode"
@@ -179,7 +200,7 @@ public class HBaseDCZK implements Abortable {
      * @throws IOException
      */
     public void watch_clusters_znode()
-	throws IOException, KeeperException 
+	throws IOException
     {
 	
 	LOG.info("HBaseDCZK:watch_clusters_znode"
@@ -200,7 +221,7 @@ public class HBaseDCZK implements Abortable {
      * @throws IOException
      */
     public void watch_status_all_clusters()
-	throws IOException, KeeperException 
+	throws IOException
     {
 	
 	LOG.info("HBaseDCZK:watch_status_all_clusters"
@@ -218,7 +239,7 @@ public class HBaseDCZK implements Abortable {
     }
 
     public void watch_all() 
-	throws IOException, KeeperException 
+	throws IOException
     {
 	watch_clusters_znode();
 	watch_status_all_clusters();
@@ -349,7 +370,6 @@ public class HBaseDCZK implements Abortable {
 
 	String lv_cluster_id_node = m_clusters_node + "/" + pv_cluster_id;
 
-	try {
 
 	    byte[] znode_data = get_znode_data(lv_cluster_id_node);
 	    if (znode_data == null) {
@@ -376,20 +396,6 @@ public class HBaseDCZK implements Abortable {
 	    }
 	    
 	    return lv_pi;
-
-	} 
-	catch (KeeperException e) {
-	    throw new IOException("HBaseDCZK:get_peer_znode: ZKW Unable to get peer zNode: " 
-				  + lv_cluster_id_node
-				  + " , throwing IOException " + e
-				  );
-	} 
-	catch (InterruptedException e) {
-	    throw new IOException("HBaseDCZK:get_peer_znode: ZKW Unable to get peer zNode: " 
-				  + lv_cluster_id_node
-				  + " , throwing IOException " + e
-				  );
-	}
 
     }
 
@@ -441,11 +447,6 @@ public class HBaseDCZK implements Abortable {
 				  + pv_cluster_id
 				  + " , throwing IOException " + e
 				  );
-	} catch (InterruptedException e) {
-	    throw new IOException("HBaseDCZK:delete_peer_znode: ZKW, InterruptedException trying to delete: " 
-				  + pv_cluster_id
-				  + " , throwing IOException " + e
-				  );
 	}
 
 	return true;
@@ -457,7 +458,7 @@ public class HBaseDCZK implements Abortable {
      * @throws IOException
      */
     public Map<Integer, PeerInfo> list_clusters() 
-	throws KeeperException, IOException 
+	throws IOException 
     {
 	LOG.info("HBaseDCZK:list_clusters"
 		 );
@@ -486,15 +487,13 @@ public class HBaseDCZK implements Abortable {
      */
     public void push_to_cluster(String   pv_cluster_id,
 				PeerInfo pv_pi) 
-	throws KeeperException, IOException 
+	throws IOException 
     {
 	LOG.info("HBaseDCZK:push_to_cluster"
 		 + " cluster id: " + pv_cluster_id
 		 + " data: " + pv_pi
 		 );
 
-	try {
-	    
 	    STRConfig     lv_STRConfig = null;
 	    Configuration lv_config  = null;
 
@@ -519,26 +518,10 @@ public class HBaseDCZK implements Abortable {
 				     pv_pi.get_status()
 				     );
 	    }
-	} 
-	catch (KeeperException e) {
-	    throw new IOException("HBaseDCZK:push_to_cluster: ZKW, KeeperException: " 
-				  + " , throwing IOException " + e
-				  );
-	} 
-	catch (InterruptedException e) {
-	    throw new IOException("HBaseDCZK:push_to_cluster: ZKW, InterruptedException: " 
-				  + " , throwing IOException " + e
-				  );
-	} 
-	catch (Exception e) {
-	    System.out.println("exception: " + e);
-	    System.exit(1);
-	}
-
     }
 
     public void push_to_clusters() 
-	throws KeeperException, IOException 
+	throws IOException 
     {
 	LOG.info("HBaseDCZK:push_to_clusters"
 		 );
@@ -549,8 +532,6 @@ public class HBaseDCZK implements Abortable {
 	    return;
 	}
 
-	try {
-	    
 	    String        lv_my_id   = get_my_id();
 	    PeerInfo      lv_my_pi   = lv_pi_list.get(Integer.parseInt(lv_my_id));
 	    
@@ -561,18 +542,6 @@ public class HBaseDCZK implements Abortable {
 		
 		push_to_cluster(lv_pi.get_id(), lv_my_pi);
 	    }
-	}
-	catch (KeeperException e) {
-	    throw new IOException("HBaseDCZK:push_to_clusters: ZKW, KeeperException: " 
-				  + " , throwing IOException " + e
-				  );
-	}
-	catch (InterruptedException e) {
-	    throw new IOException("HBaseDCZK:push_to_clusters: ZKW, InterruptedException: " 
-				  + " , throwing IOException " + e
-				  );
-	}
-
     }
 
     /**
@@ -581,14 +550,12 @@ public class HBaseDCZK implements Abortable {
      * @throws IOException
      */
     public void pull_cluster(String pv_cluster_id)
-	throws KeeperException, IOException 
+	throws IOException 
     {
 	LOG.info("HBaseDCZK:pull_cluster"
 		 + " cluster id: " + pv_cluster_id
 		 );
 
-	try {
-	    
 	    STRConfig     lv_STRConfig = null;
 	    Configuration lv_config  = null;
 
@@ -607,32 +574,15 @@ public class HBaseDCZK implements Abortable {
 				lv_pi.get_quorum(), 
 				lv_pi.get_port(),
 				lv_pi.get_status());
-	} 
-	catch (KeeperException e) {
-	    throw new IOException("HBaseDCZK:pull_cluster: ZKW, KeeperException: " 
-				  + " , throwing IOException " + e
-				  );
-	} 
-	catch (InterruptedException e) {
-	    throw new IOException("HBaseDCZK:pull_cluster: ZKW, InterruptedException: " 
-				  + " , throwing IOException " + e
-				  );
-	} 
-	catch (Exception e) {
-	    System.out.println("exception: " + e);
-	    System.exit(1);
-	}
-
     }
     
     // Communicates with each cluster and gets that cluster's config information
     public void pull_clusters() 
-	throws KeeperException, IOException 
+	throws IOException 
     {
 	LOG.info("HBaseDCZK:pull_clusters"
 		 );
 
-	try {
 
 	    String        lv_my_id   = get_my_id();
 
@@ -656,17 +606,6 @@ public class HBaseDCZK implements Abortable {
 		
 		pull_cluster(lv_pi.get_id());
 	    }
-	}
-	catch (KeeperException e) {
-	    throw new IOException("HBaseDCZK:pull_clusters: ZKW, KeeperException: " 
-				  + " , throwing IOException " + e
-				  );
-	}
-	catch (InterruptedException e) {
-	    throw new IOException("HBaseDCZK:pull_clusters: ZKW, InterruptedException: " 
-				  + " , throwing IOException " + e
-				  );
-	}
     }
 
     /**
@@ -770,7 +709,7 @@ public class HBaseDCZK implements Abortable {
      * @return
      */
     public String get_my_id() 
-	throws KeeperException, InterruptedException 
+	throws IOException
     {
 	if (LOG.isTraceEnabled()) LOG.trace("HBaseDCZK:get_my_id");
 

@@ -42,6 +42,7 @@
 #include "stringBuf.h"
 #include "NLSConversion.h"
 //#include "hdfs.h"
+#include "Context.h"
 
 #include "ExpORCinterface.h"
 #include "ComSmallDefs.h"
@@ -546,8 +547,10 @@ Int32 ExHdfsScanTcb::fixup()
   lobGlob_ = NULL;
 
   ExpLOBinterfaceInit
-    (lobGlob_, getGlobals()->getDefaultHeap(),TRUE);
-  
+    (lobGlob_, 
+     getGlobals()->getDefaultHeap(),getGlobals()->castToExExeStmtGlobals()->getContext(),
+     TRUE, hdfsScanTdb().hostName_,hdfsScanTdb().port_);
+ 
   return 0;
 }
 
@@ -563,6 +566,10 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
   HdfsFileInfo *hdfo = NULL;
   Lng32 openType = 0;
   int changedLen = 0;
+
+  ContextCli *currContext = getGlobals()->castToExExeStmtGlobals()->getCliGlobals()->currContext();
+  hdfsFS hdfs = currContext->getHdfsServerConnection(hdfsScanTdb().hostName_,hdfsScanTdb().port_);
+  hdfsFileInfo *dirInfo = NULL;
 
   while (!qparent_.down->isEmpty())
     {
@@ -635,6 +642,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 
             if (NOT dataModCheckDone_)
               {
+                Int64 modTS = hdfsScanTdb().modTSforDir_;
                 Lng32 numOfPartLevels = hdfsScanTdb().numOfPartCols_;
 
                 if (hdfsScanTdb().hdfsDirsToCheck())
@@ -1728,8 +1736,10 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                       pentry_down->setDiagsArea(diagsArea);
                     }
                 } // for
-              if (ehi_)
-                retcode = ehi_->hdfsClose();
+              // sss This is one place that is unconditionally closing the 
+              // hdfsFs that's part of this thread's JNIenv.
+              // if (ehi_)
+              //   retcode = ehi_->hdfsClose();
             }
 	    if (step_ == CLOSE_FILE)
 	      {
@@ -1770,6 +1780,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	    
 	    qparent_.down->removeHead();
 	    step_ = NOT_STARTED;
+            dirInfo = hdfsGetPathInfo(hdfs, "/");
 
 // Code instrumentation
 	    //if (hdfsStats_)

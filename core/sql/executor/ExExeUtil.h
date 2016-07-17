@@ -2976,7 +2976,7 @@ public:
   {
     return (ExExeUtilLobExtractTdb &) tdb;
   };
-
+  LOBglobals *getLobGlobals() { return lobGlobals_;}
  protected:
   enum Step
   {
@@ -3026,6 +3026,7 @@ public:
   ExLobStats lobStats_;
   char statusString_[200];
   fstream indata_;
+  LOBglobals *lobGlobals_;
 };
 
 // -----------------------------------------------------------------------
