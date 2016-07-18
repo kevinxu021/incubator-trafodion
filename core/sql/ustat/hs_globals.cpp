@@ -6430,7 +6430,8 @@ Lng32 HSGlobalsClass::generateSampleI(Int64 currentSampleSize,
 
     retcode = HSFuncExecQuery(insertSelectIQuery, -UERR_INTERNAL_ERROR, &xRows,
                               "IUS data set I creation",
-                              NULL, NULL, TRUE/*doRetry*/ );
+                              NULL, NULL, TRUE/*doRetry*/,
+                              0, TRUE);  // check for MDAM usage
 
     if (retcode) TM->Rollback();
 
