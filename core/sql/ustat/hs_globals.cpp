@@ -11941,7 +11941,7 @@ NABoolean HSGlobalsClass::getPersistentSampleTableForIUS(NAString& tableName,
                                                       objDef->getSchemaName());
   if ( !sampleList ) return FALSE;
 
-  Lng32 retcode = sampleList->find(objDef, tableName,
+  Lng32 retcode = sampleList->find(objDef, 'I', tableName,
                                    requestedRows, sampleRows, sampleRate
                                   );
 
@@ -15203,7 +15203,8 @@ Lng32 doubleToHSDataBuffer(const double dbl, HSDataBuffer& dbf)
 /**********************************************************************/
 /* METHOD:  managePersistentSamples()                                 */
 /* PURPOSE: Create or delete persistent sample tables from update     */
-/*          statistics command line.                                  */
+/*          statistics command line. These are NOT the automatically  */
+/*          managed persistent samples used by IUS.                   */
 /* RETCODE:  0 - successful                                           */
 /*          -1 - failure                                              */
 /**********************************************************************/
@@ -15217,7 +15218,7 @@ Lng32 managePersistentSamples()
   {
     NAString table;
     Int64 sampleRows, tableRows;
-    NABoolean isEstimate = FALSE, isManual = TRUE;
+    NABoolean isEstimate = FALSE;
 
     tableRows = hs_globals->objDef->getRowCount(isEstimate);
 
@@ -15264,7 +15265,8 @@ Lng32 managePersistentSamples()
       {
         if (sampleList->createAndInsert(hs_globals->objDef, table, 
                                         sampleRows, tableRows, 
-                                        isEstimate, isManual))
+                                        isEstimate,
+                                        'M'))  // manually created persistent sample table
           retcode = -1;
         if (LM->LogNeeded())
           {
