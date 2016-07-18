@@ -14988,13 +14988,20 @@ PhysicalProperty * FileScan::synthHbaseScanPhysicalProperty(
      // minimum and maximum # of ESPs required by the parent
      Lng32 minESPs = 0;
      Lng32 maxESPs = 0;
+           
+     NABoolean canFreelyAdjustDoP = TRUE;
 
      if (partReq) {
         if (partReq->castToRequireApproximatelyNPartitions())
            minESPs = partReq->castToRequireApproximatelyNPartitions()->
                                           getCountOfPartitionsLowBound();
-        else
+        else {
            minESPs = partReq->getCountOfPartitions();
+
+           if (partReq->castToFullySpecifiedPartitioningRequirement()) {
+              canFreelyAdjustDoP = FALSE;
+           } 
+        }
 
         maxESPs = partReq->getCountOfPartitions();
      } else {
@@ -15012,29 +15019,32 @@ PhysicalProperty * FileScan::synthHbaseScanPhysicalProperty(
         if ( ixDescPartFunc ) 
            numOfPartitions = ixDescPartFunc->getCountOfPartitions();  
 
-        const CostScalar scanSize =
-          getGroupAttr()->getResultCardinalityForEmptyInput()
-           * getGroupAttr()->getRecordLength();
-           
-        // Get the threshold in MB of using # of partitions as the scan dop.
-        // Default value is 10MB.
-        Lng32 numPartitionsAsDopThreshold = 
-               getDefaultAsLong(HBASE_SCAN_DOP_AS_PARTITIONS_THRESHOLD)
-               * 1024 * 1024;
+        NABoolean fakeEnv = FALSE; 
+        CollIndex totalESPsAllowed = defs.getTotalNumOfESPsInCluster(fakeEnv);
 
-        // If the table is partitioned and the table size is over 
-        // the threashold, unconditionally use the number of partitions 
-        // of the table as the scan dop.
-        if (numOfPartitions > 1 &&
-            numPartitionsAsDopThreshold >= 0 &&
-            scanSize >= numPartitionsAsDopThreshold)
-        {
-           minESPs = maxESPs = numOfPartitions;
-        } else {
-           NABoolean fakeEnv = FALSE; 
-           CollIndex totalESPsAllowed = defs.getTotalNumOfESPsInCluster(fakeEnv);
+        if ( !fakeEnv ) {
+
+           const CostScalar scanSize =
+             getGroupAttr()->getResultCardinalityForEmptyInput()
+              * getGroupAttr()->getRecordLength();
+              
+           // Get the threshold in MB of using # of partitions as the scan dop.
+           // Default value is 10MB.
+           Lng32 numPartitionsAsDopThreshold = 
+                  getDefaultAsLong(HBASE_SCAN_DOP_AS_PARTITIONS_THRESHOLD)
+                  * 1024 * 1024;
+   
+           // If canFreelyAdjustDoP is TRUE, the table is partitioned 
+           // and the table size is over the threashold, use 
+           // the number of partitions of the table as the scan dop.
+           if (canFreelyAdjustDoP &&
+               numOfPartitions > 1 &&
+               numPartitionsAsDopThreshold >= 0 &&
+               scanSize >= numPartitionsAsDopThreshold)
+           {
+              minESPs = maxESPs = numOfPartitions;
+           } else {
       
-           if ( !fakeEnv ) {
                // CQDs related to # of ESPs for a HBase table scan
                Lng32 maxESPsByUser = getDefaultAsLong(HBASE_MAX_ESPS);
 
@@ -15058,9 +15068,8 @@ PhysicalProperty * FileScan::synthHbaseScanPhysicalProperty(
                     minESPs = MINOF(minESPs, numOfUniqueNodes);
               }
            }
-           else  {
-              maxESPs = totalESPsAllowed;
-           }
+        } else  {
+           maxESPs = totalESPsAllowed; // forced dop case
         }
      } else {
         maxESPs = minESPs = 1; // ESP parallelism is off
@@ -15243,6 +15252,8 @@ PhysicalProperty * FileScan::synthHbaseScanPhysicalProperty(
 }
 
 //<pb>
+
+
 
 // -----------------------------------------------------------------------
 // FileScan::costMethod()
