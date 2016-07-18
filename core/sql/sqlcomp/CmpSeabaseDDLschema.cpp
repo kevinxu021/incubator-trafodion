@@ -1237,7 +1237,7 @@ void CmpSeabaseDDL::alterSeabaseSchemaHDFSCache(StmtDDLAlterSchemaHDFSCache * al
         tableList.push_back(buf);
     }
 
-    ExpHbaseInterface * ehi = allocEHI();
+    ExpHbaseInterface * ehi = allocEHI(FALSE);
     if (ehi == NULL)
        return;
     if(alterSchemaHdfsCache->isAddToCache()) {

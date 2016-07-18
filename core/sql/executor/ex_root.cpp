@@ -1138,7 +1138,8 @@ void ex_root_tcb::snapshotScanCleanup(ComDiagsArea* & diagsArea)
     return;
 
   ExpHbaseInterface* ehi = ExpHbaseInterface::newInstance
-                           (STMTHEAP, "", "");
+                           (STMTHEAP, "", "", 
+                            COM_STORAGE_HBASE, FALSE);
 
   ex_assert(ehi != NULL, "cannot connect to HBase");
   Int32 retcode = ehi->init(NULL);

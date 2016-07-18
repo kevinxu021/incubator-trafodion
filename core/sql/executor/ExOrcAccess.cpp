@@ -396,14 +396,20 @@ ExWorkProcRetcode ExOrcScanTcb::work()
                     
                     char * vcLenPtr = &orcOperRow_[attr->getVCLenIndOffset()];
                     Lng32 dataLen = attr->getLength(vcLenPtr);
+		    Lng32 dataType = 0;
                     char * data = &orcOperRow_[attr->getOffset()];
+		    if (ppi->colType() == "TIMESTAMP") {
+		      dataType = 1;
+		    }
+                    ppiText.append((char*)&dataType, sizeof(dataType));
                     ppiText.append((char*)&dataLen, sizeof(dataLen));
                     ppiText.append(data, dataLen);
                   }
                 else
                   {
                     temp = 0;
-                    ppiText.append((char*)&temp, sizeof(temp));
+                    ppiText.append((char*)&temp, sizeof(temp)); // operand Type
+                    ppiText.append((char*)&temp, sizeof(temp)); // operand Len
                   }
 
                 orcPPIvec_.push_back(ppiText);

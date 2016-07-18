@@ -5402,6 +5402,10 @@ RelExpr * HbaseDelete::preCodeGen(Generator * generator,
          (NOT generator->isRIinliningForTrafIUD()) &&
          (NOT getTableDesc()->getNATable()->hasLobColumn()))
        uniqueRowsetHbaseOper() = TRUE;
+
+     // TEMP_MONARCH Rowset opers not supported yet.
+     if (getTableDesc()->getNATable()->isMonarch())
+       uniqueRowsetHbaseOper() = FALSE;
   }
   else
   if (isUnique)
@@ -5458,7 +5462,11 @@ RelExpr * HbaseDelete::preCodeGen(Generator * generator,
   // if unique oper with no index maintanence and autocommit is on, then
   // do not require a trnsaction. Hbase guarantees single row consistency.
   Int64 transId = -1;
-  if (((uniqueHbaseOper()) &&
+  if (getTableDesc()->getNATable()->isMonarch())
+    {
+      // TEMP_MONARCH Transactional operations not yet supported
+    }
+  else if (((uniqueHbaseOper()) &&
        (NOT cursorHbaseOper()) &&
        (NOT uniqueRowsetHbaseOper()) &&
        (NOT inlinedActions) &&
@@ -5780,7 +5788,11 @@ RelExpr * HbaseUpdate::preCodeGen(Generator * generator,
   // if unique oper with no index maintanence and autocommit is on, then
   // do not require a transaction. Hbase guarantees single row consistency.
   Int64 transId = -1;
-  if (((uniqueHbaseOper()) &&
+  if (getTableDesc()->getNATable()->isMonarch())
+    {
+      // TEMP_MONARCH Transactional operations not yet supported
+    }
+  else if (((uniqueHbaseOper()) &&
        (NOT isMerge()) &&
        (NOT cursorHbaseOper()) &&
        (NOT uniqueRowsetHbaseOper()) &&
@@ -6072,7 +6084,11 @@ RelExpr * HbaseInsert::preCodeGen(Generator * generator,
   // if unique oper with no index maintanence and autocommit is on, then
   // do not require a trnsaction. Hbase guarantees single row consistency.
   Int64 transId = -1;
-  if (((uniqueHbaseOper()) &&
+  if (getTableDesc()->getNATable()->isMonarch())
+    {
+      // TEMP_MONARCH Transactional operations not yet supported
+    }
+  else if (((uniqueHbaseOper()) &&
        (NOT uniqueRowsetHbaseOper()) &&
        (NOT inlinedActions) &&
        (generator->getTransMode()->getAutoCommit() == TransMode::ON_) &&
@@ -6280,7 +6296,10 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
           aggrPushdown = FALSE;
         }
 
-      if (aggrPushdown && isSeabase && (NOT selectionPred().isEmpty()))
+      // TEMP_MONARCH Aggr pushdown not yet supported
+      if (aggrPushdown && isSeabase && 
+          ((NOT selectionPred().isEmpty()) ||
+           (naTable->isMonarch())))
         aggrPushdown = FALSE;
     }
   
@@ -12675,7 +12694,10 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
   ValueIdSet newExePreds;
   ValueIdSet* originExePreds = new (generator->wHeap())ValueIdSet(executorPred()) ;//saved for futur nullable column check
 
-  if (CmpCommon::getDefault(HBASE_FILTER_PREDS) != DF_MINIMUM){ // the check for V2 and above is moved up before calculating retrieved columns
+  // TEMP_MONARCH Pred pushdown not yet supported for monarch
+  if ((NOT getTableDesc()->getNATable()->isMonarch()) &&
+      (CmpCommon::getDefault(HBASE_FILTER_PREDS) != DF_MINIMUM)) { 
+        // the check for V2 and above is moved up before calculating retrieved columns
       if ((NOT isUnique) &&
           (extractHbaseFilterPredsVX(generator, executorPred(), newExePreds)))
         return this;
@@ -12773,7 +12795,10 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
       // value is needed to retrieve a row.
       //only if needed. If there is already a non nullable non added non nullable with default columns in the set, we should not need to add
       //any other columns.
-      if (CmpCommon::getDefault(HBASE_FILTER_PREDS) == DF_MEDIUM && getMdamKeyPtr() == NULL){ //only enable column retrieval optimization with DF_MEDIUM and not for MDAM scan
+      // TEMP_MONARCH Pred pushdown not yet supported for monarch
+      if ((NOT getTableDesc()->getNATable()->isMonarch()) &&
+          (CmpCommon::getDefault(HBASE_FILTER_PREDS) == DF_MEDIUM && getMdamKeyPtr() == NULL)){ 
+        //only enable column retrieval optimization with DF_MEDIUM and not for MDAM scan
           bool needAddingNonNullableColumn = true; //assume we need to add one non nullable column
           for (ValueId vid = retColRefSet_.init();// look for each column in th eresult set if one match the criteria non null non added non nullable with default
                   retColRefSet_.next(vid);
@@ -12851,7 +12876,10 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
   // if hbase filter preds are enabled, then extracts those preds from executorPred()
   // which could be pushed down to hbase.
   // Do this only for non-unique scan access.
-  if (CmpCommon::getDefault(HBASE_FILTER_PREDS) == DF_MINIMUM){ //keep the check for pushdown after column retrieval for pushdown V1.
+  // TEMP_MONARCH Pred pushdown not yet supported for monarch
+  if ((NOT getTableDesc()->getNATable()->isMonarch()) &&
+      (CmpCommon::getDefault(HBASE_FILTER_PREDS) == DF_MINIMUM)){ 
+    //keep the check for pushdown after column retrieval for pushdown V1.
     if ((NOT isUnique) &&
         (extractHbaseFilterPreds(generator, executorPred(), newExePreds)))
       return this;

@@ -75,6 +75,9 @@ class ExUdrServer;
 class UdrContextMsg;
 class SequenceValueGenerator;
 class LmRoutine;
+class MonarchClient_JNI;
+class HBaseClient_JNI;
+
 #pragma warning( disable : 4244 )  // warning elimination
 #pragma nowarn(1506)   // warning elimination 
 class ContextCli : public ExGod {
@@ -195,6 +198,10 @@ public:
   void setHbaseClient(HBaseClient_JNI *hbaseClientJNI)
   { hbaseClientJNI_ = hbaseClientJNI; }
   HBaseClient_JNI *getHBaseClient() { return hbaseClientJNI_; }
+
+  void setMonarchClient(MonarchClient_JNI *monarchClientJNI)
+  { monarchClientJNI_ = monarchClientJNI; }
+  MonarchClient_JNI *getMonarchClient() { return monarchClientJNI_; }
 
   void flushHtableCache();
   
@@ -501,6 +508,7 @@ private:
   NAString jniErrorStr_; 
   HBaseClient_JNI *hbaseClientJNI_;
   HiveClient_JNI *hiveClientJNI_;
+  MonarchClient_JNI *monarchClientJNI_;
 
   // this points to data used by trafSE (traf storage engine) that is context specific.
   // It points to a list of 'black box' of data allocated by user and is returned

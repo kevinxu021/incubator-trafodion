@@ -289,6 +289,10 @@ public:
         // Returns TRUE if the Compression Type phrase appears;
         // returns FALSE otherwise
 
+  inline NABoolean isStorageTypeSpecified() const;
+
+  inline ComStorageType storageType() const;
+
   // mutators
   void setFileAttr(ElemDDLFileAttr * pFileAttrParseNode);
   inline void setIsBuffered(NABoolean setting);
@@ -369,6 +373,9 @@ private:
   // COMPRESSION
   NABoolean          isCompressionTypeSpec_;
   ComCompressionType compressionType_;
+
+  NABoolean       isStorageTypeSpec_;
+  ComStorageType  storageType_;
 
 }; // class ParDDLFileAttrsCreateIndex
 
@@ -530,6 +537,15 @@ ParDDLFileAttrsCreateIndex::isCompressionTypeSpecified() const
 {
   return isCompressionTypeSpec_;
 }
+
+inline NABoolean
+ParDDLFileAttrsCreateIndex::isStorageTypeSpecified() const
+{
+  return isStorageTypeSpec_;
+}
+
+inline ComStorageType ParDDLFileAttrsCreateIndex::storageType() const 
+{ return storageType_; }
 
 inline NABoolean
 ParDDLFileAttrsCreateIndex::isDCompress() const

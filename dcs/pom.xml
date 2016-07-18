@@ -144,6 +144,15 @@
       </executions>
     </plugin>
     <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.5.1</version>
+        <configuration>
+          <source>1.7</source>
+          <target>1.7</target>
+        </configuration>
+    </plugin>
+    <plugin>
         <artifactId>maven-antrun-plugin</artifactId>
         <version>${maven.antrun.plugin.version}</version>
         <executions>
@@ -644,10 +653,11 @@
   <profiles>
     <!-- JDBC drivers needed for compile, but not site docs 
 	 This allows turning off dependency on command line (-P '!jdbc') -->
-    <profile>
+     <profile>
       <id>jdbc</id>
       <activation>
         <activeByDefault>true</activeByDefault>
+        <jdk>[1.8,)</jdk>
       </activation>
       <dependencies>
          <!-- JDBCT4 dependencies -->    
@@ -663,6 +673,9 @@
             <version>${jdbct2.version}</version>
          </dependency>
       </dependencies>
+      <properties>
+          <additionalparam>-Xdoclint:none</additionalparam>
+       </properties>
     </profile>
     <profile>
       <id>runSmallTests</id>

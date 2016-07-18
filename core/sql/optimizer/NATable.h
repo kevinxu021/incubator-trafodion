@@ -720,6 +720,8 @@ public:
   ComReplType xnRepl() { return xnRepl_; }
   void setXnRepl(ComReplType v) { xnRepl_ = v; }
 
+  ComStorageType storageType() { return storageType_; }
+  void setStorageType(ComStorageType v) { storageType_ = v; }
 
   void setIsExternalTable( NABoolean value )
   {  value ? flags_ |= IS_EXTERNAL_TABLE : flags_ &= ~IS_EXTERNAL_TABLE; }
@@ -902,6 +904,8 @@ public:
   NAString &defaultColFam() { return defaultColFam_; }
   NAList<NAString> &allColFams() { return allColFams_; }
 
+  NABoolean isMonarch() const { return (storageType_ == COM_STORAGE_MONARCH);};
+
 private:
   NABoolean getSQLMXAlignedTable() const
   {  return (flags_ & SQLMX_ALIGNED_ROW_TABLE) != 0; }
@@ -913,7 +917,7 @@ private:
   void setupPrivInfo();
 
   ExpHbaseInterface* getHBaseInterface() const;
-  static ExpHbaseInterface* getHBaseInterfaceRaw();
+  static ExpHbaseInterface* getHBaseInterfaceRaw(NABoolean isMonarch);
 
   //size of All NATable related data after construction
   //this is used when NATables are cached and only then
@@ -1104,6 +1108,10 @@ private:
 
   // transaction replication across multiple clusters
   ComReplType xnRepl_;
+
+  // storage engine where data is stored.
+  // Currently: HBASE or MONARCH
+  ComStorageType storageType_;
 
   // ---------------------------------------------------------------------
   // Flags

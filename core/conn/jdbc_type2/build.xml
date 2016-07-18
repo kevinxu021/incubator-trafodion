@@ -28,6 +28,8 @@
         <arg line="getBuildInfo"/>
     </exec>   
     <property file="buildId"/>
+    <property name="source.version" value="1.7" />
+    <property name="target.version" value="1.7" />
     <property name="vproc.str" value="Traf_JDBC_Type2_Build_${bldId}"/>
     <property name="my_sqroot" value="../../sqf"/>
     <property name="src.lic" value="${base.dir}/../../../licenses"/>
@@ -97,7 +99,7 @@
          <arg line="../doDrvInfo ${package.src}/DriverInfo.java ${package.src}/DriverInfo.java-tmpl ${vproc.str}"/>
       </exec>   
 
-      <javac destdir="${dest.classes}" srcdir="${dest.src}" debug="on" includes="**/*.java" classpath="${java.home}/lib/tools.jar:${dest.classes}" includeAntRuntime="false"/>
+      <javac destdir="${dest.classes}" srcdir="${dest.src}" debug="on" includes="**/*.java" classpath="${java.home}/lib/tools.jar:${dest.classes}" includeAntRuntime="false" source="${source.version}" target="${target.version}"/>
     </target>
 
     <target name="jni" depends="compile">

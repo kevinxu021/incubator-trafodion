@@ -389,7 +389,7 @@ fi
 #==============================================
 #Enter Hadoop Type
 
-echo -n "Specify the Hadoop distribution installed (1: Cloudera, 2: Hortonworks, 3: Other): "
+echo -n "Specify the Hadoop distribution installed (1: Cloudera, 2: Hortonworks, 3: MapR, 4: Other): "
 read answer1
   if [[ -z "$answer1" ]]; then
      echo "***ERROR: User must specify the version of Hadoop being used."
@@ -402,13 +402,16 @@ read answer1
     2) HADOOP_TYPE="hortonworks"
        echo "export HADOOP_TYPE=\"$HADOOP_TYPE\"" >> $LOCAL_TRAF_CONFIG
        ;;
-    3) HADOOP_TYPE="apache"
+    3) HADOOP_TYPE="mapr"
+       echo "export HADOOP_TYPE=\"$HADOOP_TYPE\"" >> $LOCAL_TRAF_CONFIG
+       ;;
+    4) HADOOP_TYPE="apache"
        echo "export HADOOP_TYPE=\"$HADOOP_TYPE\"" >> $LOCAL_TRAF_CONFIG
   esac
 
 export $HADOOP_TYPE
 #==============================================
-if [[ "$HADOOP_TYPE" == "apache" ]]; then
+if [[ "$HADOOP_TYPE" == "apache" ]] || [[ "$HADOOP_TYPE" == "mapr" ]]; then
    echo -n "Enter Hadoop installed full path (example: '/opt/hadoop-2.6.0'), default is [$HADOOP_PREFIX]: "
    read answer
 
@@ -532,7 +535,7 @@ fi
 #==============================================
 #Hadoop user name
 
-if [[ "$HADOOP_TYPE" != "apache" ]]; then
+if [[ "$HADOOP_TYPE" != "apache" ]] || [[ "$HADOOP_TYPE" != "mapr" ]]; then
 
    echo -n "Enter Hadoop admin username, default is [$ADMIN]: "
    read answer
@@ -649,18 +652,21 @@ fi
 
 #==============================================
 #HDFS Username
+if [[ "$HADOOP_TYPE" != "mapr" ]]; then
+   echo -n "Enter HDFS username or username running HDFS, default is [$HDFS_USER]: "
+   read answer
 
-echo -n "Enter HDFS username or username running HDFS, default is [$HDFS_USER]: "
-read answer
-
-if [ -z $answer ]; then
-   echo "export HDFS_USER=\"$HDFS_USER\"" >> $LOCAL_TRAF_CONFIG
-else
-   echo "export HDFS_USER=\"$answer\"" >> $LOCAL_TRAF_CONFIG
+   if [ -z $answer ]; then
+      echo "export HDFS_USER=\"$HDFS_USER\"" >> $LOCAL_TRAF_CONFIG
+   else
+      echo "export HDFS_USER=\"$answer\"" >> $LOCAL_TRAF_CONFIG
+   fi
 fi
-
 #==============================================
 #HBase user
+if [[ "$HADOOP_TYPE" == "mapr" ]]; then
+   HBASE_USER="mapr"
+fi
 
 echo -n "Enter HBase username or username running HBase, default is [$HBASE_USER]: "
 read answer
@@ -673,6 +679,9 @@ fi
 
 #==============================================
 #HBase group
+if [[ "$HADOOP_TYPE" == "mapr" ]]; then
+   HBASE_GROUP="mapr"
+fi
 
 echo -n "Enter HBase group, default is [$HBASE_GROUP]: "
 read answer
@@ -684,7 +693,11 @@ else
 fi
 
 #==============================================
-#HBase group
+#Zookeeper user
+
+if [[ "$HADOOP_TYPE" == "mapr" ]]; then
+   ZOO_USER="mapr"
+fi
 
 echo -n "Enter Zookeeper username or username running Zookeeper, default is [$ZOO_USER]: "
 read answer

@@ -407,19 +407,12 @@ class CmpSeabaseDDL
   
   short switchBackCompiler();
   
-  ExpHbaseInterface* allocEHI(NADefaults * defs = NULL);
+  ExpHbaseInterface* allocEHI(NABoolean isMonarchTable, NADefaults * defs = NULL);
   
   short ddlInvalidateNATables();
   
   void deallocEHI(ExpHbaseInterface* &ehi);
   void dropLOBHdfsFiles();
-
-  enum 
-    {
-      MD_TABLES_REPL_SYNC_FLG  = 0x0001,
-      MD_TABLES_REPL_ASYNC_FLG = 0x0002
-      
-    };
 
   static void setMDflags(Int64 &flags, //INOUT
                          Int64 bitFlags)
@@ -472,8 +465,7 @@ protected:
   short isMetadataInitialized(ExpHbaseInterface * ehi = NULL);
   short isOldMetadataInitialized(ExpHbaseInterface * ehi);
 
-  ExpHbaseInterface* allocEHI(const char * server, const char * zkPort,
-                              NABoolean raiseError);
+  ExpHbaseInterface* allocEHI(const char *server, const char *zkport, NABoolean raiseError, NABoolean isMonarchTable);
   
   // if prevContext is defined, get user CQDs from the controlDB of
   // previous context and send them to the new cmp context
@@ -521,6 +513,16 @@ protected:
 			 NABoolean doRetry = TRUE,
                          NABoolean ddlXns = FALSE);
 
+  short createMonarchTable(ExpHbaseInterface *ehi, 
+                         HbaseStr *table,
+                         const int tableType,
+                         NAList<HbaseStr> &cols,
+                         NAList<HbaseCreateOption*> * inMonarchCreateOptions = NULL,
+                         const int numSplits = 0,
+                         const int keyLength = 0,
+                         char** encodedKeysBuffer = NULL,
+                         NABoolean doRetry = TRUE);
+
   short alterHbaseTable(ExpHbaseInterface *ehi,
                         HbaseStr *table,
                         NAList<NAString> &allColFams,
@@ -529,6 +531,9 @@ protected:
 
   short dropHbaseTable(ExpHbaseInterface *ehi, 
 		       HbaseStr *table, NABoolean asyncDrop,
+                       NABoolean ddlXns);
+
+  short dropMonarchTable(HbaseStr *table, NABoolean asyncDrop,
                        NABoolean ddlXns);
 
   short copyHbaseTable(ExpHbaseInterface *ehi, 
@@ -549,8 +554,9 @@ protected:
 			  NAString &currCatName, NAString &currSchName,
 			  const ComObjectType objType,
                           NABoolean ddlXns,
-			  NABoolean dropFromMD = TRUE,
-			  NABoolean dropFromHbase = TRUE);
+			  NABoolean dropFromMD,
+			  NABoolean dropFromStorage,
+                          NABoolean isMonarch); 
   
   short dropSeabaseStats(ExeCliInterface *cliInterface,
                          const char * catName,
