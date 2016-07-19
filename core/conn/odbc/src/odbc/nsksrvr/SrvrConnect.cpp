@@ -2208,7 +2208,7 @@ TNULL:
 				exitServerProcess();
 			}
 			free(extData);
-			extData != NULL;
+			extData = NULL;
 // build sla path from zk node /<user name>/wms/slas/sla
 			char * cstr = new char [dcsRegisteredNode.length()+1];
 			strcpy (cstr, dcsRegisteredNode.c_str() + 1); //skip first "/"
