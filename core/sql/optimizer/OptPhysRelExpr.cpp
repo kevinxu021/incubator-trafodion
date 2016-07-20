@@ -15030,13 +15030,17 @@ PhysicalProperty * FileScan::synthHbaseScanPhysicalProperty(
 
         if ( !fakeEnv ) {
 
-           const CostScalar scanSize = getTuplesProcessed();
+           // compute the scan size at the scan level 
+           const CostScalar rowCount = getTuplesProcessed();
+           const CostScalar scanSize = rowCount * 
+                        (indexDesc_->getNAFileSet()->getRecordLength());
 
-           if ( scanSize == 0.0 )
-              scanSize = getGroupAttr()->getResultCardinalityForEmptyInput();
+           // if the # of tuples processed is unknown, use the output at the scan
+           if ( rowCount == 0.0 ) {
+              rowCount = getGroupAttr()->getResultCardinalityForEmptyInput();
+              scanSize = rowCount * getGroupAttr()->getRecordLength();
+           }  
 
-           scanSize *= getGroupAttr()->getRecordLength();
-              
            // Get the threshold in MB of using # of partitions as the scan dop.
            // Default value is 10MB.
            Lng32 numPartitionsAsDopThreshold = 
