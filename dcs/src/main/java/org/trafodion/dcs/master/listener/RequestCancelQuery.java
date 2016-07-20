@@ -61,10 +61,12 @@ public class RequestCancelQuery {
     private ByteBuffer body = null;
     private Header hdr = null;
     private SocketAddress clientSocketAddress = null;
+    private ListenerService listener = null;
 
-    RequestCancelQuery(ZkClient zkc,String parentZnode){
-        this.zkc = zkc;
-        this.parentZnode = parentZnode;
+    RequestCancelQuery(ListenerService listener){
+        this.zkc=listener.getZkc();
+        this.parentZnode=listener.getParentZnode();
+        this.listener = listener;
         init ();
     }
 

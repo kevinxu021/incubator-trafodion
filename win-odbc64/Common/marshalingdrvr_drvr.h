@@ -34,6 +34,7 @@ odbcas_ASSvc_GetObjRefHdl_param_pst_(
 		, /* In    */ const USER_DESC_def *userDesc
 		, /* In    */ IDL_long srvrType
 		, /* In    */ IDL_short retryCount
+		, /* In    */ IDL_char *ccExtention // WMS required extention information
 );
 
 

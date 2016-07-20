@@ -35,7 +35,9 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooKeeper;
+import org.trafodion.dcs.master.mapping.DefinedMapping;
 import org.trafodion.dcs.zookeeper.ZkClient;
+import org.trafodion.dcs.master.listener.ListenerConstants;
 
 public class RequestGetObjectRef {
     private static  final Log LOG = LogFactory.getLog(RequestGetObjectRef.class);
@@ -43,11 +45,13 @@ public class RequestGetObjectRef {
     private ZkClient zkc = null;
     private String parentZnode = "";
     private ConnectReply connectReplay = null;
+    private ListenerService listener = null;
 
-    RequestGetObjectRef(ZkClient zkc,String parentZnode){
-        this.zkc = zkc;
-        this.parentZnode = parentZnode;
-        connectReplay = new ConnectReply(zkc,parentZnode);
+    RequestGetObjectRef(ListenerService listener){
+        this.zkc=listener.getZkc();
+        this.parentZnode=listener.getParentZnode();
+        this.listener = listener;
+        connectReplay = new ConnectReply(listener);
     }
 
     ClientData processRequest(ClientData clientData, Socket s) { 

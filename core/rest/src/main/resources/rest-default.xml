@@ -92,7 +92,7 @@
   </property>
   <property>
     <name>zookeeper.znode.parent</name>
-    <value>/${user.name}</value>
+    <value>/${user.name}</value> <!-- /trafodion -->
     <description>Root znode in ZooKeeper. The server will look for DCS znodes under this znode
     and will create any REST server specific znodes here as well.
     </description>
@@ -104,7 +104,7 @@
   -->
   <property>
     <name>rest.zookeeper.quorum</name>
-    <value>localhost</value>
+    <value>localhost</value> <!-- 10.1.30.41 -->
     <description>Comma separated list of servers in the ZooKeeper Quorum.
     For example, "host1.mydomain.com,host2.mydomain.com,host3.mydomain.com".
     By default this is set to localhost. For a fully-distributed setup, 
@@ -180,7 +180,7 @@
  -->
   <property>
     <name>rest.zookeeper.property.clientPort</name>
-    <value>2181</value>
+    <value>22770</value> <!-- 2181 -->
     <description>
     The port at which ZooKeeper is listening for clients.
     </description>
@@ -200,12 +200,12 @@
   
   <property>
     <name>rest.port</name>
-    <value>4200</value>
+    <value>22793</value>
     <description>The http port for the REST server.</description>
   </property>
    <property>
     <name>rest.https.port</name>
-    <value>4201</value>
+    <value>22794</value>
     <description>The https port for the REST server.</description>
   </property>
   <property>
