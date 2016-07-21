@@ -34,8 +34,8 @@ import org.trafodion.dcs.util.Bytes;
 /**
  * Constants holds a bunch of dcs-related constants
  */
-public final class Constants {
-
+public final class Constants { 
+    
     /** long constant for zero */
     public static final Long ZERO_L = Long.valueOf(0L);
     public static final String NINES = "99999999999999";
@@ -288,6 +288,15 @@ public static final String DEFAULT_DCS_SERVER_USER_PROGRAM_STATISTICS_OPENTSDB_E
             + "/running";
     public static final String DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED = DEFAULT_ZOOKEEPER_ZNODE_SERVERS
             + "/registered";
+    
+    /** Parameter name for the root wms dir in ZK for this cluster */
+    public static final String DEFAULT_ZOOKEEPER_ZNODE_WMS_PARENT = "/wms";
+    public static final String DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS = DEFAULT_ZOOKEEPER_ZNODE_WMS_PARENT
+    		+ "/slas";
+    public static final String DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES = DEFAULT_ZOOKEEPER_ZNODE_WMS_PARENT
+    		+ "/profiles";
+    public static final String DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS = DEFAULT_ZOOKEEPER_ZNODE_WMS_PARENT
+            + "/mappings";
 
     /**
      * Parameter name for the limit on concurrent client-side zookeeper
@@ -602,6 +611,61 @@ public static final String DEFAULT_DCS_SERVER_USER_PROGRAM_STATISTICS_OPENTSDB_E
     /** Default DcsMaster Floating IP external IP address */
     public static final String DEFAULT_DCS_MASTER_FLOATING_IP_EXTERNAL_IP_ADDRESS = "default";
 
+    /** WMS value for WMS Default SLA name */
+    public static final String DEFAULT_WMS_SLA_NAME = "defaultSLA";
+    /** WMS value for WMS Default Profile name */
+    public static final String DEFAULT_WMS_PROFILE_NAME = "defaultProfile";
+    /** WMS value for WMS Default Mapping name */
+    public static final String DEFAULT_WMS_MAPPING_NAME = "defaultMapping";
+    /** WMS key names for properties SLA, Profile and Mapping*/
+    public static final String IS_DEFAULT = "isDefault";
+    /** WMS key names for properties Profile */
+    public static final String CQD = "cqd";
+    public static final String SET = "set";
+    public static final String HOST_LIST = "hostList";
+    /** WMS key names for MAPPING */
+    public static final String IS_ACTIVE = "isActive";
+    public static final String USER_NAME = "userName";
+    public static final String APPLICATION_NAME = "applicationName";
+    public static final String SESSION_NAME = "sessionName"; 
+    public static final String ROLE_NAME = "roleName";
+    public static final String CLIENT_IP_ADDRESS = "clientIpAddress";
+    public static final String CLIENT_HOST_NAME = "clientHostName";
+    public static final String SLA = "sla"; 
+    public static final String ORDER_NUMBER = "orderNumber"; 
+    /** WMS key names for SLA */
+    public static final String PRIORITY = "priority";
+    public static final String PRTY_LOW = "Low";
+    public static final String PRTY_MEDIUM = "Medium";
+    public static final String PRTY_HIGH = "High";
+    public static final String LIMIT = "limit";
+    public static final String THROUGHPUT = "throughput";
+    public static final String ON_CONNECT_PROFILE = "onConnectProfile";
+    public static final String ON_DISCONNECT_PROFILE = "onDisconnectProfile"; 
+    public static final String LAST_UPDATE = "lastUpdate"; 
+    
+    public static final String DEFAULT_ORDER_NUMBER = "99";
+    /** Constant Names for Registered Servers */
+    public static final String AVAILABLE = "AVAILABLE:";
+    public static final String CONNECTED = "CONNECTED:";
+    public static final String TIMESTAMP = "timestamp";
+    public static final String HOST_NAME = "hostName";
+    public static final String INSTANCE = "instance";
+    public static final String NODE_ID = "nodeId";
+    public static final String PROCESS_ID = "processId";
+    public static final String PROCESS_NAME = "processName";
+    public static final String IP_ADDRESS = "ipAddress";
+    public static final String PORT = "port";
+    public static final String COMPUTER_NAME = "computerName";
+    public static final String CLIENT_SOCKET = "clientSocket";
+    public static final String CLIENT_PORT = "clientPort";
+    public static final String WINDOW_TEXT = "windowText";
+    public static final String MAPPED_SLA = "sla";
+    public static final String MAPPED_CONNECT_PROFILE = "connectProfile";
+    public static final String MAPPED_DISCONNECT_PROFILE = "disconnectProfile";
+    public static final String MAPPED_PROFILE_TIMESTAMP = "profileTimestamp";
+
+    
     private Constants() {
         // Can't be instantiated with this ctor.
     }

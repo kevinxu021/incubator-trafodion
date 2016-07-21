@@ -61,6 +61,7 @@
 #include <tal.h>
 
 #include <string.h>
+#include <list>
 #include "DrvrSrvr.h"
 #include "Global.h"
 #include "QSGlobal.h"
@@ -138,6 +139,40 @@ int interval_count=0;
 int interval_max=1;
 int limit_count=0;
 int limit_max=-1;
+
+char *extData = NULL;
+string serverProcessId;
+string serverProcessName;
+string serverHost;
+string serverPort;
+string appName;
+string userName;
+time_t connectedTimestamp; //timestamp when ZK updated server state to CONNECTED
+//===========================profile cqds================================================
+string execProfileCqdList(list<char*> *pList);
+string sla;
+string cprofile;
+string dprofile;
+string lastUpdate;
+string requestError ;
+//======================== onConnect ====================================================
+string connectProfile;
+time_t connect_ctime=0;
+time_t connect_mtime=0;
+char* profConnectData=NULL;
+list<char*> connectCqdList;
+list<char*> connectSetList;
+bool connectProfileSame = false;
+//======================== onDisconnect===================================================
+string disconnectProfile;
+time_t disconnect_ctime=0;
+time_t disconnect_mtime=0;
+char* profDisconnectData=NULL;
+list<char*> disconnectCqdList;
+list<char*> disconnectSetList;
+bool disconnectProfileSame = false;
+//============================================================================================
+bool firstTime = true;
 
 bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState);
 
@@ -1813,7 +1848,6 @@ odbc_SQLSvc_InitializeDialogue_ame_(
   , /* In    */ DIALOGUE_ID_def dialogueId
   )
 {
-
 	SRVRTRACE_ENTER(FILE_AME+5);
 	OUT_CONNECTION_CONTEXT_def outContext;
 	odbc_SQLSvc_MonitorCall_exc_ monitorException_={0,0};
@@ -1822,6 +1856,8 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 	odbc_SQLSvc_SetConnectionOption_exc_ setConnectException={0,0,0};
 	char tmpString[100];
 	ERROR_DESC_LIST_def sqlWarning = {0,0};
+	string sqlError;
+	ERROR_DESC_def *errorBuffer;
 
 	unsigned long	curRowNo;
 	ENV_DESC_def	*pEnvDesc;
@@ -1840,8 +1876,8 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 	char			TmpstrRole[MAX_ROLENAME_LEN + 1];
 	__int64			prevRedefTime = 0;
 
-	//Initialize the isShapeLoaded
-        srvrGlobal->isShapeLoaded = false;
+//Initialize the isShapeLoaded
+	srvrGlobal->isShapeLoaded = false;
 
 //    cleanupJniDLL();
 
@@ -1880,6 +1916,7 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 	long UTF8ErrorTextLen;
 
 	DBUserAuth *userSession = DBUserAuth::GetInstance();
+	int crID = userSession->getUserID();
 
 	TmpstrCat[0]='\0';
 	TmpstrSch[0]='\0';
@@ -1893,6 +1930,7 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 	srvrGlobal->ApplicationName[sizeof(srvrGlobal->ApplicationName) -1] = '\0';
 	strcpy(srvrGlobal->QSRoleName, inContext->userRole);
 	strcpy(srvrGlobal->QSUserName, userDesc->userName != NULL ? userDesc->userName: "");
+	userName = string(userDesc->userName != NULL ? userDesc->userName: "");
 
 	char tmpsrvrSessionId[SESSION_ID_LEN];
 	getSessionId(tmpsrvrSessionId);
@@ -1929,13 +1967,11 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 	sts = CEE_TMP_ALLOCATE(call_id_, sizeof(VERSION_def)*2, (void **)&versionPtr);
 	if( sts != CEE_SUCCESS)
 	{
-//LCOV_EXCL_START
 		strcpy( errStrBuf2, "SrvrConnect.cpp");
 		strcpy( errStrBuf3, "odbc_SQLSvc_InitializeDialogue_sme_");
 		strcpy( errStrBuf4, "CEE_TMP_ALLOCATE");
 		sprintf( errStrBuf5, "Failed to get <%d> bytes", sizeof(VERSION_def)*2);
 		logError( NO_MEMORY, SEVERITY_MAJOR, CAPTURE_ALL + PROCESS_STOP );
-//LCOV_EXCL_STOP
 	}
 
 	int len_length = inContext->clientVersionList._length;
@@ -1972,7 +2008,6 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 			break;
 		}
 	}
-
 	outContext.versionList._length = 2;
 	outContext.versionList._buffer = versionPtr;
 	versionPtr = outContext.versionList._buffer + 0; // First element
@@ -2001,6 +2036,19 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 	char zkErrStr[128];
 	char *data = NULL;
 
+	string user;
+	string definedSla ;
+	string definedProfile;
+
+	string curConnectProfile;
+	string curDisconnectProfile;
+	int profConnectDataLen = 0;
+	int profDisconnectDataLen = 0;
+	time_t tctime=0;
+	time_t tmtime=0;
+	char* cqds=NULL;
+	char* sets=NULL;
+
 	int rc = zoo_exists(zh, dcsRegisteredNode.c_str(), 0, &stat);
 	if( rc == ZOK )
 	{
@@ -2010,10 +2058,10 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 		while(!stateOk && cnt)
 		{
 			// call sync to get up to date data
-			data = strdup(dcsRegisteredNode.c_str());
-			rc = zoo_async(zh, dcsRegisteredNode.c_str(), sync_string_completion, data);
 			if ( data != NULL )
 				free(data);
+			data = strdup(dcsRegisteredNode.c_str());
+			rc = zoo_async(zh, dcsRegisteredNode.c_str(), sync_string_completion, data);
 			if( rc != ZOK )
 			{
 				sprintf(tmpString, "odbc_SQLSvc_InitializeDialogue_ame_...Error %d calling zoo_async() for %s. Server exiting.", rc, dcsRegisteredNode.c_str());
@@ -2028,6 +2076,9 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 			rc = zoo_get(zh, dcsRegisteredNode.c_str(), false, zkData, &zkDataLen, &stat);
 			if( rc == ZOK )
 			{
+				if(extData != NULL)
+					free(extData);
+				extData = strdup(zkData);
 				// The first token should be CONNECTING state
 				tkn = strtok(zkData, ":");
 				if( tkn == NULL || stricmp(tkn, "CONNECTING") )
@@ -2084,7 +2135,6 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 					1, "No dialogue ID in registered node. Server exiting.");
 				exitServerProcess();
 			}
-
 			// Return error if dialogue ID does not match.
 			if (srvrGlobal->dialogueId != dialogueId)
 			{
@@ -2096,9 +2146,276 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 				odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
 				return;
 			}
+/*========================= get SLA ========================================
+            timestamp,--------------------------2
+            dialogueId,-------------------------3
+            serverNodeId,-----------------------4
+            serverProcessId,--------------------5
+            serverProcessName,------------------6
+            serverIpAddress,--------------------7
+            serverPort,-------------------------8
+            computerName,-----------------------9
+            clientSocketAddress,----------------10
+            clientPort--------------------------11
+            windowText,-------------------------12
+            sla,--------------------------------13
+            connectProfile,---------------------14
+            disconnectProfile,------------------15
+            lastUpdate--------------------------16
+*/
+			char* stringp = extData;
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #1
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #2
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #3
+
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #4
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #5
+			else
+				serverProcessId = string(tkn);
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #6
+			else
+				serverProcessName = string(tkn);
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #7
+			else
+				serverHost = string(tkn);
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #8
+			else
+				serverPort = string(tkn);
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #9
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #10
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #11
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #12
+			else
+				appName = string(tkn);
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #13
+			else
+				sla = string(tkn);
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #14
+			else
+				cprofile = string(tkn);
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #15
+			else
+				dprofile = string(tkn);
+			if(NULL == (tkn = strsep(&stringp, ":"))) goto TNULL;			//token #16
+			else
+				lastUpdate = string(tkn);
+TNULL:
+			if( tkn == NULL )
+			{
+				SendEventMsg(MSG_PROGRAMMING_ERROR, EVENTLOG_ERROR_TYPE,
+					srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+					1, "No expected tokens in registered node. Server exiting.");
+				exitServerProcess();
+			}
+			free(extData);
+			extData = NULL;
+// build sla path from zk node /<user name>/wms/slas/sla
+			char * cstr = new char [dcsRegisteredNode.length()+1];
+			strcpy (cstr, dcsRegisteredNode.c_str() + 1); //skip first "/"
+			char * p = strtok (cstr,"/");
+			if(p!=0)
+				user = string(p);
+			else
+			{
+				SendEventMsg(MSG_PROGRAMMING_ERROR, EVENTLOG_ERROR_TYPE,
+					srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+					1, "Can not get <user> token from registered node. Server exiting.");
+				exitServerProcess();
+			}
+			delete[] cstr;
+//SLA
+			definedSla = "/" + user + "/wms/slas/" + sla;
+			rc == zoo_exists(zh, definedSla.c_str(), false, &stat);
+            if (rc == ZOK )
+            {
+				char* slaData=NULL;
+				int slaDataLen = 0;
+            	slaDataLen = stat.dataLength;
+				slaData = new char[slaDataLen + 1];
+
+				rc = zoo_get(zh, definedSla.c_str(), false, slaData, &slaDataLen, &stat);
+				if( rc == ZOK )
+				{
+					// isDefault=no:priority=1:limit=:throughput=:onConnectProfile=testProfile:onDisconnectProfile=defaultProfile:lastUpdate=1462326660114
+					char* stringp = slaData;
+					tkn = strsep(&stringp, "=");
+					while(true)
+					{
+						if(tkn == NULL) break;
+						if(strcmp(tkn, "onConnectProfile") == 0)
+						{
+							cqds = strsep(&stringp,":");
+							curConnectProfile = string(tkn);
+						}
+						else if(strcmp(tkn, "onConnectProfile") == 0)
+						{
+							tkn = strtok(NULL,":");
+							curDisconnectProfile = string(tkn);
+						}
+						else
+							tkn = strtok(NULL, ":");
+						tkn = strtok(NULL, "=");
+					}
+					if(curConnectProfile.length()==0)
+						curConnectProfile = string("defaultProfile");
+					if(curDisconnectProfile.length()==0)
+						curDisconnectProfile = string("defaultProfile");
+				}
+				if(slaData!=NULL)
+					delete[]slaData;
+            }
+		}
+//Profiles
+		if( rc == ZOK )
+		{
+			definedProfile = "/" + user + "/wms/profiles/" + curConnectProfile;
+			rc == zoo_exists(zh, definedProfile.c_str(), false, &stat);
+            if (rc == ZOK )
+            {
+                tctime = stat.ctime/1000;
+                tmtime = stat.mtime/1000;
+
+                if(tmtime != connect_mtime)
+                {
+                	connectProfileSame = false;
+                	connectProfile = curConnectProfile;
+                	connect_ctime=tctime;
+                	connect_mtime=tmtime;
+					if(profConnectData != NULL)
+						delete[] profConnectData;
+					cqds = NULL;
+					sets = NULL;
+					profConnectData = NULL;
+					connectCqdList.clear();
+					connectSetList.clear();
+
+					profConnectDataLen = stat.dataLength;
+					profConnectData = new char[profConnectDataLen + 1];
+
+					rc = zoo_get(zh, definedProfile.c_str(), false, profConnectData, &profConnectDataLen, &stat);
+					if( rc == ZOK )
+					{
+						profConnectData[profConnectDataLen]=0;
+						char* stringp = profConnectData;
+						tkn = strsep(&stringp, "=");
+						while(true)
+						{
+							if(tkn == NULL) break;
+							if(stricmp(tkn, "cqd") == 0)
+							{
+								cqds = strsep(&stringp,":");
+								if(sets!=NULL)
+									break;
+							}
+							else if(stricmp(tkn, "set") == 0)
+							{
+								sets = strsep(&stringp,":");
+								if(cqds!=NULL)
+									break;
+							}
+							else
+								tkn = strsep(&stringp, ":");
+							tkn = strsep(&stringp, "=");
+						}
+						if(cqds != NULL && cqds[0] != 0)
+						{
+							tkn = strsep(&cqds, ";");
+							while(tkn != NULL)
+							{
+								connectCqdList.push_back(tkn);
+								tkn = strsep(&cqds, ";");
+							}
+						}
+						if(sets != NULL && sets[0] != 0)
+						{
+							tkn = strsep(&sets, ";");
+							while(tkn != NULL)
+							{
+								connectSetList.push_back(tkn);
+								tkn = strsep(&sets, ";");
+							}
+						}
+					}
+                }
+                else
+                	connectProfileSame = true;
+            }
+            if (rc == ZOK){
+				definedProfile = "/" + user + "/wms/profiles/" + curDisconnectProfile;
+				rc == zoo_exists(zh, definedProfile.c_str(), false, &stat);
+				if (rc == ZOK )
+				{
+	                tctime = stat.ctime/1000;
+	                tmtime = stat.mtime/1000;
+
+	                if(tmtime != disconnect_mtime)
+	                {
+	                	disconnectProfileSame = false;
+	                	disconnectProfile = curDisconnectProfile;
+	                	disconnect_ctime=tctime;
+	                	disconnect_mtime=tmtime;
+						if(profDisconnectData != NULL)
+							delete[] profDisconnectData;
+						profDisconnectData = NULL;
+						disconnectCqdList.clear();
+						disconnectSetList.clear();
+						cqds = NULL;
+						sets = NULL;
+
+						profDisconnectDataLen = stat.dataLength;
+						profDisconnectData = new char[profDisconnectDataLen];
+
+						rc = zoo_get(zh, definedProfile.c_str(), false, profDisconnectData, &profDisconnectDataLen, &stat);
+						if( rc == ZOK )
+						{
+							profDisconnectData[profDisconnectDataLen]=0;
+							char* stringp = profDisconnectData;
+							tkn = strsep(&stringp, "=");
+							while(true)
+							{
+								if(tkn == NULL) break;
+								if(stricmp(tkn, "cqd") == 0)
+								{
+									cqds = strsep(&stringp,":");
+									if(sets!=NULL)
+										break;
+								}
+								else if(stricmp(tkn, "set") == 0)
+								{
+									sets = strsep(&stringp,":");
+									if(cqds!=NULL)
+										break;
+								}
+								else
+									tkn = strsep(&stringp, ":");
+								tkn = strsep(&stringp, "=");
+							}
+							if(cqds != NULL && cqds[0] != 0)
+							{
+								tkn = strsep(&cqds, ";");
+								while(tkn != NULL)
+								{
+									disconnectCqdList.push_back(tkn);
+									tkn = strsep(&cqds, ";");
+								}
+							}
+							if(sets != NULL && sets[0] != 0)
+							{
+								tkn = strsep(&sets, ";");
+								while(tkn != NULL)
+								{
+									disconnectSetList.push_back(tkn);
+									tkn = strsep(&sets, ";");
+								}
+							}
+						}
+	                }
+	                else
+	                	disconnectProfileSame = true;
+				}
+            }
 		}
 	}
-
 	if( rc != ZOK )
 	{
 		sprintf(tmpString, "Error %d getting registered node data from Zookeeper. Server exiting.", rc);
@@ -2116,14 +2433,6 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 	if (srvrGlobal->srvrState == SRVR_AVAILABLE )
 		srvrGlobal->srvrState = SRVR_CONNECTING;
 
-	if( TestPointArray != NULL )
-	{
-//LCOV_EXCL_START
-		delete[] TestPointArray;
-		TestPointArray = NULL;
-//LCOV_EXCL_STOP
-	}
-
 	setConnectException.exception_nr = 0;
 	WSQL_EXEC_ClearDiagnostics(NULL);
 
@@ -2140,7 +2449,6 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 			securitySetup = true;
 		else
 		{
-//LCOV_EXCL_START
 			exception_.exception_detail = retCode;
 			exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
 			SETSECURITYERROR(retCode, &exception_.u.SQLError.errorList);
@@ -2154,23 +2462,18 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 				exitServerProcess();
 			}
 			return;
-//LCOV_EXCL_STOP
 		}
 	}
-
 //	R2.93 - Check if password security is required and reject old driver
 //	R2.5  - Allow old driver connection without password encryption if security policy allows it
 	if ( !(srvrGlobal->drvrVersion.buildId & PASSWORD_SECURITY))
 	{
-//LCOV_EXCL_START
 		exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
 		SETSRVRERROR(SECURITYERR, -8837, "HY000", SQLSVC_EXCEPTION_PASSWORD_ENCRYPTION_REQUIRED, &exception_.u.SQLError.errorList);
 		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
 		updateSrvrState(SRVR_CONNECT_REJECTED);
 		return;
-//LCOV_EXCL_STOP
 	}
-
 	if (srvrGlobal->drvrVersion.buildId & PASSWORD_SECURITY)
 	{
 		if (inContext->inContextOptions1 & INCONTEXT_OPT1_CERTIFICATE_TIMESTAMP)
@@ -2188,7 +2491,6 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 				retCode = GET_CERTIFICATE(NULL, &certificateLen);
 				if (retCode == SECMXO_NO_ERROR)
 				{
-//LCOV_EXCL_START
 					sts = CEE_TMP_ALLOCATE(call_id_, certificateLen+1, (void **)&certificatePtr);
 					if( sts != CEE_SUCCESS)
 					{
@@ -2197,7 +2499,6 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 						strcpy( errStrBuf4, "CEE_TMP_ALLOCATE");
 						sprintf( errStrBuf5, "Failed to get <%d> bytes", certificateLen);
 						logError( NO_MEMORY, SEVERITY_MAJOR, CAPTURE_ALL + PROCESS_STOP );
-//LCOV_EXCL_STOP
 					}
 					retCode = GET_CERTIFICATE(certificatePtr, &certificateLen);
 				}
@@ -2212,7 +2513,6 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 				}
 				else
 				{
-//LCOV_EXCL_START
 					exception_.exception_detail = retCode;
 					exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
 					SETSECURITYERROR(retCode, &exception_.u.SQLError.errorList);
@@ -2226,7 +2526,6 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 						exitServerProcess();
 					}
 					return;
-//LCOV_EXCL_STOP
 				}
 				break;
 			case SECMXO_NO_CERTIFICATE:
@@ -2238,7 +2537,6 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 				odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
 				return;
 				break;
-//LCOV_EXCL_START
 			case SECMXO_CERTIFICATE_EXPIRED:
 				// certificates match, but they are expired, and policy enforces certificate expiration
 				// report error to user, no autodownload
@@ -2257,7 +2555,6 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 						srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
 						1, "Security layer returned fatal error. Server exiting.");
 					exitServerProcess();
-//LCOV_EXCL_STOP
 				}
 				return;
 				break;
@@ -2271,22 +2568,20 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 	}
 	if (userDesc->userName == NULL || userDesc->password._buffer == NULL)
 	{
-//LCOV_EXCL_START
 		exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_InvalidUser_exn_;
 		SETSRVRERROR(SQLERRWARN, -8837, "28000", "Invalid authorization specification", &exception_.u.SQLError.errorList);
 		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
 		updateSrvrState(SRVR_CONNECT_REJECTED);
 		return;
-//LCOV_EXCL_STOP
 	}
-
 	if (strlen(inContext->catalog) > MAX_SQL_IDENTIFIER_LEN || strlen(inContext->schema) > MAX_SQL_IDENTIFIER_LEN)
 	{
 		exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_ParamError_exn_;
 		exception_.u.ParamError.ParamDesc = SQLSVC_EXCEPTION_INVALID_OPTION_VALUE_STR;
+		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
 		updateSrvrState(SRVR_CONNECT_REJECTED);
+		return;
 	}
-
 	// RAJANI KANTH
 	/*
 	 * Read the set values as it has SQL_ATTR_WARNING has to be
@@ -2327,40 +2622,10 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 		}
 	}
 	// Rajani End
-
-	/*
-	 We should get rid of this, but we cant right now
-	 - if we remove it, because of a bug in SQL that does not reset transactions, an MXOSRVR could get into an unusable state
-	 for ex: an application sets txn isolation level to read uncommited. All subseq connection will also get this.
-	 - ideally we need to have a reset txn cqd (which will only be available in 2.5)
-
-	- now setting this isolation to read committed is also a problem. If the system defaults has read uncommitted, then any
-	scenario which will cause a new compiler to be created (ex: a diff userid logging on) will cause it to get a read committed isolation level
-	so potential error 73s can happen. The workaround for this ofcourse is to set it at the datasource level
-	*/
-
-	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
-										call_id_,
-										&setConnectException,
-										dialogueId,
-										SQL_TXN_ISOLATION,
-										SQL_TXN_READ_COMMITTED,
-										NULL
-										, &sqlWarning
-										);
-
-	if (setConnectException.exception_nr != CEE_SUCCESS)
-	{
-//LCOV_EXCL_START
-		sprintf(tmpString, "%ld", inContext->txnIsolationLevel);
-		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
-			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "SQL_TXN_ISOLATION", tmpString);
-		goto MapException;
-//LCOV_EXCL_STOP
-	}
-
-
+//==========================================================================================================================
+// resets all attrs to the values they had right after we read all
+// the DEFAULTS tables, or the values they had right before a CQD * RESET RESET.
+//
 	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
 										call_id_,
 										&setConnectException,
@@ -2372,14 +2637,235 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 										);
 	if (setConnectException.exception_nr != CEE_SUCCESS)
 	{
-//LCOV_EXCL_START
+		exception_.exception_detail = setConnectException.exception_detail;
+		exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
+		errorBuffer = sqlWarning._buffer;
+		sqlError = "RESET_DEFAULTS failed :"+ string(errorBuffer->errorText);
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "RESET_DEFAULTS", "");
-		goto MapException;
-//LCOV_EXCL_STOP
+			2, "RESET_DEFAULTS", sqlError.c_str());
+		SETSRVRERROR(SQLERRWARN, errorBuffer->sqlcode, errorBuffer->sqlstate, (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+		updateSrvrState(SRVR_CONNECT_REJECTED);
+		return;
 	}
+	if ( firstTime )
+	{
+// Added to detect MODE_SPECIAL_1 CQD
+		srvrGlobal->modeSpecial_1 = false;
+		if( getSQLInfo( MODE_SPECIAL_1 ))
+			srvrGlobal->modeSpecial_1 = true;
 
+		odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
+											call_id_,
+											&setConnectException,
+											dialogueId,
+											SET_ODBC_PROCESS,
+											0,
+											NULL,
+											&sqlWarning
+											);
+		if (setConnectException.exception_nr != CEE_SUCCESS)
+		{
+			firstTime = true;
+			exception_.exception_detail = setConnectException.exception_detail;
+			exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
+			errorBuffer = sqlWarning._buffer;
+			sqlError = "SET_ODBC_PROCESS failed :"+ string(errorBuffer->errorText);
+			SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
+				srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+				2, "SET_ODBC_PROCESS", sqlError.c_str());
+			SETSRVRERROR(SQLERRWARN, errorBuffer->sqlcode, errorBuffer->sqlstate, (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+			odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+			updateSrvrState(SRVR_CONNECT_REJECTED);
+			return;
+		}
+		odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
+											call_id_,
+											&setConnectException,
+											dialogueId,
+											WMS_QUERY_MONITORING,
+											0,
+											NULL,
+											&sqlWarning
+											);
+		if (setConnectException.exception_nr != CEE_SUCCESS)
+		{
+			firstTime = true;
+			exception_.exception_detail = setConnectException.exception_detail;
+			exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
+			errorBuffer = sqlWarning._buffer;
+			sqlError = "WMS_QUERY_MONITORING failed :"+ string(errorBuffer->errorText);
+			SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
+				srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+				2, "WMS_QUERY_MONITORING", sqlError.c_str());
+			SETSRVRERROR(SQLERRWARN, errorBuffer->sqlcode, errorBuffer->sqlstate, (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+			odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+			updateSrvrState(SRVR_CONNECT_REJECTED);
+			return;
+		}
+	// Need to enable this for JDBC driver
+		odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
+											call_id_,
+											&setConnectException,
+											dialogueId,
+											SET_JDBC_PROCESS,
+											0,
+											NULL,
+											&sqlWarning
+											);
+		if (setConnectException.exception_nr != CEE_SUCCESS)
+		{
+			firstTime = true;
+			exception_.exception_detail = setConnectException.exception_detail;
+			exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
+			errorBuffer = sqlWarning._buffer;
+			sqlError = "SET_JDBC_PROCESS failed :"+ string(errorBuffer->errorText);
+			SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
+				srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+				2, "SET_JDBC_PROCESS", sqlError.c_str());
+			SETSRVRERROR(SQLERRWARN, errorBuffer->sqlcode, errorBuffer->sqlstate, (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+			odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+			updateSrvrState(SRVR_CONNECT_REJECTED);
+			return;
+		}
+		odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
+											call_id_,
+											&setConnectException,
+											dialogueId,
+											SET_EXPLAIN_PLAN,
+											0,
+											NULL,
+											&sqlWarning
+											);
+		if (setConnectException.exception_nr != CEE_SUCCESS)
+		{
+			firstTime = true;
+			exception_.exception_detail = setConnectException.exception_detail;
+			exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
+			errorBuffer = sqlWarning._buffer;
+			sqlError = "SET_EXPLAIN_PLAN failed :"+ string(errorBuffer->errorText);
+			SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
+				srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+				2, "SET_EXPLAIN_PLAN", sqlError.c_str());
+			SETSRVRERROR(SQLERRWARN, errorBuffer->sqlcode, errorBuffer->sqlstate, (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+			odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+			updateSrvrState(SRVR_CONNECT_REJECTED);
+			return;
+		}
+		odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
+											call_id_,
+											&setConnectException,
+											dialogueId,
+											RESET_RESET_DEFAULTS,
+											0,
+											NULL,
+											&sqlWarning
+											);
+		if (setConnectException.exception_nr != CEE_SUCCESS)
+		{
+			firstTime = true;
+			exception_.exception_detail = setConnectException.exception_detail;
+			exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
+			errorBuffer = sqlWarning._buffer;
+			sqlError = "RESET_RESET_DEFAULTS failed :"+ string(errorBuffer->errorText);
+			SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
+				srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+				2, "RESET_RESET_DEFAULTS", sqlError.c_str());
+			SETSRVRERROR(SQLERRWARN, errorBuffer->sqlcode, errorBuffer->sqlstate, (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+			odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+			updateSrvrState(SRVR_CONNECT_REJECTED);
+			return;
+		}
+		firstTime = false;
+	}
+	if (strcmp(srvrGlobal->ApplicationName, HPDCI_APPLICATION) == 0)
+	{
+		odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
+											call_id_,
+											&setConnectException,
+											dialogueId,
+											SET_NVCI_PROCESS,
+											0,
+											NULL,
+											&sqlWarning
+											);
+		if (setConnectException.exception_nr != CEE_SUCCESS)
+		{
+			firstTime = true;
+			exception_.exception_detail = setConnectException.exception_detail;
+			exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
+			errorBuffer = sqlWarning._buffer;
+			sqlError = "SET_NVCI_PROCESS failed :"+ string(errorBuffer->errorText);
+			SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
+				srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+				2, "SET_NVCI_PROCESS", sqlError.c_str());
+			SETSRVRERROR(SQLERRWARN, errorBuffer->sqlcode, errorBuffer->sqlstate, (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+			odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+			updateSrvrState(SRVR_CONNECT_REJECTED);
+			return;
+		}
+	}
+//============================== Execute all CQDs and Sets from the Profile ======================================
+	sqlError = execProfileCqdList(&connectCqdList);
+	if (sqlError.length() == 0)
+		sqlError = execProfileCqdList(&connectSetList);
+	if (sqlError.length() != 0)
+	{
+		connectProfile = "";
+		connect_ctime=0;
+		connect_mtime=0;
+		if(profConnectData!=NULL)
+			delete[] profConnectData;
+		profConnectData=NULL;
+		connectSetList.clear();
+		connectCqdList.clear();
+		connectProfileSame = false;
+
+		exception_.exception_detail = -1;
+		exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
+		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
+			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+			2, "EXECUTE CQD or SET failed :", sqlError.c_str());
+		SETSRVRERROR(SQLERRWARN, -1, "HY000", (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+		updateSrvrState(SRVR_CONNECT_REJECTED);
+		return;
+	}
+//==========================================================================================
+	/*
+	 We should get rid of this, but we cant right now
+	 - if we remove it, because of a bug in SQL that does not reset transactions, an MXOSRVR could get into an unusable state
+	 for ex: an application sets txn isolation level to read uncommited. All subseq connection will also get this.
+	 - ideally we need to have a reset txn cqd (which will only be available in 2.5)
+
+	- now setting this isolation to read committed is also a problem. If the system defaults has read uncommitted, then any
+	scenario which will cause a new compiler to be created (ex: a diff userid logging on) will cause it to get a read committed isolation level
+	so potential error 73s can happen. The workaround for this ofcourse is to set it at the datasource level
+	*/
+	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
+										call_id_,
+										&setConnectException,
+										dialogueId,
+										SQL_TXN_ISOLATION,
+										SQL_TXN_READ_COMMITTED,
+										NULL
+										, &sqlWarning
+										);
+	if (setConnectException.exception_nr != CEE_SUCCESS)
+	{
+		exception_.exception_detail = setConnectException.exception_detail;
+		exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
+		errorBuffer = sqlWarning._buffer;
+		sqlError = "SQL_TXN_ISOLATION failed :"+ string(errorBuffer->errorText);
+		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
+			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+			2, "SQL_TXN_ISOLATION", sqlError.c_str());
+		SETSRVRERROR(SQLERRWARN, errorBuffer->sqlcode, errorBuffer->sqlstate, (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+		updateSrvrState(SRVR_CONNECT_REJECTED);
+		return;
+	}
 	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
 										call_id_,
 										&setConnectException,
@@ -2391,15 +2877,20 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 										);
 	if (setConnectException.exception_nr != CEE_SUCCESS)
 	{
-//LCOV_EXCL_START
+		exception_.exception_detail = setConnectException.exception_detail;
+		exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
+		errorBuffer = sqlWarning._buffer;
+		sqlError = "CUT_CONTROLQUERYSHAPE failed :"+ string(errorBuffer->errorText);
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "CUT_CONTROLQUERYSHAPE", "");
-		goto MapException;
-//LCOV_EXCL_STOP
+			2, "CUT_CONTROLQUERYSHAPE", sqlError.c_str());
+		SETSRVRERROR(SQLERRWARN, errorBuffer->sqlcode, errorBuffer->sqlstate, (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+		updateSrvrState(SRVR_CONNECT_REJECTED);
+		return;
 	}
-
-	// collect information for auditing and repository
+//======================================authentication================================
+// collect information for auditing and repository
 
 	memset(setinit.clientId,'\0',MAX_COMPUTERNAME_LENGTH*4 + 1);
 	memset(setinit.applicationId,'\0',APPLICATIONID_LENGTH*4 + 1);
@@ -2427,157 +2918,145 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 			{
 				srvrGlobal->traceLogger->TraceConnectExit(exception_, outContext);
 			}
-
 		return;
 	}
-	else
-	{
-
+//======================================END of authentication================================
 // Get Default Catalog Schema
-		getCurrentCatalogSchema();
-		if ( srvrGlobal->DefaultSchema[0] == '\0' || srvrGlobal->DefaultCatalog[0] == '\0' )
-		{
-			strcpy(srvrGlobal->DefaultCatalog, ODBCMX_DEFAULT_CATALOG);
-			strcpy(srvrGlobal->DefaultSchema, ODBCMX_DEFAULT_SCHEMA);
-		}
+	getCurrentCatalogSchema();
+	if ( srvrGlobal->DefaultSchema[0] == '\0' || srvrGlobal->DefaultCatalog[0] == '\0' )
+	{
+		strcpy(srvrGlobal->DefaultCatalog, ODBCMX_DEFAULT_CATALOG);
+		strcpy(srvrGlobal->DefaultSchema, ODBCMX_DEFAULT_SCHEMA);
+	}
 
-
-		if (inContext->catalog[0] != NULL)
-		{
+	if (inContext->catalog[0] != NULL)
+	{
 // Temporary - till drivers get fixed
 //
-                if (stricmp(inContext->catalog, ODBCMX_PREV_DEFAULT_CATALOG) != 0)
-                {
-			strcpy(srvrGlobal->DefaultCatalog, """");
-			strcat(srvrGlobal->DefaultCatalog, inContext->catalog);
-			strcat(srvrGlobal->DefaultCatalog, """");
-                }
-                else
-// Convert the default catalog set by old drivers to the current
-			strcpy(srvrGlobal->DefaultCatalog, ODBCMX_DEFAULT_CATALOG);
-		} // inContext->catalog[0] != NULL
-
-
-		static bool defaultSchemaSaved = false;
-		if (stricmp(TmpstrRole, srvrGlobal->QSRoleName) != 0) // it means user role has been updated - default schema also needs to be updated
-			defaultSchemaSaved = false;
-		if (!defaultSchemaSaved)
-		{
-			if(!getSQLInfo( SCHEMA_DEFAULT )) // populate savedDefaultSchema
+			if (stricmp(inContext->catalog, ODBCMX_PREV_DEFAULT_CATALOG) != 0)
 			{
-				//this should not happen - but let's put defensive code to set it to "USR"
-				strcpy(savedDefaultSchema,ODBCMX_DEFAULT_SCHEMA);
+		strcpy(srvrGlobal->DefaultCatalog, """");
+		strcat(srvrGlobal->DefaultCatalog, inContext->catalog);
+		strcat(srvrGlobal->DefaultCatalog, """");
 			}
-			defaultSchemaSaved = true;
-		}
-
-		if (inContext->schema[0] == NULL)
-		{
-			strcpy(srvrGlobal->DefaultSchema, savedDefaultSchema);
-			strcpy(schemaValueStr, """");
-			strcat(schemaValueStr, srvrGlobal->DefaultCatalog);
-			strcat(schemaValueStr, """");
-			strcat(schemaValueStr, ".");
-			strcat(schemaValueStr, savedDefaultSchema);
-
-			odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
-												call_id_,
-												&setConnectException,
-												dialogueId,
-												SET_SCHEMA,
-												0,
-												(IDL_string)schemaValueStr
-												,&sqlWarning
-												);
-			if (setConnectException.exception_nr != CEE_SUCCESS)
-			{
-//LCOV_EXCL_START
-				SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
-					srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-					2, "RESET_SCHEMA", schemaValueStr);
-				goto MapException;
-//LCOV_EXCL_STOP
-			}
-		}
-		if (inContext->schema[0] != NULL)
-		{
-			// Fix: If the catalog or schema name itself has a dot within it like in below
-			// "a&new*.cat"."a&new*.sch" then we have to handle that.
-			tmpPtr = tmpPtr2 = NULL;
-			if(   tmpPtr = (char *) strrchr(inContext->schema,'.')   )
-			{
-				// Search backwards for a double quotes if it exists then check if there is
-				// any dot before that and pick that position.
-				char	   TmpstrCatSch[257];
-				strcpy( TmpstrCatSch, inContext->schema );
-				TmpstrCatSch[tmpPtr - inContext->schema] = '\x0';
-
-				tmpPtr2 = strrchr(TmpstrCatSch,'"');
-				if( tmpPtr2 != NULL )
-				{
-					TmpstrCatSch[tmpPtr2 - TmpstrCatSch] = '\x0';
-					if( tmpPtr2 = strrchr(TmpstrCatSch,'.') )
-						tmpPtr = (char *)(inContext->schema + (tmpPtr2 - TmpstrCatSch));
-					else
-						tmpPtr = NULL;
-				}
-			}
-
-			if( tmpPtr != NULL )
-			{
-				catLen = strlen(inContext->schema) - strlen(tmpPtr);
-				//copying the Catalog
-				strncpy(TmpstrCat,inContext->schema,catLen);
-				TmpstrCat[catLen] = '\0';
-				*tmpPtr++;
-				//copying the Schema
-				strcpy(TmpstrSch, tmpPtr);
-
-				strcpy(srvrGlobal->DefaultCatalog, """");
-				strcat(srvrGlobal->DefaultCatalog, TmpstrCat);
-				strcat(srvrGlobal->DefaultCatalog, """");
-
-				strcpy(srvrGlobal->DefaultSchema, """");
-				strcat(srvrGlobal->DefaultSchema, TmpstrSch);
-				strcat(srvrGlobal->DefaultSchema, """");
-
-					if ( srvrGlobal->DefaultSchema[0] == '\0' || srvrGlobal->DefaultCatalog[0] == '\0' )
-					{
-						exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_ParamError_exn_;
-						exception_.u.ParamError.ParamDesc = SQLSVC_EXCEPTION_INVALID_SCHEMA_CATALOG_OPTION;
-						updateSrvrState(SRVR_CONNECT_REJECTED);
-					}
-
-				}
-
 			else
-			{
-				strcpy(srvrGlobal->DefaultSchema, """");
-				strcat(srvrGlobal->DefaultSchema, inContext->schema);
-				strcat(srvrGlobal->DefaultSchema, """");
-			}
+// Convert the default catalog set by old drivers to the current
+		strcpy(srvrGlobal->DefaultCatalog, ODBCMX_DEFAULT_CATALOG);
+	} // inContext->catalog[0] != NULL
 
+	static bool defaultSchemaSaved = false;
+	if (stricmp(TmpstrRole, srvrGlobal->QSRoleName) != 0) // it means user role has been updated - default schema also needs to be updated
+		defaultSchemaSaved = false;
+	if (!defaultSchemaSaved)
+	{
+		if(!getSQLInfo( SCHEMA_DEFAULT )) // populate savedDefaultSchema
+		{
+			//this should not happen - but let's put defensive code to set it to "USR"
+			strcpy(savedDefaultSchema,ODBCMX_DEFAULT_SCHEMA);
+		}
+		defaultSchemaSaved = true;
+	}
+
+	if (inContext->schema[0] == NULL)
+	{
+		strcpy(srvrGlobal->DefaultSchema, savedDefaultSchema);
+		strcpy(schemaValueStr, """");
+		strcat(schemaValueStr, srvrGlobal->DefaultCatalog);
+		strcat(schemaValueStr, """");
+		strcat(schemaValueStr, ".");
+		strcat(schemaValueStr, savedDefaultSchema);
+
+		odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
+											call_id_,
+											&setConnectException,
+											dialogueId,
+											SET_SCHEMA,
+											0,
+											(IDL_string)schemaValueStr
+											,&sqlWarning
+											);
+		if (setConnectException.exception_nr != CEE_SUCCESS)
+		{
+			exception_.exception_detail = setConnectException.exception_detail;
+			exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
+			errorBuffer = sqlWarning._buffer;
+			sqlError = "SET_SCHEMA failed :"+ string(errorBuffer->errorText);
+			SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
+				srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+				2, "SET_SCHEMA", sqlError.c_str());
+			SETSRVRERROR(SQLERRWARN, errorBuffer->sqlcode, errorBuffer->sqlstate, (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+			odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+			updateSrvrState(SRVR_CONNECT_REJECTED);
+			return;
+		}
+	}
+	if (inContext->schema[0] != NULL)
+	{
+		// Fix: If the catalog or schema name itself has a dot within it like in below
+		// "a&new*.cat"."a&new*.sch" then we have to handle that.
+		tmpPtr = tmpPtr2 = NULL;
+		if(   tmpPtr = (char *) strrchr(inContext->schema,'.')   )
+		{
+			// Search backwards for a double quotes if it exists then check if there is
+			// any dot before that and pick that position.
+			char	   TmpstrCatSch[257];
+			strcpy( TmpstrCatSch, inContext->schema );
+			TmpstrCatSch[tmpPtr - inContext->schema] = '\x0';
+
+			tmpPtr2 = strrchr(TmpstrCatSch,'"');
+			if( tmpPtr2 != NULL )
+			{
+				TmpstrCatSch[tmpPtr2 - TmpstrCatSch] = '\x0';
+				if( tmpPtr2 = strrchr(TmpstrCatSch,'.') )
+					tmpPtr = (char *)(inContext->schema + (tmpPtr2 - TmpstrCatSch));
+				else
+					tmpPtr = NULL;
+			}
 		}
 
-		strcpy(outContext.catalog, srvrGlobal->DefaultCatalog);
-		// The size of srvrGlobal->DefaultSchema is increased to 131
-		// to allow double-quotes around the schema name
-		// we need to be careful not to overrun outContext.schema
-		strncpy(outContext.schema, srvrGlobal->DefaultSchema, sizeof(outContext.schema));
+		if( tmpPtr != NULL )
+		{
+			catLen = strlen(inContext->schema) - strlen(tmpPtr);
+			//copying the Catalog
+			strncpy(TmpstrCat,inContext->schema,catLen);
+			TmpstrCat[catLen] = '\0';
+			*tmpPtr++;
+			//copying the Schema
+			strcpy(TmpstrSch, tmpPtr);
+
+			strcpy(srvrGlobal->DefaultCatalog, """");
+			strcat(srvrGlobal->DefaultCatalog, TmpstrCat);
+			strcat(srvrGlobal->DefaultCatalog, """");
+
+			strcpy(srvrGlobal->DefaultSchema, """");
+			strcat(srvrGlobal->DefaultSchema, TmpstrSch);
+			strcat(srvrGlobal->DefaultSchema, """");
+
+				if ( srvrGlobal->DefaultSchema[0] == '\0' || srvrGlobal->DefaultCatalog[0] == '\0' )
+				{
+					exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_ParamError_exn_;
+					exception_.u.ParamError.ParamDesc = SQLSVC_EXCEPTION_INVALID_SCHEMA_CATALOG_OPTION;
+					updateSrvrState(SRVR_CONNECT_REJECTED);
+				}
+
+			}
+
+		else
+		{
+			strcpy(srvrGlobal->DefaultSchema, """");
+			strcat(srvrGlobal->DefaultSchema, inContext->schema);
+			strcat(srvrGlobal->DefaultSchema, """");
+		}
+
+	}
+
+	strcpy(outContext.catalog, srvrGlobal->DefaultCatalog);
+	// The size of srvrGlobal->DefaultSchema is increased to 131
+	// to allow double-quotes around the schema name
+	// we need to be careful not to overrun outContext.schema
+	strncpy(outContext.schema, srvrGlobal->DefaultSchema, sizeof(outContext.schema));
 		outContext.schema[sizeof(outContext.schema)-1] = '\0';
-	}
 
-
-	// Added to detect MODE_SPECIAL_1 CQD
-	static bool firstTime = true;
-	if ( firstTime )
-	{
-		srvrGlobal->modeSpecial_1 = false;
-		if( getSQLInfo( MODE_SPECIAL_1 ))
-			srvrGlobal->modeSpecial_1 = true;
-
-		firstTime = false;
-	}
 	if( srvrGlobal->modeSpecial_1 )
 		outContext.versionList._buffer->buildId = outContext.versionList._buffer->buildId | MXO_SPECIAL_1_MODE;
 
@@ -2594,8 +3073,6 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 		#endif
 		srvrGlobal->tip_gateway = NULL;
 	}
-
-
 	//getSQLInfo(USER_ROLE); // srvrGlobal->RoleName and srvrGlobal->QSRoleName is set here
 
 	if (srvrGlobal->QSRoleName[0] != '\0')
@@ -2607,8 +3084,6 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 	}
 	else
 		outContext.outContextOptionStringLen = 0;
-
-
 	//  +++ Fix for update stats problem on volatile table. This code was earlier
 	//  just before SET_ODBC_PROCESS connection attr above.
 	//	Have moved the BEGIN_SESSION here to fix an issue with AQR.
@@ -2636,21 +3111,28 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 
 	//	Max Query ID Len:  160 bytes
 
-        odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
-                                                                                call_id_,
-                                                                                &setConnectException,
-                                                                                dialogueId,
-                                                                                BEGIN_SESSION,
-                                                                                0,
-                                                                                (IDL_string)inContext->sessionName,
-                                                                                &sqlWarning
-                                                                                );
+	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
+					call_id_,
+					&setConnectException,
+					dialogueId,
+					BEGIN_SESSION,
+					0,
+					(IDL_string)inContext->sessionName,
+					&sqlWarning
+					);
 	if (setConnectException.exception_nr != CEE_SUCCESS)
 	{
+		exception_.exception_detail = setConnectException.exception_detail;
+		exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
+		errorBuffer = sqlWarning._buffer;
+		sqlError = "BEGIN_SESSION failed :"+ string(errorBuffer->errorText);
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "BEGIN_SESSION", "");
-		goto MapException;
+			2, "BEGIN_SESSION", sqlError.c_str());
+		SETSRVRERROR(SQLERRWARN, errorBuffer->sqlcode, errorBuffer->sqlstate, (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+		updateSrvrState(SRVR_CONNECT_REJECTED);
+		return;
 	}
 	else
 	{
@@ -2669,19 +3151,10 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 			strcpy(srvrGlobal->sessionId,tmpsrvrSessionId);
 		}
 	}
-
 	if (srvrGlobal->srvrState == SRVR_CONNECTING)
 	{
 	   updateSrvrState(SRVR_CONNECTED);
 	}
-
-	// For performance reasons, SQL statements to setup the initial context
-	// are executed after responding back to client
-	//
-
-
-	odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
-
 	if (outContext.outContextOptionStringLen > 0)
 		delete [] outContext.outContextOptionString;
 
@@ -2689,131 +3162,6 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 	{
 		srvrGlobal->traceLogger->TraceConnectExit(exception_, outContext);
 	}
-
-	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
-										call_id_,
-										&setConnectException,
-										dialogueId,
-										SET_ODBC_PROCESS,
-										0,
-										NULL,
-										&sqlWarning
-										);
-	if (setConnectException.exception_nr != CEE_SUCCESS)
-	{
-//LCOV_EXCL_START
-		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
-			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "SET_ODBC_PROCESS", "");
-		goto MapException;
-//LCOV_EXCL_STOP
-	}
-
-	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
-										call_id_,
-										&setConnectException,
-										dialogueId,
-										WMS_QUERY_MONITORING,
-										0,
-										NULL,
-										&sqlWarning
-										);
-	if (setConnectException.exception_nr != CEE_SUCCESS)
-	{
-//LCOV_EXCL_START
-		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
-			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "WMS_QUERY_MONITORING", "");
-		goto MapException;
-//LCOV_EXCL_STOP
-	}
-
-
-// Need to enable this for JDBC driver
-	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
-										call_id_,
-										&setConnectException,
-										dialogueId,
-										SET_JDBC_PROCESS,
-										0,
-										NULL,
-										&sqlWarning
-										);
-	if (setConnectException.exception_nr != CEE_SUCCESS)
-	{
-//LCOV_EXCL_START
-		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
-			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "SET_JDBC_PROCESS", "");
-		goto MapException;
-//LCOV_EXCL_STOP
-	}
-
-// Need to enable this for NCI
-	if (strcmp(srvrGlobal->ApplicationName, HPDCI_APPLICATION) == 0)
-	{
-		odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
-											call_id_,
-											&setConnectException,
-											dialogueId,
-											SET_NVCI_PROCESS,
-											0,
-											NULL,
-											&sqlWarning
-											);
-		if (setConnectException.exception_nr != CEE_SUCCESS)
-		{
-//LCOV_EXCL_START
-			SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
-				srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-				2, "SET_NVCI_PROCESS", "");
-			goto MapException;
-//LCOV_EXCL_STOP
-		}
-	}
-
-// Need to enable this for to generate explain plans by default.
-	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
-										call_id_,
-										&setConnectException,
-										dialogueId,
-										SET_EXPLAIN_PLAN,
-										0,
-										NULL,
-										&sqlWarning
-										);
-	if (setConnectException.exception_nr != CEE_SUCCESS)
-	{
-//LCOV_EXCL_START
-		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
-			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "SET_EXPLAIN_PLAN", "");
-		goto MapException;
-//LCOV_EXCL_STOP
-	}
-
-	// This is added for dynamic reconfiguration. To reset the nametype back to ANSI.
-	// Then is set according to Data Source configured.
-	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
-										call_id_,
-										&setConnectException,
-										dialogueId,
-										SET_CATALOGNAMETYPE,
-										0,
-										NULL,
-										&sqlWarning
-										);
-	if (setConnectException.exception_nr != CEE_SUCCESS)
-	{
-//LCOV_EXCL_START
-		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
-			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "SET_CATALOGNAMETYPE", "");
-		goto MapException;
-//LCOV_EXCL_STOP
-	}
-
-
 	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
 										call_id_,
 										&setConnectException,
@@ -2825,14 +3173,18 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 										);
 	if (setConnectException.exception_nr != CEE_SUCCESS)
 	{
-//LCOV_EXCL_START
+		exception_.exception_detail = setConnectException.exception_detail;
+		exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
+		errorBuffer = sqlWarning._buffer;
+		sqlError = "SET_AUTOBEGIN failed :"+ string(errorBuffer->errorText);
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "SET_AUTOBEGIN", "");
-		goto MapException;
-//LCOV_EXCL_STOP
+			2, "SET_AUTOBEGIN", sqlError.c_str());
+		SETSRVRERROR(SQLERRWARN, errorBuffer->sqlcode, errorBuffer->sqlstate, (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+		updateSrvrState(SRVR_CONNECT_REJECTED);
+		return;
 	}
-
 	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
 										call_id_,
 										&setConnectException,
@@ -2845,15 +3197,18 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 
 	if (setConnectException.exception_nr != CEE_SUCCESS)
 	{
-//LCOV_EXCL_START
-		sprintf(tmpString, "%ld", inContext->autoCommit);
+		exception_.exception_detail = setConnectException.exception_detail;
+		exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
+		errorBuffer = sqlWarning._buffer;
+		sqlError = "SQL_AUTOCOMMIT failed :"+ string(errorBuffer->errorText);
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "SQL_AUTOCOMMIT", tmpString);
-		goto MapException;
-//LCOV_EXCL_STOP
+			2, "SQL_AUTOCOMMIT", sqlError.c_str());
+		SETSRVRERROR(SQLERRWARN, errorBuffer->sqlcode, errorBuffer->sqlstate, (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+		updateSrvrState(SRVR_CONNECT_REJECTED);
+		return;
 	}
-
 	srvrGlobal->estCardinality = srvrGlobal->estCost = -1;
 	if (srvrGlobal->envVariableOn)
 	{
@@ -3321,15 +3676,20 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 
 				if (setConnectException.exception_nr != CEE_SUCCESS)
 				{
+					exception_.exception_detail = setConnectException.exception_detail;
+					exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
+					errorBuffer = sqlWarning._buffer;
+					sqlError = "SET_SETANDCONTROLSTMTS failed :"+ string(errorBuffer->errorText);
 					SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 						srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-						2, "SET_SETANDCONTROLSTMTS", pEnvDesc->VarVal);
-					goto MapException;
+						2, "SET_SETANDCONTROLSTMTS", sqlError.c_str());
+					SETSRVRERROR(SQLERRWARN, errorBuffer->sqlcode, errorBuffer->sqlstate, (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+					odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+					updateSrvrState(SRVR_CONNECT_REJECTED);
+					return;
 				}
 			}
-
 		}  // for loop
-
 	}
 
 	srvrGlobal->EnvironmentType |= MXO_ROWSET_ERROR_RECOVERY;
@@ -3379,7 +3739,6 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 					break;
 				}
 		}
-
 		strcpy(schemaValueStr, """");
 		strcat(schemaValueStr, srvrGlobal->DefaultCatalog);
 		strcat(schemaValueStr, """");
@@ -3401,35 +3760,20 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 											);
 		if (setConnectException.exception_nr != CEE_SUCCESS)
 		{
-//LCOV_EXCL_START
+			exception_.exception_detail = setConnectException.exception_detail;
+			exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
+			errorBuffer = sqlWarning._buffer;
+			sqlError = "SET_SCHEMA failed :"+ string(errorBuffer->errorText);
 			SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 				srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-				2, "SET_SCHEMA", schemaValueStr);
-			goto MapException;
-//LCOV_EXCL_STOP
+				2, "SET_SCHEMA", sqlError.c_str());
+			SETSRVRERROR(SQLERRWARN, errorBuffer->sqlcode, errorBuffer->sqlstate, (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+			odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+			updateSrvrState(SRVR_CONNECT_REJECTED);
+			return;
 		}
 	}
-
-	odbc_SQLSvc_SetConnectionOption_sme_(objtag_,
-										call_id_,
-										&setConnectException,
-										dialogueId,
-										RESET_RESET_DEFAULTS,
-										0,
-										NULL,
-										&sqlWarning
-										);
-	if (setConnectException.exception_nr != CEE_SUCCESS)
-	{
-//LCOV_EXCL_START
-		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
-			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "RESET_RESET_DEFAULTS", "");
-		goto MapException;
-//LCOV_EXCL_STOP
-	}
-
-
+//============================================================================================================
 	SRVR_STMT_HDL *RbwSrvrStmt;
 	SRVR_STMT_HDL *CmwSrvrStmt;
 
@@ -3437,51 +3781,59 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 		RbwSrvrStmt->Close(SQL_DROP);
 	if ((RbwSrvrStmt = getSrvrStmt("STMT_ROLLBACK_1", TRUE)) == NULL)
 	{
-//LCOV_EXCL_START
-		setConnectException.exception_nr = 99;
-		sprintf(tmpString, "%s", "Unable to allocate statement to Rollback.");
+		exception_.exception_detail = -1;
+		exception_.exception_nr = 99;
+		sqlError = "Unable to allocate statement to Rollback.";
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "STMT_ROLLBACK_1", tmpString);
-		goto MapException;
-//LCOV_EXCL_STOP
+			2, "STMT_ROLLBACK_1", sqlError.c_str());
+		SETSRVRERROR(SQLERRWARN, -1, "HY000", (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+		updateSrvrState(SRVR_CONNECT_REJECTED);
+		return;
 	}
 	retCode = RbwSrvrStmt->Prepare("ROLLBACK WORK",INTERNAL_STMT,SQL_ASYNC_ENABLE_OFF, 0);
 	if (retCode == SQL_ERROR)
 	{
-//LCOV_EXCL_START
-		setConnectException.exception_nr = 99;
-		sprintf(tmpString, "%s", "Error in Preparing Query for Rollback.");
+		exception_.exception_detail = -1;
+		exception_.exception_nr = 99;
+		sqlError = "Error in Preparing Query for Rollback.";
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "STMT_ROLLBACK_1", tmpString);
-		goto MapException;
-//LCOV_EXCL_STOP
+			2, "STMT_ROLLBACK_1", sqlError.c_str());
+		SETSRVRERROR(SQLERRWARN, -1, "HY000", (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+		updateSrvrState(SRVR_CONNECT_REJECTED);
+		return;
 	}
 	if ((CmwSrvrStmt = getSrvrStmt("STMT_COMMIT_1", FALSE)) != NULL)
 		CmwSrvrStmt->Close(SQL_DROP);
 	if ((CmwSrvrStmt = getSrvrStmt("STMT_COMMIT_1", TRUE)) == NULL)
 	{
-//LCOV_EXCL_START
-		setConnectException.exception_nr = 99;
-		sprintf(tmpString, "%s", "Unable to allocate statement for Commit.");
+		exception_.exception_detail = -1;
+		exception_.exception_nr = 99;
+		sqlError = "Unable to allocate statement for Commit.";
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "STMT_ROLLBACK_1", tmpString);
-		goto MapException;
-//LCOV_EXCL_STOP
+			2, "STMT_COMMIT_1", sqlError.c_str());
+		SETSRVRERROR(SQLERRWARN, -1, "HY000", (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+		updateSrvrState(SRVR_CONNECT_REJECTED);
+		return;
 	}
 	retCode = CmwSrvrStmt->Prepare("COMMIT WORK",INTERNAL_STMT,SQL_ASYNC_ENABLE_OFF, 0);
 	if (retCode == SQL_ERROR)
 	{
-//LCOV_EXCL_START
-		setConnectException.exception_nr = 99;
-		sprintf(tmpString, "%s", "Error in Preparing Query for Commit.");
+		exception_.exception_detail = -1;
+		exception_.exception_nr = 99;
+		sqlError = "Error in Preparing Query for Commit.";
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "STMT_ROLLBACK_1", tmpString);
-		goto MapException;
-//LCOV_EXCL_STOP
+			2, "STMT_COMMIT_1", sqlError.c_str());
+		SETSRVRERROR(SQLERRWARN, -1, "HY000", (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+		updateSrvrState(SRVR_CONNECT_REJECTED);
+		return;
 	}
 
 	// batch job support for T4
@@ -3492,53 +3844,60 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 		TranOnSrvrStmt->Close(SQL_DROP);
 	if ((TranOnSrvrStmt = getSrvrStmt("STMT_TRANS_ON_1", TRUE)) == NULL)
 	{
-//LCOV_EXCL_START
-		setConnectException.exception_nr = 99;
-		sprintf(tmpString, "%s", "Unable to allocate statement to set transaction on.");
+		exception_.exception_detail = -1;
+		exception_.exception_nr = 99;
+		sqlError = "Unable to allocate statement to set transaction on.";
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "STMT_TRANS_ON_1", tmpString);
-		goto MapException;
-//LCOV_EXCL_STOP
+			2, "STMT_TRANS_ON_1", sqlError.c_str());
+		SETSRVRERROR(SQLERRWARN, -1, "HY000", (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+		updateSrvrState(SRVR_CONNECT_REJECTED);
+		return;
 	}
 	retCode = TranOnSrvrStmt->Prepare("SET TRANSACTION AUTOCOMMIT ON",INTERNAL_STMT,SQL_ASYNC_ENABLE_OFF, 0);
 	if (retCode == SQL_ERROR)
 	{
-//LCOV_EXCL_START
-		setConnectException.exception_nr = 99;
-		sprintf(tmpString, "%s", "Error in Preparing Query for set transaction on.");
+		exception_.exception_detail = -1;
+		exception_.exception_nr = 99;
+		sqlError = "Error in Preparing Query for set transaction on.";
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "STMT_TRANS_ON_1", tmpString);
-		goto MapException;
-//LCOV_EXCL_STOP
+			2, "STMT_TRANS_ON_1", sqlError.c_str());
+		SETSRVRERROR(SQLERRWARN, -1, "HY000", (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+		updateSrvrState(SRVR_CONNECT_REJECTED);
+		return;
 	}
 	if ((TranOffSrvrStmt = getSrvrStmt("STMT_TRANS_OFF_1", FALSE)) != NULL)
 		TranOffSrvrStmt->Close(SQL_DROP);
 	if ((TranOffSrvrStmt = getSrvrStmt("STMT_TRANS_OFF_1", TRUE)) == NULL)
 	{
-//LCOV_EXCL_START
-		setConnectException.exception_nr = 99;
-		sprintf(tmpString, "%s", "Unable to allocate statement to set transaction off.");
+		exception_.exception_detail = -1;
+		exception_.exception_nr = 99;
+		sqlError = "Unable to allocate statement to set transaction off.";
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "STMT_TRANS_OFF_1", tmpString);
-		goto MapException;
-//LCOV_EXCL_STOP
+			2, "STMT_TRANS_OFF_1", sqlError.c_str());
+		SETSRVRERROR(SQLERRWARN, -1, "HY000", (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+		updateSrvrState(SRVR_CONNECT_REJECTED);
+		return;
 	}
 	retCode = TranOffSrvrStmt->Prepare("SET TRANSACTION AUTOCOMMIT OFF",INTERNAL_STMT,SQL_ASYNC_ENABLE_OFF, 0);
 	if (retCode == SQL_ERROR)
 	{
-//LCOV_EXCL_START
-		setConnectException.exception_nr = 99;
-		sprintf(tmpString, "%s", "Error in Preparing Query for set transaction off.");
+		exception_.exception_detail = -1;
+		exception_.exception_nr = 99;
+		sqlError = "Error in Preparing Query for set transaction off.";
 		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
 			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "STMT_TRANS_OFF_1", tmpString);
-		goto MapException;
-//LCOV_EXCL_STOP
+			2, "STMT_TRANS_OFF_1", sqlError.c_str());
+		SETSRVRERROR(SQLERRWARN, -1, "HY000", (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+		updateSrvrState(SRVR_CONNECT_REJECTED);
+		return;
 	}
-
 	srvrGlobal->javaConnIdleTimeout = JDBC_DATASOURCE_CONN_IDLE_TIMEOUT;
 	if ((srvrGlobal->drvrVersion.componentId == JDBC_DRVR_COMPONENT) && ((long) (inContext->idleTimeoutSec) > JDBC_DATASOURCE_CONN_IDLE_TIMEOUT))
 		srvrGlobal->javaConnIdleTimeout = inContext->idleTimeoutSec;
@@ -3575,50 +3934,20 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 
 	// Modified below code for replacing the expensive USER_GETINFO_() call with
 	// PROCESS_GETINFO() call for better performance.
-	int crID;
+	// int crID;
 
 	crID = userSession->getUserID();
 	userSession->getDBUserName(srvrGlobal->QSDBUserName, sizeof(srvrGlobal->QSDBUserName));
-
 	// Get the current external name of the user.
-
 	userSession->getExternalUsername(srvrGlobal->QSUserName, sizeof(srvrGlobal->QSUserName));
 
-
-
 	strcpyUTF8(setinit.userName,srvrGlobal->QSUserName, sizeof(setinit.userName));
-
 	// For component privileges
 	bzero(hpdcsPrivMask, sizeof(hpdcsPrivMask));
 
-#ifdef NSK_PLATFORM
-	if ((error = PROCESS_GETINFO_(TPT_REF(srvrGlobal->nskProcessInfo.pHandle),
-		OMITREF, OMITSHORT,OMITREF,		// proc string,max buf len,act len
-		&priority,						// priority
-		OMITREF,						// Mom's proc handle
-		OMITREF, OMITSHORT,OMITREF,		// home term,max buf len,act len
-		OMITREF,						// Process execution time
-		&crID,							// Creator Access Id
-		OMITREF,						// Process Access Id
-		OMITREF,						// Grand Mom's proc handle
-		OMITREF,						// Job Id
-		OMITREF, OMITSHORT,OMITREF,		// Program file,max buf len,act len
-		OMITREF, OMITSHORT,OMITREF,		// Swap file,max buf len,act len
-		OMITREF,
-		OMITREF,						// Process type
-		OMITREF) ) != 0)			    // OSS or NT process Id
-	{
-		sprintf(tmpString, "%d", error);
-		SendEventMsg(MSG_ODBC_NSK_ERROR, EVENTLOG_ERROR_TYPE,
-			0, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			1, tmpString);
-	}
-	setinit.startPriority = priority;
-
-#else
-   MS_Mon_Process_Info_Type  proc_info;
+	MS_Mon_Process_Info_Type  proc_info;
 	char  myProcname[128];
-   short procname_len;
+	short procname_len;
 
 	if ((error = PROCESSHANDLE_DECOMPOSE_ (
 				TPT_REF(srvrGlobal->nskProcessInfo.pHandle)
@@ -3634,31 +3963,35 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 				,OMITREF			//[ long long *sequence-number ]
 				)) != 0)
 	{
-//LCOV_EXCL_START
-		sprintf(tmpString, "%d", error);
+		sprintf(tmpString, "Error in PROCESSHANDLE_DECOMPOSE_ :%d", error);
+		exception_.exception_detail = -1;
+		exception_.exception_nr = 99;
 		SendEventMsg(MSG_ODBC_NSK_ERROR, EVENTLOG_ERROR_TYPE,
-			0, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			1, tmpString);
-//LCOV_EXCL_STOP
+			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+			2, "PROCESSHANDLE_DECOMPOSE_", tmpString);
+		SETSRVRERROR(SQLERRWARN, -1, "HY000", tmpString, &exception_.u.SQLError.errorList);
+		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+		updateSrvrState(SRVR_CONNECT_REJECTED);
+		return;
 	}
-
 	myProcname[procname_len] = 0;
-
-   error = msg_mon_get_process_info_detail(myProcname, &proc_info);
-   if (error != XZFIL_ERR_OK )
-   {
-//LCOV_EXCL_START
-		sprintf(tmpString, "%d", error);
-		SendEventMsg(MSG_ODBC_NSK_ERROR, EVENTLOG_ERROR_TYPE,
-			0, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			1, tmpString);
-//LCOV_EXCL_STOP
+	error = msg_mon_get_process_info_detail(myProcname, &proc_info);
+	if (error != XZFIL_ERR_OK )
+	{
+		sprintf(tmpString, "Error in msg_mon_get_process_info_detail :%d", error);
+		exception_.exception_detail = -1;
+		exception_.exception_nr = 99;
+		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
+			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+			2, "msg_mon_get_process_info_detail", tmpString);
+		SETSRVRERROR(SQLERRWARN, -1, "HY000", tmpString, &exception_.u.SQLError.errorList);
+		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+		updateSrvrState(SRVR_CONNECT_REJECTED);
+		return;
    }
 	setinit.startPriority = priority = (short)proc_info.priority;
-
 	srvrGlobal->process_id = proc_info.pid;
 	srvrGlobal->cpu = proc_info.nid;
-#endif
 
 	srvrGlobal->ProcessAccessId = setinit.userId = crID;
 
@@ -3700,7 +4033,6 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 		pthread_create(&thrd, NULL, SessionWatchDog, NULL);
 		sessionWatchDogStarted = true;
 	}
-
 	if (resStatSession != NULL)
 	{
 		resStatSession->init();
@@ -3716,7 +4048,6 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 			CEE_TIMER_CREATE2(MIN_INTERVAL, 0, StatisticsTimerExpired, (CEE_tag_def)NULL, &StatisticsTimerHandle, srvrGlobal->receiveThrId);
 		}
 	}
-
 	if (resStatStatement != NULL)
 	{
 		// if statement is on
@@ -3726,16 +4057,18 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 	// Trying to preserve the cached SQL objects in case of invalid user and hence doing this
 	// after WSQL_EXEC_Set_AuthID call. However I am not sure of the effects in releasing the SQL objects
 	// when effective user ID is changed.
-
 	if( crID != srvrGlobal->userID )
 	{
 		releaseCachedObject(TRUE, NDCS_DLG_INIT);
 		srvrGlobal->userID = crID;
 	}
-
+	else if(connectProfileSame == false)
+	{
+		releaseCachedObject(TRUE, NDCS_DLG_INIT);
+		srvrGlobal->userID = crID;
+	}
 	else
 	{
-
 		// If the ID is the same, then check if the compiler cache related to roles needs
 		// to be cleared.
 		//
@@ -3759,89 +4092,15 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 					2, "COMPILER_CACHE_RESET", "Fatal Error - Server exiting");
 
 				exitServerProcess();
-//LCOV_EXCL_STOP
 			}
 		}
 	}
-//
-
 	if( (maxHeapPctExit != 0) &&  (initSessMemSize == 0))
 		initSessMemSize = getMemSize("Initial");
 
-	return;
-
-MapException:
-	// Write to event log and update to SRVR CONNECT FAILED
-	//
-	IDL_unsigned_long curErrorNo;
-	ERROR_DESC_def *error_desc_def;
-	odbc_SQLSvc_SQLError  *SQLError;
-
-	switch (setConnectException.exception_nr)
-	{
-	case CEE_SUCCESS:
-		break;
-	case odbc_SQLSvc_SetConnectionOption_SQLError_exn_ :
-		{
-//LCOV_EXCL_START
-			SQLError = &setConnectException.u.SQLError;
-			int len_length = SQLError->errorList._length;
-			ERROR_DESC_def *p_buffer = SQLError->errorList._buffer;
-			char *UTF8ErrorText = NULL;
-			long UTF8ErrorTextLen = 0;
-			for (curErrorNo = 0;curErrorNo < len_length ; curErrorNo++)
-			{
-				error_desc_def = p_buffer + curErrorNo;
-				if( error_desc_def->sqlcode == 0 && error_desc_def->errorText == NULL )
-					continue;
-
-//				Check for error -8841. This error happens if transaction is aborted externally.
-//				User process is expected to clear the transaction state by calling ROLLBACK or COMMIT WORK.
-//
-//				Since during connection time a user initiated ROLLBACK is not possible,
-//				we report this as fatal error and exit.
-
-				if( error_desc_def->sqlcode == -8841 )
-					sprintf(tmpString, "%ld returned during connection (Fatal error). Server exiting", error_desc_def->sqlcode);
-				else
-					sprintf(tmpString, "%ld", error_desc_def->sqlcode);
-
-				UTF8ErrorTextLen = strlen(error_desc_def->errorText)*4;
-				markNewOperator,UTF8ErrorText = new char[UTF8ErrorTextLen];
-				translateToUTF8(srvrGlobal->isoMapping, error_desc_def->errorText, strlen(error_desc_def->errorText), UTF8ErrorText, UTF8ErrorTextLen);
-				SendEventMsg(MSG_SQL_ERROR, EVENTLOG_ERROR_TYPE,
-					srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-					3, ODBCMX_SERVER, tmpString, UTF8ErrorText);
-				delete [] UTF8ErrorText;
-
-				if( error_desc_def->sqlcode == -8841 )
-					exitServerProcess();
-			}
-		}
-		break;
-	case odbc_SQLSvc_SetConnectionOption_ParamError_exn_:
-		SendEventMsg(MSG_PROGRAMMING_ERROR, EVENTLOG_ERROR_TYPE,
-			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			1, setConnectException.u.ParamError.ParamDesc);
-		break;
-	case odbc_SQLSvc_SetConnectionOption_InvalidConnection_exn_:
-	case odbc_SQLSvc_SetConnectionOption_SQLInvalidHandle_exn_:
-		break;
-	default:
-		sprintf(tmpString, "%ld", setConnectException.exception_nr);
-		SendEventMsg(MSG_KRYPTON_ERROR, EVENTLOG_ERROR_TYPE,
-			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, tmpString, FORMAT_LAST_ERROR());
-		break;
-//LCOV_EXCL_STOP
-	}
-	if (! updateSrvrState(SRVR_CONNECT_FAILED))
-		return;
-	SRVRTRACE_EXIT(FILE_AME+5);
+	odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
 	return;
 }
-
-
 /*
  * Asynchronous method function prototype for
  * operation 'odbc_SQLSvc_TerminateDialogue'
@@ -3855,6 +4114,7 @@ odbc_SQLSvc_TerminateDialogue_ame_(
 {
 	SRVRTRACE_ENTER(FILE_AME+6);
 	long status = 0;
+	string sqlError;
 
 	odbc_SQLSvc_TerminateDialogue_exc_ exception_={0,0,0};
 	odbc_SQLSvc_MonitorCall_exc_	monitorException_={0,0};
@@ -3929,6 +4189,7 @@ odbc_SQLSvc_TerminateDialogue_ame_(
 
 	if (exception_.exception_nr == CEE_SUCCESS)
 	{
+
 		if (srvrGlobal->tip_gateway != NULL)
 		{
 			#ifdef TIP_DEFINED
@@ -3965,10 +4226,30 @@ odbc_SQLSvc_TerminateDialogue_ame_(
 			exitServerProcess();
 		}
 	}
+//============================== Execute all CQDs and Sets from the Profile ======================================
+	sqlError = execProfileCqdList(&disconnectCqdList);
+	if (sqlError.length() == 0)
+		sqlError = execProfileCqdList(&disconnectSetList);
+	if (sqlError.length() != 0)
+	{
+		disconnectProfile = "";
+		disconnect_ctime=0;
+		disconnect_mtime=0;
+		if(profDisconnectData!=NULL)
+			delete[] profDisconnectData;
+		profDisconnectData=NULL;
+		disconnectCqdList.clear();
+		disconnectSetList.clear();
+		disconnectProfileSame = false;
+
+		exception_.exception_detail = -1;
+		exception_.exception_nr = odbc_SQLSvc_TerminateDialogue_SQLError_exn_;
+		SETSRVRERROR(SQLERRWARN, -1, "HY000", (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+	}
 
 	odbc_SQLSvc_TerminateDialogue_ts_res_(objtag_, call_id_, &exception_);
 
-        if( heapSizeExit == true )
+	if( heapSizeExit == true )
 	{
 		odbc_SQLSvc_StopServer_exc_ StopException;
 		StopException.exception_nr=0;
@@ -7816,6 +8097,20 @@ odbc_SQLSrvr_ExecDirect_ame_(
 							}
 						}
 						//
+						// check if command format is INFO SESSION
+						// -- Added for manageability requirement.
+						//
+						else if (isInfoSession(sqlString, stmtLabel, error))
+						{
+							if (error != 0)
+							{
+								returnCode = SQL_ERROR;
+								sprintf(errorBuffer, "Operation Failed");
+								GETMXCSWARNINGORERROR(-1, "S1008", errorBuffer, &sqlWarningOrErrorLength, sqlWarningOrError);
+								goto cfgerrexit;
+							}
+						}
+						//
 						// check if command format is INFO OBJECT
 						// -- Added for manageability requirement.
 						//
@@ -8553,13 +8848,6 @@ void flushCollectors()
 {
 }
 
-
-
-
-
-
-
-
 static bool strincmp(char* in, char* out, short ilen)
 {
 	short i = 0;
@@ -8665,7 +8953,92 @@ bool isInfoSystem(char*& sqlString, const IDL_char *stmtLabel, short& error)
 
 	return true;
 }
+bool checkSyntaxInfoSession(char* sqlString)
+{
+	char* in = sqlString;
 
+	while (*in != '\0' && isspace(*in)) in++;   // Skip the leading blanks
+
+	if (strincmp(in,"INFO",4) == false)
+		return false;
+	in += 4;
+	if (*in == '\0' || false == isspace(*in))
+		return false;
+
+	while (*in != '\0' && isspace(*in)) in++;   // Skip the leading blanks
+
+	if (strincmp(in,"SESSION",7) == false)
+		return false;
+	in += 7;
+	if (*in != '\0' && *in != ';' && false == isspace(*in))
+		return false;
+
+	return true;
+}
+bool isInfoSession(char*& sqlString, const IDL_char *stmtLabel, short& error)
+{
+   if (false == checkSyntaxInfoSession(sqlString))
+      return false;
+
+   error = 0;
+   static char buffer[4000];
+   char* in = sqlString;
+   SRVR_STMT_HDL *pSrvrStmt = NULL;
+   char connecttime[200];
+   struct tm *tmp;
+//   const char* format="%x - %I:%M%p";
+   const char* format="%a %b %d %T %Z";
+
+   tmp = localtime(&connectedTimestamp);
+   if (strftime(connecttime, sizeof(connecttime), format, tmp) == 0) {
+	   connecttime[0]=0;
+    }
+   char pattern[] = "SELECT [first 1]"
+                    "'%s' as \"SESSION_ID\","
+                    "'%s' as \"SERVER_PROCESS_NAME\","
+                    "'%s' as \"SERVER_PROCESS_ID\","
+                    "'%s' as \"SERVER_HOST\","
+                    "'%s' as \"SERVER_PORT\","
+           	   	    "'%s' as \"MAPPED_SLA\","
+                    "'%s' as \"MAPPED_CONNECT_PROFILE\","
+           	   	   	"'%s' as \"MAPPED_DISCONNECT_PROFILE\","
+           	   	    "'%d' as \"CONNECTED_INTERVAL_SEC\","
+           	   	    "'%s' as \"CONNECT_TIME\","
+                    "'%s' as \"USER_NAME\","
+           	   	   	"'%s' as \"ROLE_NAME\","
+		   	   	    "'%s' as \"APP_NAME\""
+		    "FROM (values(1)) X(A);";
+
+   sprintf (buffer, pattern,
+	    srvrGlobal->sessionId,
+		serverProcessName.c_str(),
+		serverProcessId.c_str(),
+		serverHost.c_str(),
+        serverPort.c_str(),
+        sla.c_str(),
+        connectProfile.c_str(),
+        disconnectProfile.c_str(),
+		(int)(time(NULL) - connectedTimestamp),
+		connecttime,
+		srvrGlobal->QSUserName,
+		srvrGlobal->QSRuleName,
+		appName.c_str());
+
+	if (stmtLabel != NULL && stmtLabel[0] != 0)
+		pSrvrStmt = SRVR::getSrvrStmt(stmtLabel, TRUE);
+
+	if (pSrvrStmt == NULL)
+	{
+		error = 1;
+		return true;
+	}
+
+	pSrvrStmt->m_bSkipWouldLikeToExecute = true;
+
+	sqlString = buffer;
+
+	return true;
+}
 bool checkSyntaxInfoObject(char* sqlString, short &idx)
 {
 	char* in = sqlString;
@@ -9112,7 +9485,17 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 				   << s_port
 				   << ":"
 				   << srvrGlobal->ApplicationName
-			   	   << ":";
+			   	   << ":"
+				   << sla
+				   << ":"
+				   << connectProfile
+				   << ":"
+				   << disconnectProfile
+				   << ":"
+				   << lastUpdate
+				   << ":"
+				   << userName
+				   << ":";
 
 			}
 			else {
@@ -9131,7 +9514,17 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 				   << errno
 				   << ":"
 				   << srvrGlobal->ApplicationName
-			   	   << ":";
+			   	   << ":"
+				   << sla
+				   << ":"
+				   << connectProfile
+				   << ":"
+				   << disconnectProfile
+				   << ":"
+				   << lastUpdate
+				   << ":"
+				   << userName
+				   << ":";
 
 			}
 			string data(ss.str());
@@ -9145,7 +9538,19 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 				goto bailout;
 			}
 			else
+			{
+				Stat stat;
 				srvrGlobal->dcsCurrState = CONNECTED;
+				rc == zoo_exists(zh, dcsRegisteredNode.c_str(), false, &stat);
+	            if (rc == ZOK )
+	            {
+	                connectedTimestamp = stat.mtime/1000;
+	            }
+	            else
+	            {
+	            	connectedTimestamp =  time(NULL);
+	            }
+			}
 		}
 		else
 		{
@@ -9171,6 +9576,16 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 			   << ":"					// Client address
 			   << ":"					// Client port
 			   << ":"					// Client Appl name
+			   << ":"
+			   << sla
+			   << ":"
+			   << connectProfile
+			   << ":"
+			   << disconnectProfile
+			   << ":"
+			   << lastUpdate
+			   << ":"
+			   << userName
 			   << ":";
 
 			string data(ss.str());
@@ -9213,6 +9628,16 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 			   << ":"					// Client address
 			   << ":"					// Client port
 			   << ":"					// Client Appl name
+			   << ":"
+			   << sla
+			   << ":"
+			   << connectProfile
+			   << ":"
+			   << disconnectProfile
+			   << ":"
+			   << lastUpdate
+			   << ":"
+			   << userName
 			   << ":";
 
 			string data(ss.str());
@@ -9266,6 +9691,16 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 				   << ":"					// Client address
 				   << ":"					// Client port
 				   << ":"					// Client Appl name
+				   << ":"
+				   << sla
+				   << ":"
+				   << connectProfile
+				   << ":"
+				   << disconnectProfile
+				   << ":"
+				   << lastUpdate
+				   << ":"
+				   << userName
 				   << ":";
 
 			string data(ss.str());
@@ -9310,6 +9745,16 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 			   << ":"					// Client address
 			   << ":"					// Client port
 			   << ":"					// Client Appl name
+			   << ":"
+			   << sla
+			   << ":"
+			   << connectProfile
+			   << ":"
+			   << disconnectProfile
+			   << ":"
+			   << lastUpdate
+			   << ":"
+			   << userName
 			   << ":";
 
 			string data(ss.str());
@@ -9567,4 +10012,37 @@ void SyncPublicationThread()
                    cleanup_curl();
                 } 
 	}
+}
+string execProfileCqdList(list<char*> *pList)
+{
+	char* ControlQuery;
+	SRVR_STMT_HDL *QryControlSrvrStmt = NULL;
+	SQLRETURN rc = SQL_SUCCESS;
+	string requestError;
+
+	if ((QryControlSrvrStmt = getSrvrStmt("STMT_QRYRES_ON_1", TRUE)) == NULL)
+	{
+		requestError = "Allocate Statement STMT_QRYRES_ON_1 failed.";
+		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
+			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+			2, "PROFILE_QUERY", requestError.c_str());
+		goto BAILOUT;
+	}
+
+    for(list<char*>::iterator lti = (*pList).begin(); lti != (*pList).end(); lti++)
+    {
+    	ControlQuery = *lti;
+    	rc = QryControlSrvrStmt->ExecDirect(NULL, ControlQuery, INTERNAL_STMT, TYPE_UNKNOWN, SQL_ASYNC_ENABLE_OFF, 0);
+    	if (rc == SQL_ERROR)
+    	{
+    		ERROR_DESC_def *p_buffer = QryControlSrvrStmt->sqlError.errorList._buffer;
+    		requestError = "CQD_OR_SET failed :" + string(ControlQuery) + " error :"+ p_buffer->errorText;
+    		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
+    			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+    			2, "PROFILE_QUERY", requestError.c_str());
+    		break;
+    	}
+    }
+BAILOUT:
+	return requestError;
 }

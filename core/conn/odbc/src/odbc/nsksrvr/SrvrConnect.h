@@ -340,6 +340,7 @@ void  CmdDllClose();
 bool loadSyncValues(char segmentArray[],char* filename);
 
 bool isInfoSystem(char*& sqlString, const IDL_char *stmtLabel, short& error );
+bool isInfoSession(char*& sqlString, const IDL_char *stmtLabel, short& error);
 bool isInfoObject(char*& sqlString, const IDL_char *stmtLabel, short& error );
 bool isGetPrivileges(char*& sqlString, const IDL_char *stmtLabel, short& error );
 bool checkSyntaxGetPrivileges(char* sqlString, short& idx);

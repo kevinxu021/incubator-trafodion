@@ -37,6 +37,7 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooKeeper;
 import org.trafodion.dcs.zookeeper.ZkClient;
 import org.trafodion.dcs.Constants;
+import org.trafodion.dcs.master.mapping.DefinedMapping;
 
 public class ListenerWorker extends Thread {
     private static  final Log LOG = LogFactory.getLog(ListenerWorker.class);
@@ -44,6 +45,7 @@ public class ListenerWorker extends Thread {
     private ZkClient zkc=null;
     ConnectReply connectReplay = null;
     private String parentZnode;
+    private ListenerService listener = null;
     
     private RequestGetObjectRef requestGetObjectRef = null;
     private RequestCancelQuery requestCancelQuery = null;
@@ -60,14 +62,15 @@ public class ListenerWorker extends Thread {
             System.exit(-1);
         }
     }
-    ListenerWorker(ZkClient zkc,String parentZnode){	
-        this.zkc=zkc;
-        this.parentZnode=parentZnode;
-        connectReplay = new ConnectReply(zkc,parentZnode);
+    ListenerWorker(ListenerService listener){	
+        this.zkc=listener.getZkc();
+        this.parentZnode=listener.getParentZnode();
+        this.listener = listener;
+        connectReplay = new ConnectReply(listener);
         
-        requestGetObjectRef = new RequestGetObjectRef(zkc,parentZnode);
-        requestCancelQuery = new RequestCancelQuery(zkc,parentZnode);
-        requestUnknown = new RequestUnknown(zkc,parentZnode);
+        requestGetObjectRef = new RequestGetObjectRef(listener);
+        requestCancelQuery = new RequestCancelQuery(listener);
+        requestUnknown = new RequestUnknown(listener);
         
         System.setProperty("hbaseclient.log4j.properties",System.getProperty("dcs.conf.dir") + "/log4j.properties");
         System.setProperty("dcs.root.logger",System.getProperty("dcs.root.logger"));

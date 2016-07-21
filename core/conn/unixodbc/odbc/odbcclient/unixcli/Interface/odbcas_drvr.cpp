@@ -28,6 +28,9 @@
 #include <stdarg.h>
 #include <cee.h>
 #include <errno.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <ifaddrs.h>
 #if CEE_H_VERSION != 19991123
 #error Version mismatch CEE_H_VERSION != 19991123
 #endif
@@ -46,6 +49,9 @@
 #include "odbcas_drvr.h"
 #include "cconnect.h"
 #include "diagfunctions.h"
+
+#include <errno.h>
+extern char *program_invocation_short_name;
 
 /*******************
  * Module 'odbcas' *
@@ -95,7 +101,7 @@ odbcas_ASSvc_GetObjRefHdl_(
 	IDL_long datasourceLength = 0;
 	IDL_long srvrObjRefLength = 0;
 	IDL_long userSidLength = 0;
-        IDL_long clusternameLength = 0;
+    IDL_long clusternameLength = 0;
 
 	VERSION_def version[4];
 	VERSION_def* versionPtr = &version[0];
@@ -107,6 +113,7 @@ odbcas_ASSvc_GetObjRefHdl_(
 	char srvrIpAddress[100] = {0};
 	IDL_long srvrIpAddressLength = 0;
 	IDL_long srvrPort = 0;
+    IDL_char ccExtention[512] = {0};
 
 	SRVR_CALL_CONTEXT *srvrCallContext = (SRVR_CALL_CONTEXT *)tag_;
 	CConnect *pConnection = (CConnect *)srvrCallContext->sqlHandle;
@@ -114,6 +121,34 @@ odbcas_ASSvc_GetObjRefHdl_(
 	pConnection->m_asTCPIPSystem->odbcAPI = AS_API_GETOBJREF;
 	pConnection->m_asTCPIPSystem->dialogueId = srvrCallContext->dialogueId;
 	pConnection->m_asTCPIPSystem->dwTimeout = srvrCallContext->u.connectParams.loginTimeout;
+
+    struct sockaddr_in *sin = NULL;
+    struct ifaddrs *ifa = NULL, *ifp = NULL;
+    getifaddrs(&ifp);
+    for(ifa = ifp; ifa != NULL; ifa = ifa->ifa_next)
+    {
+        if(ifa->ifa_addr != NULL)
+        {
+            if(ifa->ifa_addr->sa_family == AF_INET)
+            {
+                 sin = (struct sockaddr_in*)ifa->ifa_addr;
+                 if(sin->sin_addr.s_addr != 0x100007F)
+                     break;
+            }
+        }
+    }
+
+    sprintf(ccExtention,
+            "{\"sessionName\":\"%s\",\"ipClientAddress\":\"%s\",\"clientHostName\":\"%s\",\"userName\":\"%s\",\"roleName\":\"%s\",\"applicationName\":\"%s\"}",
+            inContext->sessionName,
+            inet_ntoa(sin->sin_addr),
+            inContext->computerName,
+            inContext->clientUserName,
+            inContext->userRole,
+            program_invocation_short_name
+            );
+    
+    freeifaddrs(ifp);
 
 //
 // do marshaling of input parameters
@@ -125,7 +160,8 @@ odbcas_ASSvc_GetObjRefHdl_(
 		, inContext
 		, userDesc
 		, srvrType
-		, retryCount);
+		, retryCount
+        , ccExtention);
 
 	if (retcode != CEE_SUCCESS)
 		return retcode;

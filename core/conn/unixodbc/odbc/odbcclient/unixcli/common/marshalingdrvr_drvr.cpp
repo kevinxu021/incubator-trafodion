@@ -39,6 +39,7 @@ odbcas_ASSvc_GetObjRefHdl_param_pst_(
 		, /* In    */ const USER_DESC_def *userDesc
 		, /* In    */ IDL_long srvrType
 		, /* In    */ IDL_short retryCount
+		, /* In    */ IDL_char *ccExtention
 )
 {
 	IDL_long wlength;
@@ -62,6 +63,7 @@ odbcas_ASSvc_GetObjRefHdl_param_pst_(
 	IDL_long		connectOptionsLength = 0; // includes null terminator
 	IDL_long		vprocLength = 0; // includes null terminator
 	IDL_long		clientUserNameLength = 0; // includes null terminator
+	IDL_long		ccExtentionLen = 0; // includes null terminator
 	IDL_unsigned_long inContextOptions1 = inContext->inContextOptions1;	
 	
 	//
@@ -291,6 +293,14 @@ odbcas_ASSvc_GetObjRefHdl_param_pst_(
 		}
 	}
 
+    // 8th Parameter: ccExtention String
+    // Extented information for WMS usage
+    wlength += sizeof(ccExtentionLen);
+    if(ccExtention[0] != '\0')
+    {
+        ccExtentionLen = strlen(ccExtention) + 1;
+        wlength += ccExtentionLen;
+    }
 
     // Mesage Length
 	message_length = wlength;
@@ -577,6 +587,15 @@ odbcas_ASSvc_GetObjRefHdl_param_pst_(
 		{
 			IDL_charArray_copy((char *)inContext->clientUserName, curptr);
 		}
+	}
+
+	// copy ccExtention length
+	LONG_swap(&ccExtentionLen,swap);
+	IDL_long_copy(&ccExtentionLen, curptr);
+	// copy ccExtention
+    if (ccExtention[0] !=  '\0')
+	{
+		IDL_charArray_copy(ccExtention, curptr);
 	}
 
 	if (curptr > buffer + message_length)
