@@ -14992,22 +14992,28 @@ PhysicalProperty * FileScan::synthHbaseScanPhysicalProperty(
      NABoolean canFreelyAdjustDoP = TRUE;
 
      if (partReq) {
-        if (partReq->castToRequireApproximatelyNPartitions())
+        minESPs = partReq->getCountOfPartitions();
+        maxESPs = partReq->getCountOfPartitions();
+        canFreelyAdjustDoP = FALSE;
+
+        if (partReq->castToRequireApproximatelyNPartitions()) {
            minESPs = partReq->castToRequireApproximatelyNPartitions()->
                                           getCountOfPartitionsLowBound();
-        else {
-           minESPs = partReq->getCountOfPartitions();
+           canFreelyAdjustDoP = TRUE;
+        } else { 
 
-           if (partReq->castToFullySpecifiedPartitioningRequirement()) {
-              canFreelyAdjustDoP = FALSE;
+           if (partReq->castToFuzzyPartitioningRequirement() &&
+               ANY_NUMBER_OF_PARTITIONS == minESPs )
+           {
+              canFreelyAdjustDoP = TRUE;
            } 
         }
 
-        maxESPs = partReq->getCountOfPartitions();
      } else {
         minESPs = CURRSTMT_OPTDEFAULTS->getMaximumDegreeOfParallelism();
         maxESPs = rppForMe->getCountOfPipelines();
      }
+
    
      NADefaults &defs = ActiveSchemaDB()->getDefaults();
    
@@ -15024,10 +15030,17 @@ PhysicalProperty * FileScan::synthHbaseScanPhysicalProperty(
 
         if ( !fakeEnv ) {
 
-           const CostScalar scanSize =
-             getGroupAttr()->getResultCardinalityForEmptyInput()
-              * getGroupAttr()->getRecordLength();
-              
+           // compute the scan size at the scan level 
+           const CostScalar rowCount = getTuplesProcessed();
+           const CostScalar scanSize = rowCount * 
+                        (indexDesc_->getNAFileSet()->getRecordLength());
+
+           // if the # of tuples processed is unknown, use the output at the scan
+           if ( rowCount == 0.0 ) {
+              rowCount = getGroupAttr()->getResultCardinalityForEmptyInput();
+              scanSize = rowCount * getGroupAttr()->getRecordLength();
+           }  
+
            // Get the threshold in MB of using # of partitions as the scan dop.
            // Default value is 10MB.
            Lng32 numPartitionsAsDopThreshold = 
@@ -15037,20 +15050,19 @@ PhysicalProperty * FileScan::synthHbaseScanPhysicalProperty(
            // If canFreelyAdjustDoP is TRUE, the table is partitioned 
            // and the table size is over the threashold, use 
            // the number of partitions of the table as the scan dop.
-           if (canFreelyAdjustDoP &&
-               numOfPartitions > 1 &&
-               numPartitionsAsDopThreshold >= 0 &&
-               scanSize >= numPartitionsAsDopThreshold)
-           {
-              minESPs = maxESPs = numOfPartitions;
-           } else {
+           if (canFreelyAdjustDoP ) {
+
+             if ( numOfPartitions > 1 &&
+                  numPartitionsAsDopThreshold >= 0 &&
+                  scanSize >= numPartitionsAsDopThreshold )
+             {
+                minESPs = maxESPs = numOfPartitions;
+             } else {
       
                // CQDs related to # of ESPs for a HBase table scan
                Lng32 maxESPsByUser = getDefaultAsLong(HBASE_MAX_ESPS);
-
                // limit it to MAX(totalESPsAllowed, HBASE_MAX_ESPS)
                maxESPs = MAXOF(totalESPsAllowed, maxESPsByUser);
-   
    
                if (ixDescPartFunc && 
                    (CmpCommon::getDefault(LIMIT_HBASE_SCAN_DOP) == DF_ON)) 
@@ -15058,18 +15070,21 @@ PhysicalProperty * FileScan::synthHbaseScanPhysicalProperty(
                   minESPs = MINOF(minESPs, numOfPartitions);
                }
    
-              if ( getDefaultAsLong(AFFINITY_VALUE) != -2 && ixDescPartFunc ) {
-                 Int32 numOfUniqueNodes = 
+               if ( getDefaultAsLong(AFFINITY_VALUE) != -2 && 
+                    ixDescPartFunc ) 
+               {
+                  Int32 numOfUniqueNodes = 
                      ixDescPartFunc->getNodeMap()->getNumberOfUniqueNodes();
    
-                 // #ESPs performing reading from HBase tables is capped at by 
-                 // the # of unique nodes or region servers.
-                 if ( numOfUniqueNodes > 0 )
-                    minESPs = MINOF(minESPs, numOfUniqueNodes);
+                  // #ESPs performing reading from HBase tables is capped at by 
+                  // the # of unique nodes or region servers.
+                  if ( numOfUniqueNodes > 0 )
+                     minESPs = MINOF(minESPs, numOfUniqueNodes);
+                 }
               }
            }
         } else  {
-           maxESPs = totalESPsAllowed; // forced dop case
+           minESPs = maxESPs = totalESPsAllowed; // forced dop case
         }
      } else {
         maxESPs = minESPs = 1; // ESP parallelism is off
