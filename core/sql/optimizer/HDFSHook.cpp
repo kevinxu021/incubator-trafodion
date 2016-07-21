@@ -1466,7 +1466,7 @@ void HHDFSTableStats::initLOBInterface()
   lobGlob_ = NULL;
 
   ExpLOBinterfaceInit
-    (lobGlob_, heap_, TRUE);
+    (lobGlob_, heap_, GetCliGlobals()->currContext(), TRUE);
 }
 
 void HHDFSTableStats::releaseLOBInterface()
