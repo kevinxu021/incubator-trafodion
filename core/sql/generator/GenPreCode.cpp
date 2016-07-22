@@ -4490,7 +4490,6 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
         executorPredicates_ -= hiveSearchKey_->getCompileTimePartColPreds();
         executorPredicates_ -= hiveSearchKey_->getPartAndVirtColPreds();
 	// assign individual files and blocks to each ESPs
-	((NodeMap *) getPartFunc()->getNodeMap())->assignScanInfos(hiveSearchKey_);
         generator->setProcessLOB(TRUE);
       }
     }
