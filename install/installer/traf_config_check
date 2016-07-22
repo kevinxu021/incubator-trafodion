@@ -401,6 +401,8 @@ else
 
    error=""
    REQ_VER="1.7.0_65"
+   #Testing
+   echo $JAVA_HOME
    #Only checking on 1 node for now. This will change.
    if [[ "$JAVA_8_SUPPORT" == "Y" ]]; then
       $PWD/checkJava8.py 
