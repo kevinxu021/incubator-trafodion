@@ -8603,7 +8603,7 @@ Context* HashJoin::createContextForAChild(Context* myContext,
   // Only repartitioning plans are allowed for Full Outer Join. That is
   // because, broadcast is not compatible with it. Hence, no need to cut
   // down on the number of plans to consider. Keep childPlansToConsider at 6.
-
+ 
   if ((NOT isFullOuterJoin())
       AND (
 	   (rppForMe->getCountOfPipelines() == 1) OR

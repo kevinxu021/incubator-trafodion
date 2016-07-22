@@ -1126,14 +1126,20 @@ void OptimizerSimulator::loadHiveDDLs()
          execHiveSQL(dropStmt.data());//drop hive table
     }
     //create hive table
+   debugMessage("Begin creating hive tables\n");
+
     while(readHiveStmt(hiveCreateTableSql, statement, comment))
     {   
         if(statement.length() > 0)
         {
             debugMessage("%s\n", extractAsComment("CREATE TABLE", statement));
             execHiveSQL(statement.data());//create hive table
+            debugMessage("done\n");
         }
     }
+            
+   debugMessage("Begin creating hive external tables\n");
+
     //create external table
     while(readHiveStmt(hiveCreateExternalTableSql, statement, comment))
    {
@@ -1145,6 +1151,7 @@ void OptimizerSimulator::loadHiveDDLs()
                 CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
                 raiseOsimException("Create hive external table error:  %d", retcode);
             }
+            debugMessage("done\n");
         }
    }
 }
@@ -1282,6 +1289,7 @@ void NAClusterInfo::simulateNAClusterInfo()
                                                           (&NAString::hash, 101,TRUE,heap_);
       naclfile >> id_name_entries;
       naclfile.ignore(OSIM_LINEMAX, '\n');
+      smpCount_ = id_name_entries;
       for(i = 0; i < id_name_entries; i++)
       {
           naclfile >> nodeId >> nodeName;
