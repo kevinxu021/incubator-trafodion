@@ -6439,7 +6439,8 @@ Lng32 HSGlobalsClass::generateSampleI(Int64 currentSampleSize,
 
     retcode = HSFuncExecQuery(insertSelectIQuery, -UERR_INTERNAL_ERROR, &xRows,
                               "IUS data set I creation",
-                              NULL, NULL, TRUE/*doRetry*/ );
+                              NULL, NULL, TRUE/*doRetry*/,
+                              0, TRUE);  // check for MDAM usage
 
     if (retcode) TM->Rollback();
 
@@ -6678,7 +6679,9 @@ Lng32 HSGlobalsClass::UpdateIUSPersistentSampleTable(Int64 oldSampleSize,
   retcode = HSFuncExecQuery(selectInsertQuery, -UERR_INTERNAL_ERROR,
                             &rowsAffected,
                             "IUS insert into PS (select from _I)",
-                            NULL, NULL, TRUE/*doRetry*/ );
+                            NULL, NULL, TRUE/*doRetry*/, 0,
+                            // check mdam usage if reading incremental sample directly from source table
+                            CmpCommon::getDefault(USTAT_INCREMENTAL_UPDATE_STATISTICS) == DF_SAMPLE);  //checkMdam
   if (LM->LogNeeded()) {
     LM->StopTimer();
     sprintf(LM->msg, PF64 " rows inserted into persistent sample table.", rowsAffected);

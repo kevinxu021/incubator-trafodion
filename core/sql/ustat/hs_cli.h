@@ -75,6 +75,7 @@ Lng32 HSFuncExecQuery( const char *dml
                     , const HSTableDef *tabDef = NULL
                     , NABoolean doRetry = FALSE
                     , short errorToIgnore = 0
+                    , NABoolean checkMdam = FALSE
                     );
 
 Lng32 HSFuncExecDDL( const char *dml
@@ -92,6 +93,7 @@ Lng32 CreateHistView   (const HSGlobalsClass* hsGlobal);
 // Drop the sample table.
 Lng32 DropSampleTable();
 
+Lng32 checkMdam(SQLSTMT_ID *stmt);
 Lng32 printPlan(SQLSTMT_ID *stmt);
 void getRowCountFromStats(Int64 * rowsAffected , const HSTableDef *tabDef = NULL);
 
