@@ -1252,11 +1252,13 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
   NABoolean leadingColumnsSorted = 
       getIndexDesc()->isSortedORCHive() && isLeadingKeyColCovered();
 
+  CostScalar stripes = MAXOF(hdfsStats->getNumStripes(), 1.0);
+
   // if the scan is on a sorted leading, the total scan size is the amount
   // of data in one stripe
   if (leadingColumnsSorted)
   {
-     totalFileSizeNormalized /= hdfsStats->getNumStripes();
+     totalFileSizeNormalized /= stripes;
   }
 
   CollIndex numActivePartitions = getEstNumActivePartitionsAtRuntime();
@@ -1273,8 +1275,7 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
   CostScalar tuplesProcessed = getDataRows(); 
 
   // add # of rows accessed by failed probes
-  CostScalar avgRowsPerStripe = 
-         hdfsStats->getTotalRows() / hdfsStats->getNumStripes();
+  CostScalar avgRowsPerStripe = hdfsStats->getTotalRows() / stripes.getValue();
 
   tuplesProcessed += numfailedProbes * 
           ((leadingColumnsSorted) ? avgRowsPerStripe : effectiveTotalRowCount_);
