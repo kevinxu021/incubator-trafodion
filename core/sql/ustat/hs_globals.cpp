@@ -3641,7 +3641,103 @@ void HSGlobalsClass::startJitLogging(const char* checkPointName, Int64 elapsedSe
     }
 }
 
+// The optimal degree of parallelism for a LOAD or UPSERT is the number of
+// partitions of the source table. This forces that by setting the cqd
+// PARALLEL_NUM_ESPS. Note that when the default for AGGRESSIVE_ESP_ALLOCATION_PER_CORE
+// is permanently changed to 'ON', we may be able to remove this.
+// tblDef -- ptr to HSTableDef from which to get the catalog and schema name of
+//           the source table.
+// fqTblName -- fully-qualified name of the source table (from which the table name
+//              portion is extracted). If NULL, then the source table is the one
+//              represented by tblDef.
+// Returns TRUE if the cqd was successfully set, FALSE otherwise. If TRUE is returned,
+// then resetEspParallelism() may be called to reset the cqd.
+static NABoolean setEspParallelism(HSTableDef* tblDef, const char* fqTblName = NULL)
+{
+  HSLogMan *LM = HSLogMan::Instance();
+  Lng32 retcode = 0;
+  Lng32 numPartitions = 0;
+  if (!fqTblName)
+    numPartitions = tblDef->getNumPartitions();
+  else
+    {
+      HSCursor cursor;
+      NAString numPartitionsQuery;
+      Lng32 tblNameOffset = tblDef->getCatName().length() +
+                            tblDef->getSchemaName().length() +
+                            2;  // 2 dot separators
+      numPartitionsQuery.append("select t.num_salt_partns from \"_MD_\".OBJECTS O, \"_MD_\".TABLES T where o.catalog_name = '")
+                        .append(tblDef->getCatName())
+                        .append("' and o.schema_name = '")
+                        .append(tblDef->getSchemaName())
+                        .append("' and o.object_name = '")
+                        .append(fqTblName + tblNameOffset)
+                        .append("' and o.object_uid = t.table_uid");
+      retcode = cursor.fetchNumColumn(numPartitionsQuery, &numPartitions, NULL);
+      if (retcode != 0)
+        {
+          if (LM->LogNeeded())
+            {
+              sprintf(LM->msg, "PARALLEL_NUM_ESPS not set; query to get # partitions received sqlcode %d", retcode);
+              LM->Log(LM->msg);
+            }
+          return FALSE;
+        }
+    }
 
+  NABoolean espCQDUsed = FALSE;
+  if (numPartitions > 1)
+    {
+      char temp[25];
+      sprintf(temp, "'%d'", numPartitions);
+      NAString espsCQD = "CONTROL QUERY DEFAULT PARALLEL_NUM_ESPS ";
+      espsCQD += temp;
+      retcode = HSFuncExecQuery(espsCQD);
+      if (retcode < 0)
+        {
+          if (LM->LogNeeded())
+            {
+              sprintf(LM->msg, "cqd statement to set PARALLEL_NUM_ESPS failed with %d", retcode);
+              LM->Log(LM->msg);
+            }
+        }
+      else
+        {
+          espCQDUsed = TRUE;
+          if (LM->LogNeeded())
+            {
+              sprintf(LM->msg, "PARALLEL_NUM_ESPS was set to %d", numPartitions);
+              LM->Log(LM->msg);
+            }
+        }
+    }
+  else if (LM->LogNeeded())
+    {
+      sprintf(LM->msg, "PARALLEL_NUM_ESPS not set; # partitions reported as %d", numPartitions);
+      LM->Log(LM->msg);
+    }
+
+  return espCQDUsed;
+}
+
+// Reset the cqd PARALLEL_NUM_ESPS. This is the other bookend for setEspParallelism(),
+// which returns TRUE if the cqd is actually set within that function. If so, this
+// function can be called to reset it.
+static void resetEspParallelism()
+{
+  HSLogMan *LM = HSLogMan::Instance();
+  Lng32 retcode = HSFuncExecQuery("CONTROL QUERY DEFAULT PARALLEL_NUM_ESPS RESET");
+  if (retcode)
+  {
+    HSLogMan *LM = HSLogMan::Instance();
+    if (LM->LogNeeded())
+      {
+        HSLogMan *LM = HSLogMan::Instance();
+        sprintf(LM->msg, "cqd statement to reset PARALLEL_NUM_ESPS returned %d", retcode);
+        LM->Log(LM->msg);
+      }
+  }
+}
 
 /**********************************************/
 /* METHOD: createSampleOption()               */
@@ -3866,19 +3962,7 @@ Lng32 HSSample::make(NABoolean rowCountIsEstimate, // input
     // For Hive tables the sample table used is a Trafodion table
     if (hs_globals->isHbaseTable || hs_globals->isHiveTable)
       {
-        // The optimal degree of parallelism for the LOAD or UPSERT is
-        // the number of partitions of the original table. Force that.
-        // Note that when the default for AGGRESSIVE_ESP_ALLOCATION_PER_CORE
-        // is permanently changed to 'ON', we may be able to remove this CQD.
-        if (hs_globals->objDef->getNumPartitions() > 1)
-          {
-            char temp[40];  // way more space than needed, but it's safe
-            sprintf(temp,"'%d'",hs_globals->objDef->getNumPartitions());
-            NAString EspsCQD = "CONTROL QUERY DEFAULT PARALLEL_NUM_ESPS ";
-            EspsCQD += temp;
-            HSFuncExecQuery(EspsCQD);
-            EspCQDUsed = TRUE;  // remember to reset later
-          }
+        EspCQDUsed = setEspParallelism(hs_globals->objDef);
 
         // Set CQDs controlling HBase cache size (number of rows returned by HBase
         // in a batch) to avoid scanner timeout. Reset these after the sample query
@@ -4035,7 +4119,7 @@ Lng32 HSSample::make(NABoolean rowCountIsEstimate, // input
       }
     if (EspCQDUsed)
       {
-        HSFuncExecQuery("CONTROL QUERY DEFAULT PARALLEL_NUM_ESPS RESET");
+        resetEspParallelism();
       }
 
     if (retcode) TM->Rollback();
@@ -6437,10 +6521,14 @@ Lng32 HSGlobalsClass::generateSampleI(Int64 currentSampleSize,
                         currentSampleSize, futureSampleSize,
                         deleteSetSize, actualRowCount);
 
+    NABoolean needEspParReset = setEspParallelism(objDef);
     retcode = HSFuncExecQuery(insertSelectIQuery, -UERR_INTERNAL_ERROR, &xRows,
                               "IUS data set I creation",
                               NULL, NULL, TRUE/*doRetry*/,
                               0, TRUE);  // check for MDAM usage
+
+    if (needEspParReset)
+      resetEspParallelism();
 
     if (retcode) TM->Rollback();
 
@@ -6676,6 +6764,9 @@ Lng32 HSGlobalsClass::UpdateIUSPersistentSampleTable(Int64 oldSampleSize,
   }
 
   rowsAffected = 0;
+  NAString insSourceTblName(*hssample_table);
+  insSourceTblName.append("_I");
+  NABoolean needEspParReset = setEspParallelism(objDef, insSourceTblName.data());
   retcode = HSFuncExecQuery(selectInsertQuery, -UERR_INTERNAL_ERROR,
                             &rowsAffected,
                             "IUS insert into PS (select from _I)",
@@ -6687,6 +6778,8 @@ Lng32 HSGlobalsClass::UpdateIUSPersistentSampleTable(Int64 oldSampleSize,
     sprintf(LM->msg, PF64 " rows inserted into persistent sample table.", rowsAffected);
     LM->Log(LM->msg);
   }
+  if (needEspParReset)
+    resetEspParallelism();
   HSHandleError(retcode);
   newSampleSize += rowsAffected;
 
