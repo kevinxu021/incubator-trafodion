@@ -2268,7 +2268,10 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
 
   DDflt1_(MEMORY_USAGE_NICE_CONTEXT_FACTOR,	"1"),
   DDflt1_(MEMORY_USAGE_OPT_PASS_FACTOR,		"1.5"),
-  DDui1__(MEMORY_USAGE_SAFETY_NET,              "500"),
+  // increase to 1200 (from 500) to help with Q88 and other queries in TPCDs
+  // Without the raise, certain subqueries in Q88 will compilied into slow
+  // nested joins.
+  DDui1__(MEMORY_USAGE_SAFETY_NET,              "1200"),
 
   // MERGE_JOINS ON means do MERGE_JOINS
  XDDkwd__(MERGE_JOINS,				"ON"),
