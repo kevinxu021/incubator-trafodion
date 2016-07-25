@@ -1,6 +1,6 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2015 Esgyn Corporation
+// (C) Copyright 2015-2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
@@ -150,6 +150,17 @@ public class ConfigurationResource {
 		}
 		return alertsEnabled;
 	}
+
+	public boolean isWMSEnabled() {
+		boolean enableWMS = false;
+		try {
+			enableWMS = Boolean.parseBoolean(xmlConfig.getProperty("enableWMS"));
+		} catch (Exception ex) {
+
+		}
+		return enableWMS;
+	}
+
 	public static String getDatabaseVersion() {
 		if (!ConfigurationResource.systemPropertiesLoaded) {
 			loadEsgynDBSystemProperties();

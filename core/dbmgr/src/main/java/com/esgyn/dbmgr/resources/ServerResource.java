@@ -1,6 +1,6 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2016 Esgyn Corporation
+// (C) Copyright 2015-2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
@@ -9,7 +9,6 @@ package com.esgyn.dbmgr.resources;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.util.ArrayList;
 import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
@@ -85,6 +84,8 @@ public class ServerResource {
 			objNode.put("dcsMasterInfoUri", configResource.getDcsMasterInfoUri());
 			objNode.put("dbmgrTimeZone", DateTimeZone.getDefault().getID());
 			objNode.put("dbmgrUTCOffset", DateTimeZone.getDefault().getOffset(DateTime.now().getMillis()));
+			objNode.put("enableWMS", configResource.isWMSEnabled());
+
 			Session content = new Session(usr, pwd, new DateTime(DateTimeZone.UTC));
 			SessionModel.putSessionObject(key, content);
 		} else {
@@ -153,6 +154,7 @@ public class ServerResource {
 		objNode.put("dbmgrUTCOffset", DateTimeZone.getDefault().getOffset(DateTime.now().getMillis()));
 		objNode.put("databaseVersion", ConfigurationResource.getDatabaseVersion());
 		objNode.put("databaseEdition", ConfigurationResource.getDatabaseEdition());
+		objNode.put("enableWMS", server.isWMSEnabled());
 
 		return objNode;
 	}

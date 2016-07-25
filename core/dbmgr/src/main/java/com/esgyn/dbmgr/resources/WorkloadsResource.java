@@ -593,6 +593,10 @@ public class WorkloadsResource {
 	public TabularResult getProfiles(@Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
 
+		if (!ConfigurationResource.getInstance().isWMSEnabled()) {
+			throw new EsgynDBMgrException("Error : WMS features are currently disabled.");
+		}
+
 		TabularResult result = new TabularResult();
 		try {
 			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
@@ -664,9 +668,15 @@ public class WorkloadsResource {
 			if (obj.has("cqds")) {
 				cqds = obj.get("cqds").textValue();
 			}
+			if (cqds != null) {
+				cqds = cqds.replaceAll("\n", "\\\\n");
+			}
 			String sets = "";
 			if (obj.has("sets")) {
 				sets = obj.get("sets").textValue();
+			}
+			if (sets != null) {
+				sets = sets.replaceAll("\n", "\\\\n");
 			}
 			String nodes = "";
 			if (obj.has("nodes")) {
@@ -677,7 +687,7 @@ public class WorkloadsResource {
 				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_ADD_ALTER_PROFILE);
 				uri = String.format(queryText, trafRestUri, profileName, cqds, sets, nodes);
 			}
-			System.out.println(uri);
+			_LOG.debug(uri);
 
 			Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
 		} catch (Exception ex) {
@@ -702,6 +712,11 @@ public class WorkloadsResource {
 	public boolean deleteProfile(@QueryParam("profile") String profile,
 			@Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		if (!ConfigurationResource.getInstance().isWMSEnabled()) {
+			throw new EsgynDBMgrException("Error : WMS features are currently disabled.");
+		}
+
 		try {
 			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
 			String uri = "";
@@ -710,6 +725,7 @@ public class WorkloadsResource {
 			if (trafRestUri != null && trafRestUri.length() > 0) {
 				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_DELETE_PROFILE);
 				uri = String.format(queryText, trafRestUri, profile);
+				_LOG.debug(uri);
 				Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
 			}
 
@@ -729,6 +745,10 @@ public class WorkloadsResource {
 	public TabularResult getSLAs(@Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
 
+		if (!ConfigurationResource.getInstance().isWMSEnabled()) {
+			throw new EsgynDBMgrException("Error : WMS features are currently disabled.");
+		}
+
 		TabularResult result = new TabularResult();
 		try {
 			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
@@ -740,6 +760,7 @@ public class WorkloadsResource {
 				uri = String.format(queryText, trafRestUri);
 			}
 
+			_LOG.debug(uri);
 			String mappingsStr = RESTProcessor.getRestOutput(uri, soc.getUsername(), soc.getPassword());
 
 			JsonFactory factory = new JsonFactory();
@@ -787,6 +808,10 @@ public class WorkloadsResource {
 	public String addAlterSLA(ObjectNode obj, @Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
 
+		if (!ConfigurationResource.getInstance().isWMSEnabled()) {
+			throw new EsgynDBMgrException("Error : WMS features are currently disabled.");
+		}
+
 		try {
 			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
 			String uri = "";
@@ -821,7 +846,7 @@ public class WorkloadsResource {
 				uri = String.format(queryText, trafRestUri, slaName, priority, limit, throughput, connectProfile,
 						disconnectProfile);
 			}
-			System.out.println(uri);
+			_LOG.debug(uri);
 
 			Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
 		} catch (Exception ex) {
@@ -845,6 +870,11 @@ public class WorkloadsResource {
 	@Produces("application/json")
 	public boolean deleteSLA(@QueryParam("sla") String sla, @Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		if (!ConfigurationResource.getInstance().isWMSEnabled()) {
+			throw new EsgynDBMgrException("Error : WMS features are currently disabled.");
+		}
+
 		try {
 			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
 			String uri = "";
@@ -853,6 +883,7 @@ public class WorkloadsResource {
 			if (trafRestUri != null && trafRestUri.length() > 0) {
 				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_DELETE_SLA);
 				uri = String.format(queryText, trafRestUri, sla);
+				_LOG.debug(uri);
 				Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
 			}
 
@@ -872,6 +903,10 @@ public class WorkloadsResource {
 	public TabularResult getMappings(@Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
 
+		if (!ConfigurationResource.getInstance().isWMSEnabled()) {
+			throw new EsgynDBMgrException("Error : WMS features are currently disabled.");
+		}
+
 		TabularResult result = new TabularResult();
 		try {
 			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
@@ -883,6 +918,7 @@ public class WorkloadsResource {
 				uri = String.format(queryText, trafRestUri);
 			}
 			
+			_LOG.debug(uri);
 			String mappingsStr = RESTProcessor.getRestOutput(uri, soc.getUsername(), soc.getPassword());
 
 			JsonFactory factory = new JsonFactory();
@@ -931,6 +967,10 @@ public class WorkloadsResource {
 	public String addAlterMapping(ObjectNode obj, @Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
 
+		if (!ConfigurationResource.getInstance().isWMSEnabled()) {
+			throw new EsgynDBMgrException("Error : WMS features are currently disabled.");
+		}
+
 		try {
 			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
 			String uri = "";
@@ -977,7 +1017,7 @@ public class WorkloadsResource {
 				uri = String.format(queryText, trafRestUri, mappingName, user, application, session, role, sla,
 						clientIP, clientHost, seqNo);
 			}
-			System.out.println(uri);
+			_LOG.debug(uri);
 
 			Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
 		} catch (Exception ex) {
@@ -1001,6 +1041,11 @@ public class WorkloadsResource {
 	@Produces("application/json")
 	public boolean deleteMapping(@QueryParam("mapping") String mapping, @Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		if (!ConfigurationResource.getInstance().isWMSEnabled()) {
+			throw new EsgynDBMgrException("Error : WMS features are currently disabled.");
+		}
+
 		try {
 			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
 			String uri = "";
@@ -1009,6 +1054,7 @@ public class WorkloadsResource {
 			if (trafRestUri != null && trafRestUri.length() > 0) {
 				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_DELETE_MAPPING);
 				uri = String.format(queryText, trafRestUri, mapping);
+				_LOG.debug(uri);
 				Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
 			}
 
