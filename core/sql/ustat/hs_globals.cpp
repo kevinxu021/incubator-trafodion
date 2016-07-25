@@ -6439,7 +6439,8 @@ Lng32 HSGlobalsClass::generateSampleI(Int64 currentSampleSize,
 
     retcode = HSFuncExecQuery(insertSelectIQuery, -UERR_INTERNAL_ERROR, &xRows,
                               "IUS data set I creation",
-                              NULL, NULL, TRUE/*doRetry*/ );
+                              NULL, NULL, TRUE/*doRetry*/,
+                              0, TRUE);  // check for MDAM usage
 
     if (retcode) TM->Rollback();
 
@@ -6678,7 +6679,9 @@ Lng32 HSGlobalsClass::UpdateIUSPersistentSampleTable(Int64 oldSampleSize,
   retcode = HSFuncExecQuery(selectInsertQuery, -UERR_INTERNAL_ERROR,
                             &rowsAffected,
                             "IUS insert into PS (select from _I)",
-                            NULL, NULL, TRUE/*doRetry*/ );
+                            NULL, NULL, TRUE/*doRetry*/, 0,
+                            // check mdam usage if reading incremental sample directly from source table
+                            CmpCommon::getDefault(USTAT_INCREMENTAL_UPDATE_STATISTICS) == DF_SAMPLE);  //checkMdam
   if (LM->LogNeeded()) {
     LM->StopTimer();
     sprintf(LM->msg, PF64 " rows inserted into persistent sample table.", rowsAffected);
@@ -12126,9 +12129,14 @@ Int32 HSGlobalsClass::processIUSColumn(T* ptr,
   Lng32 numNonNullIntervals = hist->hasNullInterval()
                                     ? numIntervals - 1
                                     : numIntervals;
+
+  // If the existing histogram is all nulls, and the incremental sample contains
+  // any non-nulls, fall back to RUS so new intervals can be created correctly.
+  if (numNonNullIntervals == 0 &&
+      iusSampleInsertedInMem->getNumRows() > insGroup->nullCount)
+    return UERR_WARNING_IUS_NO_LONGER_ALL_NULL;
+
   Int64 insertFailCount = 0;   // count attempted insertions into CBF that fail
-
-
   char title[100];
 
   HSLogMan *LM = HSLogMan::Instance();
@@ -12149,13 +12157,20 @@ Int32 HSGlobalsClass::processIUSColumn(T* ptr,
   smplGroup->boundaryValues = boundaryValues;
   smplGroup->MFVValues = MFVValues;
 
-  for (Lng32 i=0; i<=numNonNullIntervals; i++)
-    {
-      convertBoundaryOrMFVValue(hist->getIntBoundary(i), smplGroup,
-                                i, boundaryValues, format);
-      convertBoundaryOrMFVValue(hist->getIntMFV(i), smplGroup,
-                                i, MFVValues, format);
+  // If there is only a null interval, the code to extract the boundary value of
+  // the low-value interval (which is "(NULL)") as an instance of type T will get
+  // an assertion failure. So skip this code if that is the case; these 2 arrays
+  // won't be used anyway in this case because the existing sample contains no
+  // non-nulls to place in intervals, and if there are non-nulls in _I, we will
+  // have returned above with UERR_WARNING_IUS_NO_LONGER_ALL_NULL.
+  if (numNonNullIntervals > 0) {
+    for (Lng32 i=0; i<=numNonNullIntervals; i++) {
+        convertBoundaryOrMFVValue(hist->getIntBoundary(i), smplGroup,
+                                  i, boundaryValues, format);
+        convertBoundaryOrMFVValue(hist->getIntMFV(i), smplGroup,
+                                  i, MFVValues, format);
     }
+  }
 
   if (LM->LogNeeded()) {
      LM->StopTimer();
@@ -12331,7 +12346,7 @@ Int32 HSGlobalsClass::processIUSColumn(T* ptr,
         }
      }
 
-  } else {
+  } else { // cbf already exists
      // 1 more bucket than interval so that interval# maps to bucket# directly
      HS_ASSERT(cbf->numBuckets() == hist->getNumIntervals() + 1);
      cbf->setKenLengthInfo( computeKeyLengthInfo(smplGroup->ISdatatype) );
@@ -13135,7 +13150,7 @@ Int32 HSGlobalsClass::mergeDatasetsForIUS(T_IUS* ptr, T_IS* dummyPtr,
                        HSColGroupStruct* delGroup, Int64 delrows,
                        HSColGroupStruct* insGroup, Int64 insrows)
 {
-
+  HSLogMan *LM = HSLogMan::Instance();
   HSHistogram* hist = smplGroup->groupHist;
   Lng32 numIntervals = hist->getNumIntervals();
   Lng32 numNonNullIntervals = hist->hasNullInterval()
@@ -13167,12 +13182,19 @@ Int32 HSGlobalsClass::mergeDatasetsForIUS(T_IUS* ptr, T_IS* dummyPtr,
 
   IUSValueIterator<T_IUS> valIter(ptr);
 
-  HSLogMan *LM = HSLogMan::Instance();
+  // If there is only a null interval in the existing histogram, calculate the
+  // null count for the updated histogram, and set up buffer and ct using I alone.
+  //
+  if (numNonNullIntervals == 0) {
+     smplGroup->nullCount -= delGroup->nullCount;
+     smplGroup->nullCount += insGroup->nullCount;
+     buffer = insGroup->data;
+     ct = insrows - insGroup->nullCount;
 
-  // If we may very well have not processed all keys from I, we have to clear the CBF
-  // and reload the CBF with (S(i-1) - D), and insert I into the buffer directly.
-  if ( smplGroup->allKeysInsertedIntoCBF == FALSE ) {
+  } else if ( smplGroup->allKeysInsertedIntoCBF == FALSE ) {
 
+     // Since we have not processed all keys from I, we have to clear the CBF
+     // and reload it with (S(i-1) - D), and insert I into the buffer directly.
      smplGroup->cbf->clear();
 
      // Insert S(i-1)
@@ -13244,7 +13266,7 @@ Int32 HSGlobalsClass::mergeDatasetsForIUS(T_IUS* ptr, T_IS* dummyPtr,
 
   } else {
 
-    // All keys inserted case (i.e., IUS fails becaues of shape test failures)
+    // All keys inserted case (i.e., IUS fails because of shape test failures)
 
      valIter.init(smplGroup);
    
