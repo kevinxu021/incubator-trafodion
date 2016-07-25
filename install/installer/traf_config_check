@@ -1071,6 +1071,10 @@ fi
 #Main 
 
 echo "***INFO: Trafodion Configuration File Check"
+source /etc/trafodion/trafodion_config
+echo "!!!!!!!"
+echo "$JAVA_HOME"
+echo"!!!!!!"
 
 setUpErrorLog
 

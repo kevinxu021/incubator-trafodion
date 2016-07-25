@@ -386,6 +386,7 @@ fi
 echo "TOBY TOBY TOBY"
 echo "$JAVA_HOME"
 echo "TOBY TOBY TOBY"
+echo
 $LOCAL_WORKDIR/traf_config_check | tee -a $INSTALL_LOG
 
 if [ ${PIPESTATUS[0]} != "0" ]; then   
