@@ -63,6 +63,7 @@
 #include "ExStats.h"
 #include "ExpSeqGen.h"
 #include "ssmpipc.h"
+#include "hdfs.h"
 
 class CliGlobals;
 class HashQueue;
@@ -72,7 +73,6 @@ class ExStatisticsArea;
 class ExControlArea;
 class ExUdrServer;
 class UdrContextMsg;
-class LOBglobals;
 class SequenceValueGenerator;
 class LmRoutine;
 class MonarchClient_JNI;
@@ -161,7 +161,6 @@ public:
                      bool &authorizationReady,
                      bool &auditingEnabled);
 
-  LOBglobals* &currLobGlobals() { return lobGlobals_; }
 
   SequenceValueGenerator* &seqGen() { return seqGen_; }
 
@@ -452,8 +451,7 @@ private:
   // list of volatile tables created in a session.
   HashQueue * volTabList_;
 
-  LOBglobals * lobGlobals_;
-
+  HashQueue *hdfsHandleList_;
   SequenceValueGenerator * seqGen_;
 
   NABoolean sessionInUse_;
@@ -1050,7 +1048,8 @@ public:
   // begins. This step requires a fully initialized CliGlobals so
   // should not be called before CliGlobals initialization completes.
   void initializeUserInfoFromOS();
-
+  hdfsFS getHdfsServerConnection(char *hdfsServer, Int32 port);
+  void disconnectHdfsConnections();
 }; // class ContextCli
 
 /* ContextTidMap - Maps contextCli to  a thread id
@@ -1094,6 +1093,13 @@ ContextCli::getOpenStatementList() const
 {
   return openStatementList_;
 }
+
+struct hdfsConnectStruct
+{
+  hdfsFS hdfsHandle_;
+  Int32 hdfsPort_;
+  char  hdfsServer_[256]; // max length determined by dfs.namenode.fs-limits.max-component-length(255) 
+};
 
 #endif
 
