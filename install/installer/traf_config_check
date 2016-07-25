@@ -392,6 +392,9 @@ sudo chmod 777 $TRAF_CONFIG
 function checkJavaVersion {
 
 source /etc/trafodion/trafodion_config
+echo "**********"
+echo "$JAVA_HOME"
+echo "********"
 
 if [[ -z "$JAVA_HOME" ]]; then
    errorFound=1
