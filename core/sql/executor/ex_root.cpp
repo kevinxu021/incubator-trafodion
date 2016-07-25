@@ -374,7 +374,7 @@ ex_tcb * ex_root_tdb::build(CliGlobals *cliGlobals, ex_globals * glob)
   }
 
   if (processLOB())
-    {
+    {	
       glob->initLOBglobal(cliGlobals->currContext());
     }
 

@@ -2229,7 +2229,7 @@ Ex_Lob_Error ExLobsOper (
 
   char *fileName = lobName;
 
-  if (globPtr == NULL)
+  if (globPtr == (void **)NULL)
     {
       if ((operation == Lob_Init))
 	{

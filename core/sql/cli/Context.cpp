@@ -5986,6 +5986,11 @@ void ContextCli::putTrustedRoutine(CollIndex ix)
 // gets cleaned up when the thread exits.
 hdfsFS ContextCli::getHdfsServerConnection(char * hdfs_server, Int32 port)
 {
+  if (hdfs_server == NULL) // guard against NULL and use default value.
+    {
+      hdfs_server = "default";
+      port = 0;
+    }
   if (hdfsHandleList_)
     {
       // Look for the entry on the list

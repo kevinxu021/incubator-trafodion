@@ -60,7 +60,7 @@ Lng32 ExpLOBinterfaceInit(void *& exLobGlob, void * lobHeap,
                    1, // waited op
 		   exLobGlob,
 		   0,
-		   NULL, 0, NULL,
+		   NULL, 0,
 		   0);
   if (exLobGlob)
     {

@@ -519,6 +519,7 @@ void ExHdfsScanTcb::freeResources()
   }
   ExpLOBinterfaceCleanup
     (lobGlob_, getGlobals()->getDefaultHeap());
+  lobGlob_=0;
 
   ExHdfsAccessTcb::freeResources();
 }
