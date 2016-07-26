@@ -63,4 +63,7 @@
 	<!-- The Alerts HTTP URI-->
 	<entry key="alertsUri">http://BOSUN_HOST:BOSUN_PORT</entry>
 	
+	<!-- Enable/Disable WMS Features-->
+	<entry key="enableWMS">false</entry>
+	
 </properties>

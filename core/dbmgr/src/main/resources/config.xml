@@ -66,4 +66,7 @@
 	<!-- The Alerts HTTP URI-->
 	<entry key="alertsUri">http://10.1.30.53:8070</entry>
 	
+	<!-- Enable/Disable WMS Features-->
+	<entry key="enableWMS">true</entry>
+
 </properties>

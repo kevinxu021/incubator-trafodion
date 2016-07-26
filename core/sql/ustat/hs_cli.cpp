@@ -121,28 +121,29 @@ private:
 //          doPrintPlan = if true, the plan for the query will be
 //                printed after the statement is prepared but before
 //                execution; if false we do a single CLI ExecDirect call
+//          checkForMdam = if true, do a query on the Explain virtual table
+//                to see if MDAM was used in the query being executed, and
+//                display the result in the ulog.
 // -----------------------------------------------------------------------
 
 Lng32 HSExecDirect( SQLSTMT_ID * stmt
                   , SQLDESC_ID * srcDesc
                   , NABoolean doPrintPlan
+                  , NABoolean checkForMdam
                   )
 {
   Lng32 retcode = 0;
 
-  if (doPrintPlan)
+  HSLogMan *LM = HSLogMan::Instance();
+  if ((doPrintPlan || checkForMdam) && LM->LogNeeded())
     {
       retcode = SQL_EXEC_Prepare(stmt, srcDesc);
       if (retcode >= 0) // ignore warnings
         {
           if (doPrintPlan)
-            {
-              HSLogMan *LM = HSLogMan::Instance();
-              if (LM->LogNeeded()) 
-                {
-                  printPlan(stmt);
-                }
-            } 
+            printPlan(stmt);
+          if (checkForMdam)
+            checkMdam(stmt);
           retcode = SQL_EXEC_ExecFetch(stmt,0,0);
         }
     }
@@ -172,6 +173,8 @@ Lng32 HSExecDirect( SQLSTMT_ID * stmt
 //                that should not disrupt execution, such as "schema already
 //                exists" when executing a Create Schema statement. 0 indicates
 //                there is no such expected error.
+//          checkMdam = if TRUE, determine whether the query uses MDAM, and
+//                include this information in the ulog.
 // -----------------------------------------------------------------------
 Lng32 HSFuncExecQuery( const char *dml
                     , short sqlcode
@@ -181,6 +184,7 @@ Lng32 HSFuncExecQuery( const char *dml
                     , const HSTableDef *tabDef
                     , NABoolean doRetry
                     , short errorToIgnore
+                    , NABoolean checkMdam
                     )
 {
   HSLogMan *LM = HSLogMan::Instance();
@@ -271,7 +275,7 @@ Lng32 HSFuncExecQuery( const char *dml
   if (!doRetry)
   {
     // execute immediate this statement
-    retcode = HSExecDirect(&stmt, &srcDesc, srcTabRowCount != 0);
+    retcode = HSExecDirect(&stmt, &srcDesc, srcTabRowCount != 0, checkMdam);
     // If retcode is > 0 or sqlcode is HS_WARNING, then set to 0 (no error/ignore).
     if (retcode >= 0) retcode = 0;
     // If sqlcode is HS_WARNING, then this means failures should be returned as
@@ -302,7 +306,7 @@ Lng32 HSFuncExecQuery( const char *dml
       }
 
       // execute immediate this statement
-      retcode = HSExecDirect(&stmt, &srcDesc, srcTabRowCount != 0);
+      retcode = HSExecDirect(&stmt, &srcDesc, srcTabRowCount != 0, checkMdam);
 
       // filter retcode for HSHandleError
       HSFilterWarning(retcode);
@@ -3347,6 +3351,12 @@ Lng32 HSCursor::buildNAType()
                                       TRUE, nullflag, heap_);
 #pragma warn(1506)  // warning elimination
           break;
+        case REC_BIN64_UNSIGNED:
+          if (precision <= 0)
+            length = 8;
+          type = ConstructNumericType(addr, i, length, precision, scale,
+                                      FALSE, nullflag, heap_);
+          break;
         //
         //----------------------------------------------------------------
 	case REC_FLOAT32:
@@ -5848,6 +5858,45 @@ Lng32 printPlan(SQLSTMT_ID *stmt)
 
 #endif // NA_USTAT_USE_STATIC not defined
 
+// Use a query on the Explain virtual table to see if the plan for stmt uses
+// MDAM, and include this information in the ulog. This function is called
+// only if logging is turned on.
+Lng32 checkMdam(SQLSTMT_ID *stmt)
+{
+  Lng32 retcode = 0;
+  HSLogMan *LM = HSLogMan::Instance();
+
+  NAString stmtStr = "select cast(count(*) as int) from table(explain(null,'";
+  stmtStr.append((char*)stmt->identifier)
+         .append("')) where description like '%mdam%'");
+
+  HSCursor cursor(STMTHEAP, "HS_CLI_CHECK_MDAM");
+  retcode = cursor.prepareQuery(stmtStr.data(), 0, 1);
+  HSHandleError(retcode);
+  SQLSTMT_ID* stmtId = cursor.getStmt();
+  SQLDESC_ID* outputDesc = cursor.getOutDesc();
+  retcode = cursor.open();
+  HSHandleError(retcode);
+
+  Int32 rowCount = 0;
+  retcode = SQL_EXEC_Fetch(stmtId, outputDesc, 1, &rowCount, NULL);
+  if (retcode == 0)
+    {
+      if (rowCount > 0)
+        LM->Log("MDAM is used for this query.");
+      else
+        LM->Log("MDAM is NOT used for this query.");
+    }
+  else if (retcode == 100)
+    LM->Log("MDAM check query returned no rows.");
+  else
+    {
+      LM->Log("MDAM check query failed.");
+      HSLogError(retcode);
+    }
+
+  return retcode;
+}
 
 /***********************************************/
 /* METHOD:  getRowCountFromStats(Int64* )      */
@@ -6050,6 +6099,9 @@ void profileGaps(HSColGroupStruct *, boundarySet<unsigned short>*, double&, Int6
                  NABoolean);
 template
 void profileGaps(HSColGroupStruct *, boundarySet<Int64>*, double&, Int64&,
+                 NABoolean);
+template
+void profileGaps(HSColGroupStruct *, boundarySet<UInt64>*, double&, Int64&,
                  NABoolean);
 template
 void profileGaps(HSColGroupStruct *, boundarySet<ISFixedChar>*, double&, Int64&,

@@ -131,8 +131,6 @@ import org.apache.hadoop.hbase.coprocessor.transactional.generated.SsccRegionPro
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.SsccRegionProtos.SsccPutTransactionalRequest;
 import org.apache.hadoop.hbase.client.transactional.SsccUpdateConflictException;
 
-import org.apache.zookeeper.KeeperException;
-
 import org.apache.hadoop.hbase.client.transactional.STRConfig;
 
 import com.google.protobuf.ServiceException;
@@ -212,7 +210,7 @@ public class TransactionManager {
 
   // getInstance to return the singleton object for TransactionManager
     public synchronized static TransactionManager getInstance(final Configuration conf) 
-	throws KeeperException, InterruptedException, IOException {
+	throws ZooKeeperConnectionException, IOException {
     if (g_TransactionManager == null) {
       g_TransactionManager = new TransactionManager(conf);
     }
@@ -1540,7 +1538,7 @@ public class TransactionManager {
      * @param conf
      * @throws ZooKeeperConnectionException
      */
-    private TransactionManager(final Configuration conf) throws KeeperException, IOException, InterruptedException {
+    private TransactionManager(final Configuration conf) throws ZooKeeperConnectionException, IOException {
         this(LocalTransactionLogger.getInstance(), conf);
 
         int intThreads = 16;
@@ -1579,19 +1577,13 @@ public class TransactionManager {
         if (useSSCC != null)
            TRANSACTION_ALGORITHM = (Integer.parseInt(useSSCC) == 1) ? AlgorithmType.SSCC :AlgorithmType.MVCC ;
 
-        try {
-           idServer = new IdTm(false);
-        }
-        catch (Exception e){
-           LOG.error("Exception creating new IdTm: " + e);
-        }
+        idServer = new IdTm(false);
 
         threadPool = Executors.newFixedThreadPool(intThreads);
 
 	cp_tpe = Executors.newFixedThreadPool(intCpThreads);
 
 	pSTRConfig = STRConfig.getInstance(conf);
-	
 	
 	if (pSTRConfig != null) {
 	    my_cluster_id = pSTRConfig.getMyClusterIdInt();
@@ -1605,7 +1597,7 @@ public class TransactionManager {
      * @throws ZooKeeperConnectionException
      */
     protected TransactionManager(final TransactionLogger transactionLogger, final Configuration conf)
-	throws KeeperException, IOException, InterruptedException {
+	throws IOException {
         this.transactionLogger = transactionLogger;        
     }
 
