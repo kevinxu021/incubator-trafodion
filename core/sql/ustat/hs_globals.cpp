@@ -3647,31 +3647,27 @@ void HSGlobalsClass::startJitLogging(const char* checkPointName, Int64 elapsedSe
 // is permanently changed to 'ON', we may be able to remove this.
 // tblDef -- ptr to HSTableDef from which to get the catalog and schema name of
 //           the source table.
-// fqTblName -- fully-qualified name of the source table (from which the table name
-//              portion is extracted). If NULL, then the source table is the one
-//              represented by tblDef.
+// tblName -- unqualified name of the source table. If NULL, then the source
+//            table is the one represented by tblDef.
 // Returns TRUE if the cqd was successfully set, FALSE otherwise. If TRUE is returned,
 // then resetEspParallelism() may be called to reset the cqd.
-static NABoolean setEspParallelism(HSTableDef* tblDef, const char* fqTblName = NULL)
+static NABoolean setEspParallelism(HSTableDef* tblDef, const char* tblName = NULL)
 {
   HSLogMan *LM = HSLogMan::Instance();
   Lng32 retcode = 0;
   Lng32 numPartitions = 0;
-  if (!fqTblName)
+  if (!tblName)
     numPartitions = tblDef->getNumPartitions();
   else
     {
       HSCursor cursor;
       NAString numPartitionsQuery;
-      Lng32 tblNameOffset = tblDef->getCatName().length() +
-                            tblDef->getSchemaName().length() +
-                            2;  // 2 dot separators
       numPartitionsQuery.append("select t.num_salt_partns from \"_MD_\".OBJECTS O, \"_MD_\".TABLES T where o.catalog_name = '")
                         .append(tblDef->getCatName())
                         .append("' and o.schema_name = '")
                         .append(tblDef->getSchemaName())
                         .append("' and o.object_name = '")
-                        .append(fqTblName + tblNameOffset)
+                        .append(tblName)
                         .append("' and o.object_uid = t.table_uid");
       retcode = cursor.fetchNumColumn(numPartitionsQuery, &numPartitions, NULL);
       if (retcode != 0)
@@ -6698,6 +6694,20 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
   return retcode;
 }
 
+// Returns the table component of the fully qualified name passed in, using the
+// catalog and schema name from tblDef to determine where it starts (the table
+// is in the same schema as the one referenced by tblDef). This avoids problems
+// in parsing the fully qualified name posed by the possibility of periods within
+// delimited identifiers.
+static const char* extractTblName(const NAString& fullyQualifiedName,
+		                          HSTableDef* tblDef)
+{
+  Lng32 tblNameOffset = tblDef->getCatName().length() +
+                        tblDef->getSchemaName().length() +
+                        2;  // 2 dot separators
+  return fullyQualifiedName.data() + tblNameOffset;
+}
+
 // Update the persistent sample table and determine its new cardinality.
 //   1) Delete rows in the persistent sample satisfying the IUS predicate.
 //   2) Insert the rows from <sampleTblName>_I into the persistent sample
@@ -6764,9 +6774,8 @@ Lng32 HSGlobalsClass::UpdateIUSPersistentSampleTable(Int64 oldSampleSize,
   }
 
   rowsAffected = 0;
-  NAString insSourceTblName(*hssample_table);
-  insSourceTblName.append("_I");
-  NABoolean needEspParReset = setEspParallelism(objDef, insSourceTblName.data());
+  const char* insSourceTblName = extractTblName(*hssample_table + "_I", objDef);
+  NABoolean needEspParReset = setEspParallelism(objDef, insSourceTblName);
   retcode = HSFuncExecQuery(selectInsertQuery, -UERR_INTERNAL_ERROR,
                             &rowsAffected,
                             "IUS insert into PS (select from _I)",
