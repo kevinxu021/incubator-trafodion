@@ -147,18 +147,21 @@ define(['handlers/EventDispatcher', 'common'],
 					});
 				};
 
-				this.fetchNodes = function(){
+				this.fetchNodes = function(asyncFlag){
 					var xhr = xhrs["fetchNodes"];
 					if(xhr && xhr.readyState !=4){
 						xhr.abort();
 					}
-					
+					if(asyncFlag == null){
+						asyncFlag = true;
+					}
 					xhrs["fetchNodes"] = $.ajax({
 						cache: false,
 						url: 'resources/server/nodes',
 						type:'GET',
 						dataType:"json",
 						contentType: "application/json;",
+						async: asyncFlag,
 						statusCode : {
 							401 : _this.sessionTimeout,
 							403 : _this.sessionTimeout
