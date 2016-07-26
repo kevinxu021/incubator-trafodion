@@ -29,7 +29,7 @@
 
   <properties>
     <hadoop.version>2.4.0</hadoop.version>
-    <hbase.version>${env.HBASE_DEP_VER_APACHE}</hbase.version>
+    <hbase.version>1.0.2</hbase.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <protobuf.version>2.5.0</protobuf.version>                                                                                              
     <protocVersion>2.5.0</protocVersion>                                                                                                    
@@ -71,7 +71,7 @@
           <target>1.7</target>
         </configuration>
       </plugin>
-      <plugin>
+        <plugin>
             <artifactId>maven-surefire-plugin</artifactId>
             <version>2.5</version>
             <configuration>

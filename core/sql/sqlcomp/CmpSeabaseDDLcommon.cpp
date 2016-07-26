@@ -75,6 +75,7 @@
 #include "hdfs.h"
 #include "StmtDDLAlterTableHDFSCache.h"
 #include "StmtDDLAlterLibrary.h"
+#include "logmxevent_traf.h"
 
 void cleanupLOBDataDescFiles(const char*, int, const char *);
 
@@ -442,6 +443,10 @@ short CmpSeabaseDDL::convertColAndKeyInfoArrays(
           ComTdbVirtTableKeyInfo &ki = btKeyInfoArray[ii];
           if (strcmp(ci.colName, ki.colName) == 0)
             {
+              if (ki.ordering == ComTdbVirtTableKeyInfo::ASCENDING_ORDERING)
+                nac->setClusteringKey(ASCENDING);
+              else // ki.ordering should be 1
+                nac->setClusteringKey(DESCENDING);
               naKeyArr->insert(nac);
             }
         } // for
@@ -668,7 +673,7 @@ short CmpSeabaseDDL::processDDLandCreateDescs(
 
           ki.tableColNum = colNumber;
           ki.keySeqNum = i+1;
-          ki.ordering = 0;
+          ki.ordering = ComTdbVirtTableKeyInfo::ASCENDING_ORDERING;
           ki.nonKeyCol = 1;
           
           ki.hbaseColFam = new(CTXTHEAP) char[strlen(SEABASE_DEFAULT_COL_FAMILY) + 1];
@@ -736,6 +741,8 @@ short CmpSeabaseDDL::processDDLandCreateDescs(
 // ----------------------------------------------------------------------------
 short CmpSeabaseDDL::createMDdescs(MDDescsInfo *&trafMDDescsInfo)
 {
+  int breadCrumb = -1;  // useful for debugging purposes
+
   // if structure is already allocated, just return
   // Question - will trafMDDescsInfo ever be NOT NULL?
   if (trafMDDescsInfo)
@@ -777,6 +784,7 @@ short CmpSeabaseDDL::createMDdescs(MDDescsInfo *&trafMDDescsInfo)
       ComTdbVirtTableKeyInfo * keyInfoArray = NULL;
       ComTdbVirtTableIndexInfo * indexInfo = NULL;
 
+      breadCrumb = 1;
       if (processDDLandCreateDescs(parser,
                                    mdti.newDDL, mdti.sizeOfnewDDL,
                                    (mdti.isIndex ? TRUE : FALSE),
@@ -794,6 +802,7 @@ short CmpSeabaseDDL::createMDdescs(MDDescsInfo *&trafMDDescsInfo)
       
       if (oldDDL)
         {
+          breadCrumb = 2;
           if (processDDLandCreateDescs(parser,
                                        oldDDL, sizeOfoldDDL,
                                        (mdti.isIndex ? TRUE : FALSE),
@@ -825,6 +834,7 @@ short CmpSeabaseDDL::createMDdescs(MDDescsInfo *&trafMDDescsInfo)
           ComTdbVirtTableColumnInfo * indexColInfoArray = NULL;
           ComTdbVirtTableKeyInfo * indexKeyInfoArray = NULL;
           
+          breadCrumb = 3;
           if (processDDLandCreateDescs(parser,
                                        mdti.indexDDL, mdti.sizeOfIndexDDL,
                                        FALSE,
@@ -863,6 +873,7 @@ short CmpSeabaseDDL::createMDdescs(MDDescsInfo *&trafMDDescsInfo)
       QString ddlString; 
       ddlString.str = tableDDL.data();
 
+      breadCrumb = 4;
       if (processDDLandCreateDescs(parser,
                                    &ddlString, sizeof(QString),
                                    FALSE,
@@ -896,9 +907,18 @@ short CmpSeabaseDDL::createMDdescs(MDDescsInfo *&trafMDDescsInfo)
   return 0;
 
  label_error:
+
+  // When debugging, you can look at the breadCrumb variable to figure out
+  // why you got here.
+
   if (trafMDDescsInfo)
     NADELETEBASIC(trafMDDescsInfo, CTXTHEAP);
   trafMDDescsInfo = NULL;
+
+  char msg[80];
+  str_sprintf(msg,"CmpSeabaseDDL::createMDdescs failed, breadCrumb = %d",breadCrumb);
+  SQLMXLoggingArea::logSQLMXDebugEvent(msg, -1, __LINE__);
+
   return -1;
 }
                                               
@@ -2978,8 +2998,7 @@ short CmpSeabaseDDL::getTypeInfo(const NAType * naType,
       }
       break;
       
-      
-    case NA_LOB_TYPE:
+     case NA_LOB_TYPE:
       {
 	if (datatype == REC_BLOB)
 	  {
@@ -2994,6 +3013,12 @@ short CmpSeabaseDDL::getTypeInfo(const NAType * naType,
 	    precision = (ComSInt32)clobType->getLobLength();
 	  }
 	
+      }
+      break;
+  
+    case NA_BOOLEAN_TYPE:
+      {
+        precision = 0;
       }
       break;
       
@@ -3219,12 +3244,6 @@ short CmpSeabaseDDL::getColInfo(ElemDDLColDef * colNode,
                (ie->getOperatorType() == ITM_CURRENT_USER) ||
                (ie->getOperatorType() == ITM_SESSION_USER))
         {
-          // default USER not currently supported.
-          *CmpCommon::diags() << DgSqlCode(-1084)
-                              << DgColumnName(colName);
-          
-          return -1;
-          
           defaultClass = COM_USER_FUNCTION_DEFAULT;
         }
       else if (ie->castToConstValue(negateIt) != NULL)
@@ -5149,7 +5168,7 @@ short CmpSeabaseDDL::updateSeabaseMDSPJ(
       return -1;
     }
 
-  str_sprintf(buf, "insert into %s.\"%s\".%s values (%Ld, '%s', %d)",
+  str_sprintf(buf, "insert into %s.\"%s\".%s values (%Ld, '%s', %d, 0)",
               getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_LIBRARIES,
               libObjUID, libPath, routineInfo->library_version);
   
@@ -5202,7 +5221,7 @@ short CmpSeabaseDDL::updateSeabaseMDSPJ(
     return -1;
                                  
 
-  str_sprintf(buf, "insert into %s.\"%s\".%s values (%Ld, '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', %d, %d, '%s', '%s', '%s', '%s', '%s', %Ld, '%s' )",
+  str_sprintf(buf, "insert into %s.\"%s\".%s values (%Ld, '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', %d, %d, '%s', '%s', '%s', '%s', '%s', %Ld, '%s', 0 )",
               getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_ROUTINES,
               spjObjUID,
               routineInfo->UDR_type,
@@ -5230,7 +5249,7 @@ short CmpSeabaseDDL::updateSeabaseMDSPJ(
       return -1;
     }
 
-  str_sprintf(buf, "insert into %s.\"%s\".%s values (%Ld, %Ld)",
+  str_sprintf(buf, "insert into %s.\"%s\".%s values (%Ld, %Ld, 0)",
               getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_LIBRARIES_USAGE,
               libObjUID, spjObjUID);
 
@@ -6114,7 +6133,9 @@ short CmpSeabaseDDL::buildKeyInfoArray(
         }
         
       keyInfoArray[index].ordering = 
-        ((*keyArray)[index]->getColumnOrdering() == COM_ASCENDING_ORDER ? 0 : 1);
+        ((*keyArray)[index]->getColumnOrdering() == COM_ASCENDING_ORDER ? 
+          ComTdbVirtTableKeyInfo::ASCENDING_ORDERING : 
+          ComTdbVirtTableKeyInfo::DESCENDING_ORDERING);
       keyInfoArray[index].nonKeyCol = 0;
 
       if ((colInfoArray) &&
@@ -7088,8 +7109,9 @@ short CmpSeabaseDDL::updateSeabaseAuths(
   return 0;
 }
 
-void CmpSeabaseDDL::initSeabaseMD(NABoolean ddlXns)
+void CmpSeabaseDDL::initSeabaseMD(NABoolean ddlXns, NABoolean minimal)
 {
+  int breadCrumb = -1;  // useful for debugging
   Lng32 retcode = 0;
   Lng32 cliRC = 0;
   NABoolean xnWasStartedHere = FALSE;
@@ -7198,15 +7220,17 @@ void CmpSeabaseDDL::initSeabaseMD(NABoolean ddlXns)
   NAString installJar(getenv("MY_SQROOT"));
   installJar += "/export/lib/trafodion-sql-currversion.jar";
 
+  breadCrumb = 1;
   if (beginXnIfNotInProgress(&cliInterface, xnWasStartedHere))
     goto label_error;
 
   cliRC = cliInterface.holdAndSetCQD("traf_bootstrap_md_mode", "ON");
   if (cliRC < 0)
     {
+      breadCrumb = 2;
       goto label_error;
     }
-
+  breadCrumb = 3;
 
   // Create Seabase system schema
   if (updateSeabaseMDObjectsTable(&cliInterface,sysCat,SEABASE_SYSTEM_SCHEMA,
@@ -7216,6 +7240,7 @@ void CmpSeabaseDDL::initSeabaseMD(NABoolean ddlXns)
   {
     goto label_error;
   }
+  breadCrumb = 4;
   
   // Create Seabase metadata schema
   schemaUID = -1;
@@ -7250,6 +7275,7 @@ void CmpSeabaseDDL::initSeabaseMD(NABoolean ddlXns)
                                mddi.indexInfo,
                                objUID))
         {
+          breadCrumb = 5;
           goto label_error;
         }
 
@@ -7290,6 +7316,7 @@ void CmpSeabaseDDL::initSeabaseMD(NABoolean ddlXns)
                                0, NULL,
                                objUID))
         {
+          breadCrumb = 6;
           goto label_error;
         }
     } // for
@@ -7302,6 +7329,7 @@ void CmpSeabaseDDL::initSeabaseMD(NABoolean ddlXns)
                          sizeof(seabaseMDValidateRoutineColInfo) / sizeof(ComTdbVirtTableColumnInfo),
                          seabaseMDValidateRoutineColInfo))
     {
+      breadCrumb = 7;
       goto label_error;
     }
 
@@ -7316,26 +7344,38 @@ void CmpSeabaseDDL::initSeabaseMD(NABoolean ddlXns)
 
   if (createSchemaObjects(&cliInterface))
     {
+      breadCrumb = 8;
       goto label_error;
     }
  
  if (createMetadataViews(&cliInterface))
     {
+      breadCrumb = 9;
       goto label_error;
     }
 
- if (createRepos(&cliInterface))
+ // If this is a MINIMAL initialization, don't create the repository
+ // or privilege manager tables. (This happens underneath an upgrade,
+ // for example, because the repository and privilege manager tables
+ // already exist and we will later upgrade them.)
+ if (!minimal)  
    {
-     goto label_error;
-   }
+     if (createRepos(&cliInterface))
+       {
+         breadCrumb = 10;
+         goto label_error;
+       }
 
- if (createPrivMgrRepos(&cliInterface, ddlXns))
-   {
-     goto label_error;
+     if (createPrivMgrRepos(&cliInterface, ddlXns))
+       {
+         breadCrumb = 11;
+         goto label_error;
+       }
    }
 
  if (createSeabaseLibmgr (&cliInterface))
-   {
+   {   
+     breadCrumb = 12;
      goto label_error;
    }
 
@@ -7344,7 +7384,15 @@ void CmpSeabaseDDL::initSeabaseMD(NABoolean ddlXns)
   return;
 
  label_error:
+
+  // When debugging, the breadCrumb variable is useful to tell you
+  // how you got here.
+
   endXnIfStartedHere(&cliInterface, xnWasStartedHere, -1);
+
+  char msg[80];
+  str_sprintf(msg,"CmpSeabaseDDL::initSeabaseMD failed, breadCrumb = %d",breadCrumb);
+  SQLMXLoggingArea::logSQLMXDebugEvent(msg, -1, __LINE__);
 
   return;
 }
@@ -8905,7 +8953,7 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
 
   if (ddlExpr->initHbase()) 
     {
-      initSeabaseMD(ddlExpr->ddlXns());
+      initSeabaseMD(ddlExpr->ddlXns(), ddlExpr->minimal());
     }
   else if (ddlExpr->dropHbase())
     {
