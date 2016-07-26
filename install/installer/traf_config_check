@@ -392,9 +392,6 @@ sudo chmod 777 $TRAF_CONFIG
 function checkJavaVersion {
 
 source /etc/trafodion/trafodion_config
-echo "**********"
-echo "$JAVA_HOME"
-echo "********"
 
 if [[ -z "$JAVA_HOME" ]]; then
    errorFound=1
@@ -404,18 +401,14 @@ else
 
    error=""
    REQ_VER="1.7.0_65"
-   #Testing
-   echo "***********"
-   echo "$JAVA_HOME"
-   echo "***********"
    #Only checking on 1 node for now. This will change.
    if [[ "$JAVA_8_SUPPORT" == "Y" ]]; then
-      $PWD/checkJava8.py 
+      $LOCAL_WORKDIR/checkJava8.py 
       if [[ $? != 0 ]]; then
          error=1
       fi
    else
-      $PWD/checkJava.py
+      $LOCAL_WORKDIR/checkJava.py
       if [[ $? != 0 ]]; then
          error=1
       fi
@@ -1071,10 +1064,6 @@ fi
 #Main 
 
 echo "***INFO: Trafodion Configuration File Check"
-source /etc/trafodion/trafodion_config
-echo "!!!!!!!"
-echo "$JAVA_HOME"
-echo"!!!!!!"
 
 setUpErrorLog
 
