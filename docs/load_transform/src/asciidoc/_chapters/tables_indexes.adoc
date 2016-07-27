@@ -61,6 +61,7 @@ cluster and the expected size of the table. A salted table can split if more dat
 happens, then more than one partition having rows with the same salt value, which may result in suboptimal execution plans for the table.
 
 <<<
+
 You can also choose not to salt {project-name} tables. This is similar to range partitioning in a traditional database. The number of partitions
 grows with the size of the table, and range boundaries are determined by HBase based on the specified split policy.
 
@@ -76,7 +77,9 @@ See http://hbase.apache.org/book.html#compression[Appendix E: Compression and Da
 http://hbase.apache.org/book.html[Apache HBase Reference Guide] for a comparison of various compression and encoding algorithms. Use the
 information in the http://hbase.apache.org/book.html#data.block.encoding.types[Which Compressor or Data Block Encoder To Use] section to 
 determine the best compression technique for your tables.
+
 <<<
+
 [[create-trafodion-tables-and-indexes]]
 == Create Tables and Indexes 
 
@@ -100,6 +103,8 @@ SALT USING 8 PARTITIONS ON (demo_sk);
 ```
 
 ANY indexes on the table may be salted or not. However, if they are salted, their salting key and number of partitions must be the same as the table.
+
+<<<
 
 *Example*
 

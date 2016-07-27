@@ -4977,20 +4977,21 @@ short CmpSeabaseDDL::updateSeabaseMDTable(
           hbaseCreateOptions = tableInfo->hbaseCreateOptions;
           hbaseSplitClause = tableInfo->hbaseSplitClause;
 
+          flags = tableInfo->tablesFlags;
           if (tableInfo->xnRepl != COM_REPL_NONE)
             {
               if (tableInfo->xnRepl == COM_REPL_SYNC)
                 CmpSeabaseDDL::setMDflags
-                  (flags, CmpSeabaseDDL::MD_TABLES_REPL_SYNC_FLG);
+                  (flags, MD_TABLES_REPL_SYNC_FLG);
               else if (tableInfo->xnRepl == COM_REPL_ASYNC)
                 CmpSeabaseDDL::setMDflags
-                  (flags,CmpSeabaseDDL::MD_TABLES_REPL_ASYNC_FLG);
+                  (flags, MD_TABLES_REPL_ASYNC_FLG);
             }
 
           if (tableInfo->storageType == COM_STORAGE_MONARCH)
             {
               CmpSeabaseDDL::setMDflags
-                (flags, CmpSeabaseDDL::MD_TABLES_STORAGE_MONARCH_FLG);
+                (flags, MD_TABLES_STORAGE_MONARCH_FLG);
             }
 
         }

@@ -1300,7 +1300,7 @@ ItemExpr *Parser::getItemExprTree(const char * str,
     firstSix[i++] = NULL;
 
   while (i<params.entries())
-    remainder.insert(params[i]);
+    remainder.insert(params[i++]);
 
   return getItemExprTree(str, len, strCharSet,
                          params.entries(),

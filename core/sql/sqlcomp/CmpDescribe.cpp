@@ -2257,8 +2257,7 @@ short CmpDescribeHiveTable (
       // show the ddl of source hive table first.
       if ((type == 2) &&
           (naTable->isHiveTable()) &&
-          (naTable->hasHiveExtTable()) &&
-          (CmpCommon::getDefault(HIVE_USE_EXT_TABLE_ATTRS) == DF_ON))
+          (naTable->hasHiveExtTable()))
         {
           // remove current cache key and turn off ext table attr cqd.
           // This will return the underlying hive natable.

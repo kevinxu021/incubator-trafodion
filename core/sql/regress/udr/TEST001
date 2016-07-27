@@ -244,7 +244,7 @@ FROM UDF(sessionize_dynamic(TABLE(SELECT userid,
                             60000000));
 
 -- call sessionize_dynamic_shared, sharing the same DLL
-SELECT *
+SELECT session_id, sequence_no, ts, ipaddr 
 FROM UDF(sessionize_dynamic_shared(TABLE(SELECT userid,
                                                 JULIANTIMESTAMP(ts) as TS,
                                                 ipAddr

@@ -505,7 +505,7 @@ source $TRAF_CONFIG
 #============================================
 #Check to make sure HBase Version is the correct version
 
-if [[ $HADOOP_TYPE != "apache" ]]; then
+if [[ "$HADOOP_TYPE" != "apache" ]] && [[ "$HADOOP_TYPE" != "mapr" ]]; then
    checkHBaseVersion
 fi
 #==============================================
@@ -655,6 +655,17 @@ echo "******************************"
 echo
 
 if [[ $MODS_COMPLETE != "Y" ]]; then
+   if [[ $HADOOP_TYPE == "mapr" ]]; then
+      echo "***INFO: Will run traf_mapr_mods" 2>&1 | tee -a $INSTALL_LOG
+      $LOCAL_WORKDIR/traf_mapr_mods 2>&1 | tee -a $INSTALL_LOG
+       if [ ${PIPESTATUS[0]}  != "0" ]; then
+          echo "***ERROR: traf_mapr_mods exited with error." | tee -a $INSTALL_LOG
+          echo "***ERROR: Please check log files." | tee -a $INSTALL_LOG
+          echo "***ERROR: Exiting...." | tee -a $INSTALL_LOG
+          exit -1
+       fi
+   fi
+
    if [[ $HADOOP_TYPE == "cloudera" ]]; then
       echo "***INFO: Cloudera installed will run traf_cloudera_mods" 2>&1 | tee -a $INSTALL_LOG
       $LOCAL_WORKDIR/traf_cloudera_mods 2>&1 | tee -a $INSTALL_LOG

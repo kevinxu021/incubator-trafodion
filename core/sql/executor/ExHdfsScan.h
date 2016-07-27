@@ -307,7 +307,6 @@ protected:
   struct ComTdbHdfsVirtCols *virtColData_; // pointer to data for virtual columns
 
   hdfsFile hdfsFp_;
-  hdfsFS hdfsFs_;     // shallow copy from cliGlobals.
 
   void * lobGlob_;
 

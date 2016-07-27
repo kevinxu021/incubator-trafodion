@@ -50,7 +50,6 @@
 #include "ExpCompressionWA.h"
 #include <seabed/ms.h>
 #include <seabed/fs.h>
-
 #ifdef LOB_DEBUG_STANDALONE
 #define Int64 long long
 #define Lng32 long
@@ -503,30 +502,33 @@ class ExLob
 
   ExLobStats *getStats() { return &stats_; }
   NAHeap *getLobGlobalHeap() { return lobGlobalHeap_;}
-  ExLobRequest *getRequest() { return &request_; }
+
+  //    ExLobRequest *getRequest() { return &request_; }
   
   //The next 2 functions are not active at this point. They serve as an example
   //on how to send requests across to the mxlobsrvr process from the master 
   //process
   Ex_Lob_Error getDesc(ExLobRequest *request);
   Ex_Lob_Error sendReqToLobServer() ;
+
   public:
 
     char lobDataFile_[MAX_LOB_FILE_NAME_LEN];
     lobCursors_t lobCursors_;
     ExLobLock lobCursorLock_;
     LobsStorage storage_;
-    string dir_; // lob data directory
+    string lobStorageLocation_; // lob data directory
     char *hdfsServer_;
     Int64 hdfsPort_;
-    char *lobLocation_;
     hdfsFS fs_;
     hdfsFile fdData_;
     int openFlags_;
     ExLobStats stats_;
     bool prefetchQueued_;
     NAHeap *lobGlobalHeap_;
+#ifdef __ignore
     ExLobRequest request_;
+#endif
     NABoolean lobTrace_;
 };
 
@@ -540,8 +542,9 @@ typedef map<string, ExLob *>::iterator lobMap_it;
 class ExLobHdfsRequest
 {
   public:
-
+#ifdef __ignore
     ExLobHdfsRequest(LobsHdfsRequestType reqType, hdfsFS fs, hdfsFile file, char *buffer, int size);
+#endif
     ExLobHdfsRequest(LobsHdfsRequestType reqType, ExLobCursor *cursor);
     ExLobHdfsRequest(LobsHdfsRequestType reqType, ExLob *lobPtr, ExLobCursor *cursor);
     ExLobHdfsRequest(LobsHdfsRequestType reqType);
@@ -553,8 +556,6 @@ class ExLobHdfsRequest
     LobsHdfsRequestType reqType_;
     ExLob *lobPtr_;
     ExLobCursor *cursor_;
-    hdfsFS fs_;
-    hdfsFile file_; 
     char *buffer_;
     int size_;
     Ex_Lob_Error error_;

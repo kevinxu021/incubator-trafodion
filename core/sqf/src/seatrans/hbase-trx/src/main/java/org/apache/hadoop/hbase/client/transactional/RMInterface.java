@@ -122,14 +122,8 @@ public class RMInterface {
        try {
           pSTRConfig = STRConfig.getInstance(lv_config);
        }
-       catch (InterruptedException int_exception) {
-	   System.out.println("Interrupted Exception trying to get STRConfig instance: " + int_exception);
-       }
        catch (IOException ioe) {
           LOG.error("IO Exception trying to get STRConfig instance: " + ioe);
-       }
-       catch (KeeperException zke) {
-          LOG.error("Zookeeper Connection Exception trying to get STRConfig instance: " + zke);
        }
     }
 

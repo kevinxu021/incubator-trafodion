@@ -524,6 +524,121 @@ T015SLT4                                                4            6          
 
 --- 7 row(s) selected.
 >>
+>>---------------------------------------------
+>>-- Scan DoP for HBase tables               --
+>>---------------------------------------------
+>>
+>>create table t015p20 (a char(5) not null ,
++>                     b smallint not null ,
++>                     c char(4),
++>                     d integer,
++>                     primary key (a,b) )
++>                     salt using 20 partitions ;
+
+--- SQL operation complete.
+>>insert into t015p20 values ('AAAA ',11,'AAAA',11);
+
+--- 1 row(s) inserted.
+>>insert into t015p20 values ('BBBB ',12,'BBBB',12);
+
+--- 1 row(s) inserted.
+>>insert into t015p20 values ('MMMM ',21,'MMMM',21);
+
+--- 1 row(s) inserted.
+>>insert into t015p20 values ('XXXXX',22,'XXXX', 22);
+
+--- 1 row(s) inserted.
+>>
+>>
+>>create table t015p4 (a char(5) not null ,
++>                     b smallint not null ,
++>                     c char(4),
++>                     d integer,
++>                     primary key (a,b) )
++>                     salt using 4 partitions ;
+
+--- SQL operation complete.
+>>insert into t015p4 values ('AAAA ',11,'AAAA',11);
+
+--- 1 row(s) inserted.
+>>insert into t015p4 values ('BBBB ',12,'BBBB',12);
+
+--- 1 row(s) inserted.
+>>insert into t015p4 values ('MMMM ',21,'MMMM',21);
+
+--- 1 row(s) inserted.
+>>insert into t015p4 values ('XXXXX',22,'XXXX', 22);
+
+--- 1 row(s) inserted.
+>>
+>>-- expect to see a parallel plan with scan dop of 20
+>>prepare xx from select * from t015p20 <<+ cardinality 10e8 >>  ;
+
+--- SQL command prepared.
+>>explain options 'f' xx;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+2    .    3    root                                                  1.00E+009
+1    .    2    esp_exchange                    1:20(hash2)           1.00E+009
+.    .    1    trafodion_scan                  T015P20               1.00E+009
+
+--- SQL operation complete.
+>>
+>>-- expect to see a serial plan
+>>prepare xx from select * from t015p20 ;
+
+--- SQL command prepared.
+>>explain options 'f' xx;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+1    .    2    root                                                  1.00E+002
+.    .    1    trafodion_scan                  T015P20               1.00E+002
+
+--- SQL operation complete.
+>>
+>>-- expect to see a parallel plan with scan dop of 20 on t015p20
+>>prepare xx from select t015p20.* from
++>t015p20 <<+ cardinality 10e8 >>, t015p4
++>where t015p20.c = t015p4.c ;
+
+--- SQL command prepared.
+>>explain options 'f' xx;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+6    .    7    root                                                  5.00E+010
+5    .    6    esp_exchange                    1:4(hash2)            5.00E+010
+4    2    5    hybrid_hash_join                                      5.00E+010
+3    .    4    esp_exchange                    4(hash2):20(hash2)    1.00E+009
+.    .    3    trafodion_scan                  T015P20               1.00E+009
+1    .    2    esp_exchange                    4(rep-b):4(hash2)     1.00E+002
+.    .    1    trafodion_scan                  T015P4                1.00E+002
+
+--- SQL operation complete.
+>>
+>>-- expect to see a serial plan
+>>prepare xx from select t015p20.* from
++>t015p20, t015p4
++>where t015p20.c = t015p4.c ;
+
+--- SQL command prepared.
+>>explain options 'f' xx;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+3    .    4    root                                                  5.00E+003
+2    1    3    hybrid_hash_join                                      5.00E+003
+.    .    2    trafodion_scan                  T015P20               1.00E+002
+.    .    1    trafodion_scan                  T015P4                1.00E+002
+
+--- SQL operation complete.
+>>
 >>obey TEST015(clean_up);
 >>--------------------------------------------------------------------------
 >>
@@ -555,6 +670,12 @@ T015SLT4                                                4            6          
 
 --- SQL operation complete.
 >>drop table if exists t015slt4;
+
+--- SQL operation complete.
+>>drop table if exists t015p20;
+
+--- SQL operation complete.
+>>drop table if exists t015p4;
 
 --- SQL operation complete.
 >>

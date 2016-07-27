@@ -44,6 +44,7 @@
 
 #include <ctype.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "NLSConversion.h"
 #include "nawstring.h"
@@ -2568,9 +2569,19 @@ ex_expr::exp_return_type ex_function_converttimestamp::eval(char *op_data[],
                                                         (Int64)  99999999;
   if ((juliantimestamp < minJuliantimestamp) ||
       (juliantimestamp > maxJuliantimestamp)) {
-    ExRaiseFunctionSqlError(heap, diagsArea, EXE_CONVERTTIMESTAMP_ERROR,
-			    derivedFunction(),
-			    origFunctionOperType());
+    char tmpbuf[24];
+    memset(tmpbuf, 0, sizeof(tmpbuf) );
+    sprintf(tmpbuf, "%ld", juliantimestamp);
+
+    ExRaiseSqlError(heap, diagsArea, EXE_CONVERTTIMESTAMP_ERROR);
+    if(*diagsArea)
+      **diagsArea << DgString0(tmpbuf);
+
+    if(derivedFunction())
+    {
+      **diagsArea << DgSqlCode(-EXE_MAPPED_FUNCTION_ERROR);
+       **diagsArea << DgString0(exClauseGetText(origFunctionOperType()));
+    }
     
     return ex_expr::EXPR_ERROR;
   }
@@ -2910,9 +2921,19 @@ ex_expr::exp_return_type ex_function_juliantimestamp::eval(char *op_data[],
   short error;
   juliantimestamp = COMPUTETIMESTAMP(timestamp, &error);
   if (error) {
-    ExRaiseFunctionSqlError(heap, diagsArea, EXE_JULIANTIMESTAMP_ERROR,
-			    derivedFunction(),
-			    origFunctionOperType());
+    char tmpbuf[24];
+    memset(tmpbuf, 0, sizeof(tmpbuf) );
+    sprintf(tmpbuf, "%ld", juliantimestamp);
+
+    ExRaiseSqlError(heap, diagsArea, EXE_JULIANTIMESTAMP_ERROR);
+    if(*diagsArea)
+      **diagsArea << DgString0(tmpbuf);
+
+    if(derivedFunction())
+    {
+      **diagsArea << DgSqlCode(-EXE_MAPPED_FUNCTION_ERROR);
+       **diagsArea << DgString0(exClauseGetText(origFunctionOperType()));
+    }
     
     return ex_expr::EXPR_ERROR;
   }
@@ -3291,6 +3312,10 @@ void ex_function_encode::encodeKeyValue(Attributes * attr,
     //
     *((_int64 *) target) = reversebytes( *((_int64 *) source) );
     target[0] ^= 0200;
+    break;
+
+  case REC_BIN64_UNSIGNED:
+    *((UInt64 *) target) = reversebytes( *((UInt64 *) source) );
     break;
 
   case REC_INT_YEAR:
@@ -4755,6 +4780,7 @@ ex_expr::exp_return_type ExHDPHash::eval(char *op_data[],
       flags = SWAP_FOUR;
       break;
     case REC_BIN64_SIGNED:
+    case REC_BIN64_UNSIGNED:
     case REC_IEEE_FLOAT64:
       flags = SWAP_EIGHT;
       break;
@@ -7304,6 +7330,10 @@ short ex_function_encode::decodeKeyValue(Attributes * attr,
     target[sizeof(_int64)-1] ^= 0200;
     break;
 
+  case REC_BIN64_UNSIGNED:
+    *((UInt64 *) target) = reversebytes( *((UInt64 *) source) );
+    break;
+
   case REC_INT_YEAR:
   case REC_INT_MONTH:
   case REC_INT_YEAR_MONTH:
@@ -7666,6 +7696,10 @@ static Lng32 convAsciiLength(Attributes * attr)
 
     case REC_BIN64_SIGNED:
       d_len = SQL_LARGE_DISPLAY_SIZE + scale_len;
+      break;
+
+    case REC_BIN64_UNSIGNED:
+      d_len = SQL_ULARGE_DISPLAY_SIZE + scale_len;
       break;
 
    case REC_NUM_BIG_UNSIGNED:

@@ -22,7 +22,7 @@ under the License.
  */
 package org.trafodion.dcs.master.listener;
 
-import java.sql.SQLException;
+import java.sql.SQLException; 
 import java.io.*;
 import java.nio.*;
 import java.nio.channels.*;

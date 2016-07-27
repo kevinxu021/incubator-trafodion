@@ -182,11 +182,7 @@ public class HBaseClient {
                          + ") called.");
         HBaseAdmin.checkHBaseAvailable(config);
 
-        try {
-            table = new RMInterface();
-        } catch (Exception e) {
-            if (logger.isDebugEnabled()) logger.debug("HBaseClient.init: Error in RMInterface instace creation.");
-        }
+        table = new RMInterface();
         
         return true;
     }
@@ -1310,7 +1306,6 @@ public class HBaseClient {
       if (logger.isDebugEnabled())
          logger.debug("after HTable call in getRegionsNodeName");
 
-      try {
         NavigableMap<HRegionInfo, ServerName> locations = htbl.getRegionLocations();
         if (logger.isDebugEnabled())
            logger.debug("after htable.getRegionLocations call in getRegionsNodeName");
@@ -1327,11 +1322,6 @@ public class HBaseClient {
           if (logger.isDebugEnabled()) logger.debug("Hostname for region " + regCount + " is " + hostName);
           regCount++;
         }
-      } catch (Exception ie) {
-        if (logger.isDebugEnabled())
-          logger.debug("getRegionLocations throws exception " + ie.getMessage());
-        return false;
-      }
 
       return true;
     }

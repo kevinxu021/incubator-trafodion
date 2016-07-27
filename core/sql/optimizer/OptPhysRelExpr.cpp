@@ -8603,7 +8603,7 @@ Context* HashJoin::createContextForAChild(Context* myContext,
   // Only repartitioning plans are allowed for Full Outer Join. That is
   // because, broadcast is not compatible with it. Hence, no need to cut
   // down on the number of plans to consider. Keep childPlansToConsider at 6.
-
+ 
   if ((NOT isFullOuterJoin())
       AND (
 	   (rppForMe->getCountOfPipelines() == 1) OR
@@ -14985,62 +14985,109 @@ PhysicalProperty * FileScan::synthHbaseScanPhysicalProperty(
      // Compute the desirable #ESPs first
      //////////////////////////////////////
    
-     // minimum # of ESPs required by the parent
-     Lng32 minESPs = (partReq ? 
-                       partReq->getCountOfPartitions() : 
-                       CURRSTMT_OPTDEFAULTS->getMaximumDegreeOfParallelism());
+     // minimum and maximum # of ESPs required by the parent
+     Lng32 minESPs = 0;
+     Lng32 maxESPs = 0;
+           
+     NABoolean canFreelyAdjustDoP = TRUE;
+
+     if (partReq) {
+        minESPs = partReq->getCountOfPartitions();
+        maxESPs = partReq->getCountOfPartitions();
+        canFreelyAdjustDoP = FALSE;
+
+        if (partReq->castToRequireApproximatelyNPartitions()) {
+           minESPs = partReq->castToRequireApproximatelyNPartitions()->
+                                          getCountOfPartitionsLowBound();
+           canFreelyAdjustDoP = TRUE;
+        } else { 
+
+           if (partReq->castToFuzzyPartitioningRequirement() &&
+               ANY_NUMBER_OF_PARTITIONS == minESPs )
+           {
+              canFreelyAdjustDoP = TRUE;
+           } 
+        }
+
+     } else {
+        minESPs = CURRSTMT_OPTDEFAULTS->getMaximumDegreeOfParallelism();
+        maxESPs = rppForMe->getCountOfPipelines();
+     }
+
    
-     if (partReq && partReq->castToRequireApproximatelyNPartitions())
-       minESPs = partReq->castToRequireApproximatelyNPartitions()->
-                                                getCountOfPartitionsLowBound();
-   
-   
-     Lng32 maxESPs = 1;
      NADefaults &defs = ActiveSchemaDB()->getDefaults();
    
      // check for ATTEMPT_ESP_PARALLELISM CQD
      if ( !(CURRSTMT_OPTDEFAULTS->attemptESPParallelism() == DF_OFF) ) {
-        // CQDs related to # of ESPs for a HBase table scan
-        maxESPs = getDefaultAsLong(HBASE_MAX_ESPS);
 
-        Int32 numOfPartitions = -1;
+        Int32 numOfPartitions = 1; // assume single partitioned table
 
         if ( ixDescPartFunc ) 
            numOfPartitions = ixDescPartFunc->getCountOfPartitions();  
 
-        if ( maxESPs == 0 && minESPs <= numOfPartitions ) {
-           minESPs = maxESPs = numOfPartitions;
-        } else {
-           NABoolean fakeEnv = FALSE; 
-           CollIndex totalESPsAllowed = defs.getTotalNumOfESPsInCluster(fakeEnv);
+        NABoolean fakeEnv = FALSE; 
+        CollIndex totalESPsAllowed = defs.getTotalNumOfESPsInCluster(fakeEnv);
+
+        if ( !fakeEnv ) {
+
+           // compute the scan size at the scan level 
+           const CostScalar rowCount = getTuplesProcessed();
+           const CostScalar scanSize = rowCount * 
+                        (indexDesc_->getNAFileSet()->getRecordLength());
+
+           // if the # of tuples processed is unknown, use the output at the scan
+           if ( rowCount == 0.0 ) {
+              rowCount = getGroupAttr()->getResultCardinalityForEmptyInput();
+              scanSize = rowCount * getGroupAttr()->getRecordLength();
+           }  
+
+           // Get the threshold in MB of using # of partitions as the scan dop.
+           // Default value is 10MB.
+           Lng32 numPartitionsAsDopThreshold = 
+                  getDefaultAsLong(HBASE_SCAN_DOP_AS_PARTITIONS_THRESHOLD)
+                  * 1024 * 1024;
+   
+           // If canFreelyAdjustDoP is TRUE, the table is partitioned 
+           // and the table size is over the threashold, use 
+           // the number of partitions of the table as the scan dop.
+           if (canFreelyAdjustDoP ) {
+
+             if ( numOfPartitions > 1 &&
+                  numPartitionsAsDopThreshold >= 0 &&
+                  scanSize >= numPartitionsAsDopThreshold )
+             {
+                minESPs = maxESPs = numOfPartitions;
+             } else {
       
-           if ( !fakeEnv ) {
-              // limit the number of ESPs to max(totalESPsAllowed, HBASE_MAX_ESPS)
-               maxESPs = MAXOF(MINOF(totalESPsAllowed, maxESPs),1);
+               // CQDs related to # of ESPs for a HBase table scan
+               Lng32 maxESPsByUser = getDefaultAsLong(HBASE_MAX_ESPS);
+               // limit it to MAX(totalESPsAllowed, HBASE_MAX_ESPS)
+               maxESPs = MAXOF(totalESPsAllowed, maxESPsByUser);
    
-              if (!partReq && minESPs == 1) {
-                minESPs = rppForMe->getCountOfPipelines();
+               if (ixDescPartFunc && 
+                   (CmpCommon::getDefault(LIMIT_HBASE_SCAN_DOP) == DF_ON)) 
+               {
+                  minESPs = MINOF(minESPs, numOfPartitions);
+               }
    
-                if (ixDescPartFunc && (CmpCommon::getDefault(LIMIT_HBASE_SCAN_DOP) == DF_ON)) {
-                   minESPs = MINOF(minESPs, ixDescPartFunc->getCountOfPartitions());
-                }
-   
-              }
-   
-              if ( getDefaultAsLong(AFFINITY_VALUE) != -2 && ixDescPartFunc ) {
-                 Int32 numOfUniqueNodes = 
+               if ( getDefaultAsLong(AFFINITY_VALUE) != -2 && 
+                    ixDescPartFunc ) 
+               {
+                  Int32 numOfUniqueNodes = 
                      ixDescPartFunc->getNodeMap()->getNumberOfUniqueNodes();
    
-                 // #ESPs performing reading from HBase tables is capped at by 
-                 // the # of unique nodes or region servers.
-                 if ( numOfUniqueNodes > 0 )
-                    minESPs = MINOF(minESPs, numOfUniqueNodes);
+                  // #ESPs performing reading from HBase tables is capped at by 
+                  // the # of unique nodes or region servers.
+                  if ( numOfUniqueNodes > 0 )
+                     minESPs = MINOF(minESPs, numOfUniqueNodes);
+                 }
               }
            }
-           else  {
-              maxESPs = totalESPsAllowed;
-           }
+        } else  {
+           minESPs = maxESPs = totalESPsAllowed; // forced dop case
         }
+     } else {
+        maxESPs = minESPs = 1; // ESP parallelism is off
      }
    
      numESPs = MINOF(minESPs, maxESPs);
@@ -15220,6 +15267,8 @@ PhysicalProperty * FileScan::synthHbaseScanPhysicalProperty(
 }
 
 //<pb>
+
+
 
 // -----------------------------------------------------------------------
 // FileScan::costMethod()

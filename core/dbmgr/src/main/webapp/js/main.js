@@ -5,6 +5,7 @@
 //@@@ END COPYRIGHT @@@
 
 require.config({
+	waitSeconds: 100,
 	packages: [{
 		name: "codemirror",
 		location: "../bower_components/codemirror/lib",

@@ -4580,14 +4580,14 @@ void CmpSeabaseDDL::alterSeabaseTableAttribute(
   Int64 newFlags = flags;
 
   // clear replication bits
-  CmpSeabaseDDL::resetMDflags(newFlags, CmpSeabaseDDL::MD_TABLES_REPL_SYNC_FLG);
-  CmpSeabaseDDL::resetMDflags(newFlags, CmpSeabaseDDL::MD_TABLES_REPL_ASYNC_FLG);
+  CmpSeabaseDDL::resetMDflags(newFlags, MD_TABLES_REPL_SYNC_FLG);
+  CmpSeabaseDDL::resetMDflags(newFlags, MD_TABLES_REPL_ASYNC_FLG);
 
   Int64 replFlags;
   if (fileAttrs.xnRepl() == COM_REPL_SYNC)
-    CmpSeabaseDDL::setMDflags(newFlags, CmpSeabaseDDL::MD_TABLES_REPL_SYNC_FLG);
+    CmpSeabaseDDL::setMDflags(newFlags, MD_TABLES_REPL_SYNC_FLG);
   else if (fileAttrs.xnRepl() == COM_REPL_ASYNC)
-    CmpSeabaseDDL::setMDflags(newFlags, CmpSeabaseDDL::MD_TABLES_REPL_ASYNC_FLG);
+    CmpSeabaseDDL::setMDflags(newFlags, MD_TABLES_REPL_ASYNC_FLG);
 
   str_sprintf(queryBuf, "update %s.\"%s\".%s set flags = %Ld where table_uid = %Ld ",
               getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_TABLES,
@@ -10658,13 +10658,13 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
       char * format = vi->get(2);
       alignedFormat = (memcmp(format, COM_ALIGNED_FORMAT_LIT, 2) == 0);
 
-      Int64 flags = *(Int64*)vi->get(3);
-      if (CmpSeabaseDDL::isMDflagsSet(flags, CmpSeabaseDDL::MD_TABLES_REPL_SYNC_FLG))
+      tablesFlags = *(Int64*)vi->get(3);
+      if (CmpSeabaseDDL::isMDflagsSet(tablesFlags, MD_TABLES_REPL_SYNC_FLG))
         xnRepl = COM_REPL_SYNC;
-      else if (CmpSeabaseDDL::isMDflagsSet(flags, CmpSeabaseDDL::MD_TABLES_REPL_ASYNC_FLG))
+      else if (CmpSeabaseDDL::isMDflagsSet(tablesFlags, MD_TABLES_REPL_ASYNC_FLG))
         xnRepl = COM_REPL_ASYNC;
       
-      if (CmpSeabaseDDL::isMDflagsSet(flags, CmpSeabaseDDL::MD_TABLES_STORAGE_MONARCH_FLG))
+      if (CmpSeabaseDDL::isMDflagsSet(tablesFlags, MD_TABLES_STORAGE_MONARCH_FLG))
         storageType = COM_STORAGE_MONARCH;
 
       if (getTextFromMD(&cliInterface, objUID, COM_HBASE_OPTIONS_TEXT, 0,
@@ -10783,12 +10783,12 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
           return NULL;
         }
       
-      if (CmpSeabaseDDL::isMDflagsSet(flags, CmpSeabaseDDL::MD_TABLES_REPL_SYNC_FLG))
+      if (CmpSeabaseDDL::isMDflagsSet(flags, MD_TABLES_REPL_SYNC_FLG))
         xnRepl = COM_REPL_SYNC;
-      else if (CmpSeabaseDDL::isMDflagsSet(flags, CmpSeabaseDDL::MD_TABLES_REPL_ASYNC_FLG))
+      else if (CmpSeabaseDDL::isMDflagsSet(flags, MD_TABLES_REPL_ASYNC_FLG))
         xnRepl = COM_REPL_ASYNC;
 
-      if (CmpSeabaseDDL::isMDflagsSet(flags, CmpSeabaseDDL::MD_TABLES_STORAGE_MONARCH_FLG))
+      if (CmpSeabaseDDL::isMDflagsSet(flags, MD_TABLES_STORAGE_MONARCH_FLG))
         storageType = COM_STORAGE_MONARCH;
     }
 

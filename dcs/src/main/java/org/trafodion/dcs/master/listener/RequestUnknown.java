@@ -42,10 +42,12 @@ public class RequestUnknown {
 
     private ZkClient zkc = null;
     private String parentZnode = "";
+    private ListenerService listener = null;
 
-    RequestUnknown(ZkClient zkc,String parentZnode){
-        this.zkc = zkc;
-        this.parentZnode = parentZnode;
+    RequestUnknown(ListenerService listener){
+        this.zkc=listener.getZkc();
+        this.parentZnode=listener.getParentZnode();
+        this.listener = listener;
     }
 
     ClientData processRequest(ClientData clientData, Socket s) { 

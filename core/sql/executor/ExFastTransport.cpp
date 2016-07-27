@@ -621,9 +621,11 @@ Int32 ExHdfsFastExtractTcb::fixup()
 
   if(!myTdb().getSkipWritingToFiles() &&
      !myTdb().getBypassLibhdfs())
-
+    memset (hdfsHost_, '\0', sizeof(hdfsHost_));
+      strncpy(hdfsHost_, myTdb().getHdfsHostName(), sizeof(hdfsHost_));
+      hdfsPort_ = myTdb().getHdfsPortNum();
     ExpLOBinterfaceInit
-      (lobGlob_, getGlobals()->getDefaultHeap(),TRUE);
+      (lobGlob_, getGlobals()->getDefaultHeap(),getGlobals()->castToExExeStmtGlobals()->getContext(),TRUE,hdfsHost_,hdfsPort_);
 
   modTS_ = myTdb().getModTSforDir();
 
@@ -1499,9 +1501,21 @@ ExWorkProcRetcode ExHdfsFastExtractTcb::work()
 
         if (expStatus == ex_expr::EXPR_ERROR)
         {
-          updateWorkATPDiagsArea(centry);
-          pstate.step_ = EXTRACT_ERROR;
-          break;
+          if (myTdb().getContinueOnError())
+            {
+              // ignore this row and continue to the next row
+              if (workAtp_->getDiagsArea())
+                workAtp_->getDiagsArea()->clear();
+              qChild_.up->removeHead();
+               pstate.step_ = EXTRACT_READ_ROWS_FROM_CHILD;
+              break;
+            }
+          else
+            {
+              updateWorkATPDiagsArea(centry);
+              pstate.step_ = EXTRACT_ERROR;
+              break;
+            }
         }
       } // if (myTdb().getChildDataExpr())
 
