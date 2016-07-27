@@ -2046,6 +2046,8 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 	int profDisconnectDataLen = 0;
 	time_t tctime=0;
 	time_t tmtime=0;
+	char* tcprofile=NULL;
+	char* tdprofile=NULL;
 	char* cqds=NULL;
 	char* sets=NULL;
 
@@ -2237,6 +2239,7 @@ TNULL:
 				if( rc == ZOK )
 				{
 					// isDefault=no:priority=1:limit=:throughput=:onConnectProfile=testProfile:onDisconnectProfile=defaultProfile:lastUpdate=1462326660114
+					slaData[slaDataLen] = 0;
 					char* stringp = slaData;
 					tkn = strsep(&stringp, "=");
 					while(true)
@@ -2244,17 +2247,17 @@ TNULL:
 						if(tkn == NULL) break;
 						if(strcmp(tkn, "onConnectProfile") == 0)
 						{
-							cqds = strsep(&stringp,":");
-							curConnectProfile = string(tkn);
+							tcprofile = strsep(&stringp,":");
+							curConnectProfile = string(tcprofile);
 						}
-						else if(strcmp(tkn, "onConnectProfile") == 0)
+						else if(strcmp(tkn, "onDisconnectProfile") == 0)
 						{
-							tkn = strtok(NULL,":");
-							curDisconnectProfile = string(tkn);
+							tdprofile = strsep(&stringp,":");
+							curDisconnectProfile = string(tdprofile);
 						}
 						else
-							tkn = strtok(NULL, ":");
-						tkn = strtok(NULL, "=");
+							tkn = strsep(&stringp,":");
+						tkn = strsep(&stringp,"=");
 					}
 					if(curConnectProfile.length()==0)
 						curConnectProfile = string("defaultProfile");
@@ -2322,7 +2325,8 @@ TNULL:
 							tkn = strsep(&cqds, ";");
 							while(tkn != NULL)
 							{
-								connectCqdList.push_back(tkn);
+								if(tkn[0] != 0)
+									connectCqdList.push_back(tkn);
 								tkn = strsep(&cqds, ";");
 							}
 						}
@@ -2331,7 +2335,8 @@ TNULL:
 							tkn = strsep(&sets, ";");
 							while(tkn != NULL)
 							{
-								connectSetList.push_back(tkn);
+								if(tkn[0] != 0)
+									connectSetList.push_back(tkn);
 								tkn = strsep(&sets, ";");
 							}
 						}
@@ -2395,7 +2400,8 @@ TNULL:
 								tkn = strsep(&cqds, ";");
 								while(tkn != NULL)
 								{
-									disconnectCqdList.push_back(tkn);
+									if(tkn[0] != 0)
+										disconnectCqdList.push_back(tkn);
 									tkn = strsep(&cqds, ";");
 								}
 							}
@@ -2404,7 +2410,8 @@ TNULL:
 								tkn = strsep(&sets, ";");
 								while(tkn != NULL)
 								{
-									disconnectSetList.push_back(tkn);
+									if(tkn[0] != 0)
+										disconnectSetList.push_back(tkn);
 									tkn = strsep(&sets, ";");
 								}
 							}
@@ -2806,33 +2813,6 @@ TNULL:
 			return;
 		}
 	}
-//============================== Execute all CQDs and Sets from the Profile ======================================
-	sqlError = execProfileCqdList(&connectCqdList);
-	if (sqlError.length() == 0)
-		sqlError = execProfileCqdList(&connectSetList);
-	if (sqlError.length() != 0)
-	{
-		connectProfile = "";
-		connect_ctime=0;
-		connect_mtime=0;
-		if(profConnectData!=NULL)
-			delete[] profConnectData;
-		profConnectData=NULL;
-		connectSetList.clear();
-		connectCqdList.clear();
-		connectProfileSame = false;
-
-		exception_.exception_detail = -1;
-		exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
-		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
-			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "EXECUTE CQD or SET failed :", sqlError.c_str());
-		SETSRVRERROR(SQLERRWARN, -1, "HY000", (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
-		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
-		updateSrvrState(SRVR_CONNECT_REJECTED);
-		return;
-	}
-//==========================================================================================
 	/*
 	 We should get rid of this, but we cant right now
 	 - if we remove it, because of a bug in SQL that does not reset transactions, an MXOSRVR could get into an unusable state
@@ -3898,6 +3878,33 @@ TNULL:
 		updateSrvrState(SRVR_CONNECT_REJECTED);
 		return;
 	}
+//============================== Execute all CQDs and Sets from the Profile ======================================
+	sqlError = execProfileCqdList(&connectCqdList);
+	if (sqlError.length() == 0)
+		sqlError = execProfileCqdList(&connectSetList);
+	if (sqlError.length() != 0)
+	{
+		connectProfile = "";
+		connect_ctime=0;
+		connect_mtime=0;
+		if(profConnectData!=NULL)
+			delete[] profConnectData;
+		profConnectData=NULL;
+		connectSetList.clear();
+		connectCqdList.clear();
+		connectProfileSame = false;
+
+		exception_.exception_detail = -1;
+		exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
+		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
+			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+			2, "EXECUTE CQD or SET failed :", sqlError.c_str());
+		SETSRVRERROR(SQLERRWARN, -1, "HY000", (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+		updateSrvrState(SRVR_CONNECT_REJECTED);
+		return;
+	}
+//==========================================================================================
 	srvrGlobal->javaConnIdleTimeout = JDBC_DATASOURCE_CONN_IDLE_TIMEOUT;
 	if ((srvrGlobal->drvrVersion.componentId == JDBC_DRVR_COMPONENT) && ((long) (inContext->idleTimeoutSec) > JDBC_DATASOURCE_CONN_IDLE_TIMEOUT))
 		srvrGlobal->javaConnIdleTimeout = inContext->idleTimeoutSec;
@@ -10034,7 +10041,7 @@ string execProfileCqdList(list<char*> *pList)
     	ControlQuery = *lti;
     	rc = QryControlSrvrStmt->ExecDirect(NULL, ControlQuery, INTERNAL_STMT, TYPE_UNKNOWN, SQL_ASYNC_ENABLE_OFF, 0);
     	if (rc == SQL_ERROR)
-    	{
+    	{	
     		ERROR_DESC_def *p_buffer = QryControlSrvrStmt->sqlError.errorList._buffer;
     		requestError = "CQD_OR_SET failed :" + string(ControlQuery) + " error :"+ p_buffer->errorText;
     		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
