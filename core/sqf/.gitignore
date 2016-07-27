@@ -76,3 +76,6 @@ Linux-x86_64/
 /rest-*
 /dbmgr-*
 /mgblty
+
+#sqlines
+/tools/sqlines
