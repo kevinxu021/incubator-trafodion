@@ -112,7 +112,7 @@ public class STRConfig {
 
     private static void add_peer(Configuration pv_config,
 				 int           pv_peer_num)
-	throws InterruptedException, KeeperException, IOException 
+	throws IOException 
     {
 	if (LOG.isTraceEnabled()) LOG.trace("Adding config info in the map for cluster id: " + pv_peer_num
 					    + " peer config: " + pv_config.get(ZK_QUORUM));
@@ -143,7 +143,7 @@ public class STRConfig {
 				 String pv_peer_num_string,
 				 String pv_quorum,
 				 String pv_port)
-	throws InterruptedException, KeeperException, IOException 
+	throws IOException 
     {
 	Configuration lv_config = HBaseConfiguration.create(pv_config);
 
@@ -159,7 +159,7 @@ public class STRConfig {
     }
 
     public static void initObjects(Configuration pv_config)
-	throws InterruptedException, KeeperException, IOException 
+	throws IOException 
     {
 	if (pv_config == null) {
 	    return;
@@ -184,7 +184,7 @@ public class STRConfig {
     }
 
     public static void initClusterConfigsZK(Configuration pv_config) 
-	throws InterruptedException, KeeperException, IOException 
+	throws IOException 
     {
 	if (LOG.isTraceEnabled()) LOG.trace("initClusterConfigsZK ENTRY");
 
@@ -355,7 +355,7 @@ public class STRConfig {
 
     // getInstance to return the singleton object for TransactionManager
     public synchronized static STRConfig getInstance(final Configuration conf) 
-	throws 	IOException, InterruptedException, KeeperException, ZooKeeperConnectionException 
+	throws IOException, ZooKeeperConnectionException 
     {
 	if (s_STRConfig == null) {
 	
@@ -369,7 +369,7 @@ public class STRConfig {
      * @throws ZooKeeperConnectionException
      */
     private STRConfig(final Configuration conf) 
-	throws InterruptedException, KeeperException, ZooKeeperConnectionException, IOException 
+	throws ZooKeeperConnectionException, IOException 
     
     {
 	setTrafodionNodeCount();
@@ -408,15 +408,8 @@ public class STRConfig {
 	Configuration lv_config = HBaseConfiguration.create();
 	try {
 	    pSTRConfig = STRConfig.getInstance(lv_config);
-	}
-	catch (InterruptedException int_exception) {
-	    System.out.println("Interrupted Exception trying to get STRConfig instance: " + int_exception);
-	}
-	catch (IOException ioe) {
+	} catch (IOException ioe) {
 	    System.out.println("IO Exception trying to get STRConfig instance: " + ioe);
-	}
-	catch (KeeperException kpe) {
-	    System.out.println("Keeper Exception trying to get STRConfig instance: " + kpe);
 	}
 	
 	System.out.println(pSTRConfig);

@@ -1,0 +1,6 @@
+307c307,309
+< --- SQL operation complete.
+---
+> *** WARNING[9222] Incremental UPDATE STATISTICS: the rowcount in an interval for column C1 changed more than the percentage specified by CQD USTAT_IUS_INTERVAL_ROWCOUNT_CHANGE_THRESHOLD. A regular UPDATE STATISTICS is performed instead.
+> 
+> --- SQL operation completed with warnings.

@@ -1,6 +1,6 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2015 Esgyn Corporation
+// (C) Copyright 2015-2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
@@ -17,4 +17,5 @@ public class DBMgrConfig {
 	public int sessionTimeoutMinutes;
 	public String alertsUri;
 	public boolean enableAlerts;
+	public boolean enableWMS;
 }

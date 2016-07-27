@@ -24,17 +24,17 @@ define([
 	'use strict';
 
 	var slasDataTable = null;
-	
+
 	var _this = null;
 	var resizeTimer = null;
 	var pageStatus = {};
-	
+
 	var REFRESH_MENU = '#refreshAction';
-	
+
 	var SLAS_SPINNER = '#slas-spinner',
 	SLAS_CONTAINER = '#slas-result-container',
 	SLAS_ERROR_CONTAINER = '#slas-error-text';
-	
+
 	var ADD_SLA_BTN = '#add-sla-btn',
 	SLA_DIALOG = '#wsla-dialog',
 	SLA_DIALOG_TITLE = "#wsla-dialog-label",
@@ -52,13 +52,13 @@ define([
 	SLA_DELETE_DIALOG = '#sla-delete-dialog',
 	DELETE_SLA_NAME = '#delete-sla-name',
 	DELETE_SLA_YES_BTN = '#delete-sla-yes-btn';
-	
+
 	var slaFormValidator = null;
 	var slaDialogParams = null;
 	var slaNameColIndex = -1;
 	var deleteSLAIconColIndex = 8;
 	var dataTableColNames = [];
-	
+
 	var WorkloadSLAConfigurationView = BaseView.extend({
 		template:  _.template(WorkloadsT),
 
@@ -75,16 +75,16 @@ define([
 			wHandler.on(wHandler.ADDALTER_SLA_ERROR, this.addAlterSLAError);
 			wHandler.on(wHandler.DELETE_SLA_SUCCESS, this.deleteSLASuccess);
 			wHandler.on(wHandler.DELETE_SLA_ERROR, this.deleteSLAError);
-			
+
 			$(ADD_SLA_BTN).on('click', this.addSLABtnClicked);
 			$(DELETE_SLA_YES_BTN).on('click', this.deleteSLABtnClicked);
 			$(SLA_APPLY_BTN).on('click', this.slaApplyBtnClicked);
 			$(SLA_RESET_BTN).on('click', this.slaResetBtnClicked);
-			
+
 			$.validator.addMethod("alphanumeric", function(value, element) {
-			    return this.optional(element) || /^\w+$/i.test(value);
+				return this.optional(element) || /^\w+$/i.test(value);
 			}, "Only alphanumeric characters and underscores are allowed");
-			
+
 			slaFormValidator = $(SLA_FORM).validate({
 				rules: {
 					"sla_name": { required: true, alphanumeric: true}
@@ -105,7 +105,7 @@ define([
 					}
 				}
 			});
-			
+
 			$(SLA_FORM).bind('change', function() {
 				if($(this).validate().checkForm()) {
 					$(SLA_APPLY_BTN).attr('disabled', false);
@@ -113,7 +113,7 @@ define([
 					$(SLA_APPLY_BTN).attr('disabled', true);
 				}
 			});
-			
+
 			$(SLA_DIALOG).on('show.bs.modal', function (e) {
 				$(SLA_DIALOG_SPINNER).hide();
 				_this.fetchProfiles();
@@ -124,7 +124,7 @@ define([
 				$(SLA_NAME).focus();
 				_this.doReset();
 			});	
-			
+
 			$(SLA_DIALOG).on('hidden.bs.modal', function (e, v) {
 				slaFormValidator.resetForm();
 				$(ADD_SLA_ERROR_CONTAINER).text("");
@@ -133,7 +133,7 @@ define([
 				$(SLA_NAME).val("");
 				_this.fetchSLAs();
 			});
-			
+
 			_this.fetchSLAs();
 		},
 		doResume: function(){
@@ -162,7 +162,7 @@ define([
 			wHandler.off(wHandler.DELETE_SLA_ERROR, this.deleteSLAError);
 			$(ADD_SLA_BTN).off('click', this.addSLABtnClicked);
 		},
-		
+
 		doRefresh: function(){
 			pageStatus.slasFetched = false;
 			_this.fetchSLAs();
@@ -247,7 +247,7 @@ define([
 
 					}
 				}
-				
+
 				var aoColumnDefs = [];
 				if(slaNameColIndex >= 0){
 					aoColumnDefs.push({
@@ -287,8 +287,8 @@ define([
 					"className": "dt-center",
 					"mRender": function ( data, type, full ) {
 						if ( type === 'display' ) {
-				            return '<a class="fa fa-trash-o"></a>';
-				        } else return "";
+							return '<a class="fa fa-trash-o"></a>';
+						} else return "";
 
 					}
 				});
@@ -314,10 +314,10 @@ define([
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible', orthogonal: 'export'  }, title: "Workload SLAs", orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible', orthogonal: 'export' }, title: "Workload SLAs" }
 					          ],					             
-			          fnDrawCallback: function(){
-			          }
+					          fnDrawCallback: function(){
+					          }
 				});
-				
+
 				$('#wc-slas-list tbody').on( 'click', 'td', function (e, a) {
 					if(slasDataTable.cell(this)){
 						var cell = slasDataTable.cell(this).index();
@@ -433,7 +433,7 @@ define([
 			$(SLA_APPLY_BTN).prop("disabled", false);
 			$(SLA_RESET_BTN).prop("disabled", false);	
 			_this.isAjaxCompleted=true;
-			
+
 			var msg = "";
 			if (jqXHR.responseText) {
 				msg =  "Failed to create SLA : " + jqXHR.responseText;
@@ -480,16 +480,16 @@ define([
 				});			
 			}
 			$.each(profileNames, function(key, value) {   
-			     $(SLA_CONNECT_PROFILE_NAME)
-			         .append($("<option></option>")
-			                    .attr("value",value)
-			                    .text(value)); 
-			     $(SLA_DISCONNECT_PROFILE_NAME)
-		         .append($("<option></option>")
-		                    .attr("value",value)
-		                    .text(value)); 
+				$(SLA_CONNECT_PROFILE_NAME)
+				.append($("<option></option>")
+						.attr("value",value)
+						.text(value)); 
+				$(SLA_DISCONNECT_PROFILE_NAME)
+				.append($("<option></option>")
+						.attr("value",value)
+						.text(value)); 
 			});
-			
+
 			if($.inArray(slaDialogParams.data["onConnectProfile"], profileNames)){
 				$(SLA_CONNECT_PROFILE_NAME).val(slaDialogParams.data["onConnectProfile"]);
 			}
@@ -498,7 +498,7 @@ define([
 			}
 		},
 		fetchProfilesError: function (jqXHR) {
-			
+
 		}		
 	});
 

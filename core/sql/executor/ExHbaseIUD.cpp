@@ -32,6 +32,7 @@
 #include "hs_util.h"
 #include "NLSConversion.h"
 #include "ExHdfsScan.h"
+#include "Context.h"
 
 ExHbaseAccessInsertTcb::ExHbaseAccessInsertTcb(
           const ExHbaseAccessTdb &hbaseAccessTdb, 
@@ -1088,7 +1089,7 @@ ExHbaseAccessBulkLoadPrepSQTcb::ExHbaseAccessBulkLoadPrepSQTcb(
 
 ExHbaseAccessBulkLoadPrepSQTcb::~ExHbaseAccessBulkLoadPrepSQTcb()
 {
-  // Flush and close sample file if used, and disconnect from HDFS.
+  // Flush and close sample file if used
   if (hdfs_)
     {
       if (hdfsSampleFile_)
@@ -1096,7 +1097,7 @@ ExHbaseAccessBulkLoadPrepSQTcb::~ExHbaseAccessBulkLoadPrepSQTcb()
           hdfsFlush(hdfs_, hdfsSampleFile_);
           hdfsCloseFile(hdfs_, hdfsSampleFile_);
         }
-      hdfsDisconnect(hdfs_);
+     
     }
 
 }
@@ -1346,7 +1347,9 @@ ExWorkProcRetcode ExHbaseAccessBulkLoadPrepSQTcb::work()
             srand(time(0));
 
             // Set up HDFS file for sample table.
-            hdfs_ = hdfsConnect("default", 0);
+           
+            ContextCli *currContext = getGlobals()->castToExExeStmtGlobals()->getCliGlobals()->currContext();
+            hdfs_ = currContext->getHdfsServerConnection((char*)"default",0);
             Text samplePath = std::string(((ExHbaseAccessTdb&)hbaseAccessTdb()).getSampleLocation()) +
                                           ((ExHbaseAccessTdb&)hbaseAccessTdb()).getTableName() ;
             char filePart[10];
@@ -1666,7 +1669,9 @@ ExWorkProcRetcode ExHbaseAccessBulkLoadPrepSQTcb::work()
           if (eodSeen)
           {
             ehi_->closeHFile(table_);
-            ehi_->hdfsClose();
+            // sss This is one place that is unconditionally closing the 
+            // hdfsFs that's part of this thread's JNIenv.
+            //ehi_->hdfsClose();
             hFileParamsInitialized_ = false;
             retcode = ehi_->close();
           }
