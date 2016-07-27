@@ -39,6 +39,8 @@ define(['handlers/EventDispatcher', 'common'],
 				this.WRKBNCH_EXECUTE_ERROR = 'WRKBNCH_EXECUTE_ERROR';
 				this.WRKBNCH_EXPLAIN_SUCCESS = 'WRKBNCH_EXPLAIN_SUCCESS';
 				this.WRKBNCH_EXPLAIN_ERROR = 'WRKBNCH_EXPLAIN_ERROR';
+				this.CONVERT_SQL_SUCCESS = "CONVERT_SQL_SUCCESS";
+				this.CONVERT_SQL_ERROR = "CONVERT_SQL_ERROR";
 								
 				this.sessionTimeout = function() {
 					window.location.hash = '/stimeout';
@@ -340,7 +342,30 @@ define(['handlers/EventDispatcher', 'common'],
 					});
 				};	
 				
-
+				this.convertSQL = function(param){
+					var xhr = xhrs["convertSQL"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["convertSQL"] = $.ajax({
+						url: 'resources/server/convertsql',
+						type:'POST',
+						dataType:"json",
+						data: JSON.stringify(param),						
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success: function(data){
+							dispatcher.fire(_this.CONVERT_SQL_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.CONVERT_SQL_ERROR, jqXHR, res, error);
+						}
+					});
+				};
+				
 				this.init = function() {
 				};
 

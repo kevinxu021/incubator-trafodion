@@ -203,7 +203,7 @@ define([
 					queryTextEditor.setSize($(this).width(), $(this).height());
 				}
 			});
-			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"120px"});
+			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"120px", "font-size":"12px"});
 			
 			controlStmtEditor = CodeMirror.fromTextArea(document.getElementById("query-control-stmts"), {
 				mode: 'text/x-esgyndb',
@@ -222,7 +222,7 @@ define([
 					controlStmtEditor.setSize($(this).width(), $(this).height());
 				}
 			});
-			$(controlStmtEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"300px"});
+			$(controlStmtEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"300px", "font-size":"12px"});
 
 			
 			/*scalarResultEditor = CodeMirror.fromTextArea(document.getElementById("scalar-result"), {
