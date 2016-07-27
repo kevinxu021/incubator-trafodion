@@ -142,6 +142,7 @@ require.config({
 		flotcrosshair: '../bower_components/flot/jquery.flot.crosshair',
 		flotaxislabels: '../bower_components/flot-axislabels/jquery.flot.axislabels',
 		flotcategories: '../bower_components/flot/jquery.flot.categories',
+		filesaver: '../bower_components/file-saver/FileSaver',
 		flotresize: '../bower_components/flot/jquery.flot.resize'
 	}
 
