@@ -311,7 +311,7 @@ Request Message Count    26
 Request Message Bytes    40,176
 Reply Message Count      15
 Reply Message Bytes      38,952
-Scr. Overflow Mode       MMAP
+Scr. Overflow Mode       DISK
 Scr. File Count          0
 Scr. Buffer Blk Size     0
 Scr. Buffer Blks Read    0
@@ -381,7 +381,7 @@ Request Message Count    26
 Request Message Bytes    40,176
 Reply Message Count      15
 Reply Message Bytes      38,952
-Scr. Overflow Mode       MMAP
+Scr. Overflow Mode       DISK
 Scr. File Count          0
 Scr. Buffer Blk Size     0
 Scr. Buffer Blks Read    0
@@ -452,7 +452,7 @@ Request Message Count    26
 Request Message Bytes    40,176
 Reply Message Count      15
 Reply Message Bytes      38,952
-Scr. Overflow Mode       MMAP
+Scr. Overflow Mode       DISK
 Scr. File Count          0
 Scr. Buffer Blk Size     0
 Scr. Buffer Blks Read    0
@@ -522,7 +522,7 @@ Request Message Count    26
 Request Message Bytes    40,176
 Reply Message Count      15
 Reply Message Bytes      38,952
-Scr. Overflow Mode       MMAP
+Scr. Overflow Mode       DISK
 Scr. File Count          0
 Scr. Buffer Blk Size     0
 Scr. Buffer Blks Read    0
@@ -2017,7 +2017,7 @@ Request Message Count    28
 Request Message Bytes    40,496
 Reply Message Count      15
 Reply Message Bytes      42,360
-Scr. Overflow Mode       MMAP
+Scr. Overflow Mode       DISK
 Scr. File Count          0
 Scr. Buffer Blk Size     0
 Scr. Buffer Blks Read    0
@@ -2087,7 +2087,7 @@ Request Message Count    28
 Request Message Bytes    40,496
 Reply Message Count      15
 Reply Message Bytes      42,360
-Scr. Overflow Mode       MMAP
+Scr. Overflow Mode       DISK
 Scr. File Count          0
 Scr. Buffer Blk Size     0
 Scr. Buffer Blks Read    0
@@ -2149,7 +2149,7 @@ Request Message Count    28
 Request Message Bytes    40,496
 Reply Message Count      15
 Reply Message Bytes      42,360
-Scr. Overflow Mode       MMAP
+Scr. Overflow Mode       DISK
 Scr File Count           0
 Scr. Buffer Blk Size     0
 Scr. Buffer Blks Read    0
@@ -2214,7 +2214,7 @@ Request Message Count    28
 Request Message Bytes    40,496
 Reply Message Count      15
 Reply Message Bytes      42,360
-Scr. Overflow Mode       MMAP
+Scr. Overflow Mode       DISK
 Scr File Count           0
 Scr. Buffer Blk Size     0
 Scr. Buffer Blks Read    0
@@ -2567,7 +2567,7 @@ Request Message Count    28
 Request Message Bytes    40,496
 Reply Message Count      15
 Reply Message Bytes      42,360
-Scr. Overflow Mode       MMAP
+Scr. Overflow Mode       DISK
 Scr. File Count          0
 Scr. Buffer Blk Size     0
 Scr. Buffer Blks Read    0
@@ -2625,7 +2625,7 @@ Request Message Count    28
 Request Message Bytes    40,496
 Reply Message Count      15
 Reply Message Bytes      42,360
-Scr. Overflow Mode       MMAP
+Scr. Overflow Mode       DISK
 Scr File Count           0
 Scr. Buffer Blk Size     0
 Scr. Buffer Blks Read    0
@@ -2866,7 +2866,7 @@ Request Message Count    28
 Request Message Bytes    40,496
 Reply Message Count      15
 Reply Message Bytes      42,360
-Scr. Overflow Mode       MMAP
+Scr. Overflow Mode       DISK
 Scr. File Count          0
 Scr. Buffer Blk Size     0
 Scr. Buffer Blks Read    0
@@ -2927,7 +2927,7 @@ Request Message Count    28
 Request Message Bytes    40,496
 Reply Message Count      15
 Reply Message Bytes      42,360
-Scr. Overflow Mode       MMAP
+Scr. Overflow Mode       DISK
 Scr File Count           0
 Scr. Buffer Blk Size     0
 Scr. Buffer Blks Read    0

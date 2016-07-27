@@ -1269,7 +1269,7 @@ protected:
 
   void alterSeabaseSchemaHDFSCache(StmtDDLAlterSchemaHDFSCache * alterSchemaHdfsCache);
   
-  void initSeabaseMD(NABoolean ddlXns);
+  void initSeabaseMD(NABoolean ddlXns, NABoolean minimal);
   void dropSeabaseMD(NABoolean ddlXns);
   void createSeabaseMDviews();
   void dropSeabaseMDviews();
@@ -1312,10 +1312,18 @@ protected:
 
   short createRepos(ExeCliInterface * cliInterface);
   short dropRepos(ExeCliInterface * cliInterface, 
-                  NABoolean oldRepos = FALSE, NABoolean dropSchema = TRUE);
+                  NABoolean oldRepos = FALSE, NABoolean dropSchema = TRUE,
+                  NABoolean inRecovery = FALSE);
   short alterRenameRepos(ExeCliInterface * cliInterface, NABoolean newToOld);
   short copyOldReposToNew(ExeCliInterface * cliInterface);
+
+public:
+
   short upgradeRepos(ExeCliInterface * cliInterface, CmpDDLwithStatusInfo *mdui);
+  short upgradeReposComplete(ExeCliInterface * cliInterface, CmpDDLwithStatusInfo *mdui);
+  short upgradeReposUndo(ExeCliInterface * cliInterface, CmpDDLwithStatusInfo *mdui);
+
+protected:
 
   void processRepository(NABoolean createR, NABoolean dropR, NABoolean upgradeR);
 
