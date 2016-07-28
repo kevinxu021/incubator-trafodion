@@ -383,7 +383,6 @@ if [ $? -ne 0 ]; then
 fi
 #=============================================
 #Check Config File for Errors
-
 $LOCAL_WORKDIR/traf_config_check | tee -a $INSTALL_LOG
 
 if [ ${PIPESTATUS[0]} != "0" ]; then   
