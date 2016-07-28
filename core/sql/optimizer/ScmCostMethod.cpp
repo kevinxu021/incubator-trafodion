@@ -785,6 +785,7 @@ SimpleFileScanOptimizer::scmComputeCostVectorsForORC()
   if (logPhysPartFunc != NULL)
     syncAccess = logPhysPartFunc->getSynchronousAccess(); 
 
+
  const HHDFSTableStats* hdfsStats =
              getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
 
