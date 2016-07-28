@@ -987,10 +987,7 @@ short FileScan::codeGenForHive(Generator * generator)
           {
             virtCols.insert(allHdfsVals[i]);
             if (inProjExpr || inExecutorPred)
-              {
-                GenAssert(!isOrc, "ORC virtual columns not yet supported");
-                numVirtColsUsed++;
-              }
+              numVirtColsUsed++;
           }
         // convertSkipList[i] remains at 0
       }

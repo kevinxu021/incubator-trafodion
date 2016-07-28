@@ -100,6 +100,7 @@ public:
 	    const NAColumnArray & allColumns,
 	    const NAColumnArray & indexKeyColumns,
 	    const NAColumnArray & horizontalPartKeyColumns,
+	    const NAColumnArray & hiveSortKeyColumns,
 	    PartitioningFunction * forHorizontalPartitioning,
 	    short keytag,
 	    Int64 redefTime,
@@ -251,6 +252,9 @@ public:
                                        { return partitioningKeyColumns_; }
 
   NAString getBestPartitioningKeyColumns(char separator) const;
+
+  const NAColumnArray & getHiveSortKeyColumns() const
+                                           { return hiveSortKeyColumns_; }
 
   PartitioningFunction * getPartitioningFunction() const
                                                      { return partFunc_; }
@@ -420,8 +424,13 @@ private:
   // exists, it is implemented by a partitioning function. 
   // 
   // A NAFileSet need not contain a partitioning key.
+  // For Hive tables, the bucketing key columns are stored in the
+  // partitioning key, since this comes closest to the HASH2
+  // partitioning of other (salted) tables. Optional Hive sort
+  // columns are stored in another column array here.
   // --------------------------------------------------------------------
   NAColumnArray partitioningKeyColumns_;
+  NAColumnArray hiveSortKeyColumns_;
   
   PartitioningFunction * partFunc_;
 
