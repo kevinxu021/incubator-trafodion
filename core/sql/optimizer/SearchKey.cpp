@@ -2510,10 +2510,12 @@ HivePartitionAndBucketKey::HivePartitionAndBucketKey(TableDesc *tDesc)
      : hdfsTableStats_(tDesc->getNATable()->getClusteringIndex()->getHHDFSTableStats()),
        selectedPartitions_(&(((HHDFSTableStats *) hdfsTableStats_)->listPartitionStatsList_),
                            (CollHeap *) NULL),
-       partColValuesAsFunc_(tDesc->getNATable()->getClusteringIndex()->getHivePartColValues())
+       partColValuesAsFunc_(tDesc->getNATable()->getClusteringIndex()->getHivePartColValues()),
+       partitionEliminatedCT_(FALSE)
 {
   // mark all buckets as selected
   selectedSingleBucket_ = -1;
+
   // select all partitions by default
   selectedPartitions_.complement();
 
@@ -2853,12 +2855,11 @@ NABoolean HivePartitionAndBucketKey::computePartitionPredicates(
 
 int HivePartitionAndBucketKey::computeActivePartitions()
 {
-  if (hivePartColList_.isEmpty())
-    return 1;
-  else
+  Int32 originalNumPartns = selectedPartitions_.entries();
+  Int32 result = originalNumPartns;
+  if (!hivePartColList_.isEmpty())
     {
       Parser p(CmpCommon::context());
-      int result = selectedPartitions_.entries();
 
       // loop over selected partitions so far (usually will be all the partitions)
       for (CollIndex p=0;
@@ -2942,8 +2943,10 @@ int HivePartitionAndBucketKey::computeActivePartitions()
             }
         } // loop over list partitions
 
-      return result;
-    } // table is partitioned
+    }
+    partitionEliminatedCT_ = (result < originalNumPartns);
+
+    return result;
 }
 
 void HivePartitionAndBucketKey::reportError(int part,
@@ -3582,4 +3585,25 @@ CompareHiveFileIterator::operator()(HiveFileIterator& t1, HiveFileIterator& t2)
 {
    // return TRUE iff t1's total size is less than t2's. 
    return (t1.getFileStats()->getTotalSize() < t2.getFileStats()->getTotalSize());
+}
+
+Int64 HivePartitionAndBucketKey::getRowcountInSelectedPartitions()
+{
+  Int64 rc = 0.0;
+  for (CollIndex i=0; selectedPartitions_.nextUsed(i); i++)
+  {
+      HHDFSListPartitionStats *lps = selectedPartitions_.element(i);
+      rc += lps->getTotalRows();
+  }
+  return rc;
+}
+
+Int32 HivePartitionAndBucketKey::getNumOfSelectedPartitions()
+{
+  Int32 c = 0;
+  for (CollIndex i=0; selectedPartitions_.nextUsed(i); i++)
+  {
+     c++;
+  }
+  return c;
 }

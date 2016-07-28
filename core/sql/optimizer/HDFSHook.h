@@ -127,7 +127,7 @@ class HHDFSStatsBase : public NABasicObject
 public:
   HHDFSStatsBase(HHDFSTableStats *table) : numBlocks_(0),
                                            numFiles_(0),
-                                           totalRows_(-1),
+                                           totalRows_(0),
                                            totalStringLengths_(0),
                                            totalSize_(0),
                                            numStripes_(0),

@@ -218,6 +218,8 @@ public:
 	     const char * prefix = DEFAULT_INDENT,
 	     const char * suffix = "") const;
 
+  void display() const;
+
 private:
 
   // The estimated base cardinality for the table to be scanned
