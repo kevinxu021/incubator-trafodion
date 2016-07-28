@@ -3841,7 +3841,6 @@ enum DefaultConstants
   FAST_EXTRACT_MAX_PARTITIONS,
 
   HIVE_USE_PERSISTENT_KEY,
-  HIVE_USE_SORT_COLS_IN_KEY,
 
   ORC_READ_STRIPE_INFO,
   //if 0, regular scanner is used. From 0.x to 1.0, percentage of regions that need to be scanned that will be done in parallel.

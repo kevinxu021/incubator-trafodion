@@ -2395,6 +2395,8 @@ short CmpDescribeHiveTable (
            for(hive_skey_desc* hsd = sortkeyHeader; hsd; hsd = hsd->next_)
            {
                skStr += hsd->name_;
+               if (hsd->orderInt_ == 0)
+                 skStr += " DESC";
                skStr += ",";
            }
            skStr[skStr.length()-1] = ')';
@@ -2407,21 +2409,6 @@ short CmpDescribeHiveTable (
        outputShortLine(space, bktStr);
   }
 
-  if ((naTable->getClusteringIndex()) &&
-      (isHiveExtTable) &&
-      (naTable->isORC()) &&
-      (type == 1))
-    {
-      NAFileSet * naf = naTable->getClusteringIndex();
-      
-      sprintf(buf,  "  PRIMARY KEY ");
-      
-      cmpDisplayPrimaryKey(naf->getIndexKeyColumns(), 
-                           naf->getIndexKeyColumns().entries(),
-                           FALSE,
-                           space, buf, TRUE, TRUE, TRUE);
-    } // if
-  
   const HHDFSTableStats* hTabStats = 
     naTable->getClusteringIndex()->getHHDFSTableStats();
   if (hTabStats->isOrcFile())
