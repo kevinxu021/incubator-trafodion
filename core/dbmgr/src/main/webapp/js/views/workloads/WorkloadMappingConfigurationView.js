@@ -24,17 +24,17 @@ define([
 	'use strict';
 
 	var mappingsDataTable = null;
-	
+
 	var _this = null;
 	var resizeTimer = null;
 	var pageStatus = {};
-	
+
 	var REFRESH_MENU = '#refreshAction';
-	
+
 	var MAPPINGS_SPINNER = '#mappings-spinner',
 	MAPPINGS_CONTAINER = '#mappings-result-container',
 	MAPPINGS_ERROR_CONTAINER = '#mappings-error-text';
-	
+
 	var ADD_MAPPING_BTN = '#add-mapping-btn',
 	MAPPING_DIALOG = '#mapping-dialog',
 	MAPPING_DIALOG_TITLE = "#mapping-dialog-label",
@@ -55,13 +55,13 @@ define([
 	DELETE_MAPPING_NAME = '#delete-mapping-name',
 	DELETE_MAPPING_YES_BTN = '#delete-mapping-yes-btn',
 	ADD_MAPPING_ERROR_CONTAINER = '#add-mapping-error-message';
-	
+
 	var mappingFormValidator = null;
 	var mappingDialogParams = null;
 	var mappingNameColIndex = -1;
 	var deleteMappingIconColIndex = 12;
 	var dataTableColNames = [];
-	
+
 	var WorkloadMappingConfigurationView = BaseView.extend({
 		template:  _.template(WorkloadsT),
 
@@ -78,16 +78,16 @@ define([
 			wHandler.on(wHandler.DELETE_MAPPING_ERROR, this.deleteMappingError);
 			wHandler.on(wHandler.FETCH_SLAS_SUCCESS, this.displaySLAs);
 			wHandler.on(wHandler.FETCH_SLAS_ERROR, this.fetchSLAsError);
-			
+
 			$(ADD_MAPPING_BTN).on('click', this.addMappingBtnClicked);
 			$(DELETE_MAPPING_YES_BTN).on('click', this.deleteMappingBtnClicked);
 			$(MAPPING_APPLY_BTN).on('click', this.mappingApplyBtnClicked);
 			$(MAPPING_RESET_BTN).on('click', this.mappingResetBtnClicked);
-			
+
 			$.validator.addMethod("alphanumeric", function(value, element) {
-			    return this.optional(element) || /^\w+$/i.test(value);
+				return this.optional(element) || /^\w+$/i.test(value);
 			}, "Only alphanumeric characters and underscores are allowed");
-			
+
 			mappingFormValidator = $(MAPPING_FORM).validate({
 				rules: {
 					"mapping_name": { required: true, alphanumeric: true}
@@ -108,7 +108,7 @@ define([
 					}
 				}
 			});
-			
+
 			$(MAPPING_FORM).bind('change', function() {
 				if($(this).validate().checkForm()) {
 					$(MAPPING_APPLY_BTN).attr('disabled', false);
@@ -116,22 +116,22 @@ define([
 					$(MAPPING_APPLY_BTN).attr('disabled', true);
 				}
 			});
-			
+
 			$(MAPPING_DIALOG).on('show.bs.modal', function (e) {
 				$(MAPPING_DIALOG_SPINNER).hide();
 				_this.fetchSLAs();
 			});
-			
+
 			$(MAPPING_DIALOG).on('shown.bs.modal', function (e) {
 				$(MAPPING_NAME).focus();
 				_this.doReset();
 			});
-			
+
 			$(MAPPING_DIALOG).on('hide.bs.modal', function (e, v) {
 				$(MAPPING_NAME).focus();
 				_this.doReset();
 			});	
-			
+
 			$(MAPPING_DIALOG).on('hidden.bs.modal', function (e, v) {
 				$(ADD_MAPPING_ERROR_CONTAINER).text("");
 				$(ADD_MAPPING_ERROR_CONTAINER).hide();
@@ -139,7 +139,7 @@ define([
 				$(MAPPING_NAME).val("");
 				_this.fetchMappings();
 			});
-			
+
 			_this.fetchMappings();
 		},
 		doResume: function(){
@@ -192,7 +192,7 @@ define([
 					$(MAPPING_NAME).attr('disabled', false);
 					$(MAPPING_DIALOG_TITLE).text('Add Mapping');
 					$(MAPPING_NAME).val("");
-					
+
 					$(MAPPING_USER).val(mappingDialogParams.data["userName"]);
 					$(MAPPING_APPLICATION).val(mappingDialogParams.data["applicationName"]);
 					$(MAPPING_ROLE).val(mappingDialogParams.data["roleName"]);
@@ -206,7 +206,7 @@ define([
 					$(MAPPING_DIALOG_TITLE).text('Alter Mapping');
 					$(MAPPING_NAME).attr('disabled', true);
 					$(MAPPING_NAME).val(mappingDialogParams.data["Mapping Name"]);
-					
+
 					$(MAPPING_USER).val(mappingDialogParams.data["userName"]);
 					$(MAPPING_APPLICATION).val(mappingDialogParams.data["applicationName"]);
 					$(MAPPING_ROLE).val(mappingDialogParams.data["roleName"]);
@@ -262,7 +262,7 @@ define([
 
 					}
 				}
-				
+
 				var aoColumnDefs = [];
 				if(mappingNameColIndex >=0){
 					aoColumnDefs.push({
@@ -296,8 +296,8 @@ define([
 					"className": "dt-center",
 					"mRender": function ( data, type, full ) {
 						if ( type === 'display' ) {
-				            return '<a class="fa fa-trash-o"></a>';
-				        } else return "";
+							return '<a class="fa fa-trash-o"></a>';
+						} else return "";
 
 					}
 				});
@@ -323,10 +323,10 @@ define([
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible', orthogonal: 'export'  }, title: "Workload Mappings", orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible', orthogonal: 'export' }, title: "Workload Mappings" }
 					          ],					             
-			          fnDrawCallback: function(){
-			          }
+					          fnDrawCallback: function(){
+					          }
 				});
-				
+
 				$('#wc-mappings-list tbody').on( 'click', 'td', function (e, a) {
 					if(mappingsDataTable.cell(this)){
 						var cell = mappingsDataTable.cell(this).index();
@@ -421,7 +421,21 @@ define([
 			mapping.clientHost = $(MAPPING_CLIENT_HOST).val();
 			mapping.sla = $(MAPPING_SLA).val();
 			mapping.seqNo = $(MAPPING_SEQ_NO).val();
-			
+			if(mapping.application.length == 0 &&
+					mapping.user.length == 0 && 
+					mapping.role.length == 0 && 
+					mapping.session.length == 0 && 
+					mapping.clientIP.length == 0 && 
+					mapping.clientHost.length == 0 
+			) {
+				var msgPrefix =  "Failed to create mapping ";
+				var msg= "Error : You need to define at least one mapping criteria"
+					var msgObj={msg:msg,tag:"danger",url:_this.currentURL,shortMsg:msgPrefix};
+				//_this.popupNotificationMessage(null,msgObj);
+				alert(msg);
+				return;
+			}
+
 			$(MAPPING_DIALOG_SPINNER).show();
 			$(MAPPING_APPLY_BTN).prop("disabled", true);
 			$(MAPPING_RESET_BTN).prop("disabled", true);
@@ -445,7 +459,7 @@ define([
 			$(MAPPING_APPLY_BTN).prop("disabled", false);
 			$(MAPPING_RESET_BTN).prop("disabled", false);	
 			_this.isAjaxCompleted=true;
-			
+
 			var msg = "";
 			if (jqXHR.responseText) {
 				msg =  "Failed to create mapping : " + jqXHR.responseText;
@@ -491,20 +505,20 @@ define([
 				});			
 			}
 			$.each(slas, function(key, value) {   
-			     $(MAPPING_SLA)
-			         .append($("<option></option>")
-			                    .attr("value",value)
-			                    .text(value)); 
+				$(MAPPING_SLA)
+				.append($("<option></option>")
+						.attr("value",value)
+						.text(value)); 
 			});
-			
+
 			var sColIndexName = dataTableColNames.indexOf("sla");
-			
+
 			if($.inArray(mappingDialogParams.data[sColIndexName], slas)){
 				$(MAPPING_SLA).val(mappingDialogParams.data[sColIndexName]);
 			}
 		},
 		fetchSLAsError: function (jqXHR) {
-			
+
 		}		
 	});
 

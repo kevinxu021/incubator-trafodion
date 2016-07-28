@@ -33,12 +33,13 @@ define([
         'views/workloads/WorkloadProfileConfigurationView',
         'views/workloads/WorkloadSLAConfigurationView',
         'views/workloads/WorkloadMappingConfigurationView',
+	'views/tools/SQLConverterView',
         'metismenu'
         ], function($, _, Backbone, NavbarView, DashboardView, WorkbenchView, DCSServerView, LoginView, 
         		SchemasView, SchemaDetailView, SchemaObjectsView, SchemaObjectDetailView,
         		ActiveWorkloadsView, ActiveQueryDetailView, HistoricalWorkloadsView, HistoricalWorkloadDetailView, QueryPlanView, 
         		LogsView, CreateLibraryView, AlterLibraryView, AlertsSummaryView, AlertDetailView, AboutView, Session, Localizer,
-        		WorkloadProfileConfigurationView, WorkloadSLAConfigurationView, WorkloadMappingConfigurationView) {
+        		WorkloadProfileConfigurationView, WorkloadSLAConfigurationView, WorkloadMappingConfigurationView, SQLConverterView) {
 	'use strict';
 
 	var currentSelection = null;
@@ -64,6 +65,7 @@ define([
 	var alertsSummaryView = null;
 	var alertDetailView = null;
 	var aboutView = null;
+	var sqlConverterView = null;
 	var workloadProfileConfigurationView = null;
 	var workloadSLAConfigurationView = null;
 	var workloadMappingConfigurationView = null;
@@ -106,6 +108,7 @@ define([
 			'workloads/configuration/mappings':'showWorkloadMappings',
 			'tools/createlibrary(?*:params)':'createLibrary',
 			'tools/alterlibrary(?*:params)':'alterLibrary',
+			'tools/sqlconverter':'showSQLConverter',
 			'alerts': 'showAlertsSummary',
 			'alert/detail(/*args)': 'showAlertDetail',
 			'help/about': 'showAbout',
@@ -190,6 +193,7 @@ define([
 		workloadProfileConfigurationView = null;
 		workloadSLAConfigurationView = null;
 		workloadMappingConfigurationView = null;
+		sqlConverterView = null;
 		currentView = null;
 	};
 
@@ -394,6 +398,15 @@ define([
 				viewCollection.push(alterLibraryView);
 			}
 			switchView(alterLibraryView, args);
+		});
+		
+		app_router.on('route:showSQLConverter', function (args, params) {
+			var args = deparam();
+			if(sqlConverterView == null){
+				sqlConverterView = new SQLConverterView();
+				viewCollection.push(sqlConverterView);
+			}
+			switchView(sqlConverterView, args);
 		});
 		
 		app_router.on('route:showAbout', function (args) {

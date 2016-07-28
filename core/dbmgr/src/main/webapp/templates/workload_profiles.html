@@ -79,22 +79,24 @@
 							<label for="profile-host-list" class="control-label">Host(s): </label><br>
 							<textarea id="profile-host-list" rows="4" cols="500" spellcheck="false"
 								placeholder="Enter comma separated list of host names where this profile will be applied..."
-								class="textarea" style="width: 650px"></textarea>
-						</div>  
+								class="textarea" style="width: 650px;display:none"></textarea>
+								<div id="pnode-list-container" class="table-responsive" style="border-width: 1px;border-style: solid;padding:5px"></div>
+						</div>
 					    <label id="add-profile-error-message" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></label>
 					</form>
 				</div>
 				<div class="modal-footer" style="overflow:hidden">
-				<img id="profile-dialog-spinner" style="padding-right: 5px;" src="img/ajax-loader.gif" />
+					<img id="profile-dialog-spinner" style="padding-right: 5px;" src="img/ajax-loader.gif" />
 					<input id="profileApplyButton" class="btn btn-primary"
 						type="submit" value="Apply">
 					<input id="profileResetButton" class="btn btn-primary"
 						type="submit" value="Reset">
 					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-					</div>
+				</div>
 			</div>
 		</div>
 	</div>
+
 	<div class="modal fade" id="profile-delete-dialog" tabindex="-1" role="dialog"
 		aria-labelledby="wprofile-delete-dialog-label" data-backdrop="static"
 		data-keyboard="false">

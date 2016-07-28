@@ -6,4 +6,5 @@ target/*
 /src/main/webapp/bower_components/
 *.log
 /mgblty_download/
+/sqlines_download/
 /LICENSE_Esgyn

@@ -42,6 +42,7 @@
 #include "stringBuf.h"
 #include "NLSConversion.h"
 //#include "hdfs.h"
+#include "Context.h"
 
 #include "ExpORCinterface.h"
 #include "ComSmallDefs.h"
@@ -360,6 +361,7 @@ ExHdfsScanTcb::ExHdfsScanTcb(
   , preOpenedRangeNum_(-1)
   , leftOpenRangeNum_(-1)
   , dataModCheckDone_(FALSE)
+  , loggingErrorDiags_(NULL)
 {
   Space * space = (glob ? glob->getSpace() : 0);
   CollHeap * heap = (glob ? glob->getDefaultHeap() : 0);
@@ -518,6 +520,7 @@ void ExHdfsScanTcb::freeResources()
   }
   ExpLOBinterfaceCleanup
     (lobGlob_, getGlobals()->getDefaultHeap());
+  lobGlob_=0;
 
   ExHdfsAccessTcb::freeResources();
 }
@@ -564,8 +567,10 @@ Int32 ExHdfsScanTcb::fixup()
   lobGlob_ = NULL;
 
   ExpLOBinterfaceInit
-    (lobGlob_, getGlobals()->getDefaultHeap(),TRUE);
-  
+    (lobGlob_, 
+     getGlobals()->getDefaultHeap(),getGlobals()->castToExExeStmtGlobals()->getContext(),
+     TRUE, hdfsScanTdb().hostName_,hdfsScanTdb().port_);
+ 
   return 0;
 }
 
@@ -581,6 +586,11 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
   HdfsFileInfo *hdfo = NULL;
   Lng32 openType = 0;
   int changedLen = 0;
+
+  ContextCli *currContext = getGlobals()->castToExExeStmtGlobals()->getCliGlobals()->currContext();
+  hdfsFS hdfs = currContext->getHdfsServerConnection(hdfsScanTdb().hostName_,hdfsScanTdb().port_);
+  hdfsFileInfo *dirInfo = NULL;
+  Int32 hdfsErrorDetail = 0;//this is errno returned form underlying hdfsOpenFile call.
 
   while (!qparent_.down->isEmpty())
     {
@@ -653,6 +663,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 
             if (NOT dataModCheckDone_)
               {
+                Int64 modTS = hdfsScanTdb().modTSforDir_;
                 Lng32 numOfPartLevels = hdfsScanTdb().numOfPartCols_;
 
                 if (hdfsScanTdb().hdfsDirsToCheck())
@@ -792,6 +803,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	      }
 	    else
 	      {
+
                 openType = 2; // must open
 
                 if (preOpenedRangeNum_ == currRangeNum_)
@@ -824,8 +836,20 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                    NULL,
 		   compressionWA_,
                    1, // open
-                   openType //
+                   openType, //
+                   &hdfsErrorDetail
                    );
+
+                if ((retcode < 0) &&
+                    ((hdfsErrorDetail == ENOENT) || (hdfsErrorDetail == EAGAIN)))
+                  {
+                    ComDiagsArea * diagsArea = NULL;
+                    ExRaiseSqlError(getHeap(), &diagsArea,
+                                    (ExeErrorCode)(EXE_HIVE_DATA_MOD_CHECK_ERROR));
+                    pentry_down->setDiagsArea(diagsArea);
+                    step_ = HANDLE_ERROR_AND_DONE;
+                    break;
+                  }
 
                 if (retcode >= 0)
                   {
@@ -860,7 +884,8 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                            NULL,
 			   NULL, // compression
                            1,// open
-                           openType
+                           openType,
+                           &hdfsErrorDetail
                            );
 
                         if (retcode >= 0)
@@ -878,7 +903,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                 ExRaiseSqlError(getHeap(), &diagsArea, 
                                 (ExeErrorCode)(EXE_ERROR_FROM_LOB_INTERFACE), NULL, 
                                 &intParam1, 
-                                &cliError, 
+                                &hdfsErrorDetail, 
                                 NULL, 
                                 "HDFS",
                                 (char*)"ExpLOBInterfaceSelectCursor/open",
@@ -954,7 +979,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	      }
 	    else
 	      {
-
+                Int32 hdfsErrorDetail = 0;///this is the errno returned from the underlying hdfs call.
                 retcode = ExpLOBInterfaceSelectCursor
                   (lobGlob_,
                    hdfsFileName_,
@@ -976,6 +1001,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 		   compressionWA_,
                    2, // read
                    0 // openType, not applicable for read
+                   &hdfsErrorDetail
                    );
                   
                 if (hdfsStats_)
@@ -990,7 +1016,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 		    ExRaiseSqlError(getHeap(), &diagsArea, 
                                     (ExeErrorCode)(EXE_ERROR_FROM_LOB_INTERFACE), NULL, 
                                     &intParam1, 
-                                    &cliError, 
+                                    &hdfsErrorDetail, 
                                     NULL, 
                                     "HDFS",
                                     (char*)"ExpLOBInterfaceSelectCursor/read",
@@ -1542,7 +1568,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                         ExRaiseSqlError(getHeap(), &diagsArea, 
                                         (ExeErrorCode)(EXE_ERROR_FROM_LOB_INTERFACE), NULL, 
                                         &intParam1, 
-                                        &cliError, 
+                                        &errno, 
                                         NULL, 
                                         "HDFS",
                                         (char*)"ExpLOBInterfaceSelectCursor/close",
@@ -1594,7 +1620,9 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                        loggingRowLen, lastErrorCnd_, 
                        ehi_,
                        LoggingFileCreated_,
-                       loggingFileName_);
+                       loggingFileName_,
+                       &loggingErrorDiags_);
+
           }
 
           if (pentry_down->getDiagsArea())
@@ -1746,8 +1774,10 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                       pentry_down->setDiagsArea(diagsArea);
                     }
                 } // for
-              if (ehi_)
-                retcode = ehi_->hdfsClose();
+              // sss This is one place that is unconditionally closing the 
+              // hdfsFs that's part of this thread's JNIenv.
+              // if (ehi_)
+              //   retcode = ehi_->hdfsClose();
             }
 	    if (step_ == CLOSE_FILE)
 	      {
@@ -1784,10 +1814,23 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	    up_entry->upState.downIndex = qparent_.down->getHeadIndex();
 	    up_entry->upState.status = ex_queue::Q_NO_DATA;
 	    up_entry->upState.setMatchNo(matches_);
+            if (loggingErrorDiags_ != NULL)
+            {
+               ComDiagsArea * diagsArea = up_entry->getDiagsArea();
+               if (!diagsArea)
+               {
+                  diagsArea =
+                   ComDiagsArea::allocate(getGlobals()->getDefaultHeap());
+                  up_entry->setDiagsArea(diagsArea);
+               }
+               diagsArea->mergeAfter(*loggingErrorDiags_);
+               loggingErrorDiags_->clear();
+            }
 	    qparent_.up->insert();
 	    
 	    qparent_.down->removeHead();
 	    step_ = NOT_STARTED;
+            dirInfo = hdfsGetPathInfo(hdfs, "/");
 
 // Code instrumentation
 	    //if (hdfsStats_)

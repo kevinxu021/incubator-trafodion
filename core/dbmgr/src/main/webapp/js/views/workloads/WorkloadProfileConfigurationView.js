@@ -9,6 +9,7 @@ define([
         'text!templates/workload_profiles.html',
         'jquery',
         'handlers/WorkloadsHandler',
+        'handlers/ServerHandler',
         'moment',
         'common',
         'jqueryui',
@@ -20,21 +21,21 @@ define([
         'buttonsprint',
         'buttonshtml',
         'pdfmake'
-        ], function (BaseView, WorkloadsT, $, wHandler, moment, common) {
+        ], function (BaseView, WorkloadsT, $, wHandler, sHandler, moment, common) {
 	'use strict';
 
 	var profilesDataTable = null;
-	
+
 	var _this = null;
 	var resizeTimer = null;
 	var pageStatus = {};
-	
+
 	var REFRESH_MENU = '#refreshAction';
-	
+
 	var PROFILES_SPINNER = '#profiles-spinner',
 	PROFILES_CONTAINER = '#profiles-result-container',
 	PROFILES_ERROR_CONTAINER = '#profiles-error-text';
-	
+
 	var ADD_PROFILE_BTN = '#add-profile-btn',
 	PROFILE_DIALOG = '#wprofile-dialog',
 	PROFILE_DIALOG_TITLE = "#wprofile-dialog-label",
@@ -50,13 +51,16 @@ define([
 	PROFILE_DELETE_DIALOG = '#profile-delete-dialog',
 	DELETE_PROFILE_NAME = '#delete-profile-name',
 	DELETE_PROFILE_YES_BTN = '#delete-profile-yes-btn';
-	
+
 	var profileFormValidator = null;
 	var profileDialogParams = null;
 	var profileNameColIndex = -1;
 	var deleteProfileIconColIndex = 6;
 	var dataTableColNames = [];
-	
+	var nodesList = null;
+	var nodesDataTable = null;
+	var allNodesSelectState = false;
+
 	var WorkloadProfileConfigurationView = BaseView.extend({
 		template:  _.template(WorkloadsT),
 
@@ -64,6 +68,7 @@ define([
 			_this = this;
 			pageStatus = {};
 			$(REFRESH_MENU).on('click', this.doRefresh);
+
 			$(window).on('resize', this.onResize);
 			wHandler.on(wHandler.FETCH_PROFILES_SUCCESS, this.displayProfiles);
 			wHandler.on(wHandler.FETCH_PROFILES_ERROR, this.fetchProfilesError);
@@ -71,20 +76,24 @@ define([
 			wHandler.on(wHandler.ADDALTER_PROFILE_ERROR, this.addAlterProfileError);
 			wHandler.on(wHandler.DELETE_PROFILE_SUCCESS, this.deleteProfileSuccess);
 			wHandler.on(wHandler.DELETE_PROFILE_ERROR, this.deleteProfileError);
-			
+			sHandler.on(sHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
+			sHandler.on(sHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
+
 			$(ADD_PROFILE_BTN).on('click', this.addProfileBtnClicked);
 			$(DELETE_PROFILE_YES_BTN).on('click', this.deleteProfileBtnClicked);
 			$(PROFILE_APPLY_BTN).on('click', this.profileApplyBtnClicked);
 			$(PROFILE_RESET_BTN).on('click', this.profileResetBtnClicked);
-			
+
+			this.fetchNodes();
+
 			$.validator.addMethod("alphanumeric", function(value, element) {
-			    return this.optional(element) || /^\w+$/i.test(value);
+				return this.optional(element) || /^\w+$/i.test(value);
 			}, "Only alphanumeric characters and underscores are allowed");
-			
+
 			$.validator.addMethod("cqdssets", function(value, element) {
-			    return this.optional(element) || /^[\w\-;_ '"]*$/i.test(value);
-			}, "Only alphanumeric characters, underscores, semicolons, spaces and single/double quotes are allowed");
-			
+				return this.optional(element) || /^[\w\-;_ '"\r\n]*$/i.test(value);
+			}, "Only alphanumeric characters, underscores, semicolons, spaces, newline and single/double quotes are allowed");
+
 			profileFormValidator = $(PROFILE_FORM).validate({
 				rules: {
 					"profile_name": { required: true, alphanumeric: true},
@@ -107,7 +116,7 @@ define([
 					}
 				}
 			});
-			
+
 			$(PROFILE_FORM).bind('change', function() {
 				if($(this).validate().checkForm()) {
 					$(PROFILE_APPLY_BTN).attr('disabled', false);
@@ -115,12 +124,12 @@ define([
 					$(PROFILE_APPLY_BTN).attr('disabled', true);
 				}
 			});
-			
+
 			$(PROFILE_DIALOG).on('show.bs.modal', function (e) {
 				$(PROFILE_DIALOG_SPINNER).hide();
 
 			});
-			
+
 			$(PROFILE_DIALOG).on('shown.bs.modal', function (e) {
 				$(PROFILE_NAME).focus();
 				_this.doReset();
@@ -138,7 +147,7 @@ define([
 				$(PROFILE_NODES).val("");
 				_this.fetchProfiles();
 			});	
-			
+
 			_this.fetchProfiles();
 		},
 		doResume: function(){
@@ -151,10 +160,15 @@ define([
 			wHandler.on(wHandler.ADDALTER_PROFILE_ERROR, this.addAlterProfileError);
 			wHandler.on(wHandler.DELETE_PROFILE_SUCCESS, this.deleteProfileSuccess);
 			wHandler.on(wHandler.DELETE_PROFILE_ERROR, this.deleteProfileError);
+			sHandler.on(sHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
+			sHandler.on(sHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
+			this.fetchNodes();
 		},
 		doPause: function(){
 			$(REFRESH_MENU).off('click', this.doRefresh);
 			$(window).off('resize', this.onResize);
+			sHandler.off(sHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
+			sHandler.off(sHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
 			wHandler.off(wHandler.FETCH_PROFILES_SUCCESS, this.displayProfiles);
 			wHandler.off(wHandler.FETCH_PROFILES_ERROR, this.fetchProfilesError);
 			wHandler.off(wHandler.ADDALTER_PROFILE_SUCCESS, this.addAlterProfileSuccess);
@@ -166,6 +180,18 @@ define([
 		doRefresh: function(){
 			pageStatus.profilesFetched = false;
 			_this.fetchProfiles();
+		},
+		fetchNodes:function(){
+			sHandler.fetchNodes(false);
+		},
+		fetchNodesSuccess: function(result) {
+			var nList = [];
+			$.each(result.resultArray, function(i, v){
+				nList.push(v[0]);
+			});
+			_this.nodesList = nList;
+		},
+		fetchNodesError: function(jqXHR){
 		},
 		fetchProfiles: function () {
 			if(!pageStatus.profilesFetched || pageStatus.profilesFetched == false){
@@ -182,19 +208,90 @@ define([
 					$(PROFILE_NAME).attr('disabled', false);
 					$(PROFILE_DIALOG_TITLE).text('Add Profile');
 					$(PROFILE_NAME).val("");
-					$(CQD_CONTAINER).val(profileDialogParams.data["cqd"]);
-					$(SET_CONTAINER).val(profileDialogParams.data["set"]);
+					var cqds = profileDialogParams.data["cqd"].replace(/<br>/g,"\n"); 
+					$(CQD_CONTAINER).val(cqds);
+					var sets = profileDialogParams.data["set"].replace(/<br>/g,"\n"); 
+					$(SET_CONTAINER).val(sets);
 					$(PROFILE_NODES).val(profileDialogParams.data["hostList"]);
+					_this.setNodeSelection();
 				}
 				if(profileDialogParams.type && profileDialogParams.type == 'alter'){
 					$(PROFILE_DIALOG_TITLE).text('Alter Profile');
 					$(PROFILE_NAME).attr('disabled', true);
 					$(PROFILE_NAME).val(profileDialogParams.data["Profile Name"]);
-					$(CQD_CONTAINER).val(profileDialogParams.data["cqd"]);
-					$(SET_CONTAINER).val(profileDialogParams.data["set"]);
+					var cqds = profileDialogParams.data["cqd"].replace(/<br>/g,"\n"); 
+					$(CQD_CONTAINER).val(cqds);
+					var sets = profileDialogParams.data["set"].replace(/<br>/g,"\n"); 
+					$(SET_CONTAINER).val(sets);
 					$(PROFILE_NODES).val(profileDialogParams.data["hostList"]);
+					_this.setNodeSelection();
 				}
 			}			
+		},
+		selectAll: function(){
+			var selectedNodes = [];
+			var allNodes = nodesDataTable.column(1).data();
+			var cells = nodesDataTable.cells().nodes();
+			var selCells = $( cells ).find(':checkbox');
+			allNodesSelectState = !allNodesSelectState;
+			$.each(selCells, function(i,v){
+				$(v).prop('checked', allNodesSelectState);
+			});		
+		},
+		setNodeSelection: function(){
+			//_this.nodesList=["node1","node2","node3","node4","node5","node6","node7","node8","node9","node10","node11","node12"]
+			var aoColumns = [{"title":"Select"},{"title":"Node Name"}];
+			var aaData = [];
+			var nodes = profileDialogParams.data["hostList"].replace(/\s+/g, "");
+			var nodes = nodes.split(',');
+			$.each(_this.nodesList, function(i, v){
+				var data = [];
+				if($.inArray(v, nodes) > -1){
+					data.push(1);
+				}else{
+					data.push(0);
+				}
+				data.push(v);
+				aaData.push(data);
+			});
+			var aoColumnDefs = [];
+			aoColumnDefs.push({
+				"aTargets": [ 0 ],
+				"mData": 0,
+				"mRender": function ( data, type, full ) {
+					if(type == 'display') {
+						if (data == "1") {
+							return '<input type=\"checkbox\" checked value="' + data + '">';
+						} else {
+							return '<input type=\"checkbox\" value="' + data + '">';
+						}                       
+					}else { 
+						return data;
+					}
+				}
+			});
+			var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="p-nodes-list" style="height:300px"></table>';
+			$('#pnode-list-container').html( sb );
+			var bPaging = aaData.length > 10;
+			nodesDataTable = $('#p-nodes-list').DataTable({
+				"oLanguage": {
+					"sEmptyTable": "There are no nodes"
+				},
+				dom: '<"top"l<"select-all-button">f>t<"bottom"rip>',
+				processing: true,
+				paging: bPaging,
+				autoWidth: true,
+				"iDisplayLength" : 10, 
+				"sPaginationType": "full_numbers",
+				"aaData": aaData, 
+				"aoColumns" : aoColumns,
+				"aoColumnDefs" : aoColumnDefs,
+				"sScrollY":"200",
+				"order": [[ 0, "desc" ]],
+				buttons: []
+			});
+			$('div.select-all-button').html('<button type="button">Select/Unselect All</button>');
+			$('div.select-all-button').on('click', this.selectAll);
 		},
 		displayProfiles: function (result){
 			$(PROFILES_SPINNER).hide();
@@ -214,9 +311,11 @@ define([
 					data.push(null); //for edit/delete link
 					aaData.push(data);
 				});
-				
+
 				dataTableColNames = [];
 				var updateTimeColIndex = -1;
+				var cqdColIndex = -1;
+				var setColIndex = -1;
 				// add needed columns
 				$.each(keys, function(k, v) {
 					var obj = new Object();
@@ -227,10 +326,16 @@ define([
 					if(v == 'lastUpdate'){
 						updateTimeColIndex = k;
 					}
+					if(v == 'cqd'){
+						cqdColIndex = k;
+					}
+					if(v == 'set'){
+						setColIndex = k;
+					}
 					aoColumns.push(obj);
 					dataTableColNames.push(v);
 				});
-				
+
 				var bPaging = aaData.length > 25;
 
 				if(profilesDataTable != null) {
@@ -240,7 +345,7 @@ define([
 
 					}
 				}
-				
+
 				var aoColumnDefs = [];
 				if(profileNameColIndex >= 0){
 					aoColumnDefs.push({
@@ -256,6 +361,33 @@ define([
 						}
 					});
 				}
+				if(cqdColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ cqdColIndex ],
+						"mData": cqdColIndex,
+						"mRender": function ( data, type, full ) {
+							if(type == 'display') {
+								return data.replace(/<br>/g, "");                         
+							}else { 
+								return data;
+							}
+						}
+					});					
+				}
+				if(setColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ setColIndex ],
+						"mData": setColIndex,
+						"mRender": function ( data, type, full ) {
+							if(type == 'display') {
+								return data.replace(/<br>/g, "");                         
+							}else { 
+								return data;
+							}
+						}
+					});					
+				}
+				//profileDialogParams.data["cqd"].replace(/;/g, ";\n")
 				if(updateTimeColIndex >=0){
 					aoColumnDefs.push({
 						"aTargets": [ updateTimeColIndex ],
@@ -274,12 +406,12 @@ define([
 					"className": "dt-center",
 					"mRender": function ( data, type, full ) {
 						if ( type === 'display' ) {
-				            return '<a class="delete-profile fa fa-trash-o"></a>';
-				        } else return "";
+							return '<a class="delete-profile fa fa-trash-o"></a>';
+						} else return "";
 
 					}
 				});
-				
+
 				profilesDataTable = $('#wc-profiles-list').DataTable({
 					"oLanguage": {
 						"sEmptyTable": "There are no profiles"
@@ -302,10 +434,10 @@ define([
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible', orthogonal: 'export'  }, title: "Workload Profiles", orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible', orthogonal: 'export' }, title: "Workload Profiles" }
 					          ],					             
-			          fnDrawCallback: function(){
-			          }
+					          fnDrawCallback: function(){
+					          }
 				});
-				
+
 				$('#wc-profiles-list tbody').on( 'click', 'td', function (e, a) {
 					if(profilesDataTable.cell(this)){
 						var cell = profilesDataTable.cell(this).index();
@@ -394,8 +526,17 @@ define([
 			profile.name = $(PROFILE_NAME).val();
 			profile.cqds = $(CQD_CONTAINER).val();
 			profile.sets = $(SET_CONTAINER).val();
-			profile.nodes = $(PROFILE_NODES).val();
 
+			var selectedNodes = [];
+			var allNodes = nodesDataTable.column(1).data();
+			var cells = nodesDataTable.cells().nodes();
+			var selCells = $( cells ).find(':checkbox');
+			$.each(selCells, function(i,v){
+				if($(v).prop('checked')){
+					selectedNodes.push(allNodes[i]);
+				}
+			});
+			profile.nodes = selectedNodes.join(',');
 			$(PROFILE_DIALOG_SPINNER).show();
 			$(PROFILE_APPLY_BTN).prop("disabled", true);
 			$(PROFILE_RESET_BTN).prop("disabled", true);
@@ -419,7 +560,7 @@ define([
 			$(PROFILE_APPLY_BTN).prop("disabled", false);
 			$(PROFILE_RESET_BTN).prop("disabled", false);	
 			_this.isAjaxCompleted=true;
-			
+
 			var msg = "";
 			if (jqXHR.responseText) {
 				msg =  "Failed to create profile : " + jqXHR.responseText;

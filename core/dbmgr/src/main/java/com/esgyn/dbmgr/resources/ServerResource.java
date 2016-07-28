@@ -1,15 +1,20 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2016 Esgyn Corporation
+// (C) Copyright 2015-2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
 package com.esgyn.dbmgr.resources;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.util.ArrayList;
 import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
@@ -85,6 +90,8 @@ public class ServerResource {
 			objNode.put("dcsMasterInfoUri", configResource.getDcsMasterInfoUri());
 			objNode.put("dbmgrTimeZone", DateTimeZone.getDefault().getID());
 			objNode.put("dbmgrUTCOffset", DateTimeZone.getDefault().getOffset(DateTime.now().getMillis()));
+			objNode.put("enableWMS", configResource.isWMSEnabled());
+
 			Session content = new Session(usr, pwd, new DateTime(DateTimeZone.UTC));
 			SessionModel.putSessionObject(key, content);
 		} else {
@@ -153,6 +160,7 @@ public class ServerResource {
 		objNode.put("dbmgrUTCOffset", DateTimeZone.getDefault().getOffset(DateTime.now().getMillis()));
 		objNode.put("databaseVersion", ConfigurationResource.getDatabaseVersion());
 		objNode.put("databaseEdition", ConfigurationResource.getDatabaseEdition());
+		objNode.put("enableWMS", server.isWMSEnabled());
 
 		return objNode;
 	}
@@ -339,5 +347,88 @@ public class ServerResource {
 		}
 	}
 
+	@POST
+	@Path("/convertsql/")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public ObjectNode convertSQL(ObjectNode obj, @Context HttpServletRequest request) throws EsgynDBMgrException {
+		String srcSqlType = obj.get("srcType").textValue();
+		String tgtSqlType = obj.get("tgtType").textValue();
 
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectNode objNode = mapper.createObjectNode();
+		objNode.put("status", "OK");
+		File inputFile = null, outputFile = null;
+
+		try {
+			inputFile = new File("infile.sql");
+			FileWriter fw = new FileWriter(inputFile);
+			fw.write(obj.get("text").textValue());
+			fw.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to save source query file", e);
+			_LOG.error(ee.getMessage());
+			throw ee;
+		}
+		try {
+			String args = "-s=" + srcSqlType + " -t=" + tgtSqlType + " -in=infile.sql";
+			_LOG.debug(args);
+			ProcessBuilder pb = new ProcessBuilder("sqlines", args);
+			Process process = pb.start();
+			int errCode = process.waitFor();
+			_LOG.debug("Echo command executed, any errors? " + (errCode == 0 ? "No" : "Yes"));
+			StringBuilder sb = new StringBuilder();
+			BufferedReader br = null;
+			try {
+				br = new BufferedReader(new InputStreamReader(process.getInputStream()));
+				String line = null;
+				while ((line = br.readLine()) != null) {
+					sb.append(line + System.getProperty("line.separator"));
+				}
+			} finally {
+				br.close();
+			}
+			_LOG.debug("Std Output : " + sb.toString());
+			try {
+				outputFile = new File("infile_out.sql");
+				BufferedReader fw = new BufferedReader(new FileReader(outputFile));
+				sb = new StringBuilder();
+				String line = null;
+				while ((line = fw.readLine()) != null) {
+					sb.append(line + System.getProperty("line.separator"));
+				}
+				fw.close();
+				objNode.put("convertedText", sb.toString());
+
+			} catch (IOException e) {
+				e.printStackTrace();
+				EsgynDBMgrException ee = Helper.createDBManagerException("Failed to save source query file", e);
+				_LOG.error(ee.getMessage());
+				throw ee;
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to convert sql", ex);
+			_LOG.error(ee.getMessage());
+			throw ee;
+		} finally {
+			// Conversion is done, delete the input and output files
+			try {
+				if (inputFile != null) {
+					inputFile.delete();
+				}
+			} catch (Exception ex) {
+
+			}
+			try {
+				if (outputFile != null) {
+					outputFile.delete();
+				}
+			} catch (Exception ex) {
+
+			}
+		}
+		return objNode;
+	}
 }

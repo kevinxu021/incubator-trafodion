@@ -1756,8 +1756,7 @@ RelExpr * RelRoot::preCodeGen(Generator * generator,
             }
 
 
-	  if ((CmpCommon::getDefault(EID_SPACE_USAGE_OPT) == DF_ON) &&
-	      (NOT generator->downrevCompileNeeded()))
+	  if (CmpCommon::getDefault(EID_SPACE_USAGE_OPT) == DF_ON)
 	    {
 	      generator->setDoEidSpaceUsageOpt(TRUE);
 	    }
@@ -1797,9 +1796,6 @@ RelExpr * RelRoot::preCodeGen(Generator * generator,
 		  generator->oltOptInfo()->setOltEidLeanOpt(TRUE);
 		}
 	    }
-
-	  if (generator->downrevCompileNeeded())
-	    generator->oltOptInfo()->setOltEidLeanOpt(FALSE);
 
 	  if (CmpCommon::getDefault(OLT_QUERY_OPT_LEAN) == DF_OFF)
 	    generator->oltOptInfo()->setOltEidLeanOpt(FALSE);
@@ -3556,18 +3552,6 @@ RelExpr * HashJoin::preCodeGen(Generator * generator,
 
   if (hjp.isEmpty())
   {
-    if (generator->downrevCompileNeeded())
-      {
-	// This is a cartesian product.
-	// create a join predicate " 1 = 1 " which will always be true.
-	//
-	ItemExpr *left = new(generator->wHeap()) ConstValue(1);
-	ItemExpr *right = new(generator->wHeap()) ConstValue(1);
-
-	BiRelat *pred = new(generator->wHeap()) BiRelat(ITM_EQUAL,left,right);
-	pred->bindNode(generator->getBindWA());
-	newJoinPreds.insert(pred->getValueId());
-      }
   }
   else
   {
@@ -4484,13 +4468,17 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 	 &vegPairs,
 	 TRUE);
 
+
       if (isHiveTable()) {
         // subtract predicates that are handled by hiveSearchKey_
         executorPredicates_ -= hiveSearchKey_->getCompileTimePartColPreds();
         executorPredicates_ -= hiveSearchKey_->getPartAndVirtColPreds();
+	// assign individual files and blocks to each ESPs
+        generator->setProcessLOB(TRUE);
       }
     }
 
+  
   // Selection predicates are not needed anymore:
   selectionPred().clear();
 
@@ -5879,6 +5867,7 @@ RelExpr * HiveInsert::preCodeGen(Generator * generator,
     return this;
 
   generator->setHiveAccess(TRUE);
+  generator->setProcessLOB(TRUE);
   return GenericUpdate::preCodeGen(generator, externalInputs, pulledNewInputs);
 }
 
@@ -6060,18 +6049,6 @@ RelExpr * HbaseInsert::preCodeGen(Generator * generator,
 		} // lobinsert
 
 	      GenAssert(li, "must have a LobInsert node");
-#ifdef __ignore 
-	      LOBload * ll = new(generator->wHeap()) 
-		LOBload(li->child(0), li->getObj());
-	      ll->insertedTableObjectUID() = li->insertedTableObjectUID();
-	      ll->insertedTableSchemaName() = li->insertedTableSchemaName();
-
-	      ll->lobNum() = col->lobNum();
-	      ll->lobStorageType() = col->lobStorageType();
-	      ll->lobStorageLocation() = col->lobStorageLocation();
-	      ll->bindNode(generator->getBindWA());
-	      lobLoadExpr_.insert(ll->getValueId());
-#endif
 	    } // lob
 	}
     }
@@ -8692,6 +8669,17 @@ ItemExpr * BiArith::preCodeGen(Generator * generator)
   return this;
 } // BiArith::preCodeGen()
 
+ItemExpr * UnArith::preCodeGen(Generator * generator)
+{
+  if (nodeIsPreCodeGenned())
+    return this;
+
+  if (! ItemExpr::preCodeGen(generator))
+    return NULL;
+
+  return this;
+}
+
 ItemExpr * BiLogic::preCodeGen(Generator * generator)
 {
   if (nodeIsPreCodeGenned())
@@ -9059,13 +9047,15 @@ ItemExpr * BiRelat::preCodeGen(Generator * generator)
 
 
   // following is for simple types.
+  const NAType &type1B =
+    child(0)->castToItemExpr()->getValueId().getType();
+  const NAType &type2B =
+    child(1)->castToItemExpr()->getValueId().getType();
 
   SimpleType * attr_op1 = (SimpleType *)
-    (ExpGenerator::convertNATypeToAttributes(
-	 child(0)->getValueId().getType(), generator->wHeap()));
+    (ExpGenerator::convertNATypeToAttributes(type1B, generator->wHeap()));
   SimpleType * attr_op2 = (SimpleType *)
-    (ExpGenerator::convertNATypeToAttributes(
-	 child(1)->getValueId().getType(), generator->wHeap()));
+    (ExpGenerator::convertNATypeToAttributes(type2B, generator->wHeap()));
 
   ex_comp_clause temp_clause;
 
@@ -9073,6 +9063,68 @@ ItemExpr * BiRelat::preCodeGen(Generator * generator)
 			     attr_op1,
 			     attr_op2
 			     );
+
+  if ((temp_clause.get_case_index() == ex_comp_clause::COMP_NOT_SUPPORTED) &&
+      (type1B.getTypeQualifier() == NA_NUMERIC_TYPE) &&
+      (type2B.getTypeQualifier() == NA_NUMERIC_TYPE))
+    {
+      const NumericType &numOp1 = (NumericType&)type1B;
+      const NumericType &numOp2 = (NumericType&)type2B;
+
+      if ((numOp1.isExact() && numOp2.isExact()) &&
+          ((numOp1.getFSDatatype() == REC_BIN64_UNSIGNED) ||
+           (numOp2.getFSDatatype() == REC_BIN64_UNSIGNED)))
+        {
+          if (numOp1.getFSDatatype() == REC_BIN64_UNSIGNED)
+            {
+              // add a Cast node to convert op2 to sqllargeint.
+              ItemExpr * newOp2 =
+                new (generator->wHeap())
+                Cast(child(1),
+                     new (generator->wHeap())
+                     SQLLargeInt(numOp2.isSigned(),
+                                 numOp2.supportsSQLnull()));
+              
+              newOp2 = newOp2->bindNode(generator->getBindWA());
+              newOp2 = newOp2->preCodeGen(generator);
+              if (! newOp2)
+                return NULL;
+              
+              setChild(1, newOp2);
+
+              attr_op2 = (SimpleType *)
+                (ExpGenerator::convertNATypeToAttributes(
+                     newOp2->getValueId().getType(), generator->wHeap()));
+            }
+          else 
+           {
+              // add a Cast node to convert op1 to sqllargeint.
+              ItemExpr * newOp1 =
+                new (generator->wHeap())
+                Cast(child(0),
+                     new (generator->wHeap())
+                     SQLLargeInt(numOp1.isSigned(),
+                                 numOp1.supportsSQLnull()));
+              
+              newOp1 = newOp1->bindNode(generator->getBindWA());
+              newOp1 = newOp1->preCodeGen(generator);
+              if (! newOp1)
+                return NULL;
+              
+              setChild(0, newOp1);
+
+              attr_op1 = (SimpleType *)
+                (ExpGenerator::convertNATypeToAttributes(
+                     newOp1->getValueId().getType(), generator->wHeap()));
+           }
+
+          temp_clause.set_case_index(getOperatorType(),
+                                     attr_op1,
+                                     attr_op2
+                                     );
+        } // convert
+    }
+  
   if (temp_clause.get_case_index() != ex_comp_clause::COMP_NOT_SUPPORTED)
     {
       NABoolean doConstFolding = FALSE;
@@ -9115,7 +9167,7 @@ ItemExpr * BiRelat::preCodeGen(Generator * generator)
                                                        *type_op1,
                                                        *type_op2,
 						       generator->wHeap(),
-                                          &flags);
+                                                       &flags);
   CMPASSERT(result_type);
   if (result_type->getTypeQualifier() == NA_NUMERIC_TYPE)
     {
@@ -9358,36 +9410,13 @@ ItemExpr * Cast::preCodeGen(Generator * generator)
         }
     }
 
+  if (generator->getExpGenerator()->handleUnsupportedCast(this))
+    return NULL;
+
   const NAType &srcNAType = child(0)->getValueId().getType();
   const NAType &tgtNAType = getValueId().getType();
   short srcFsType = srcNAType.getFSDatatype();
   short tgtFsType = tgtNAType.getFSDatatype();
-
-  // Currently, Tinyint conversions are only supported to/from smallint.
-  // if source is TINYINT, then convert it to SMALLINT first.
-  if (((srcNAType.getTypeName() == LiteralTinyInt) &&
-       (tgtNAType.getTypeName() != LiteralSmallInt)) ||
-      ((srcNAType.getTypeName() != LiteralSmallInt) &&
-       (tgtNAType.getTypeName() == LiteralTinyInt)))
-    {
-      // add a Cast node to convert from/to tinyint to/from small int.
-      ItemExpr * newChild =
-        new (generator->wHeap())
-        Cast(child(0),
-             new (generator->wHeap())
-             SQLSmall(TRUE,
-                      srcNAType.supportsSQLnull()));
-      ((Cast*)newChild)->setFlags(getFlags());
-      //      ((Cast*)newChild)->setSrcIsVarcharPtr(srcIsVarcharPtr());
-      setSrcIsVarcharPtr(FALSE);
-      newChild = newChild->bindNode(generator->getBindWA());
-      newChild = newChild->preCodeGen(generator);
-      if (! newChild)
-        return NULL;
-      
-      setChild(0, newChild);
-      srcFsType = child(0)->getValueId().getType().getFSDatatype();
-    }
 
   if ((sourceTypeQual == NA_NUMERIC_TYPE) &&
       (targetTypeQual == NA_DATETIME_TYPE))
@@ -9660,8 +9689,6 @@ ItemExpr * Cast::preCodeGen(Generator * generator)
 	    // -----------  ------------   --------------------------
 	    // IEEE 32 bit            38        7
 	    // IEEE 64 bit           308       17
-	    // Tandem 32 bit          78        7
-	    // Tandem 64 bit          78       18
 
 	    if (sourceNumType->getFSDatatype() == REC_IEEE_FLOAT32)
 	      {
@@ -9688,6 +9715,9 @@ ItemExpr * Cast::preCodeGen(Generator * generator)
 	    child(0) = new(generator->wHeap()) Cast(child(0),intermediateType);
 
 	    child(0)->bindNode(generator->getBindWA());
+
+            if (generator->getExpGenerator()->handleUnsupportedCast((Cast*)child(0)->castToItemExpr()))
+              return NULL;
 
 	    // To suppress insertion of multiplying/dividing, mark Cast as
 	    // already pre-code-genned.

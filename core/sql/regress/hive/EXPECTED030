@@ -44,7 +44,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Fri Jul 15 14:30:22 2016
+-- Definition current  Sun Jul 24 09:44:10 2016
 
   (
     S_STORE_SK                       INT
@@ -252,7 +252,7 @@ InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 0, queueSizeUp = 0, numBuffers = 0, bufferSize = 0
 estimatedRowUsed = 0, estimatedRowsAccessed = 0, expressionMode = 0
-Flag = 0000000000101001
+Flag = 0000000100101001
 
 For ComTdbRoot :
 FirstNRows = -1, baseTablenamePosition = -1
@@ -264,7 +264,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 5104
+explain_plan_size = 5136
 
 # of Expressions = 4
 
@@ -285,7 +285,7 @@ Flag = 0000000000001001
 
 For ComTdbOrcScan :
 tableName_ = HIVE.STORE_ORC
-hostName_ = localhost, port_ = 36000
+hostName_ = localhost, port_ = 32400
 recordDelimiter_ = 10, columnDelimiter_ = 1
 hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 8
 tuppIndex_ = 2, workAtpIndex_ = 3
@@ -337,8 +337,8 @@ ColNumber: 26, ColName: S_ZIP
 ColNumber: 27, ColName: S_COUNTRY
 ColNumber: 28, ColName: S_GMT_OFFSET
 ColNumber: 29, ColName: S_TAX_PRECENTAGE
-hdfsRootDir: hdfs://localhost:36000/user/hive/warehouse/store_orc
-modTSforDir_ = 1468346923, numOfPartCols_ = 0
+hdfsRootDir: hdfs://localhost:32400/user/hive/warehouse/store_orc
+modTSforDir_ = 1469338601, numOfPartCols_ = 0
 
 # of Expressions = 6
 
@@ -387,7 +387,7 @@ InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 0, queueSizeUp = 0, numBuffers = 0, bufferSize = 0
 estimatedRowUsed = 0, estimatedRowsAccessed = 0, expressionMode = 0
-Flag = 0000000000101001
+Flag = 0000000100101001
 
 For ComTdbRoot :
 FirstNRows = -1, baseTablenamePosition = -1
@@ -399,7 +399,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 5104
+explain_plan_size = 5136
 
 # of Expressions = 4
 
@@ -420,7 +420,7 @@ Flag = 0000000000001001
 
 For ComTdbOrcScan :
 tableName_ = HIVE.STORE_ORC
-hostName_ = localhost, port_ = 36000
+hostName_ = localhost, port_ = 32400
 recordDelimiter_ = 10, columnDelimiter_ = 1
 hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 8
 tuppIndex_ = 2, workAtpIndex_ = 3
@@ -444,8 +444,8 @@ ESP    0 reads               4288 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
-hdfsRootDir: hdfs://localhost:36000/user/hive/warehouse/store_orc
-modTSforDir_ = 1468346923, numOfPartCols_ = 0
+hdfsRootDir: hdfs://localhost:32400/user/hive/warehouse/store_orc
+modTSforDir_ = 1469338601, numOfPartCols_ = 0
 
 # of Expressions = 6
 
@@ -540,7 +540,7 @@ InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 0, queueSizeUp = 0, numBuffers = 0, bufferSize = 0
 estimatedRowUsed = 0, estimatedRowsAccessed = 0, expressionMode = 0
-Flag = 0000000000101001
+Flag = 0000000100101001
 
 For ComTdbRoot :
 FirstNRows = -1, baseTablenamePosition = -1
@@ -552,7 +552,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 5208
+explain_plan_size = 5232
 
 # of Expressions = 4
 
@@ -573,7 +573,7 @@ Flag = 0000000000001001
 
 For ComTdbOrcScan :
 tableName_ = HIVE.STORE_ORC
-hostName_ = localhost, port_ = 36000
+hostName_ = localhost, port_ = 32400
 recordDelimiter_ = 10, columnDelimiter_ = 1
 hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 16
 tuppIndex_ = 3, workAtpIndex_ = 3
@@ -597,8 +597,8 @@ ESP    0 reads               4288 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
-hdfsRootDir: hdfs://localhost:36000/user/hive/warehouse/store_orc
-modTSforDir_ = 1468346923, numOfPartCols_ = 0
+hdfsRootDir: hdfs://localhost:32400/user/hive/warehouse/store_orc
+modTSforDir_ = 1469338601, numOfPartCols_ = 0
 
 # of Expressions = 6
 
@@ -673,7 +673,7 @@ InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 0, queueSizeUp = 0, numBuffers = 0, bufferSize = 0
 estimatedRowUsed = 0, estimatedRowsAccessed = 0, expressionMode = 0
-Flag = 0000000000101001
+Flag = 0000000100101001
 
 For ComTdbRoot :
 FirstNRows = -1, baseTablenamePosition = -1
@@ -685,7 +685,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 5288
+explain_plan_size = 5320
 
 # of Expressions = 4
 
@@ -706,7 +706,7 @@ Flag = 0000000000001001
 
 For ComTdbOrcScan :
 tableName_ = HIVE.STORE_ORC
-hostName_ = localhost, port_ = 36000
+hostName_ = localhost, port_ = 32400
 recordDelimiter_ = 10, columnDelimiter_ = 1
 hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 16
 tuppIndex_ = 3, workAtpIndex_ = 3
@@ -730,8 +730,8 @@ ESP    0 reads               4288 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
-hdfsRootDir: hdfs://localhost:36000/user/hive/warehouse/store_orc
-modTSforDir_ = 1468346923, numOfPartCols_ = 0
+hdfsRootDir: hdfs://localhost:32400/user/hive/warehouse/store_orc
+modTSforDir_ = 1469338601, numOfPartCols_ = 0
 
 Number of PPI entries: 3
 PPI: #1
@@ -984,7 +984,7 @@ NUM_HITS    NUM_PARAMS
 >>invoke hive.hive.store_sales_orc;
 
 -- Definition of hive table STORE_SALES_ORC
--- Definition current  Fri Jul 15 14:30:55 2016
+-- Definition current  Sun Jul 24 09:44:44 2016
 
   (
     SS_SOLD_DATE_SK                  INT
@@ -1033,7 +1033,7 @@ NUM_HITS    NUM_PARAMS
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212335353056053130
+PLAN_ID .................. 212336113485181506
 ROWS_OUT ............. 1,698
 EST_TOTAL_COST ......... 176.2
 STATEMENT ................ select * from store_sales_orc where ss_item_sk = 1;
@@ -1220,7 +1220,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212335353057269743
+PLAN_ID .................. 212336113486536211
 ROWS_OUT ......... 2,880,401
 EST_TOTAL_COST ... 3,545,359.5
 STATEMENT ................ select *
@@ -1546,7 +1546,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Fri Jul 15 14:31:02 2016
+-- Definition current  Sun Jul 24 09:44:53 2016
 
   (
     D_DATE_SK                        INT
@@ -1685,7 +1685,7 @@ CREATE EXTERNAL TABLE DATE_DIM_ORC
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212335353065182724
+PLAN_ID .................. 212336113496198852
 ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1788,7 +1788,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Fri Jul 15 14:31:10 2016
+-- Definition current  Sun Jul 24 09:45:02 2016
 
   (
     D_DATE_SK                        INT
@@ -1927,7 +1927,7 @@ CREATE EXTERNAL TABLE DATE_DIM_ORC
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212335353073594847
+PLAN_ID .................. 212336113505635025
 ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -2151,7 +2151,7 @@ orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK is null ) 
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-PLAN_ID .................. 212335353096731660
+PLAN_ID .................. 212336113536103095
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 7.06
 STATEMENT ................ select count(*)

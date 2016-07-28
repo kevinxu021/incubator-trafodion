@@ -317,6 +317,10 @@ Lng32 MCWrapper::setupMCColumnIterator (HSColGroupStruct *group, MCIterator** it
         iter[currentLoc] = new (STMTHEAP) MCNonCharIterator<Int64>((Int64 *)group->mcis_data);
         break;
 
+      case REC_BIN64_UNSIGNED:
+        iter[currentLoc] = new (STMTHEAP) MCNonCharIterator<UInt64>((UInt64 *)group->mcis_data);
+        break;
+
       case REC_IEEE_FLOAT32:
         iter[currentLoc] = new (STMTHEAP) MCNonCharIterator<float>((float *)group->mcis_data);
         break;
@@ -3641,7 +3645,99 @@ void HSGlobalsClass::startJitLogging(const char* checkPointName, Int64 elapsedSe
     }
 }
 
+// The optimal degree of parallelism for a LOAD or UPSERT is the number of
+// partitions of the source table. This forces that by setting the cqd
+// PARALLEL_NUM_ESPS. Note that when the default for AGGRESSIVE_ESP_ALLOCATION_PER_CORE
+// is permanently changed to 'ON', we may be able to remove this.
+// tblDef -- ptr to HSTableDef from which to get the catalog and schema name of
+//           the source table.
+// tblName -- unqualified name of the source table. If NULL, then the source
+//            table is the one represented by tblDef.
+// Returns TRUE if the cqd was successfully set, FALSE otherwise. If TRUE is returned,
+// then resetEspParallelism() may be called to reset the cqd.
+static NABoolean setEspParallelism(HSTableDef* tblDef, const char* tblName = NULL)
+{
+  HSLogMan *LM = HSLogMan::Instance();
+  Lng32 retcode = 0;
+  Lng32 numPartitions = 0;
+  if (!tblName)
+    numPartitions = tblDef->getNumPartitions();
+  else
+    {
+      HSCursor cursor;
+      NAString numPartitionsQuery;
+      numPartitionsQuery.append("select t.num_salt_partns from \"_MD_\".OBJECTS O, \"_MD_\".TABLES T where o.catalog_name = '")
+                        .append(tblDef->getCatName())
+                        .append("' and o.schema_name = '")
+                        .append(tblDef->getSchemaName())
+                        .append("' and o.object_name = '")
+                        .append(tblName)
+                        .append("' and o.object_uid = t.table_uid");
+      retcode = cursor.fetchNumColumn(numPartitionsQuery, &numPartitions, NULL);
+      if (retcode != 0)
+        {
+          if (LM->LogNeeded())
+            {
+              sprintf(LM->msg, "PARALLEL_NUM_ESPS not set; query to get # partitions received sqlcode %d", retcode);
+              LM->Log(LM->msg);
+            }
+          return FALSE;
+        }
+    }
 
+  NABoolean espCQDUsed = FALSE;
+  if (numPartitions > 1)
+    {
+      char temp[25];
+      sprintf(temp, "'%d'", numPartitions);
+      NAString espsCQD = "CONTROL QUERY DEFAULT PARALLEL_NUM_ESPS ";
+      espsCQD += temp;
+      retcode = HSFuncExecQuery(espsCQD);
+      if (retcode < 0)
+        {
+          if (LM->LogNeeded())
+            {
+              sprintf(LM->msg, "cqd statement to set PARALLEL_NUM_ESPS failed with %d", retcode);
+              LM->Log(LM->msg);
+            }
+        }
+      else
+        {
+          espCQDUsed = TRUE;
+          if (LM->LogNeeded())
+            {
+              sprintf(LM->msg, "PARALLEL_NUM_ESPS was set to %d", numPartitions);
+              LM->Log(LM->msg);
+            }
+        }
+    }
+  else if (LM->LogNeeded())
+    {
+      sprintf(LM->msg, "PARALLEL_NUM_ESPS not set; # partitions reported as %d", numPartitions);
+      LM->Log(LM->msg);
+    }
+
+  return espCQDUsed;
+}
+
+// Reset the cqd PARALLEL_NUM_ESPS. This is the other bookend for setEspParallelism(),
+// which returns TRUE if the cqd is actually set within that function. If so, this
+// function can be called to reset it.
+static void resetEspParallelism()
+{
+  HSLogMan *LM = HSLogMan::Instance();
+  Lng32 retcode = HSFuncExecQuery("CONTROL QUERY DEFAULT PARALLEL_NUM_ESPS RESET");
+  if (retcode)
+  {
+    HSLogMan *LM = HSLogMan::Instance();
+    if (LM->LogNeeded())
+      {
+        HSLogMan *LM = HSLogMan::Instance();
+        sprintf(LM->msg, "cqd statement to reset PARALLEL_NUM_ESPS returned %d", retcode);
+        LM->Log(LM->msg);
+      }
+  }
+}
 
 /**********************************************/
 /* METHOD: createSampleOption()               */
@@ -3866,19 +3962,7 @@ Lng32 HSSample::make(NABoolean rowCountIsEstimate, // input
     // For Hive tables the sample table used is a Trafodion table
     if (hs_globals->isHbaseTable || hs_globals->isHiveTable)
       {
-        // The optimal degree of parallelism for the LOAD or UPSERT is
-        // the number of partitions of the original table. Force that.
-        // Note that when the default for AGGRESSIVE_ESP_ALLOCATION_PER_CORE
-        // is permanently changed to 'ON', we may be able to remove this CQD.
-        if (hs_globals->objDef->getNumPartitions() > 1)
-          {
-            char temp[40];  // way more space than needed, but it's safe
-            sprintf(temp,"'%d'",hs_globals->objDef->getNumPartitions());
-            NAString EspsCQD = "CONTROL QUERY DEFAULT PARALLEL_NUM_ESPS ";
-            EspsCQD += temp;
-            HSFuncExecQuery(EspsCQD);
-            EspCQDUsed = TRUE;  // remember to reset later
-          }
+        EspCQDUsed = setEspParallelism(hs_globals->objDef);
 
         // Set CQDs controlling HBase cache size (number of rows returned by HBase
         // in a batch) to avoid scanner timeout. Reset these after the sample query
@@ -4035,7 +4119,7 @@ Lng32 HSSample::make(NABoolean rowCountIsEstimate, // input
       }
     if (EspCQDUsed)
       {
-        HSFuncExecQuery("CONTROL QUERY DEFAULT PARALLEL_NUM_ESPS RESET");
+        resetEspParallelism();
       }
 
     if (retcode) TM->Rollback();
@@ -4902,6 +4986,7 @@ void HSGlobalsClass::getMemoryRequirementsForOneGroup(HSColGroupStruct* group, I
             break;
 
           case REC_BIN64_SIGNED:
+          case REC_BIN64_UNSIGNED:
           case REC_IEEE_FLOAT64:
             elementSize = 8;
             break;
@@ -6437,10 +6522,14 @@ Lng32 HSGlobalsClass::generateSampleI(Int64 currentSampleSize,
                         currentSampleSize, futureSampleSize,
                         deleteSetSize, actualRowCount);
 
+    NABoolean needEspParReset = setEspParallelism(objDef);
     retcode = HSFuncExecQuery(insertSelectIQuery, -UERR_INTERNAL_ERROR, &xRows,
                               "IUS data set I creation",
                               NULL, NULL, TRUE/*doRetry*/,
                               0, TRUE);  // check for MDAM usage
+
+    if (needEspParReset)
+      resetEspParallelism();
 
     if (retcode) TM->Rollback();
 
@@ -6610,6 +6699,20 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
   return retcode;
 }
 
+// Returns the table component of the fully qualified name passed in, using the
+// catalog and schema name from tblDef to determine where it starts (the table
+// is in the same schema as the one referenced by tblDef). This avoids problems
+// in parsing the fully qualified name posed by the possibility of periods within
+// delimited identifiers.
+static const char* extractTblName(const NAString& fullyQualifiedName,
+		                          HSTableDef* tblDef)
+{
+  Lng32 tblNameOffset = tblDef->getCatName().length() +
+                        tblDef->getSchemaName().length() +
+                        2;  // 2 dot separators
+  return fullyQualifiedName.data() + tblNameOffset;
+}
+
 // Update the persistent sample table and determine its new cardinality.
 //   1) Delete rows in the persistent sample satisfying the IUS predicate.
 //   2) Insert the rows from <sampleTblName>_I into the persistent sample
@@ -6676,6 +6779,8 @@ Lng32 HSGlobalsClass::UpdateIUSPersistentSampleTable(Int64 oldSampleSize,
   }
 
   rowsAffected = 0;
+  const char* insSourceTblName = extractTblName(*hssample_table + "_I", objDef);
+  NABoolean needEspParReset = setEspParallelism(objDef, insSourceTblName);
   retcode = HSFuncExecQuery(selectInsertQuery, -UERR_INTERNAL_ERROR,
                             &rowsAffected,
                             "IUS insert into PS (select from _I)",
@@ -6687,6 +6792,8 @@ Lng32 HSGlobalsClass::UpdateIUSPersistentSampleTable(Int64 oldSampleSize,
     sprintf(LM->msg, PF64 " rows inserted into persistent sample table.", rowsAffected);
     LM->Log(LM->msg);
   }
+  if (needEspParReset)
+    resetEspParallelism();
   HSHandleError(retcode);
   newSampleSize += rowsAffected;
 
@@ -7264,6 +7371,9 @@ Int32 HSGlobalsClass::processIUSColumn(HSColGroupStruct* smplGroup,
         break;
       case REC_BIN64_SIGNED:
         return processIUSColumn((Int64*)smplGroup->data, L"%lld", smplGroup, delGroup, insGroup);
+        break;
+      case REC_BIN64_UNSIGNED:
+        return processIUSColumn((UInt64*)smplGroup->data, L"%llu", smplGroup, delGroup, insGroup);
         break;
       case REC_FLOAT32:
         return processIUSColumn((Float32*)smplGroup->data, L"%f", smplGroup, delGroup, insGroup);
@@ -10300,6 +10410,10 @@ Lng32 HSGlobalsClass::processInternalSortNulls(Lng32 rowsRead, HSColGroupStruct 
             processNullsForColumn(group, rowsRead, (Int64*)NULL);
             break;
 
+          case REC_BIN64_UNSIGNED:
+            processNullsForColumn(group, rowsRead, (UInt64*)NULL);
+            break;
+
           case REC_IEEE_FLOAT32:
             processNullsForColumn(group, rowsRead, (float*)NULL);
             break;
@@ -10450,6 +10564,7 @@ bool isInternalSortType(HSColumnStruct &col)
       case REC_BIN32_SIGNED:
       case REC_BIN32_UNSIGNED:
       case REC_BIN64_SIGNED:
+      case REC_BIN64_UNSIGNED:
       case REC_DECIMAL_LSE:
       case REC_DECIMAL_UNSIGNED:
       case REC_DECIMAL_LS:
@@ -11191,6 +11306,11 @@ Lng32 doSort(HSColGroupStruct *group)
                        (Int64*)group->nextData - (Int64*)group->data - 1);
         break;
 
+      case REC_BIN64_UNSIGNED:
+        quicksort((UInt64*)group->data, 0,
+                       (UInt64*)group->nextData - (UInt64*)group->data - 1);
+        break;
+
       case REC_IEEE_FLOAT32:
         quicksort((float*)group->data, 0,
                        (float*)group->nextData - (float*)group->data - 1);
@@ -11700,6 +11820,10 @@ Lng32 HSGlobalsClass::createStatsForColumn(HSColGroupStruct *group, Int64 rowsAl
         createHistogram(group, intCount, sampleRowCount, samplingUsed, (Int64*)NULL);
         break;
 
+      case REC_BIN64_UNSIGNED:
+        createHistogram(group, intCount, sampleRowCount, samplingUsed, (UInt64*)NULL);
+        break;
+
       case REC_BYTE_F_ASCII:
       case REC_BYTE_F_DOUBLE:
         //
@@ -12098,6 +12222,7 @@ Int32 computeKeyLengthInfo(Lng32 datatype)
         return ExHDPHash::SWAP_FOUR;
 
       case REC_BIN64_SIGNED:
+      case REC_BIN64_UNSIGNED:
       case REC_FLOAT64:
         return ExHDPHash::SWAP_EIGHT;
 
@@ -13096,6 +13221,10 @@ Lng32 HSGlobalsClass::mergeDatasetsForIUS(
         return mergeDatasetsForIUS((Int64*)smplGroup->data, (Int64*)NULL,
                                    smplGroup, smplrows, delGroup, delrows, insGroup, insrows);
         break;
+      case REC_BIN64_UNSIGNED:
+        return mergeDatasetsForIUS((UInt64*)smplGroup->data, (UInt64*)NULL,
+                                   smplGroup, smplrows, delGroup, delrows, insGroup, insrows);
+        break;
       case REC_FLOAT32:
         return mergeDatasetsForIUS((Float32*)smplGroup->data, (Float32*)NULL,
                                    smplGroup, smplrows, delGroup, delrows, insGroup, insrows);
@@ -14056,6 +14185,9 @@ Lng32 setBufferValue(MCWrapper& value,
                 break;
              case REC_BIN64_SIGNED:
                 retcode = copyValue(*((MCNonCharIterator<Int64>*)(value.allCols_[i]))->getContent(value.index_), valueBuff, mgroup->colSet[i], len);
+                break;
+             case REC_BIN64_UNSIGNED:
+                retcode = copyValue(*((MCNonCharIterator<UInt64>*)(value.allCols_[i]))->getContent(value.index_), valueBuff, mgroup->colSet[i], len);
                 break;
              case REC_IEEE_FLOAT32:
                 retcode = copyValue(*((MCNonCharIterator<float>*)(value.allCols_[i]))->getContent(value.index_), valueBuff, mgroup->colSet[i], len);
@@ -15901,6 +16033,10 @@ Lng32 HSGlobalsClass::processFastStatsBatch(CollIndex numCols, HSColGroupStruct*
 
         case REC_BIN64_SIGNED:
           group->fastStatsHist = new(STMTHEAP) FastStatsHist<Int64>(group, cbf);
+          break;
+
+        case REC_BIN64_UNSIGNED:
+          group->fastStatsHist = new(STMTHEAP) FastStatsHist<UInt64>(group, cbf);
           break;
 
         case REC_IEEE_FLOAT32:
