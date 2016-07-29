@@ -56,6 +56,8 @@ public class RESTServlet implements RestConstants {
     private final Map<String, LinkedHashMap<String,String>> slasMap = Collections.synchronizedMap(new LinkedHashMap<String, LinkedHashMap<String,String>>());
     private final Map<String, LinkedHashMap<String,String>> profilesMap = Collections.synchronizedMap(new LinkedHashMap<String, LinkedHashMap<String,String>>());
     private final Map<String, LinkedHashMap<String,String>> mappingsMap = Collections.synchronizedMap(new LinkedHashMap<String, LinkedHashMap<String,String>>());
+
+    private final HashSet<String> orderNumbers = new HashSet<String>();
 	/**
 	 * @return the RESTServlet singleton instance
 	 * @throws IOException
@@ -815,6 +817,13 @@ public class RESTServlet implements RestConstants {
         }
         return status;
     }
+
+    class ResponseException extends Exception {
+        public ResponseException(String msg){
+          super(msg);
+        }
+    }
+
     public synchronized Response.Status postWmsMapping(String name, String sdata) throws Exception {
         Response.Status status = Response.Status.OK;
         Stat stat = null;
@@ -822,9 +831,20 @@ public class RESTServlet implements RestConstants {
         short defaultOrderNumber = Short.valueOf(Constants.DEFAULT_ORDER_NUMBER);
         short currentOrderNumber = 0;
         String tdata = "";
-        
+
+        orderNumbers.clear();
+        for(Map.Entry<String, LinkedHashMap<String,String>> entry : mappingsMap.entrySet()) {
+            String key = entry.getKey();
+            if(!key.equals(name)){
+	      LinkedHashMap<String,String> value = entry.getValue();
+	      String orderNumber = value.get(Constants.ORDER_NUMBER);
+	      orderNumbers.add(orderNumber);
+	    }
+        }
+       
         if(LOG.isDebugEnabled())
-            LOG.debug("sdata :" + sdata);
+            LOG.debug("postWmsMapping [" + name + "] sdata :" + sdata);
+      try {
         if(name.equals(Constants.DEFAULT_WMS_MAPPING_NAME)== false){
             String delims = "[=:]";
             String[] tokens = sdata.split(delims);
@@ -839,28 +859,41 @@ public class RESTServlet implements RestConstants {
                         break;
                     case Constants.ORDER_NUMBER:
                         currentOrderNumber = Short.valueOf(tokens[i + 1]);
-                        if (currentOrderNumber < 0)
-                            tokens[i + 1] = "0";
-                        else if (currentOrderNumber >= defaultOrderNumber)
-                            tokens[i + 1] = String.valueOf(defaultOrderNumber - 1);
-                       break;
+                        if (currentOrderNumber < 0 || currentOrderNumber >= defaultOrderNumber){
+			    //orderNumber out of range
+                            if(LOG.isDebugEnabled())
+                               LOG.debug("postWmsMapping [" + name + "] orderNumber out of range :" + currentOrderNumber);
+                            status = Response.Status.NOT_ACCEPTABLE;
+                            throw new ResponseException("406 Out of range");
+                        }
+                        break;
                     }
                     if(i>0)
                         tdata = tdata + ":";
                     tdata = tdata + tokens[i] + "=" + tokens[i + 1];
+                }
+                String orderNumber = Short.toString(currentOrderNumber);
+                if(orderNumbers.contains(orderNumber)){
+		  //duplicated order number
+		  if(LOG.isDebugEnabled())
+		    LOG.debug("postWmsMapping [" + name + "] orderNumber is duplicated :" + orderNumber);
+                    status = Response.Status.NOT_MODIFIED;
+                    throw new ResponseException("304 duplicated number");
                 }
                 data = tdata.getBytes();
                 stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name,false);
                 if (stat == null) {
                     status = Response.Status.CREATED;
                     zkc.create(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name,
-                            data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
-                            CreateMode.PERSISTENT);
+                      data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                      CreateMode.PERSISTENT);
                 } else {
                     zkc.setData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name, data, -1);
                 }
+              }
             }
-        }
+        } catch (Exception e){}
+
         return status;
     }
     public synchronized void deleteWmsSla(String name) throws Exception{
@@ -924,6 +957,18 @@ public class RESTServlet implements RestConstants {
                     for (int index =0; index < sData.length; index++){
                         String element = sData[index];
                         if(element.equals("isDefault=no")){
+                            LinkedHashMap<String,String> attributes = mappingsMap.get(name);
+                            if(attributes != null){
+                                String orderNumber = attributes.get(Constants.ORDER_NUMBER);
+                                if (orderNumber != null){
+                                    if(LOG.isDebugEnabled())
+                                        LOG.debug("deleteWmsMapping deletes znode :" + name + " and removes orderNumber :" + orderNumber);
+                                    for(Map.Entry<String, LinkedHashMap<String,String>> entry : mappingsMap.entrySet()) {
+                                        String key = entry.getKey();
+                                        LinkedHashMap<String,String> value = entry.getValue();
+                                     }
+                                }
+                            }
                             zkc.delete(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name, -1);
                             break;
                         }
