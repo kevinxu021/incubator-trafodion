@@ -597,6 +597,8 @@ public class WorkloadsResource {
 			throw new EsgynDBMgrException("Error : WMS features are currently disabled.");
 		}
 
+		List<String> colNames = Arrays.asList("name", "cqd", "set", "hostList", "lastUpdate", "isDefault");
+
 		TabularResult result = new TabularResult();
 		try {
 			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
@@ -619,15 +621,21 @@ public class WorkloadsResource {
 				while (profileNames.hasNext()) {
 					String profileName = profileNames.next();
 					ObjectNode pNode = mapper.createObjectNode();
-					pNode.put("Profile Name", profileName);
-					JsonNode node1 = node.get(profileName);
-					pNode.setAll((ObjectNode) node1);
+					ObjectNode node1 = (ObjectNode) node.get(profileName);
+					node1.put("name", profileName);
+					for (String name : colNames) {
+						if (!node1.has(name)) {
+							node1.put(name, "");
+						}
+					}
+					pNode.setAll(node1);
 					resultNode.add(pNode);
 				}
 			} catch (Exception ex) {
 
 			}
 			ArrayList<String> columns = new ArrayList<String>();
+			columns.addAll(colNames);
 			ArrayList<Object[]> rowData = new ArrayList<Object[]>();
 			if (resultNode != null && resultNode.size() > 0)
 				RESTProcessor.processResult(mapper.writeValueAsString(resultNode), columns, rowData);
@@ -764,6 +772,8 @@ public class WorkloadsResource {
 
 			_LOG.debug(uri);
 			String mappingsStr = RESTProcessor.getRestOutput(uri, soc.getUsername(), soc.getPassword());
+			List<String> colNames = Arrays.asList("name", "priority", "limit", "throughput", "onConnectProfile",
+					"onDisconnectProfile", "isDefault", "lastUpdate");
 
 			JsonFactory factory = new JsonFactory();
 			ObjectMapper mapper = new ObjectMapper(factory);
@@ -774,8 +784,13 @@ public class WorkloadsResource {
 				while (slas.hasNext()) {
 					String slaName = slas.next();
 					ObjectNode pNode = mapper.createObjectNode();
-					pNode.put("SLA Name", slaName);
-					JsonNode node1 = node.get(slaName);
+					ObjectNode node1 = (ObjectNode) node.get(slaName);
+					node1.put("name", slaName);
+					for (String name : colNames) {
+						if (!node1.has(name)) {
+							node1.put(name, "");
+						}
+					}
 					pNode.setAll((ObjectNode) node1);
 					resultNode.add(pNode);
 				}
@@ -783,6 +798,7 @@ public class WorkloadsResource {
 
 			}
 			ArrayList<String> columns = new ArrayList<String>();
+			columns.addAll(colNames);
 			ArrayList<Object[]> rowData = new ArrayList<Object[]>();
 			if (resultNode != null && resultNode.size() > 0)
 				RESTProcessor.processResult(mapper.writeValueAsString(resultNode), columns, rowData);
@@ -923,6 +939,9 @@ public class WorkloadsResource {
 			_LOG.debug(uri);
 			String mappingsStr = RESTProcessor.getRestOutput(uri, soc.getUsername(), soc.getPassword());
 
+			List<String> colNames = Arrays.asList("name", "userName", "applicationName", "sessionName", "roleName",
+					"sla", "clientIpAddress", "clientHostName", "orderNumber", "lastUpdate", "isDefault");
+
 			JsonFactory factory = new JsonFactory();
 			ObjectMapper mapper = new ObjectMapper(factory);
 			ArrayNode resultNode = mapper.createArrayNode();
@@ -932,8 +951,13 @@ public class WorkloadsResource {
 				while (mappingNames.hasNext()) {
 					String mappingName = mappingNames.next();
 					ObjectNode pNode = mapper.createObjectNode();
-					pNode.put("Mapping Name", mappingName);
-					JsonNode node1 = node.get(mappingName);
+					ObjectNode node1 = (ObjectNode) node.get(mappingName);
+					node1.put("name", mappingName);
+					for (String name : colNames) {
+						if (!node1.has(name)) {
+							node1.put(name, "");
+						}
+					}
 					pNode.setAll((ObjectNode) node1);
 					resultNode.add(pNode);
 				}
@@ -941,6 +965,7 @@ public class WorkloadsResource {
 
 			}
 			ArrayList<String> columns = new ArrayList<String>();
+			columns.addAll(colNames);
 			ArrayList<Object[]> rowData = new ArrayList<Object[]>();
 			if (resultNode != null && resultNode.size() > 0)
 				RESTProcessor.processResult(mapper.writeValueAsString(resultNode), columns, rowData);

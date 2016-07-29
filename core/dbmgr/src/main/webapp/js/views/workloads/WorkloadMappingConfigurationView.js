@@ -191,8 +191,14 @@ define([
 			if(mappingDialogParams != null){
 				if(mappingDialogParams.type && mappingDialogParams.type == 'add'){
 					$(MAPPING_NAME).attr('disabled', false);
+					$('#mapping-form input, select').prop('disabled', false);
+					$(MAPPING_APPLY_BTN).attr('disabled', false);
+					$(MAPPING_RESET_BTN).attr('disabled', false);
+					
 					$(MAPPING_DIALOG_TITLE).text('Add Mapping');
 					$(MAPPING_NAME).val("");
+					var state = mappingDialogParams.data["isActive"];
+					$(MAPPING_STATE).val(state != null ? state.toLowerCase() : "");
 
 					$(MAPPING_USER).val(mappingDialogParams.data["userName"]);
 					$(MAPPING_APPLICATION).val(mappingDialogParams.data["applicationName"]);
@@ -215,7 +221,9 @@ define([
 					}					
 					$(MAPPING_DIALOG_TITLE).text('Alter Mapping');
 					$(MAPPING_NAME).attr('disabled', true);
-					$(MAPPING_NAME).val(mappingDialogParams.data["Mapping Name"]);
+					$(MAPPING_NAME).val(mappingDialogParams.data["name"]);
+					var state = mappingDialogParams.data["isActive"];
+					$(MAPPING_STATE).val(state != null ? state.toLowerCase() : "");
 
 					$(MAPPING_USER).val(mappingDialogParams.data["userName"]);
 					$(MAPPING_APPLICATION).val(mappingDialogParams.data["applicationName"]);
@@ -256,7 +264,7 @@ define([
 				$.each(keys, function(k, v) {
 					var obj = new Object();
 					obj.title = common.UpperCaseFirst(v);
-					if(v == 'Mapping Name'){
+					if(v == 'name'){
 						mappingNameColIndex = k;
 					}
 					if(v == 'lastUpdate'){
@@ -551,7 +559,7 @@ define([
 			var keys = result.columnNames;
 			var slaNameColIndex = -1;
 			$.each(keys, function(k, v) {
-				if(v == 'SLA Name'){
+				if(v == 'name'){
 					slaNameColIndex = k;
 				}
 			});
