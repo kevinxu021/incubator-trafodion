@@ -3600,10 +3600,5 @@ Int64 HivePartitionAndBucketKey::getRowcountInSelectedPartitions()
 
 Int32 HivePartitionAndBucketKey::getNumOfSelectedPartitions()
 {
-  Int32 c = 0;
-  for (CollIndex i=0; selectedPartitions_.nextUsed(i); i++)
-  {
-     c++;
-  }
-  return c;
+  return selectedPartitions_.entries();
 }

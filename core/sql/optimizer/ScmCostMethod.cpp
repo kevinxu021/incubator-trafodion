@@ -725,11 +725,11 @@ SimpleFileScanOptimizer::scmComputeCostVectors()
        hiveKey && hiveKey->partitionEliminatedCT() ) 
   {
      tuplesProcessed = hiveKey->getRowcountInSelectedPartitions();
-     numActivePartitions = hiveKey->getNumOfSelectedPartitions();
   } else {
      tuplesProcessed = getSingleSubsetSize();
-     numActivePartitions = getEstNumActivePartitionsAtRuntime();
   }
+
+  numActivePartitions = getEstNumActivePartitionsAtRuntime();
 
   setProbes(1);
   setTuplesProcessed(tuplesProcessed);
@@ -800,17 +800,17 @@ SimpleFileScanOptimizer::scmComputeCostVectorsForORC()
   HivePartitionAndBucketKey* hiveKey = getFileScan().getHiveSearchKey();
   if ( hiveKey && hiveKey->partitionEliminatedCT() ) {
      tuplesProcessed = hiveKey->getRowcountInSelectedPartitions();
-     numActivePartitions = hiveKey->getNumOfSelectedPartitions();
 
      totalFileSizeOriginal = hiveKey->getTotalSize();
      totalFileSize = totalFileSizeOriginal;
   } else {
      tuplesProcessed = getSingleSubsetSize();
-     numActivePartitions = getEstNumActivePartitionsAtRuntime();
 
      totalFileSizeOriginal = hdfsStats->getTotalSize();
      totalFileSize = totalFileSizeOriginal;
   }
+     
+  numActivePartitions = getEstNumActivePartitionsAtRuntime();
 
   // fix Bugzilla #1110.
   setEstRowsAccessed(tuplesProcessed);
@@ -1295,7 +1295,7 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
 
   CostScalar totalFileSizeOriginal, totalFileSizeNormalized;
 
-  CollIndex numActivePartitions;
+  CollIndex numActivePartitions = getEstNumActivePartitionsAtRuntime();
 
   if ( hiveKey && hiveKey->partitionEliminatedCT() ) {
 
@@ -1310,7 +1310,6 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
 
      tuplesProcessed *= numProbes;
 
-     numActivePartitions = hiveKey->getNumOfSelectedPartitions();
 
   } else {
      // for successful probes
@@ -1322,7 +1321,6 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
 
      totalFileSizeOriginal = hdfsStats->getTotalSize();
 
-     numActivePartitions = getEstNumActivePartitionsAtRuntime();
   }
      
   totalFileSizeNormalized = totalFileSizeOriginal;
