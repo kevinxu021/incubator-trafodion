@@ -35,6 +35,7 @@ import com.esgyn.dbmgr.resources.ConfigurationResource;
 public class SessionModel {
   private static final Logger _LOG = LoggerFactory.getLogger(SessionModel.class);
   static private Map<String, Object> activeSessions = new HashMap<String, Object>();
+  static private Map<String,Object> activeStatements=new HashMap<String,Object>();
   static private Timer timer = new Timer();
   static private final String COOKIE = "Cookie";
   public static final String USER_NAME = "user";
@@ -84,24 +85,44 @@ public class SessionModel {
     }
   }
 
-  public static void putSessionObjectForUser(String userName, String partKey, Object obj) {
+ /* public static void putSessionObjectForUser(String userName, String partKey, Object obj) {
     String key = userName.toLowerCase() + ":" + partKey;
     if (!activeSessions.containsKey(key)) {
       synchronized (activeSessions) {
         activeSessions.put(key, obj);
       }
     }
-  }
+  }*/
 
-  public static Object getSessionObjectForUser(String userName, String partKey) {
+  /*public static Object getSessionObjectForUser(String userName, String partKey) {
     String key = userName.toLowerCase() + ":" + partKey;
     if (activeSessions.containsKey(key)) {
       return activeSessions.get(key); // no synchronization needed, not a
       // structural change
     }
     return null;
+  }*/
+  public static void putStatementObject(String key,Object obj){
+	  //since only one query could be executed on workbench, so no matter key exist or not. we store it.
+	      synchronized (activeStatements) {
+	    	  activeStatements.put(key, obj);
+	      }
   }
-
+  public static Object getStatementObject(String key){
+	  if (activeStatements.containsKey(key)) {
+	      synchronized (activeStatements) {
+	    	  return activeStatements.get(key);
+	      }
+	    }
+	  return null;
+  }
+  public static void removeStatementObject(String key){
+	  if (activeStatements.containsKey(key)) {
+	      synchronized (activeStatements) {
+	    	  activeStatements.remove(key);
+	      }
+	    }
+  }
   public static boolean containsKey(String userName, String partKey) {
     String key = userName.toLowerCase() + ":" + partKey;
     return activeSessions.containsKey(key);
