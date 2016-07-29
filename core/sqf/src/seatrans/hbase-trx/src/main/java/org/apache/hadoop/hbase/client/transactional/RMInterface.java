@@ -45,15 +45,18 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
+import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.RegionLocator;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.client.transactional.TransactionManager;
 import org.apache.hadoop.hbase.client.transactional.TransactionState;
@@ -77,6 +80,10 @@ import org.apache.hadoop.hbase.client.transactional.TransactionMap;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTm;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTmException;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTmId;
+
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TrxRegionService;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PushEpochRequest;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PushEpochResponse;
 
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
@@ -132,10 +139,10 @@ public class RMInterface {
     }
 
     private native void registerRegion(int port, byte[] hostname, long startcode, byte[] regionInfo);
-    private native void createTableReq(byte[] lv_byte_htabledesc, byte[][] keys, int numSplits, int keyLength, long transID, byte[] tblName);
-    private native void dropTableReq(byte[] lv_byte_tblname, long transID);
-    private native void truncateOnAbortReq(byte[] lv_byte_tblName, long transID); 
-    private native void alterTableReq(byte[] lv_byte_tblname, Object[] tableOptions, long transID);
+    private native int createTableReq(byte[] lv_byte_htabledesc, byte[][] keys, int numSplits, int keyLength, long transID, byte[] tblName);
+    private native int dropTableReq(byte[] lv_byte_tblname, long transID);
+    private native int truncateOnAbortReq(byte[] lv_byte_tblName, long transID); 
+    private native int alterTableReq(byte[] lv_byte_tblname, Object[] tableOptions, long transID);
 
     public static void main(String[] args) {
       System.out.println("MAIN ENTRY");
@@ -220,6 +227,50 @@ public class RMInterface {
 
 	return lv_pi.isSTRUp();
 
+    }
+
+    public void pushRegionEpoch (HTableDescriptor desc, final TransactionState ts) throws IOException {
+       LOG.info("pushRegionEpoch start; transId: " + ts.getTransactionId());
+
+       TransactionalTable ttable1 = new TransactionalTable(Bytes.toBytes(desc.getNameAsString()));
+       HConnection connection = ttable1.getConnection();
+       long lvTransid = ts.getTransactionId();
+       RegionLocator rl = connection.getRegionLocator(desc.getTableName());
+       List<HRegionLocation> regionList = rl.getAllRegionLocations();
+
+       boolean complete = false;
+       int loopCount = 0;
+       int result = 0;
+
+       for (HRegionLocation location : regionList) {
+          final byte[] regionName = location.getRegionInfo().getRegionName();
+          if (compPool == null){
+              LOG.info("pushRegionEpoch compPool is null");
+              threadPool = Executors.newFixedThreadPool(intThreads);
+              compPool = new ExecutorCompletionService<Integer>(threadPool);
+          }
+
+          final HRegionLocation lv_location = location;
+          final HConnection lv_connection = connection;
+          compPool.submit(new RMCallable2(ts, lv_location, lv_connection ) {
+             public Integer call() throws IOException {
+                return pushRegionEpochX(ts, lv_location, lv_connection);
+             }
+          });
+          try {
+            result = compPool.take().get();
+          } catch(Exception ex) {
+            throw new IOException(ex);
+          }
+          if ( result != 0 ){
+             LOG.error("pushRegionEpoch result " + result + " returned from region "
+                          + location.getRegionInfo().getRegionName());
+             throw new IOException("pushRegionEpoch result " + result + " returned from region "
+                      + location.getRegionInfo().getRegionName());
+          }
+       }
+       if (LOG.isTraceEnabled()) LOG.trace("pushRegionEpoch end transid: " + ts.getTransactionId());
+       return;
     }
 
     public void setSynchronized(boolean pv_synchronize) throws IOException {
@@ -320,6 +371,86 @@ public class RMInterface {
         tableClient.put(transactionState, puts);
         return new Integer(0);
       }
+    }
+
+    private abstract class RMCallable2 implements Callable<Integer>{
+       TransactionState transactionState;
+       HRegionLocation  location;
+       HConnection connection;
+       HTable table;
+       byte[] startKey;
+       byte[] endKey_orig;
+       byte[] endKey;
+
+       RMCallable2(TransactionState txState, HRegionLocation location, HConnection connection) {
+          this.transactionState = txState;
+          this.location = location;
+          this.connection = connection;
+          try {
+             table = new HTable(location.getRegionInfo().getTable(), connection);
+          } catch(IOException e) {
+             LOG.error("Error obtaining HTable instance " + e);
+             table = null;
+          }
+          startKey = location.getRegionInfo().getStartKey();
+          endKey_orig = location.getRegionInfo().getEndKey();
+          endKey = TransactionManager.binaryIncrementPos(endKey_orig, -1);
+
+       }
+
+       public Integer pushRegionEpochX(final TransactionState txState,
+        		           final HRegionLocation location, HConnection connection) throws IOException {
+          if (LOG.isTraceEnabled()) LOG.trace("pushRegionEpochX -- Entry txState: " + txState
+                   + " location: " + location);
+        	
+          Batch.Call<TrxRegionService, PushEpochResponse> callable =
+              new Batch.Call<TrxRegionService, PushEpochResponse>() {
+                 ServerRpcController controller = new ServerRpcController();
+                 BlockingRpcCallback<PushEpochResponse> rpcCallback =
+                    new BlockingRpcCallback<PushEpochResponse>();
+
+                 @Override
+                 public PushEpochResponse call(TrxRegionService instance) throws IOException {
+                    org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PushEpochRequest.Builder
+                    builder = PushEpochRequest.newBuilder();
+                    builder.setTransactionId(txState.getTransactionId());
+                    builder.setEpoch(txState.getStartEpoch());
+                    builder.setRegionName(ByteString.copyFromUtf8(Bytes.toString(location.getRegionInfo().getRegionName())));
+                    instance.pushOnlineEpoch(controller, builder.build(), rpcCallback);
+                    return rpcCallback.get();
+                 }
+              };
+
+              Map<byte[], PushEpochResponse> result = null;
+              try {
+                 if (LOG.isTraceEnabled()) LOG.trace("pushRegionEpochX -- before coprocessorService: startKey: "
+                     + new String(startKey, "UTF-8") + " endKey: " + new String(endKey, "UTF-8"));
+                 result = table.coprocessorService(TrxRegionService.class, startKey, endKey, callable);
+              } catch (Throwable e) {
+                 String msg = "ERROR occurred while calling pushRegionEpoch coprocessor service in pushRegionEpochX";
+                 LOG.error(msg + ":" + e);
+                 throw new IOException(msg);
+              }
+
+              if(result.size() == 1){
+                 // size is 1
+                 for (PushEpochResponse eresponse : result.values()){
+                   if(eresponse.getHasException()) {
+                     String exceptionString = new String (eresponse.getException().toString());
+                     LOG.error("pushRegionEpochX - coprocessor exceptionString: " + exceptionString);
+                     throw new IOException(eresponse.getException());
+                   }
+                 }
+              }
+              else {
+                  LOG.error("pushRegionEpochX, received incorrect result size: " + result.size() + " txid: "
+                          + txState.getTransactionId() + " location: " + location.getRegionInfo().getRegionNameAsString());
+                  return 1;
+              }
+              if (LOG.isTraceEnabled()) LOG.trace("pushRegionEpochX -- Exit txState: " + txState
+                      + " location: " + location);
+              return 0;       
+       }
     }
 
     public synchronized TransactionState registerTransaction(final TransactionalTableClient pv_table, 
@@ -440,28 +571,51 @@ public class RMInterface {
         byte[] lv_byte_desc = desc.toByteArray();
         byte[] lv_byte_tblname = desc.getNameAsString().getBytes();
         if (LOG.isTraceEnabled()) LOG.trace("createTable: htabledesc bytearray: " + lv_byte_desc + "desc in hex: " + Hex.encodeHexString(lv_byte_desc));
-        createTableReq(lv_byte_desc, keys, numSplits, keyLength, transID, lv_byte_tblname);
+        int ret = createTableReq(lv_byte_desc, keys, numSplits, keyLength, transID, lv_byte_tblname);
+        if(ret != 0)
+        {
+        	LOG.error("createTable exception. Unable to create table " + desc.getNameAsString() + " txid " + transID);
+        	throw new IOException("createTable exception. Unable to create table " + desc.getNameAsString());
+        }
         if (LOG.isTraceEnabled()) LOG.trace("Exit createTable, txid: " + transID + " Table: " + desc.getNameAsString());
     }
 
     public void truncateTableOnAbort(String tblName, long transID) throws IOException {
-        if (LOG.isTraceEnabled()) LOG.trace("truncateTableOnAbort ENTER: ");
-            byte[] lv_byte_tblName = tblName.getBytes();
-            truncateOnAbortReq(lv_byte_tblName, transID);
+    	if (LOG.isTraceEnabled()) LOG.trace("Enter truncateTableOnAbort, txid: " + transID + " Table: " + tblName);
+        byte[] lv_byte_tblName = tblName.getBytes();
+        int ret = truncateOnAbortReq(lv_byte_tblName, transID);
+        if(ret != 0)
+        {
+        	LOG.error("truncateTableOnAbort exception. Unable to truncate table" + tblName + " txid " + transID);
+        	throw new IOException("truncateTableOnAbort exception. Unable to truncate table" + tblName);
+        }
+        
+    	if (LOG.isTraceEnabled()) LOG.trace("Exit truncateTableOnAbort, txid: " + transID + " Table: " + tblName);
+        
     }
 
     public void dropTable(String tblName, long transID) throws IOException {
-        if (LOG.isTraceEnabled()) LOG.trace("dropTable ENTER: ");
-
-            byte[] lv_byte_tblname = tblName.getBytes();
-            dropTableReq(lv_byte_tblname, transID);
+    	if (LOG.isTraceEnabled()) LOG.trace("Enter dropTable, txid: " + transID + " Table: " + tblName);
+        byte[] lv_byte_tblname = tblName.getBytes();
+        int ret = dropTableReq(lv_byte_tblname, transID);
+        if(ret != 0)
+        {
+        	LOG.error("dropTable exception. Unable to drop table" + tblName + " txid " + transID);
+        	throw new IOException("dropTable exception. Unable to drop table" + tblName);
+        }
+        if (LOG.isTraceEnabled()) LOG.trace("Exit dropTable, txid: " + transID + " Table: " + tblName);
     }
 
     public void alter(String tblName, Object[] tableOptions, long transID) throws IOException {
-        if (LOG.isTraceEnabled()) LOG.trace("alter ENTER: ");
-
-            byte[] lv_byte_tblname = tblName.getBytes();
-            alterTableReq(lv_byte_tblname, tableOptions, transID);
+    	if (LOG.isTraceEnabled()) LOG.trace("Enter alterTable, txid: " + transID + " Table: " + tblName);
+        byte[] lv_byte_tblname = tblName.getBytes();
+        int ret = alterTableReq(lv_byte_tblname, tableOptions, transID);
+        if(ret != 0)
+        {
+        	LOG.error("alter Table exception. Unable to alter table" + tblName + " txid " + transID);
+        	throw new IOException("alter Table exception. Unable to alter table" + tblName);
+        }
+        if (LOG.isTraceEnabled()) LOG.trace("Exit alterTable, txid: " + transID + " Table: " + tblName);
     }   
 
     static public void replayEngineStart(final long timestamp) throws Exception {

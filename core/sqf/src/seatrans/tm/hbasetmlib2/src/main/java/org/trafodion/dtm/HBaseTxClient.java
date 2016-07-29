@@ -1959,6 +1959,7 @@ public class HBaseTxClient {
                             }
                             if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD: in-doubt transaction size " + transactionStates.size());
                             for (Map.Entry<Long, TransactionState> tsEntry : transactionStates.entrySet()) {
+                                int isTransactionStillAlive = 0;
                             	TransactionState ts1 = null;
                                 TransactionState ts = tsEntry.getValue();
                                 Long txID = ts.getTransactionId();
@@ -1977,9 +1978,12 @@ public class HBaseTxClient {
 
                                         // info only
                                         if (HBaseTxClient.getMap().get(txID) != null) {
-                                            if (LOG.isDebugEnabled()) LOG.debug("TRAF RCOV PEER THREAD: TID " + txID
+                                            if (HBaseTxClient.getMap().get(txID).getStatus().toString().contains("ACTIVE")) {
+                                                isTransactionStillAlive = 1;
+                                            }
+                                            if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV PEER THREAD: TID " + txID
                                             		+ " still has ts object in DTM memory with state "
-                                            		+ HBaseTxClient.getMap().get(txID).getStatus().toString());
+                                            		+ HBaseTxClient.getMap().get(txID).getStatus().toString() + " transactionAlive " + isTransactionStillAlive);
                                          }
                                         else {
                                             if (LOG.isDebugEnabled()) LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " no ts object in DTM memory ");
@@ -1999,7 +2003,13 @@ public class HBaseTxClient {
                                                                   nextAsn);                                        		
                                         }
                                         audit.getTransactionState(ts, false);
-                                        if (peerid == -1) {
+                                        if (isTransactionStillAlive == 1) {
+                                           commitPath = 6; // transaction is still alive and in memory, defer resolution, prepare time takes too long ...
+                                           if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV PEER THREAD: TID " + txID
+                                            		+ " still has ts object in DTM memory with state "
+                                            		+ HBaseTxClient.getMap().get(txID).getStatus().toString());
+                                        }
+                                        else if (peerid == -1) {
                                             // audit.getTransactionState(ts, true);
                                             if (LOG.isDebugEnabled()) LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " has no peer configured " + peerid
                                             		+ " ,commit authority is handled by local owner " + clusterid
@@ -2225,6 +2235,10 @@ public class HBaseTxClient {
                                                  txnManager.abort(ts);
                                             }
                                         }  // path 2
+                                       else if (commitPath == 6) { // preparing time is longer than normal > 2 min
+                                            LOG.warn("Tansaction " + txID
+                                            		+ " RCOV thread resolution is deferred due to the transaction object is still alive in DTM memory, preparing time takes too long ");
+                                       }
                                        else { // 3 for defer resolution
                                             LOG.warn("Tansaction " + txID
                                             		+ " resolution is deferred due to inaccessibility to peer, check HBase health at cluster id "
