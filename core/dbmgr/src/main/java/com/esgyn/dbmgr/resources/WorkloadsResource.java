@@ -669,14 +669,16 @@ public class WorkloadsResource {
 				cqds = obj.get("cqds").textValue();
 			}
 			if (cqds != null) {
-				cqds = cqds.replaceAll("\n", "\\\\n");
+				cqds = cqds.replaceAll("\n", "\\\\n"); //handle new lines in cqds
+				cqds = cqds.replaceAll("\"", "\\\\\""); //handle embedded double-quotes
 			}
 			String sets = "";
 			if (obj.has("sets")) {
 				sets = obj.get("sets").textValue();
 			}
 			if (sets != null) {
-				sets = sets.replaceAll("\n", "\\\\n");
+				sets = sets.replaceAll("\n", "\\\\n"); //handle new lines in sets
+				sets = sets.replaceAll("\"", "\\\\\""); //handle embedded double-quotes
 			}
 			String nodes = "";
 			if (obj.has("nodes")) {
@@ -1012,10 +1014,15 @@ public class WorkloadsResource {
 			if (obj.has("seqNo")) {
 				seqNo = obj.get("seqNo").textValue();
 			}
+			String isActive = "";
+			if (obj.has("isActive")) {
+				isActive = obj.get("isActive").textValue();
+			}
+
 			if (trafRestUri != null && trafRestUri.length() > 0) {
 				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_ADD_ALTER_MAPPING);
 				uri = String.format(queryText, trafRestUri, mappingName, user, application, session, role, sla,
-						clientIP, clientHost, seqNo);
+						clientIP, clientHost, seqNo, isActive);
 			}
 			_LOG.debug(uri);
 
