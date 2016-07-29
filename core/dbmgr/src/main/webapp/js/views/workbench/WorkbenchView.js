@@ -30,8 +30,10 @@ define([
 	var controlStatements = null;
 	var previousScrollTop = 0;
 	var controlStmts = "";
+	var timeStamps={runTime:null,planTime:null};
 
 	var CONTROL_DIALOG = '#controlDialog',
+	QCANCEL_MENU = '#cancelAction',
 	CONTROL_APPLY_BUTTON = "#controlApplyButton",
 	TOOLTIP_DIALOG = '#tooltipDialog',
 	TOOLTIP_DAILOG_LABEL = '#toolTipDialogLabel',
@@ -51,7 +53,11 @@ define([
 	OPTIONS_BTN = '#setControlStmts',
 	CLEAR_BTN = '#clearAction',
 	CONTROL_STMTS_TEXT = '#query-control-stmts',
-	QUERY_TEXT = '#query-text';
+	QUERY_TEXT = '#query-text',
+	EXPLAIN_JSON_DATA=null,
+	IMPORT_QUERY='#importQuery',
+	FILE_SELECT='#jsonFile',
+	EXPORT_QUERY='#exportQuery';
 
 	var _this = null;
 	var queryTextEditor = null,
@@ -86,7 +92,9 @@ define([
 	});    			
 
 	var WorkbenchView = BaseView.extend({
-
+		
+		explainJsonData:null,
+		
 		template: _.template(WorkbenchT),
 
 		showLoading: function(){
@@ -97,9 +105,14 @@ define([
 			$(SPINNER).hide();
 		},
 
-		drawExplain: function (jsonData) {
+		drawExplain: function (jsonData,tag) {
+			EXPLAIN_JSON_DATA=jsonData;
 			if(jsonData.requestor !=null && jsonData.requestor != _this) //error message is probably for different page
-				return;
+				{
+				if(tag!="import"){
+					return;
+					}
+				}
 			
 			if(this.redirectFlag){
 				resultsAfterPause = true;
@@ -109,6 +122,7 @@ define([
 				return;
 			}
 			_this.hideLoading();
+			$(EXECUTE_BTN).attr("disabled",false);
 			$(TEXT_RESULT_CONTAINER).show();
 			$(TEXT_RESULT).text(jsonData.planText);
 			$(EXPLAIN_TREE).empty();
@@ -150,6 +164,9 @@ define([
 			$(EXPLAIN_BTN).on('click', this.explainQuery);
 			$(EXECUTE_BTN).on('click', this.executeQuery);
 			$(CLEAR_BTN).on('click', this.clearAll);
+			$(QCANCEL_MENU).on('click', this.cancelQuery);
+			$(EXPORT_QUERY).on('click',this.exportQuery);
+			$(FILE_SELECT).on('change',this.importQuery);
 
 			$(CONTROL_APPLY_BUTTON).on('click', this.controlApplyClicked);
 			$(OPTIONS_BTN).on('click', this.openFilterDialog);
@@ -266,8 +283,12 @@ define([
 			serverHandler.on(serverHandler.WRKBNCH_EXECUTE_ERROR, this.showErrorMessage);
 			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
 			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
+			serverHandler.on(serverHandler.WRKBNCH_CANCEL_SUCCESS, this.handleMessage);
+			serverHandler.on(serverHandler.WRKBNCH_CANCEL_ERROR, this.handleMessage);
 		},
 		doResume: function(){
+			$(QCANCEL_MENU).on('click', this.cancelQuery);
+			$(EXPORT_QUERY).on('click',this.exportQuery);
 			this.currentURL = window.location.hash;
 			this.redirectFlag=false;
 			if(resultsAfterPause == true){
@@ -285,6 +306,8 @@ define([
 			//serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 		},
 		doPause:  function(){
+			$(QCANCEL_MENU).off('click', this.cancelQuery);
+			$(EXPORT_QUERY).off('click',this.exportQuery);
 			this.redirectFlag=true;
 			//this.hideLoading();
 			//serverHandler.off(serverHandler.WRKBNCH_EXECUTE_SUCCESS, this.displayResults);
@@ -292,13 +315,101 @@ define([
 			//serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
 			//serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 		},
-
+		handleMessage:function(data){
+			if(data==true){
+				var msgObj={msg:'The workbench query was canceled successfully.',tag:"success",url:_this.currentURL,shortMsg:"Workbench query canceled successfully."};
+				if(_this.redirectFlag){
+					common.fire(common.NOFITY_MESSAGE,msgObj);
+				}else{
+					_this.popupNotificationMessage(null,msgObj);
+				}
+			}else{
+				var msgObj={msg:'The workbench query was completed, could not be canceled.',tag:"warning",url:_this.currentURL,shortMsg:"Workbench query completed."};
+				if(_this.redirectFlag){
+					common.fire(common.NOFITY_MESSAGE,msgObj);
+				}else{
+					_this.popupNotificationMessage(null,msgObj);
+				}
+			}
+		},
 		handleWindowResize: function () {
 			if(st != null) {
 				st.canvas.resize($(EXPLAIN_TREE).width(), ($(PRIMARY_RESULT_CONTAINER).height() + $(PRIMARY_RESULT_CONTAINER).scrollTop()));
 			}
 		},
-
+		exportQuery:function(){
+			var queryText = $(QUERY_TEXT).val();
+			var planText=$(TEXT_RESULT).text();
+			if(queryTextEditor){
+				queryText = queryTextEditor.getSelection();
+				if(queryText.length == 0){
+					queryText = queryTextEditor.getValue();
+				}
+			}
+			var controlStatement=$(CONTROL_STMTS_TEXT).val();
+			if(controlStmtEditor)
+				controlStatement = controlStmtEditor.getValue();
+			else
+				controlStatement = $(CONTROL_STMTS_TEXT).val();
+			if(controlStatement == null) {
+				controlStatement = "";
+			} else {
+				controlStatement = controlStatement.replace(/(\r\n|\n|\r)/gm,"");
+			}
+			/*var isSame=planText.indexOf(queryText);
+			if(isSame==-1){
+				EXPLAIN_JSON_DATA={};
+			}*/
+			var json={queryText:queryText,EXPLAIN_JSON_DATA:EXPLAIN_JSON_DATA,controlStatement:controlStatement};
+			_this.SaveDatFileBro(json);
+		},
+		SaveDatFileBro:function(json) {
+			var data = "text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(json));
+			$('<a id="downloadJson" href="data:' + data + '" download="export.json" style="display:none">download JSON</a>').appendTo('body');
+			$("#downloadJson")[0].click();
+			$("#downloadJson").remove();
+		},
+		importQuery:function(event)
+		{
+			var files = event.target.files;
+			var __this = _this;
+			var json = files[0];
+				if (window.File && window.FileReader && window.FileList && window.Blob) {
+				  /*console.log("Great success! All the File APIs are supported.");*/
+				} else {
+				  console.log('The File APIs are not fully supported in this browser.');
+				}
+			var reader = new FileReader();
+			var resultJson=null;
+			reader.onload=function(progressEvent){
+				resultJson=JSON.parse(this.result);
+				queryTextEditor.setValue(resultJson.queryText);
+				if(jQuery.isEmptyObject(resultJson.EXPLAIN_JSON_DATA)!=true){
+					__this.drawExplain(resultJson.EXPLAIN_JSON_DATA,"import");
+					$(EXPLAIN_TREE).show();
+					$(TEXT_RESULT_CONTAINER).show();
+				}else{
+					$(EXPLAIN_TREE).hide();
+					$(TEXT_RESULT_CONTAINER).hide();
+				}
+				controlStmtEditor.setValue(resultJson.controlStatement);
+				if(resultJson.controlStatement!=""){
+					_this.controlApplyClicked();
+				}
+			};
+			reader.readAsText(json);
+		},
+		cancelQuery: function(){
+			var param=null;
+			if($(EXPLAIN_BTN).attr("disabled")=="disabled"){
+				param={timeStamp:timeStamps.runTime};
+			}else if($(EXECUTE_BTN).attr("disabled")=="disabled"){
+				param={timeStamp:timeStamps.planTime};
+			}else{
+				param={timeStamp:timeStamps.runTime};
+			}
+			serverHandler.cancelQuery(param);
+		},
 		openFilterDialog: function () {
 			$(CONTROL_DIALOG).modal('show');
 		},
@@ -356,7 +467,7 @@ define([
 				$(CONTROL_STMTS_TEXT).val();
 			
 			$(SCALAR_RESULT).text("");
-
+			$(OPTIONS_BTN).text(" Options");
 			if(resultsDataTable  != null){
 				try{
 					resultsDataTable.clear().draw();
@@ -391,7 +502,9 @@ define([
 			$(QUERY_RESULT_CONTAINER).hide();
 			$(TEXT_RESULT_CONTAINER).hide();
 			$(SCALAR_RESULT_CONTAINER).hide();        	
-			var param = {sQuery : queryText, sControlStmts: controlStmts};
+			$(EXECUTE_BTN).attr("disabled",true);
+			timeStamps.planTime=new Date().getTime();
+			var param = {sQuery : queryText, sControlStmts: controlStmts,timeStamp:timeStamps.planTime};
 
 			_this.showLoading();
 			serverHandler.explainQuery(param, _this);
@@ -402,6 +515,7 @@ define([
 			lastExplainResult = null;
 			resultsAfterPause = false;
 			lastRawError = null;
+			timeStamps.runTime=new Date().getTime();
 			
 			var queryText = $(QUERY_TEXT).val();
 			if(queryTextEditor){
@@ -419,11 +533,14 @@ define([
 
 			_this.showLoading();
 			$(EXPLAIN_TREE).hide();
+			$(EXPLAIN_TREE).empty();
+			$("#text-result").empty();
 			$(ERROR_TEXT).hide();
 			$(TEXT_RESULT_CONTAINER).hide();
 			$(SCALAR_RESULT_CONTAINER).hide();
 			$(QUERY_RESULT_CONTAINER).hide();
-			var param = {sQuery : queryText, sControlStmts: controlStmts};
+			$(EXPLAIN_BTN).attr("disabled",true);
+			var param = {sQuery : queryText, sControlStmts: controlStmts,timeStamp:timeStamps.runTime};
 			serverHandler.executeQuery(param);
 		},
 
@@ -432,7 +549,7 @@ define([
 		},
 
 		displayResults: function (result){
-			
+			$(EXPLAIN_BTN).attr("disabled",false);
 			if(_this.redirectFlag){
 				resultsAfterPause = true;
 				lastExecuteResult = result;
@@ -490,7 +607,15 @@ define([
 		                           //{ extend : 'excel', exportOptions: { columns: ':visible' } },
 		                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
 		                        	   title: 'Query Workbench' } ,
-		                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Query Workbench' }
+		                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Query Workbench' },
+	                        	   {text: 'JSON',
+	                        		   action: function ( e, dt, button, config ) {
+	                        			   var data = dt.buttons.exportData();
+	                        			   $.fn.dataTable.fileSave(
+	                        					   new Blob( [ JSON.stringify( data ) ] ),
+	                        					   'Query Workbench.json'
+	                        			   );
+	                        		   }}
 					          ]
 
 					});
@@ -510,6 +635,8 @@ define([
 				return;
 			}
 			_this.hideLoading();
+			$(EXPLAIN_BTN).attr("disabled",false);
+			$(EXECUTE_BTN).attr("disabled",false);
 			$(EXPLAIN_TREE).hide();
 			$(QUERY_RESULT_CONTAINER).hide();
 			$(TEXT_RESULT_CONTAINER).hide();

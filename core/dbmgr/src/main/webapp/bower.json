@@ -36,7 +36,7 @@
 	"moment-timezone": "0.4.0",
 	"codemirror":"latest",
 	"datatables.net-dt":"1.10.12",
-	"datatables.net-buttons":"1.1.2",
+	"datatables.net-buttons":"1.2.1",
 	"datatables.net-buttons-bs":"1.1.2",
 	"datatables.net-buttons-dt":"1.1.2",
 	"datatables.net-select":"1.2.0",

@@ -41,6 +41,8 @@ define(['handlers/EventDispatcher', 'common'],
 				this.WRKBNCH_EXPLAIN_ERROR = 'WRKBNCH_EXPLAIN_ERROR';
 				this.CONVERT_SQL_SUCCESS = "CONVERT_SQL_SUCCESS";
 				this.CONVERT_SQL_ERROR = "CONVERT_SQL_ERROR";
+				this.WRKBNCH_CANCEL_SUCCESS = 'WRKBNCH_CANCEL_SUCCESS';
+				this.WRKBNCH_CANCEL_ERROR = 'WRKBNCH_CANCEL_ERROR';
 								
 				this.sessionTimeout = function() {
 					window.location.hash = '/stimeout';
@@ -246,7 +248,29 @@ define(['handlers/EventDispatcher', 'common'],
 		        	    }
 		        	});	
 				};
-				
+				this.cancelQuery = function(param){
+					var xhr = xhrs["cancel_query"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["execute_query"] = $.ajax({
+		        	    url:'resources/queries/cancel',
+		        	    type:'POST',
+		        	    data: JSON.stringify(param),
+		        	    dataType:"json",
+		        	    contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success:  function(data){
+							dispatcher.fire(_this.WRKBNCH_CANCEL_SUCCESS, data);
+						},
+		        	    error:function(jqXHR, res, error){
+		        	    	dispatcher.fire(_this.WRKBNCH_CANCEL_ERROR, jqXHR, res, error);
+		        	    }
+		        	});	
+				};
 				this.fetchAlertsList = function(params){
 					var xhr = xhrs["alerts_list"];
 					if(xhr && xhr.readyState !=4){
