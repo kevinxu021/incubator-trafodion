@@ -50,6 +50,7 @@ public class TransactionState {
     //  short clusterId
     private final long transactionId;
     private TransState status;
+    private long startEpoch;
     private long startId;
     private long commitId;
     private long recoveryASN;
@@ -430,7 +431,23 @@ public class TransactionState {
     public static long getClusterId(long transId) {
 
         return ((transId >> 48) & 0xFFL);
+    }
 
+    /**
+     * Set the startEpoc.
+     *
+     */
+    public void setStartEpoch(final long epoch) {
+        this.startEpoch = epoch;
+    }
+
+    /**
+     * Get the startEpoch.
+     *
+     * @return Return the startEpoch.
+     */
+    public long getStartEpoch() {
+        return startEpoch;
     }
 
     /**
@@ -490,9 +507,10 @@ public class TransactionState {
     @Override
     public String toString() {
         return "transactionId: " + transactionId + ", startId: " + startId + ", commitId: " + commitId +
-               ", participants: " + participatingRegions.size() + ", ignoring: " + regionsToIgnore.size() +
-               ", hasDDL: " + hasDDLTx() + ", recoveryASN: " + getRecoveryASN() + ", remotePeers: "
-               + hasRemotePeers() + ", state: " + status.toString();
+               ", startEpoch: " + startEpoch + ", participants: " + participatingRegions.size()
+               + ", ignoring: " + regionsToIgnore.size() + ", hasDDL: " + hasDDLTx()
+               + ", recoveryASN: " + getRecoveryASN() + ", remotePeers: " + hasRemotePeers()
+               + ", state: " + status.toString();
     }
 
     public int getParticipantCount() {

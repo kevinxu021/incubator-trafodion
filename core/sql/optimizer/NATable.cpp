@@ -3389,6 +3389,12 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
 		column_desc->null_flag);
       break;
 
+    case REC_BOOLEAN :
+      {
+        type = new (heap) SQLBooleanNative(column_desc->null_flag);
+      }
+      break;
+
     default:
       {
 	// 4031 Column %s is an unknown data type, %d.
@@ -3665,6 +3671,9 @@ NAType* getSQColTypeForHive(const char* hiveType, NAMemory* heap)
   if ( !strcmp(hiveType, "bigint"))
     return new (heap) SQLLargeInt(TRUE /* neg */, TRUE /* allow NULL*/, heap);
 
+  if ( !strcmp(hiveType, "boolean"))
+    return new (heap) SQLBooleanNative(TRUE, heap);
+ 
   if ( !strcmp(hiveType, "string"))
     {
       Int32 len = CmpCommon::getDefaultLong(HIVE_MAX_STRING_LENGTH);
@@ -3958,7 +3967,6 @@ NABoolean createNAKeyColumns(desc_struct *keys_desc_list	/*IN*/,
 }
 
 static void createHiveKeyColumns(const NAColumnArray &colArray  /*IN*/,
-                                 const hive_skey_desc *hsk_desc /*IN*/,
                                  NAColumnArray &keyColArray     /*OUT*/,
                                  CollHeap *heap	                /*IN*/)
 {
@@ -3983,29 +3991,6 @@ static void createHiveKeyColumns(const NAColumnArray &colArray  /*IN*/,
   const char *colName;
   NABoolean persistentKey =
     (CmpCommon::getDefault(HIVE_USE_PERSISTENT_KEY) != DF_OFF);
-
-  if (CmpCommon::getDefault(HIVE_USE_SORT_COLS_IN_KEY) == DF_ON)
-    {
-      // To use a sort order, we have to ensure that we have one ESP per
-      // (sorted) file to read. This would have to be done in the
-      // FileScanRule.
-
-      while (hsk_desc)
-        {
-          NAString colName(hsk_desc->name_);
-          colName.toUpper();
-
-          NAColumn* sortKeyColumn = colArray.getColumn(colName);
-
-          if (sortKeyColumn)
-            {
-              keyColArray.insert(sortKeyColumn);
-              sortKeyColumn->setClusteringKey(ASCENDING);
-            }
-
-          hsk_desc = hsk_desc->next_;
-        }
-    }
 
   for (int i=0; i<2; i++)
     {
@@ -4163,6 +4148,7 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
       NAColumnArray indexKeyColumns(CmpCommon::statementHeap());// the index key columns
       NAColumnArray saveNAColumns(CmpCommon::statementHeap());// save NAColums of secondary index columns
       NAColumnArray partitioningKeyColumns(CmpCommon::statementHeap());// the partitioning key columns
+      NAColumnArray noHiveSortColumns(CmpCommon::statementHeap());// not needed in this method
       PartitioningFunction * partFunc = NULL;
       // is this an index or is it really a VP?
       isVerticalPartition = indexes_desc->body.indexes_desc.isVerticalPartition;
@@ -4657,6 +4643,7 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
 		  allColumns,
 		  indexKeyColumns,
 		  partitioningKeyColumns,
+                  noHiveSortColumns,
 		  partFunc,
 		  indexes_desc->body.indexes_desc.keytag,
 		  uint32ArrayToInt64(
@@ -4779,11 +4766,14 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
       // all columns that belong to an index
       NAColumnArray allColumns(CmpCommon::statementHeap());
 
-      // the index key columns - the SORT columns
+      // the index key columns
       NAColumnArray indexKeyColumns(CmpCommon::statementHeap());
 
       // the BUCKETING columns
       NAColumnArray bucketingKeyColumns(CmpCommon::statementHeap());
+
+      // the sort columns for bucketed tables
+      NAColumnArray sortKeyColumns(CmpCommon::statementHeap());
 
       PartitioningFunction * partFunc = NULL;
       // is this an index or is it really a VP?
@@ -4817,11 +4807,28 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
 
       const hive_skey_desc *hsk_desc = hvt_desc->getSortKeys();
 
+      // handle sorted columns
+      while (hsk_desc)
+        {
+          NAString colName(hsk_desc->name_);
+          colName.toUpper();
+
+          NAColumn* sortKeyColumn = colArray.getColumn(colName);
+
+          if (sortKeyColumn)
+            {
+              sortKeyColumns.insert(sortKeyColumn);
+              if (hsk_desc->orderInt_ == 0)
+                sortKeyColumns.setAscending(sortKeyColumns.entries()-1,FALSE);
+            }
+
+          hsk_desc = hsk_desc->next_;
+        }
+
       // Hive tables don't enforce a unique key, but we can pick virtual
       // columns to form a unique key (this can also be used internally,
       // e.g. for subquery unnesting).
       createHiveKeyColumns(colArray,
-                           hsk_desc,
                            indexKeyColumns,
                            CmpCommon::statementHeap());
 
@@ -4925,22 +4932,6 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
       // for release code, would need to sandbox the ability to write
       // files, e.g. to a fixed log directory
 #endif
-
-      // temporary kludge until virtual columns for ORC are supported
-      // NOTE: This can procuce incorrect results, see Mantis-230!!!
-      // See Mantis-269.
-      if (isORC)
-        {
-          indexKeyColumns.clear();
-
-          // assume all non-virtual columns are index key columns
-          // (but no guarantee for uniqueness)
-          for (CollIndex i=0; i<colArray.entries(); i++)
-            if (!colArray[i]->isHiveVirtualColumn())
-	     indexKeyColumns.insert(colArray[i]);
-        }
-
-      // end of temporary kludge
 
       // Create a node map for partitioning function.
       NodeMap* nodeMap = new (heap) NodeMap(heap, NodeMap::HIVE);
@@ -5068,6 +5059,7 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
 		  allColumns,
 		  indexKeyColumns,
 		  bucketingKeyColumns,
+                  sortKeyColumns,
 		  partFunc,
 		  0, // indexes_desc->body.indexes_desc.keytag,
 
@@ -8314,15 +8306,18 @@ short NATable::updateExtTableAttrs(NATable *etTable)
 {
   NAFileSet *fileset = this->getClusteringIndex();
   NAFileSet *etFileset = etTable->getClusteringIndex();
+  Int32 numUserCols = getUserColumnCount();
 
-  if (getUserColumnCount() != etTable->getUserColumnCount())
+  if (numUserCols != etTable->getUserColumnCount())
     return -1;
 
-  colcount_ = etTable->getColumnCount();
-  colArray_ = etTable->getNAColumnArray();
-
-  addVirtualHiveColumns(colArray_, this, colcount_-1, heap_);
-  colcount_ += 4;
+  // save the virtual columns, those are not contained in the
+  // external table
+  colArray_.removeAt(0, numUserCols);
+  colArray_.insertArray(etTable->getNAColumnArray(),
+                        0, // insert at position 0
+                        0, // stat with et column 0
+                        numUserCols);
 
   // mark the partition columns in the external table
   NAColumnArray &myCols = fileset->allColumns_;
@@ -8331,22 +8326,22 @@ short NATable::updateExtTableAttrs(NATable *etTable)
     if (myCols[i]->isHivePartColumn())
       etFileset->markAsHivePartitioningColumn(i);
 
-  fileset->allColumns_ = etFileset->getAllColumns();
-  addVirtualHiveColumns(fileset->allColumns_, this, 
-                        fileset->allColumns_.entries()-1, heap_);
+  // assert that the general layout of the columns hasn't changed,
+  // user columns first, followed by virtual columns, and the fileset
+  // columns are the same as the base table columns
+  CMPASSERT(myCols.entries() == colArray_.entries());
+  for (CollIndex u=numUserCols; u<myCols.entries(); u++)
+    CMPASSERT(myCols[u]->isHiveVirtualColumn());
 
-  if (NOT etFileset->hasOnlySyskey()) // explicit key was specified
-    {
-      keyLength_ = etTable->getKeyLength();
-      recordLength_ = etTable->getRecordLength();
-      
-      fileset->keysDesc_ = etFileset->getKeysDesc();
-      fileset->indexKeyColumns_ = etFileset->getIndexKeyColumns();
-      fileset->keyLength_ = etFileset->getKeyLength();
-      fileset->encodedKeyLength_ = etFileset->getEncodedKeyLength();
-    }
+  myCols.removeAt(0, numUserCols);
+  myCols.insertArray(etFileset->getAllColumns(),
+                     0, // insert at position 0
+                     0, // stat with et column 0
+                     numUserCols);
 
-  /*
+  // Note that the key cannot be changed with an external table
+
+  /* those can't be changed with an external table, either
   fileset->partitioningKeyColumns_ = etFileset->getPartitioningKeyColumns();
   fileset->partFunc_ = etFileset->getPartitioningFunction();
   fileset->countOfFiles_ = etFileset->getCountOfFiles();

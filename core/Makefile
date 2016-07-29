@@ -187,19 +187,19 @@ check-copyrights:
 # RPM defines
 PKG_PROD=esgynDB_adv
 
+OS_TYPE = RH
+OS_MAJOR ?=  $(shell lsb_release -rs | cut -f1 -d.)
+P_TYPE = $(shell uname -p)
+
 ifeq ($(SQ_BUILD_TYPE),release)
   RELEASE ?= 1
-  SERVERTAR="$(PKG_PROD)_server-$(TRAFODION_VER).tar.gz"
+  SERVERTAR="$(PKG_PROD)_server-$(TRAFODION_VER)-${OS_TYPE}${OS_MAJOR}-${P_TYPE}.tar.gz"
 else
   RELEASE ?= devel
-  SERVERTAR="$(PKG_PROD)_server-$(TRAFODION_VER)-debug.tar.gz"
+  SERVERTAR="$(PKG_PROD)_server-$(TRAFODION_VER)-${OS_TYPE}${OS_MAJOR}-${P_TYPE}-debug.tar.gz"
 endif
 
-ifeq ($(SQ_MTYPE),64)
-  ARCH=$(shell arch)
-else
-  ARCH=i686
-endif
+ARCH=$(P_TYPE)
 
 SPECFILE = trafodion.spec
 

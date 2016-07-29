@@ -48,6 +48,7 @@ define([
 	MAPPING_CLIENT_IP = '#mapping_client_ip',
 	MAPPING_CLIENT_HOST = '#mapping_client_host',
 	MAPPING_SLA = '#mapping_sla',
+	MAPPING_STATE = '#mapping_state',
 	MAPPING_SEQ_NO = '#mapping_seq_no',
 	MAPPING_APPLY_BTN = "#mappingApplyButton",
 	MAPPING_RESET_BTN = "#mappingResetButton",
@@ -203,6 +204,15 @@ define([
 					$(MAPPING_SEQ_NO).val(mappingDialogParams.data["orderNumber"]);					
 				}
 				if(mappingDialogParams.type && mappingDialogParams.type == 'alter'){
+					if(mappingDialogParams.data["isDefault"] == 'yes'){
+						$('#mapping-form input, select').prop('disabled', true);
+						$(MAPPING_APPLY_BTN).attr('disabled', true);
+						$(MAPPING_RESET_BTN).attr('disabled', true);
+					}else{
+						$('#mapping-form input, select').prop('disabled', false);
+						$(MAPPING_APPLY_BTN).attr('disabled', false);
+						$(MAPPING_RESET_BTN).attr('disabled', false);
+					}					
 					$(MAPPING_DIALOG_TITLE).text('Alter Mapping');
 					$(MAPPING_NAME).attr('disabled', true);
 					$(MAPPING_NAME).val(mappingDialogParams.data["Mapping Name"]);
@@ -239,6 +249,9 @@ define([
 
 				dataTableColNames = [];
 				var updateTimeColIndex = -1;
+				var isDefColIndex = -1;
+				var stateColIndex = -1;
+				
 				// add needed columns
 				$.each(keys, function(k, v) {
 					var obj = new Object();
@@ -248,6 +261,13 @@ define([
 					}
 					if(v == 'lastUpdate'){
 						updateTimeColIndex = k;
+						obj.title = 'Last Update Time';
+					}
+					if(v == 'isDefault'){
+						isDefColIndex = k;
+					}
+					if(v == 'isActive'){
+						stateColIndex = k;
 					}
 					aoColumns.push(obj);
 					dataTableColNames.push(v);
@@ -283,7 +303,7 @@ define([
 						"aTargets": [ updateTimeColIndex ],
 						"mData": updateTimeColIndex,
 						"mRender": function ( data, type, full ) {
-							if(type == 'display'){
+							if(data != null){
 								return common.toServerLocalDateFromMilliSeconds(parseInt(data), 'YYYY-MM-DD HH:mm:ss');
 							}else 
 								return data;
@@ -294,13 +314,46 @@ define([
 					"aTargets": [ deleteMappingIconColIndex ],
 					"mData": deleteMappingIconColIndex,
 					"className": "dt-center",
-					"mRender": function ( data, type, full ) {
-						if ( type === 'display' ) {
-							return '<a class="fa fa-trash-o"></a>';
+					"mRender": function ( data, type, full, meta ) {
+						if(type === 'display'){
+							var aoColumns = meta.settings.aoColumns;
+							var defColIndex = -1;
+							
+							$.each(aoColumns, function(i, v){
+								if(v.title == 'IsDefault'){
+									defColIndex = i;
+									return;
+								}
+							});
+							
+							if(defColIndex >= 0 && full[defColIndex] == 'no'){
+								return '<a class="delete-profile fa fa-trash-o"></a>';
+							}
+							else return "";
+							
 						} else return "";
-
 					}
 				});
+				
+				if(isDefColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [isDefColIndex ],
+						"mData": isDefColIndex,
+						"visible" : false,
+						"searchable" : false
+					});					
+				}
+				
+				if(stateColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ stateColIndex ],
+						"mData": stateColIndex,
+						"mRender": function ( data, type, full ) {
+							return data != null ? common.UpperCaseFirst(data) : '';
+						}
+					});
+				}
+				
 				mappingsDataTable = $('#wc-mappings-list').DataTable({
 					"oLanguage": {
 						"sEmptyTable": "There are no mappings"
@@ -345,8 +398,10 @@ define([
 							}else{
 								if(cell.column == deleteMappingIconColIndex){
 									var data = mappingsDataTable.row(cell.row).data();
-									$(DELETE_MAPPING_NAME).text(data[mappingNameColIndex]);
-									$(MAPPING_DELETE_DIALOG).modal('show');
+									if(data[isDefColIndex] == 'no'){
+										$(DELETE_MAPPING_NAME).text(data[mappingNameColIndex]);
+										$(MAPPING_DELETE_DIALOG).modal('show');
+									}
 								}
 							}
 						}
@@ -421,6 +476,8 @@ define([
 			mapping.clientHost = $(MAPPING_CLIENT_HOST).val();
 			mapping.sla = $(MAPPING_SLA).val();
 			mapping.seqNo = $(MAPPING_SEQ_NO).val();
+			mapping.isActive = $(MAPPING_STATE).val();
+			
 			if(mapping.application.length == 0 &&
 					mapping.user.length == 0 && 
 					mapping.role.length == 0 && 

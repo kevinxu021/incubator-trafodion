@@ -123,10 +123,10 @@ public class QueryPlanModel {
 	}
 
 	public void GeneratePlan(String userName, String password, String queryText, String controlStmts, String queryID,
-			String queryType)
+			String queryType,String key)
 			throws EsgynDBMgrException {
 		ArrayList<QueryPlanData> planDataArray = GetPlan(userName, password, queryText, controlStmts, queryID,
-				queryType);
+				queryType,key);
 		QueryPlanArray.clear();
 		for (QueryPlanData planData : planDataArray) {
 			setQueryPlanData(planData);
@@ -138,7 +138,7 @@ public class QueryPlanModel {
 
 	public void GeneratePlan(Connection connection, String queryText, String controlStmts, String queryID,
 			String queryType) throws EsgynDBMgrException {
-		ArrayList<QueryPlanData> planDataArray = GetPlan(connection, queryText, controlStmts, queryID, queryType);
+		ArrayList<QueryPlanData> planDataArray = GetPlan(connection, queryText, controlStmts, queryID, queryType,null);
 		QueryPlanArray.clear();
 		for (QueryPlanData planData : planDataArray) {
 			setQueryPlanData(planData);
@@ -149,12 +149,12 @@ public class QueryPlanModel {
 	}
 
 	public ArrayList<QueryPlanData> GetPlan(String userName, String password, String queryText, String controlStmts,
-			String queryID, String queryType) throws EsgynDBMgrException {
+			String queryID, String queryType,String key) throws EsgynDBMgrException {
 		ArrayList<QueryPlanData> planArray = new ArrayList<QueryPlanData>();
 		Connection connection = null;
 		try {
 			connection = JdbcHelper.getInstance().getConnection(userName, password);
-			planArray = GetPlan(connection, queryText, controlStmts, queryID, queryType);
+			planArray = GetPlan(connection, queryText, controlStmts, queryID, queryType,key);
 		} catch (EsgynDBMgrException e) {
 			throw e;
 		} catch (Exception ex) {
@@ -166,7 +166,7 @@ public class QueryPlanModel {
 	}
 
 	public ArrayList<QueryPlanData> GetPlan(Connection connection, String queryText, String controlStmts,
-			String queryID, String queryType) throws EsgynDBMgrException {
+			String queryID, String queryType,String key) throws EsgynDBMgrException {
 
 		ArrayList<QueryPlanData> planArray = new ArrayList<QueryPlanData>();
 		Statement stmt = null;
@@ -195,7 +195,6 @@ public class QueryPlanModel {
 						_LOG.debug(explainQryText);
 						pStmt = connection.prepareStatement(explainQryText);
 						rs = pStmt.executeQuery();
-
 						while (rs.next()) {
 							explainSuccess = true;
 							QueryPlanData qpd = new QueryPlanData();
@@ -330,7 +329,9 @@ public class QueryPlanModel {
 				// System.out.println(exQuery);
 				_LOG.debug(exQuery);
 				pStmt = connection.prepareStatement(exQuery);
+				SessionModel.putStatementObject(key, pStmt);
 				rs = pStmt.executeQuery();
+				SessionModel.removeStatementObject(key);
 
 				while (rs.next()) {
 					explainSuccess = true;

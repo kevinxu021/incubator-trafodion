@@ -1353,6 +1353,9 @@ public:
     void getMemoryRequirementsForOneMCGroup(HSColGroupStruct* group, Int64 rows);
 
     static Int32 allocateMemoryForColumns(HSColGroupStruct* group, Int64 rows, HSColGroupStruct* mgr = NULL /* used for MC IS */);
+    static Int32 allocateMemoryForIUSColumns(HSColGroupStruct* group, Int64 rows,
+                                             HSColGroupStruct* delGroup, Int64 delRows,
+                                             HSColGroupStruct* insGroup, Int64 insRows);
 
     // For internal sort or IUS, remove and count nulls for each column from the
     // rowset just read.
@@ -1732,6 +1735,10 @@ private:
     Int32 getColsToProcess(Int64 rows,
                          NABoolean internalSortWhenBetter,
                          NABoolean trySampleTableBypass = FALSE);
+
+    // After an allocation failure, this is called to reduce the amount of
+    // memory we estimate is available.
+    static void memReduceAllowance();
 
     // When a memory allocation fails, return any memory already allocated for
     // the group for internal sort, and set any PENDING columns back to

@@ -562,6 +562,10 @@ NABoolean NAColumn::createNAType(columns_desc_struct *column_desc	/*IN*/,
 		column_desc->null_flag);
       break;
 
+    case REC_BOOLEAN :
+      type = new (heap) SQLBooleanNative(column_desc->null_flag);
+      break;
+
     default:
       {
 	// 4031 Column %s is an unknown data type, %d.
@@ -732,8 +736,69 @@ void NAColumnArray::deepDelete()
 #pragma warn(1506)  // warning elimination
 void NAColumnArray::insertAt(CollIndex index, NAColumn * newColumn)
 {
+  CollIndex oldEntries = entries();
+
   LIST(NAColumn *)::insertAt(index,newColumn);
-  ascending_.insertAt(index,TRUE);
+  ascending_.insertAt(oldEntries, TRUE);
+
+  if (index != oldEntries)
+    {
+      // insert in the middle is a bit more complicated,
+      // we need to shift some information around
+      for (CollIndex s=oldEntries-1; s>=index; s--)
+        ascending_[s+1] = ascending_[s];
+
+      ascending_[index] = TRUE;
+    }
+}
+
+void NAColumnArray::insertArray(const NAColumnArray &src,
+                                Int32 tgtPosition,
+                                Int32 srcStartPosition,
+                                Int32 numEntries)
+{
+  if (tgtPosition == -1)
+    tgtPosition = entries();
+  if (numEntries == -1)
+    numEntries = src.entries();
+
+  if (numEntries > 0)
+    {
+      CollIndex oldEntries = entries();
+
+      for (CollIndex i=0; i<numEntries; i++)
+        LIST(NAColumn *)::insertAt(tgtPosition+i, src[srcStartPosition+i]);
+
+      // create numEntries new array elements at the end
+      for (CollIndex a=0; a<numEntries; a++)
+        ascending_.insertAt(a+oldEntries, TRUE);
+
+      if (tgtPosition < oldEntries)
+        {
+          // new rows were not inserted at the end, shift the
+          // ascending_ values of the existing elements that now
+          // come after the newly inserted elements
+          for (Int32 s=oldEntries-1; s>=tgtPosition; s--)
+            ascending_[s+numEntries] = ascending_[s];
+        }
+
+      // copy the ascending_ values of the newly inserted values
+      for (CollIndex e=0; e<numEntries; e++)
+        ascending_[e+tgtPosition] = src.isAscending(e);
+    } // numEntries > 0
+}
+
+void NAColumnArray::removeAt(CollIndex start, CollIndex numEntries)
+{
+  for (CollIndex i=0; i<numEntries; i++)
+    LIST(NAColumn *)::removeAt(start);
+
+  if (entries() > start)
+    for (CollIndex j=start; j<entries(); j++)
+      ascending_[j] = ascending_[j+numEntries];
+
+  for (Int32 k=entries()+numEntries-1; k>=entries(); k--)
+    ascending_.remove(k);
 }
 
 NAColumnArray & NAColumnArray::operator= (const NAColumnArray& other)
@@ -771,19 +836,6 @@ NAColumn * NAColumnArray::getColumnByPos(Lng32 position) const
 }
 
 // LCOV_EXCL_START :cnu
-// removes the column that has the same position
-void NAColumnArray::removeByPosition(Lng32 position)
-{
-  for(CollIndex i=0;i < entries();i++)
-  {
-    NAColumn * column = (*this)[i];
-    if(column->getPosition() == position)
-    {
-      this->removeAt(i);
-      break;
-    }
-  }
-}
 Lng32 NAColumnArray::getOffset(Lng32 position) const
 {
   Lng32 result = 0;

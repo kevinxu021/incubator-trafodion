@@ -2762,7 +2762,7 @@ NABoolean HivePartitionAndBucketKey::convertHivePartColValsToSQL(
   return TRUE;
 }
 
-NABoolean HivePartitionAndBucketKey::computePartitionPredicates(
+NABoolean HivePartitionAndBucketKey::computePartAndVirtColPredicates(
      const GroupAttributes *ga,
      ValueIdSet &selectionPredicates)
 {
@@ -2776,11 +2776,11 @@ NABoolean HivePartitionAndBucketKey::computePartitionPredicates(
 
       DCMPASSERT(compileTimePartColPreds_.isEmpty());
       DCMPASSERT(partAndVirtColPreds_.isEmpty());
-      compileTimePartColPreds_ = selectionPredicates;
+      partAndVirtColPreds_ = selectionPredicates;
 
-      for (ValueId p=compileTimePartColPreds_.init();
-           compileTimePartColPreds_.next(p);
-           compileTimePartColPreds_.advance(p))
+      for (ValueId p=partAndVirtColPreds_.init();
+           partAndVirtColPreds_.next(p);
+           partAndVirtColPreds_.advance(p))
         {
           if (p.getItemExpr()->getOperatorType() == ITM_VEG_PREDICATE)
             {
@@ -2791,8 +2791,9 @@ NABoolean HivePartitionAndBucketKey::computePartitionPredicates(
               ValueId vegRef= static_cast<VEGPredicate *>(
                    p.getItemExpr())->getVEG()->getVEGReference()->getValueId();
 
-              if (!hivePartColList_.contains(vegRef))
-                compileTimePartColPreds_ -= p;
+              if (!hivePartColList_.contains(vegRef) &&
+                  !hiveVirtFileColList_.contains(vegRef))
+                partAndVirtColPreds_ -= p;
             }
         }
 
@@ -2800,8 +2801,8 @@ NABoolean HivePartitionAndBucketKey::computePartitionPredicates(
       // computed from the partitioning columns at compile time
       // (i.e. without relying on characteristic inputs), save these
       // removed preds for the next step
-      partAndVirtColPreds_ = compileTimePartColPreds_;
-      compileTimePartColPreds_.removeUnCoveredExprs(availableValues);
+      compileTimePartColPreds_ = partAndVirtColPreds_;
+      compileTimePartColPreds_.removeUnCoveredExprs(availableValues/*part cols*/);
 
       // a VEGPred(partcol, <other values>) will still be in
       // compileTimePartColPreds_, but we can only evaluate it at
@@ -3555,7 +3556,8 @@ void HivePartitionAndBucketKey::replaceVEGExpressions(const ValueIdSet & availab
        availableValues.next(v);
        availableValues.advance(v))
     {
-      if (v.getItemExpr()->getOperatorType() == ITM_INDEXCOLUMN)
+      if (!inputValues.contains(v) &&
+          v.getItemExpr()->getOperatorType() == ITM_INDEXCOLUMN)
         {
           NAColumn *nac =
             static_cast<IndexColumn *>(v.getItemExpr())->getNAColumn();

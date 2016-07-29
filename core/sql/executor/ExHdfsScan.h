@@ -342,6 +342,7 @@ protected:
   NABoolean checkRangeDelimiter_;
 
   NABoolean dataModCheckDone_;
+  ComDiagsArea * loggingErrorDiags_;
 };
 
 #define RANGE_DELIMITER '\002'

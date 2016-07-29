@@ -119,6 +119,8 @@ fi
 REQ_JDK_VER="1.8.0_65"
 if [[ -z "$JAVA_HOME" && -d "${TOOLSDIR}/jdk${REQ_JDK_VER}" ]]; then
   export JAVA_HOME="${TOOLSDIR}/jdk${REQ_JDK_VER}"
+elif [[ -z "$JAVA_HOME" && -d /usr/lib/jvm/java-1.8.0-openjdk/ ]]; then
+  export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk"
 elif [[ -z "$JAVA_HOME" && -d /usr/lib/jvm/java-1.8.0-openjdk.${ARCH}/ ]]; then
   export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk.${ARCH}"
 elif [[ -z "$JAVA_HOME" ]]; then
@@ -148,14 +150,26 @@ export MY_SQROOT=$PWD
 export SQ_HOME=$PWD
 
 # set common version to be consistent between shared lib and maven dependencies
-export HBASE_DEP_VER_CDH=1.0.0-cdh5.4.4
-export HIVE_DEP_VER_CDH=1.1.0-cdh5.4.4
+export HBASE_DEP_VER_CDH=1.0.0-cdh5.5.1
+export HIVE_DEP_VER_CDH=1.1.0-cdh5.5.1
+export HBASE_TRX_ID_CDH=hbase-trx-cdh5_5
+if [[ "$HBASE_DISTRO" = "CDH5.4" ]]; then
+   export HBASE_DEP_VER_CDH=1.0.0-cdh5.4.4
+   export HIVE_DEP_VER_CDH=1.1.0-cdh5.4.4
+   export HBASE_TRX_ID_CDH=hbase-trx-cdh5_4
+fi
+
+export HBASE_DEP_VER_APACHE=1.1.2
+export HIVE_DEP_VER_APACHE=1.1.0
+export HBVER=apache1_1_2
+if [[ "$HBASE_DISTRO" = "APACHE1.0" ]]; then
+   export HBASE_DEP_VER_APACHE=1.0.2
+   export HBVER=apache1_0_2
+fi
+export HBASE_TRX_ID_APACHE=hbase-trx-${HBVER}
+
 export HBASE_DEP_VER_HDP=1.1.2
 export HIVE_DEP_VER_HDP=1.2.1
-export HBASE_DEP_VER_APACHE=1.0.2
-export HIVE_DEP_VER_APACHE=1.1.0
-export HBASE_TRX_ID_CDH=hbase-trx-cdh5_4
-export HBASE_TRX_ID_APACHE=hbase-trx-apache1_0_2
 export HBASE_TRX_ID_HDP=hbase-trx-hdp2_3
 if [ "${ARCH:0:3}" == "ppc" ]; then
     export THRIFT_DEP_VER=0.9.1
@@ -164,7 +178,6 @@ else
 fi
 export HIVE_DEP_VER=1.1.0
 export HADOOP_DEP_VER=2.6.0
-
 # staged build-time dependencies
 export HADOOP_BLD_LIB=${TOOLSDIR}/hadoop-${HADOOP_DEP_VER}/lib/native
 export HADOOP_BLD_INC=${TOOLSDIR}/hadoop-${HADOOP_DEP_VER}/include
@@ -185,9 +198,8 @@ if [[ "$HBASE_DISTRO" = "HDP" ]] || [[ "$HBASE_DISTRO" == "BI" ]] || [[ "$HBASE_
     export SQL_JAR=trafodion-sql-${HBVER}-${TRAFODION_VER}.jar
 fi
 
-if [[ "$HBASE_DISTRO" = "APACHE" ]]; then
+if [[ "$HBASE_DISTRO" =~ "APACHE" ]]; then
     export HBASE_TRX_JAR=${HBASE_TRX_ID_APACHE}-${TRAFODION_VER}.jar
-    HBVER="apache1_0_2"
     export DTM_COMMON_JAR=trafodion-dtm-${HBVER}-${TRAFODION_VER}.jar
     export SQL_JAR=trafodion-sql-${HBVER}-${TRAFODION_VER}.jar
 fi
@@ -485,6 +497,12 @@ else
   function vanilla_apache_usage {
 
   cat <<EOF
+    If you haven't set HBASE_DISTRO, please set it before source current file
+      export HBASE_DISTRO=APACHE1.0 (APACHE HBASE1.0)
+      export HBASE_DISTRO=APACHE1.1 (APACHE HBASE1.1)
+      export HBASE_DISTRO=CDH5.4    (cloudera 1.0.0-cdh5.4.4) 
+      export HBASE_DISTRO=CDH5.5    (cloudera 1.0.0-cdh5.5.1) 
+      export HBASE_DISTRO=HDP       (hortonworks 2.3)
 
     If you are ready to build Trafodion, perform one of the following options:
 
@@ -577,7 +595,6 @@ EOF
 
     # end of code for Apache Hadoop/HBase installation w/o distro
     export HBASE_TRX_JAR=${HBASE_TRX_ID_APACHE}-${TRAFODION_VER}.jar
-    HBVER="apache1_0_2"
     export DTM_COMMON_JAR=trafodion-dtm-${HBVER}-${TRAFODION_VER}.jar
     export SQL_JAR=trafodion-sql-${HBVER}-${TRAFODION_VER}.jar
   else
@@ -860,7 +877,6 @@ if [[ -n "$HBASE_CNF_DIR"  ]]; then SQ_CLASSPATH="$SQ_CLASSPATH:$HBASE_CNF_DIR";
 if [[ -n "$HIVE_CNF_DIR"   ]]; then SQ_CLASSPATH="$SQ_CLASSPATH:$HIVE_CNF_DIR";   fi
 if [[ -n "$SQ_CLASSPATH"   ]]; then SQ_CLASSPATH="$SQ_CLASSPATH:";   fi
 
-
 # set Trx in classpath only incase of workstation env.
 # In case of cluster, correct version of trx is already installed by
 # installer and hbase classpath already contains the correct trx jar.
@@ -869,6 +885,7 @@ if [[ -n "$SQ_CLASSPATH"   ]]; then SQ_CLASSPATH="$SQ_CLASSPATH:";   fi
 if [[ -e $MY_SQROOT/sql/scripts/sw_env.sh ]]; then
         SQ_CLASSPATH=${SQ_CLASSPATH}:${HBASE_TRXDIR}/${HBASE_TRX_JAR}
 fi
+
 
 SQ_CLASSPATH=${SQ_CLASSPATH}:\
 $MY_SQROOT/export/lib/${DTM_COMMON_JAR}:\

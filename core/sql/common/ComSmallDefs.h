@@ -153,6 +153,7 @@ typedef NABoolean               ComBoolean;
 #define SEABASE_SEQ_GEN          "SEQ_GEN"
 #define SEABASE_TABLES            "TABLES"
 #define SEABASE_TABLE_CONSTRAINTS "TABLE_CONSTRAINTS"
+#define SEABASE_TABLE_CONSTRAINTS_IDX "TABLE_CONSTRAINTS_IDX"
 #define SEABASE_TEXT            "TEXT"
 #define SEABASE_UNIQUE_REF_CONSTR_USAGE "UNIQUE_REF_CONSTR_USAGE"
 #define SEABASE_VIEWS              "VIEWS"
@@ -191,8 +192,11 @@ typedef NABoolean               ComBoolean;
 // length of explain_plan column in metric_query_table.
 // explain_plan greater than this length are chunked and store in multiple
 // rows in metric_text_table
-#define REPOS_MAX_EXPLAIN_PLAN_LEN 200000
-#define REPOS_MAX_EXPLAIN_PLAN_LEN_STR "200000"
+// Note: This symbol is used in the DDL for the Repository tables.
+// If you change it, consider whether the Repository tables will need
+// an upgrade. See file sqlcomp/CmpSeabaseDDLrepos.h.
+#define REPOS_MAX_EXPLAIN_PLAN_LEN 1000000
+#define REPOS_MAX_EXPLAIN_PLAN_LEN_STR "1000000"
 
 /******    *****/
 enum ComActivationTime { COM_UNKNOWN_TIME, COM_BEFORE , COM_AFTER };
@@ -818,6 +822,8 @@ enum ComFSDataType { COM_UNKNOWN_FSDT              = -1
 		   , COM_BLOB                      = REC_BLOB
 		   , COM_CLOB                      = REC_CLOB
 
+                   , COM_BOOLEAN                   = REC_BOOLEAN
+
                    , COM_DATETIME_FSDT             = REC_DATETIME
                    , COM_INTERVAL_MIN_FSDT         = REC_MIN_INTERVAL
                    , COM_INTERVAL_YEAR_YEAR_FSDT   = REC_INT_YEAR
@@ -1017,6 +1023,7 @@ enum ComODBCDataType { COM_UNKNOWN_ODT
                      , COM_LARGE_DECIMAL_UNSIGNED_ODT
 		     , COM_BLOB_ODT
 		     , COM_CLOB_ODT
+		     , COM_BOOLEAN_ODT
                      , COM_DATETIME_ODT
                      , COM_TIMESTAMP_ODT
                      , COM_DATE_ODT
@@ -1051,6 +1058,7 @@ enum ComODBCDataType { COM_UNKNOWN_ODT
 #define COM_INTERVAL_ODT_LIT                   "INTERVAL          "
 #define COM_BLOB_ODT_LIT                       "BLOB              "
 #define COM_CLOB_ODT_LIT                       "CLOB              "
+#define COM_BOOLEAN_ODT_LIT                    "BOOLEAN           "
 
 enum ComAccessPathType  { COM_UNKNOWN_ACCESS_PATH_TYPE
                         , COM_BASE_TABLE_TYPE
@@ -1577,6 +1585,7 @@ enum ComSQLDataType { COM_UNKNOWN_SDT
                     , COM_LARGE_DECIMAL_UNSIGNED_SDT
 		    , COM_BLOB_SDT
 		    , COM_CLOB_SDT
+		    , COM_BOOLEAN_SDT
                     , COM_DATETIME_SDT
                     , COM_TIMESTAMP_SDT
                     , COM_DATE_SDT
@@ -1611,6 +1620,7 @@ enum ComSQLDataType { COM_UNKNOWN_SDT
 #define COM_INTERVAL_SDT_LIT                   "INTERVAL          "
 #define COM_BLOB_SDT_LIT                       "BLOB              "
 #define COM_CLOB_SDT_LIT                       "CLOB              "
+#define COM_BOOLEAN_SDT_LIT                    "BOOLEAN           "
 
 enum ComViewCheckOption { COM_UNKNOWN_CHECK_OPTION
                         , COM_CASCADE_CHECK_OPTION

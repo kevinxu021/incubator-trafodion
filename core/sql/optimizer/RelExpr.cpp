@@ -10059,12 +10059,12 @@ void FileScan::addLocalExpr(LIST(ExprNode *) &xlist,
       llist.insert("part_key_predicates");
     }
 
-  if (NOT getBeginKeyPred().isEmpty())
+  if (NOT getBeginKeyPred().isEmpty() && NOT isHiveTable())
     {
       xlist.insert(getBeginKeyPred().rebuildExprTree());
       llist.insert("begin_key");
     }
-  if (NOT getEndKeyPred().isEmpty())
+  if (NOT getEndKeyPred().isEmpty() && NOT isHiveTable())
     {
       xlist.insert(getEndKeyPred().rebuildExprTree());
       llist.insert("end_key");
