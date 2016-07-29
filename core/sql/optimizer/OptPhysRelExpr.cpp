@@ -13034,7 +13034,7 @@ computeDP2CostDataThatDependsOnSPP(
        PartitioningFunction &physicalPartFunc //in/out
        ,DP2CostDataThatDependsOnSPP &dp2CostInfo //out
        ,const IndexDesc& indexDesc
-       ,const ScanKey& partKey
+       ,const ScanKey* partKey
        ,GroupAttributes &scanGroupAttr
        ,const Context& myContext
        ,NAMemory *heap
@@ -13108,6 +13108,7 @@ computeDP2CostDataThatDependsOnSPP(
       // ------------------------------------------------------------
 
       if ( physicalPartFunc.isARangePartitioningFunction() AND
+           partKey AND
            ( (scan.getOperatorType() == REL_FILE_SCAN) OR
              (scan.getOperatorType() == REL_HBASE_ACCESS)
            )
@@ -13122,7 +13123,7 @@ computeDP2CostDataThatDependsOnSPP(
 
           // Get the key columns from the partKey since the
           // part key in the part. func. contains veg references.
-          const ValueIdList& partKeyList = partKey.getKeyColumns();
+          const ValueIdList& partKeyList = partKey->getKeyColumns();
 
           ColumnOrderList keyPredsByCol(partKeyList);
 
@@ -13131,8 +13132,8 @@ computeDP2CostDataThatDependsOnSPP(
           // $$$ When we add support for Mdam to the PA this
           // $$$ will need to change to support several
           // $$$ disjuncts. See AP doc for algorithm.
-          CMPASSERT(partKey.getKeyDisjunctEntries() == 1);
-          partKey.getKeyPredicatesByColumn(keyPredsByCol,0);
+          CMPASSERT(partKey->getKeyDisjunctEntries() == 1);
+          partKey->getKeyPredicatesByColumn(keyPredsByCol,0);
 
           //But we only care about the leading column now...
           // $$$ Revisit when multicol. hists. are added
@@ -13417,6 +13418,7 @@ computeDP2CostDataThatDependsOnSPP(
         } // if we have range partitioning
       else
         if ( ( physicalPartFunc.isATableHashPartitioningFunction() AND
+               partKey AND
                (scan.getOperatorType() == REL_FILE_SCAN)
              ) OR
              ( indexDesc.isPartitioned() AND
@@ -13451,7 +13453,7 @@ computeDP2CostDataThatDependsOnSPP(
 
           // Get the key columns from the partKey since the
           // part key in the part. func. contains VEG references.
-          const ValueIdList& partKeyList = partKey.getKeyColumns();
+          const ValueIdList& partKeyList = partKey->getKeyColumns();
 
           ColumnOrderList keyPredsByCol(partKeyList);
 
@@ -13460,10 +13462,10 @@ computeDP2CostDataThatDependsOnSPP(
           // $$$ When we add support for Mdam to the PA this
           // $$$ will need to change to support several
           // $$$ disjuncts.
-          CMPASSERT(partKey.getKeyDisjunctEntries() == 1);
+          CMPASSERT(partKey->getKeyDisjunctEntries() == 1);
 
 	  // populate keyPredsByCol with predicates
-	  partKey.getKeyPredicatesByColumn(keyPredsByCol);
+	  partKey->getKeyPredicatesByColumn(keyPredsByCol);
 
           ULng32 keyColsCoveredByNJPredOrConst = 0;
 	  ULng32 keyColsCoveredByConst = 0;
@@ -13775,7 +13777,7 @@ PhysicalProperty * RelExpr::synthDP2PhysicalProperty(
   computeDP2CostDataThatDependsOnSPP(*physicalPartFunc // in/out
                                      ,dp2CostInfo //out
                                      ,*indexDesc // in
-                                     ,*partSearchKey // in
+                                     ,partSearchKey // in
                                      ,*getGroupAttr() //in
                                      ,*myContext // in
                                      ,CmpCommon::statementHeap() // in
@@ -14543,7 +14545,7 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
 
     // adjust minESPs based on HIVE_MIN_BYTES_PER_ESP_PARTITION CQD
     if (bytesPerESP > 1.01) {
-      Int64 totalSize = hiveSearchKey_->getTotalSize();
+      Int64 totalSize = hiveSearchKey_->getTotalSize(); // TBD: exclude eliminated partitions
       numESPsBasedOnTotalSize = totalSize/(bytesPerESP-1.0);
     }
 
@@ -14619,8 +14621,8 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   NodeMap* myNodeMap = NULL;
 
   //
-  // Setup partKeys_, iff the hive table is clustered, sorted and in ORC format, or
-  // indexKey is present. In the frst case, the tables are created with the DDL 
+  // Setup partKeys_, iff the hive table is clustered and in ORC format, or
+  // indexKey is present. In the first case, the tables are created with the DDL 
   // similar to the following.
   //
   // create table store_sorted_orc
@@ -14631,19 +14633,12 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   // )
   // clustered by (s_store_sk) sorted by (s_store_sk, s_rec_start_date, s_rec_end_date) into 2 buckets;
   //
-  // Note that the clustered and the sorted by clause must appear together.
-  //
-  // We require ORC tables because it is possible to implement the search key through 
-  // ORC predicate pushdown.
+  // Note that the sorted by clause is only allowed together with the clustered by clause.
   //
   // Inside the compiler, 
   //     clustering columns: IndexDesc::getPartitioningKey()
-  //     sorted columns:     Indexdesc::getIndexKey()
+  //     sorted columns:     Indexdesc::getHiveSortKey()
   //
-  //NABoolean canUseSearchKey =  indexDesc_->isSortedORCHive() ;
-
-  NABoolean canUseSearchKey = ( indexDesc_->isSortedORCHive() ||
-                                indexDesc_->getIndexKey().entries() > 0 );
 
   const RequireReplicateNoBroadcast* rpnb = NULL;
   // If the requirement is repN, produce a repN partition func to satisfy it.
@@ -14716,21 +14711,22 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
 
       myPartFunc->createPartitioningKeyPredicates();
 
-      if ( canUseSearchKey ) {
+      if (indexDesc_->getPartitioningKey().entries() > 0) {
           ValueIdSet externalInputs = getGroupAttr()->getCharacteristicInputs();
           ValueIdSet dummySet;
   
-          // Create and set the Searchkey for the index key (aka those columns in the sorted by clause):
-           partKeys_ =  new (CmpCommon::statementHeap())
-                           SearchKey(indexDesc_->getIndexKey(), 
-                                      indexDesc_->getOrderOfKeyValues(), // the order of the index key
-                                      externalInputs,
-                                      NOT getReverseScan(),
-                                      selectionPred(),
-                                      *disjunctsPtr_,
-                                      dummySet, // needed by interface but not used here
-                                      indexDesc_
-                                      );
+          // Create and set the Searchkey for the partitioning key
+          // (aka those columns in the CLUSTERED BY clause):
+          partKeys_ =  new (CmpCommon::statementHeap())
+                           SearchKey(indexDesc_->getPartitioningKey(), 
+                                     indexDesc_->getOrderOfPartitioningKeyValues(),
+                                     externalInputs,
+                                     NOT getReverseScan(),
+                                     selectionPred(),
+                                     *disjunctsPtr_,
+                                     dummySet, // needed by interface but not used here
+                                     indexDesc_
+                                     );
       }
     }
   else
@@ -14744,61 +14740,47 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
         SinglePartitionPartitioningFunction(myNodeMap);
     }
 
+  sppForMe =
+    new(CmpCommon::statementHeap())
+    PhysicalProperty(sortOrderVEG,
+                     ESP_NO_SORT_SOT,
+                     NULL, /* no dp2 part func*/
+                     myPartFunc,
+                     EXECUTE_IN_MASTER_AND_ESP,
+                     SOURCE_VIRTUAL_TABLE);
 
-  if ( !canUseSearchKey ) {
-     // create a very simple physical property for now, no sort order
-     // and no partitioning key for now
-     sppForMe = new(CmpCommon::statementHeap()) PhysicalProperty(myPartFunc,
-                                                                 location);
-  } else {
-     sppForMe =
-       new(CmpCommon::statementHeap())
-       PhysicalProperty(sortOrderVEG,
-                        ESP_NO_SORT_SOT,
-                        NULL, /* no dp2 part func*/
-                        myPartFunc,
-                        EXECUTE_IN_MASTER_AND_ESP,
-                        SOURCE_VIRTUAL_TABLE);
+  // remove anything that's not covered by the group attributes
+  sppForMe->enforceCoverageByGroupAttributes (getGroupAttr()) ;
+ 
+  // -----------------------------------------------------------------------
+  // Vector to put all costing data that is computed at synthesis time
+  // Make it a local variable for now. If we ever reach the end of
+  // this routine create a variable from the heap, initialize it with this,
+  // and then set the sppForMe slot.
+  // -----------------------------------------------------------------------
+  DP2CostDataThatDependsOnSPP dp2CostInfo;
+  // ---------------------------------------------------------------------
+  // Estimate the number of active partitions and other costing
+  // data that depends on SPP:
+  // ---------------------------------------------------------------------
+ 
+  computeDP2CostDataThatDependsOnSPP(*myPartFunc   // in/out
+                                     ,dp2CostInfo //out
+                                     ,*indexDesc_ // in
+                                     ,partKeys_ // in
+                                     ,*getGroupAttr() //in
+                                     ,*context // in
+                                     ,CmpCommon::statementHeap() // in
+                                     , *this
+                                     );
 
-
-     // remove anything that's not covered by the group attributes
-     sppForMe->enforceCoverageByGroupAttributes (getGroupAttr()) ;
+  DP2CostDataThatDependsOnSPP *dp2CostInfoPtr =
+    new HEAP DP2CostDataThatDependsOnSPP(dp2CostInfo);
+  sppForMe->setDP2CostThatDependsOnSPP(dp2CostInfoPtr);
+ 
+  sppForMe->setCurrentCountOfCPUs(dp2CostInfo.getCountOfCPUsExecutingDP2s());
    
-     // -----------------------------------------------------------------------
-     // Vector to put all costing data that is computed at synthesis time
-     // Make it a local variable for now. If we ever reach the end of
-     // this routine create a variable from the heap, initialize it with this,
-     // and then set the sppForMe slot.
-     // -----------------------------------------------------------------------
-     DP2CostDataThatDependsOnSPP dp2CostInfo;
-     // ---------------------------------------------------------------------
-     // Estimate the number of active partitions and other costing
-     // data that depends on SPP:
-     // ---------------------------------------------------------------------
-   
-     computeDP2CostDataThatDependsOnSPP(*myPartFunc   // in/out
-                                        ,dp2CostInfo //out
-                                        ,*indexDesc_ // in
-                                        ,*partKeys_ // in
-                                        ,*getGroupAttr() //in
-                                        ,*context // in
-                                        ,CmpCommon::statementHeap() // in
-                                        , *this
-                                        );
-   
-     DP2CostDataThatDependsOnSPP *dp2CostInfoPtr =
-       new HEAP DP2CostDataThatDependsOnSPP(dp2CostInfo);
-     sppForMe->setDP2CostThatDependsOnSPP(dp2CostInfoPtr);
-   
-     sppForMe->setCurrentCountOfCPUs(dp2CostInfo.getCountOfCPUsExecutingDP2s());
-   
-   
-     //FILE* fd = fopen("nodemap.log", "a");
-     //myNodeMap->print(fd, "", "hiveNodeMap");
-     //fclose(fd);
-   }
-   
-   return sppForMe;
+  return sppForMe;
 }
 
 RangePartitionBoundaries * createRangePartitionBoundariesFromStats 
@@ -15250,7 +15232,7 @@ PhysicalProperty * FileScan::synthHbaseScanPhysicalProperty(
   computeDP2CostDataThatDependsOnSPP(*myPartFunc   // in/out
                                      ,dp2CostInfo //out
                                      ,*indexDesc_ // in
-                                     ,*partKeys_ // in
+                                     ,partKeys_ // in
                                      ,*getGroupAttr() //in
                                      ,*context // in
                                      ,CmpCommon::statementHeap() // in
@@ -15348,8 +15330,7 @@ FileScan::synthPhysicalProperty(const Context* myContext,
   // Note on sort order for Hive tables:
   //
   // If the Hive table key is (INPUT__RANGE__NUMBER, ROW__NUMBER__IN__RANGE)
-  // then we can consider the key as sorted. This still has to be implemented
-  // for ORC tables.
+  // then we can consider the key as sorted.
   //
   // We could use also use sort orders, if the following conditions are met
   // (this is still TBD, could be done in synthHiveScanPhysicalProperty()):

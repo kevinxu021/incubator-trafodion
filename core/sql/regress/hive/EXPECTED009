@@ -663,10 +663,6 @@ DESCRIPTION
   probes ................. 1
   rows_accessed .......... 2.92064e+06
   executor_predicates .... (HIVE.STORE_SALES.SS_ITEM_SK = %(1))
-  begin_key .............. (HIVE.STORE_SALES.INPUT__RANGE__NUMBER = <min>),
-                             (HIVE.STORE_SALES.ROW__NUMBER__IN__RANGE = <min>)
-  end_key ................ (HIVE.STORE_SALES.INPUT__RANGE__NUMBER = <max>),
-                             (HIVE.STORE_SALES.ROW__NUMBER__IN__RANGE = <max>)
 
 --- SQL operation complete.
 >>
@@ -816,10 +812,6 @@ DESCRIPTION
   rows_accessed .......... 3.06209e+11
   executor_predicates .... (HIVE.STORE_SALES.SS_ITEM_SK =
                              HIVE.CUSTOMER.C_CUSTOMER_SK)
-  begin_key .............. (HIVE.STORE_SALES.INPUT__RANGE__NUMBER = <min>),
-                             (HIVE.STORE_SALES.ROW__NUMBER__IN__RANGE = <min>)
-  end_key ................ (HIVE.STORE_SALES.INPUT__RANGE__NUMBER = <max>),
-                             (HIVE.STORE_SALES.ROW__NUMBER__IN__RANGE = <max>)
 
 
 HIVE_SCAN =================================  SEQ_NO 1        NO CHILDREN
@@ -842,10 +834,6 @@ DESCRIPTION
   probes ................. 1
   rows_accessed .... 104,843
   executor_predicates .... HIVE.CUSTOMER.C_CUSTOMER_SK is not null
-  begin_key .............. (HIVE.CUSTOMER.INPUT__RANGE__NUMBER = <min>),
-                             (HIVE.CUSTOMER.ROW__NUMBER__IN__RANGE = <min>)
-  end_key ................ (HIVE.CUSTOMER.INPUT__RANGE__NUMBER = <max>),
-                             (HIVE.CUSTOMER.ROW__NUMBER__IN__RANGE = <max>)
 
 --- SQL operation complete.
 >>
@@ -1091,12 +1079,14 @@ DESCRIPTION
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
-  scan_type .............. subset scan of table HIVE.HIVE.DATE_DIM
+  scan_type .............. full scan of table HIVE.HIVE.DATE_DIM
   object_type ............ Hive_Text
   scan_direction ......... forward
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
   columns_retrieved ..... 32
+  probes ................. 1
+  rows_accessed ..... 80,604
   executor_predicates .... (HIVE.DATE_DIM.D_DATE = %(2016-01-27))
 
 --- SQL operation complete.
@@ -1325,12 +1315,14 @@ DESCRIPTION
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
-  scan_type .............. subset scan of table HIVE.HIVE.DATE_DIM
+  scan_type .............. full scan of table HIVE.HIVE.DATE_DIM
   object_type ............ Hive_Text
   scan_direction ......... forward
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
   columns_retrieved ..... 32
+  probes ................. 1
+  rows_accessed ..... 80,604
   executor_predicates .... (HIVE.DATE_DIM.D_DATE = %(2016-01-27))
 
 --- SQL operation complete.

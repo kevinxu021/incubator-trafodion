@@ -264,7 +264,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 5136
+explain_plan_size = 2792
 
 # of Expressions = 4
 
@@ -399,7 +399,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 5136
+explain_plan_size = 2784
 
 # of Expressions = 4
 
@@ -552,7 +552,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 5232
+explain_plan_size = 2888
 
 # of Expressions = 4
 
@@ -568,7 +568,7 @@ Class Version = 1, Class Size = 440
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 32840
-estimatedRowUsed = 10, estimatedRowsAccessed = 10, expressionMode = 0
+estimatedRowUsed = 100, estimatedRowsAccessed = 100, expressionMode = 0
 Flag = 0000000000001001
 
 For ComTdbOrcScan :
@@ -685,7 +685,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 5320
+explain_plan_size = 2984
 
 # of Expressions = 4
 
@@ -701,7 +701,7 @@ Class Version = 1, Class Size = 440
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 32840
-estimatedRowUsed = 10, estimatedRowsAccessed = 10, expressionMode = 0
+estimatedRowUsed = 100, estimatedRowsAccessed = 100, expressionMode = 0
 Flag = 0000000000001001
 
 For ComTdbOrcScan :
@@ -1011,13 +1011,6 @@ NUM_HITS    NUM_PARAMS
   , SS_NET_PAID_INC_TAX              REAL
   , SS_NET_PROFIT                    REAL
   )
-  PRIMARY KEY (SS_SOLD_DATE_SK ASC, SS_SOLD_TIME_SK ASC, SS_ITEM_SK ASC,
-    SS_CUSTOMER_SK ASC, SS_CDEMO_SK ASC, SS_HDEMO_SK ASC, SS_ADDR_SK ASC,
-    SS_STORE_SK ASC, SS_PROMO_SK ASC, SS_TICKET_NUMBER ASC, SS_QUANTITY ASC,
-    SS_WHOLESALE_COST ASC, SS_LIST_PRICE ASC, SS_SALES_PRICE ASC,
-    SS_EXT_DISCOUNT_AMT ASC, SS_EXT_SALES_PRICE ASC, SS_EXT_WHOLESALE_COST ASC,
-    SS_EXT_LIST_PRICE ASC, SS_EXT_TAX ASC, SS_COUPON_AMT ASC, SS_NET_PAID ASC,
-    SS_NET_PAID_INC_TAX ASC, SS_NET_PROFIT ASC)
   /* stored as orc */
 
 --- SQL operation complete.
@@ -1129,7 +1122,7 @@ DESCRIPTION
   fragment_id ............ 2
   parent_frag ............ 0
   fragment_type .......... esp
-  scan_type .............. subset scan of table HIVE.HIVE.STORE_SALES_ORC
+  scan_type .............. full scan of table HIVE.HIVE.STORE_SALES_ORC
   object_type ............ Hive_Orc
   scan_direction ......... forward
   lock_mode .............. not specified, defaulted to lock cursor
@@ -1140,55 +1133,6 @@ DESCRIPTION
   orc_pred_pushdown ...... yes
   orc_search_arguments ... and( HIVE.STORE_SALES_ORC.SS_ITEM_SK = cast(%(1)) )
   executor_predicates .... (HIVE.STORE_SALES_ORC.SS_ITEM_SK = %(1))
-  part_key_predicates .... (SS_ITEM_SK = %(1))
-  begin_key .............. (HIVE.STORE_SALES_ORC.SS_SOLD_DATE_SK = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_SOLD_TIME_SK = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_ITEM_SK = %(1)),
-                             (HIVE.STORE_SALES_ORC.SS_CUSTOMER_SK = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_CDEMO_SK = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_HDEMO_SK = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_ADDR_SK = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_STORE_SK = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_PROMO_SK = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_TICKET_NUMBER = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_QUANTITY = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_WHOLESALE_COST = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_LIST_PRICE = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_SALES_PRICE = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_EXT_DISCOUNT_AMT =
-                             <min>), (HIVE.STORE_SALES_ORC.SS_EXT_SALES_PRICE =
-                             <min>), (HIVE.STORE_SALES_ORC.SS_EXT_WHOLESALE_COS
-                             T = <min>), (HIVE.STORE_SALES_ORC.SS_EXT_LIST_PRIC
-                             E = <min>), (HIVE.STORE_SALES_ORC.SS_EXT_TAX =
-                             <min>), (HIVE.STORE_SALES_ORC.SS_COUPON_AMT =
-                             <min>), (HIVE.STORE_SALES_ORC.SS_NET_PAID =
-                             <min>), (HIVE.STORE_SALES_ORC.SS_NET_PAID_INC_TAX
-                             = <min>), (HIVE.STORE_SALES_ORC.SS_NET_PROFIT =
-                             <min>)
-  end_key ................ (HIVE.STORE_SALES_ORC.SS_SOLD_DATE_SK = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_SOLD_TIME_SK = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_ITEM_SK = %(1)),
-                             (HIVE.STORE_SALES_ORC.SS_CUSTOMER_SK = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_CDEMO_SK = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_HDEMO_SK = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_ADDR_SK = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_STORE_SK = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_PROMO_SK = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_TICKET_NUMBER = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_QUANTITY = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_WHOLESALE_COST = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_LIST_PRICE = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_SALES_PRICE = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_EXT_DISCOUNT_AMT =
-                             <max>), (HIVE.STORE_SALES_ORC.SS_EXT_SALES_PRICE =
-                             <max>), (HIVE.STORE_SALES_ORC.SS_EXT_WHOLESALE_COS
-                             T = <max>), (HIVE.STORE_SALES_ORC.SS_EXT_LIST_PRIC
-                             E = <max>), (HIVE.STORE_SALES_ORC.SS_EXT_TAX =
-                             <max>), (HIVE.STORE_SALES_ORC.SS_COUPON_AMT =
-                             <max>), (HIVE.STORE_SALES_ORC.SS_NET_PAID =
-                             <max>), (HIVE.STORE_SALES_ORC.SS_NET_PAID_INC_TAX
-                             = <max>), (HIVE.STORE_SALES_ORC.SS_NET_PROFIT =
-                             <max>)
 
 --- SQL operation complete.
 >>
@@ -1331,7 +1275,7 @@ DESCRIPTION
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
-  scan_type .............. subset scan of table HIVE.HIVE.STORE_SALES_ORC
+  scan_type .............. full scan of table HIVE.HIVE.STORE_SALES_ORC
   object_type ............ Hive_Orc
   scan_direction ......... forward
   lock_mode .............. not specified, defaulted to lock cursor
@@ -1347,56 +1291,6 @@ DESCRIPTION
                              cast(HIVE.CUSTOMER_ORC.C_CUSTOMER_SK) )
   executor_predicates .... (HIVE.STORE_SALES_ORC.SS_ITEM_SK =
                              HIVE.CUSTOMER_ORC.C_CUSTOMER_SK)
-  begin_key .............. (HIVE.STORE_SALES_ORC.SS_SOLD_DATE_SK = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_SOLD_TIME_SK = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_ITEM_SK =
-                             HIVE.CUSTOMER_ORC.C_CUSTOMER_SK),
-                             (HIVE.STORE_SALES_ORC.SS_CUSTOMER_SK = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_CDEMO_SK = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_HDEMO_SK = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_ADDR_SK = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_STORE_SK = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_PROMO_SK = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_TICKET_NUMBER = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_QUANTITY = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_WHOLESALE_COST = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_LIST_PRICE = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_SALES_PRICE = <min>),
-                             (HIVE.STORE_SALES_ORC.SS_EXT_DISCOUNT_AMT =
-                             <min>), (HIVE.STORE_SALES_ORC.SS_EXT_SALES_PRICE =
-                             <min>), (HIVE.STORE_SALES_ORC.SS_EXT_WHOLESALE_COS
-                             T = <min>), (HIVE.STORE_SALES_ORC.SS_EXT_LIST_PRIC
-                             E = <min>), (HIVE.STORE_SALES_ORC.SS_EXT_TAX =
-                             <min>), (HIVE.STORE_SALES_ORC.SS_COUPON_AMT =
-                             <min>), (HIVE.STORE_SALES_ORC.SS_NET_PAID =
-                             <min>), (HIVE.STORE_SALES_ORC.SS_NET_PAID_INC_TAX
-                             = <min>), (HIVE.STORE_SALES_ORC.SS_NET_PROFIT =
-                             <min>)
-  end_key ................ (HIVE.STORE_SALES_ORC.SS_SOLD_DATE_SK = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_SOLD_TIME_SK = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_ITEM_SK =
-                             HIVE.CUSTOMER_ORC.C_CUSTOMER_SK),
-                             (HIVE.STORE_SALES_ORC.SS_CUSTOMER_SK = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_CDEMO_SK = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_HDEMO_SK = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_ADDR_SK = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_STORE_SK = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_PROMO_SK = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_TICKET_NUMBER = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_QUANTITY = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_WHOLESALE_COST = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_LIST_PRICE = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_SALES_PRICE = <max>),
-                             (HIVE.STORE_SALES_ORC.SS_EXT_DISCOUNT_AMT =
-                             <max>), (HIVE.STORE_SALES_ORC.SS_EXT_SALES_PRICE =
-                             <max>), (HIVE.STORE_SALES_ORC.SS_EXT_WHOLESALE_COS
-                             T = <max>), (HIVE.STORE_SALES_ORC.SS_EXT_LIST_PRIC
-                             E = <max>), (HIVE.STORE_SALES_ORC.SS_EXT_TAX =
-                             <max>), (HIVE.STORE_SALES_ORC.SS_COUPON_AMT =
-                             <max>), (HIVE.STORE_SALES_ORC.SS_NET_PAID =
-                             <max>), (HIVE.STORE_SALES_ORC.SS_NET_PAID_INC_TAX
-                             = <max>), (HIVE.STORE_SALES_ORC.SS_NET_PROFIT =
-                             <max>)
 
 
 ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
@@ -1422,42 +1316,6 @@ DESCRIPTION
   orc_search_arguments ... and( not( HIVE.CUSTOMER_ORC.C_CUSTOMER_SK is null )
                              )
   executor_predicates .... HIVE.CUSTOMER_ORC.C_CUSTOMER_SK is not null
-  begin_key .............. (HIVE.CUSTOMER_ORC.C_CUSTOMER_SK = <min>),
-                             (HIVE.CUSTOMER_ORC.C_CUSTOMER_ID = '<min>'),
-                             (HIVE.CUSTOMER_ORC.C_CURRENT_CDEMO_SK = <min>),
-                             (HIVE.CUSTOMER_ORC.C_CURRENT_HDEMO_SK = <min>),
-                             (HIVE.CUSTOMER_ORC.C_CURRENT_ADDR_SK = <min>),
-                             (HIVE.CUSTOMER_ORC.C_FIRST_SHIPTO_DATE_SK =
-                             <min>), (HIVE.CUSTOMER_ORC.C_FIRST_SALES_DATE_SK =
-                             <min>), (HIVE.CUSTOMER_ORC.C_SALUTATION =
-                             '<min>'), (HIVE.CUSTOMER_ORC.C_FIRST_NAME =
-                             '<min>'), (HIVE.CUSTOMER_ORC.C_LAST_NAME =
-                             '<min>'), (HIVE.CUSTOMER_ORC.C_PREFERRED_CUST_FLAG
-                             = '<min>'), (HIVE.CUSTOMER_ORC.C_BIRTH_DAY =
-                             <min>), (HIVE.CUSTOMER_ORC.C_BIRTH_MONTH = <min>),
-                             (HIVE.CUSTOMER_ORC.C_BIRTH_YEAR = <min>),
-                             (HIVE.CUSTOMER_ORC.C_BIRTH_COUNTRY = '<min>'),
-                             (HIVE.CUSTOMER_ORC.C_LOGIN = '<min>'),
-                             (HIVE.CUSTOMER_ORC.C_EMAIL_ADDRESS = '<min>'),
-                             (HIVE.CUSTOMER_ORC.C_LAST_REVIEW_DATE = '<min>')
-  end_key ................ (HIVE.CUSTOMER_ORC.C_CUSTOMER_SK = <max>),
-                             (HIVE.CUSTOMER_ORC.C_CUSTOMER_ID = '<max>'),
-                             (HIVE.CUSTOMER_ORC.C_CURRENT_CDEMO_SK = <max>),
-                             (HIVE.CUSTOMER_ORC.C_CURRENT_HDEMO_SK = <max>),
-                             (HIVE.CUSTOMER_ORC.C_CURRENT_ADDR_SK = <max>),
-                             (HIVE.CUSTOMER_ORC.C_FIRST_SHIPTO_DATE_SK =
-                             <max>), (HIVE.CUSTOMER_ORC.C_FIRST_SALES_DATE_SK =
-                             <max>), (HIVE.CUSTOMER_ORC.C_SALUTATION =
-                             '<max>'), (HIVE.CUSTOMER_ORC.C_FIRST_NAME =
-                             '<max>'), (HIVE.CUSTOMER_ORC.C_LAST_NAME =
-                             '<max>'), (HIVE.CUSTOMER_ORC.C_PREFERRED_CUST_FLAG
-                             = '<max>'), (HIVE.CUSTOMER_ORC.C_BIRTH_DAY =
-                             <max>), (HIVE.CUSTOMER_ORC.C_BIRTH_MONTH = <max>),
-                             (HIVE.CUSTOMER_ORC.C_BIRTH_YEAR = <max>),
-                             (HIVE.CUSTOMER_ORC.C_BIRTH_COUNTRY = '<max>'),
-                             (HIVE.CUSTOMER_ORC.C_LOGIN = '<max>'),
-                             (HIVE.CUSTOMER_ORC.C_EMAIL_ADDRESS = '<max>'),
-                             (HIVE.CUSTOMER_ORC.C_LAST_REVIEW_DATE = '<max>')
 
 --- SQL operation complete.
 >>cqd orc_njs reset;
@@ -1687,7 +1545,7 @@ MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
 PLAN_ID .................. 212336113496198852
 ROWS_OUT ............... 271
-EST_TOTAL_COST ........... 0.01
+EST_TOTAL_COST ........... 8.5
 STATEMENT ................ select *
                            from hive.hive.date_dim_orc
                            where d_date = date '2016-01-27';
@@ -1698,7 +1556,7 @@ ROOT ======================================  SEQ_NO 2        ONLY CHILD 1
 REQUESTS_IN .............. 1
 ROWS_OUT ............... 271
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 0.01
+EST_TOTAL_COST ........... 8.5
 DESCRIPTION
   max_card_est ...... 69,394.7
   fragment_id ............ 0
@@ -1757,19 +1615,21 @@ ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.DATE_DIM_ORC
 REQUESTS_IN .............. 1
 ROWS_OUT ............... 271
-EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 0.01
+EST_OPER_COST ............ 8.5
+EST_TOTAL_COST ........... 8.5
 DESCRIPTION
   max_card_est ...... 69,394.7
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
-  scan_type .............. subset scan of table HIVE.HIVE.DATE_DIM_ORC
+  scan_type .............. full scan of table HIVE.HIVE.DATE_DIM_ORC
   object_type ............ Hive_Orc
   scan_direction ......... forward
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
   columns_retrieved ..... 32
+  probes ................. 1
+  rows_accessed ..... 73,046
   orc_pred_pushdown ...... yes
   orc_search_arguments ... and( HIVE.DATE_DIM_ORC.D_DATE = cast(%(2016-01-27))
                              )
@@ -1929,7 +1789,7 @@ MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
 PLAN_ID .................. 212336113505635025
 ROWS_OUT ............... 271
-EST_TOTAL_COST ........... 0.01
+EST_TOTAL_COST ........... 2.57
 STATEMENT ................ select *
                            from hive.hive.date_dim_orc
                            where d_date = date '2016-01-27';
@@ -1940,7 +1800,7 @@ ROOT ======================================  SEQ_NO 2        ONLY CHILD 1
 REQUESTS_IN .............. 1
 ROWS_OUT ............... 271
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 0.01
+EST_TOTAL_COST ........... 2.57
 DESCRIPTION
   max_card_est ...... 69,394.7
   fragment_id ............ 0
@@ -1999,19 +1859,21 @@ ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.DATE_DIM_ORC
 REQUESTS_IN .............. 1
 ROWS_OUT ............... 271
-EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 0.01
+EST_OPER_COST ............ 2.57
+EST_TOTAL_COST ........... 2.57
 DESCRIPTION
   max_card_est ...... 69,394.7
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
-  scan_type .............. subset scan of table HIVE.HIVE.DATE_DIM_ORC
+  scan_type .............. full scan of table HIVE.HIVE.DATE_DIM_ORC
   object_type ............ Hive_Orc
   scan_direction ......... forward
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
   columns_retrieved ..... 32
+  probes ................. 1
+  rows_accessed ..... 73,046
   orc_pred_pushdown ...... yes
   orc_search_arguments ... and( HIVE.DATE_DIM_ORC.D_DATE = cast(%(2016-01-27))
                              )
@@ -2100,12 +1962,10 @@ DESCRIPTION
 +>         from table (explain(NULL,'XX'))
 +>where position('orc_search_arguments' in description)  > 0 ;
 
-*** WARNING[8402] A string overflow occurred during the evaluation of a character expression.
-
 (EXPR)
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK is null ) not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK <cast(cast(case(if_then_else((\:_sys_MinVal0 is null or (\:_sys_MinVal1 > \:_sys_MinVal0)), \:_sys_MinVal1, \:_sys_MinVal0)))) ) HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK <= cast(cast(case(if_then_else((\:_sys_MaxVal0 is null or (\:_sys_MaxVal1 < \:_sys_MaxVal0)), \:_sys_MaxVal1, 
+orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK is null ) not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK <cast(\:_sys_MinVal0) ) HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK <= cast(\:_sys_MaxVal0) not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK <cast(\:_sys_MinVal1) ) HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK <= cast(\:_sys_MaxVal1) )                                                             
 
 --- 1 row(s) selected.
 >>
@@ -2289,7 +2149,7 @@ DESCRIPTION
   columns_retrieved ..... 27
   probes ................. 1
   rows_accessed .......... 2.88039e+06
-  min_max_hashj_cols ..... HIVE.HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK
+  min_max_hashj_cols ..... HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK
   orc_pred_pushdown ...... yes
   orc_search_arguments ... and( not( HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_S
                              K is null ) not( HIVE.STORE_SALES_SORTED_ORC.SS_SO
@@ -2298,60 +2158,6 @@ DESCRIPTION
                              cast(\:_sys_MaxVal0) )
   executor_predicates .... HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK is not
                              null
-  begin_key .............. (HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK =
-                             \:_sys_MinVal0), (HIVE.STORE_SALES_SORTED_ORC.SS_S
-                             OLD_TIME_SK = <min>), (HIVE.STORE_SALES_SORTED_ORC
-                             .SS_ITEM_SK = <min>), (HIVE.STORE_SALES_SORTED_ORC
-                             .SS_CUSTOMER_SK = <min>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_CDEMO_SK = <min>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_HDEMO_SK = <min>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_ADDR_SK = <min>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_STORE_SK = <min>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_PROMO_SK = <min>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_TICKET_NUMBER =
-                             <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_QUANTITY =
-                             <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_WHOLESALE_
-                             COST = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_LIS
-                             T_PRICE = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_
-                             SALES_PRICE = <min>), (HIVE.STORE_SALES_SORTED_ORC
-                             .SS_EXT_DISCOUNT_AMT = <min>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_SALES_PRICE =
-                             <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_WHOLES
-                             ALE_COST = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS
-                             _EXT_LIST_PRICE = <min>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_TAX = <min>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_COUPON_AMT =
-                             <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_NET_PAID =
-                             <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_NET_PAID_I
-                             NC_TAX = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_N
-                             ET_PROFIT = <min>)
-  end_key ................ (HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK =
-                             \:_sys_MaxVal0), (HIVE.STORE_SALES_SORTED_ORC.SS_S
-                             OLD_TIME_SK = <max>), (HIVE.STORE_SALES_SORTED_ORC
-                             .SS_ITEM_SK = <max>), (HIVE.STORE_SALES_SORTED_ORC
-                             .SS_CUSTOMER_SK = <max>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_CDEMO_SK = <max>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_HDEMO_SK = <max>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_ADDR_SK = <max>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_STORE_SK = <max>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_PROMO_SK = <max>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_TICKET_NUMBER =
-                             <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_QUANTITY =
-                             <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_WHOLESALE_
-                             COST = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_LIS
-                             T_PRICE = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_
-                             SALES_PRICE = <max>), (HIVE.STORE_SALES_SORTED_ORC
-                             .SS_EXT_DISCOUNT_AMT = <max>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_SALES_PRICE =
-                             <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_WHOLES
-                             ALE_COST = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS
-                             _EXT_LIST_PRICE = <max>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_TAX = <max>),
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_COUPON_AMT =
-                             <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_NET_PAID =
-                             <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_NET_PAID_I
-                             NC_TAX = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_N
-                             ET_PROFIT = <max>)
 
 
 ESP_EXCHANGE ==============================  SEQ_NO 2        ONLY CHILD 1
@@ -2385,7 +2191,7 @@ DESCRIPTION
   fragment_id ............ 3
   parent_frag ............ 2
   fragment_type .......... esp
-  scan_type .............. subset scan of table HIVE.HIVE.CUSTOMER_ORC
+  scan_type .............. full scan of table HIVE.HIVE.CUSTOMER_ORC
   object_type ............ Hive_Orc
   scan_direction ......... forward
   lock_mode .............. not specified, defaulted to lock cursor
@@ -2399,42 +2205,6 @@ DESCRIPTION
                              null ) )
   executor_predicates .... (HIVE.CUSTOMER_ORC.C_FIRST_SALES_DATE_SK = %(4)) and
                              HIVE.CUSTOMER_ORC.C_CUSTOMER_SK is not null
-  begin_key .............. (HIVE.CUSTOMER_ORC.C_CUSTOMER_SK = <min>),
-                             (HIVE.CUSTOMER_ORC.C_CUSTOMER_ID = '<min>'),
-                             (HIVE.CUSTOMER_ORC.C_CURRENT_CDEMO_SK = <min>),
-                             (HIVE.CUSTOMER_ORC.C_CURRENT_HDEMO_SK = <min>),
-                             (HIVE.CUSTOMER_ORC.C_CURRENT_ADDR_SK = <min>),
-                             (HIVE.CUSTOMER_ORC.C_FIRST_SHIPTO_DATE_SK =
-                             <min>), (HIVE.CUSTOMER_ORC.C_FIRST_SALES_DATE_SK =
-                             %(4)), (HIVE.CUSTOMER_ORC.C_SALUTATION = '<min>'),
-                             (HIVE.CUSTOMER_ORC.C_FIRST_NAME = '<min>'),
-                             (HIVE.CUSTOMER_ORC.C_LAST_NAME = '<min>'),
-                             (HIVE.CUSTOMER_ORC.C_PREFERRED_CUST_FLAG =
-                             '<min>'), (HIVE.CUSTOMER_ORC.C_BIRTH_DAY = <min>),
-                             (HIVE.CUSTOMER_ORC.C_BIRTH_MONTH = <min>),
-                             (HIVE.CUSTOMER_ORC.C_BIRTH_YEAR = <min>),
-                             (HIVE.CUSTOMER_ORC.C_BIRTH_COUNTRY = '<min>'),
-                             (HIVE.CUSTOMER_ORC.C_LOGIN = '<min>'),
-                             (HIVE.CUSTOMER_ORC.C_EMAIL_ADDRESS = '<min>'),
-                             (HIVE.CUSTOMER_ORC.C_LAST_REVIEW_DATE = '<min>')
-  end_key ................ (HIVE.CUSTOMER_ORC.C_CUSTOMER_SK = <max>),
-                             (HIVE.CUSTOMER_ORC.C_CUSTOMER_ID = '<max>'),
-                             (HIVE.CUSTOMER_ORC.C_CURRENT_CDEMO_SK = <max>),
-                             (HIVE.CUSTOMER_ORC.C_CURRENT_HDEMO_SK = <max>),
-                             (HIVE.CUSTOMER_ORC.C_CURRENT_ADDR_SK = <max>),
-                             (HIVE.CUSTOMER_ORC.C_FIRST_SHIPTO_DATE_SK =
-                             <max>), (HIVE.CUSTOMER_ORC.C_FIRST_SALES_DATE_SK =
-                             %(4)), (HIVE.CUSTOMER_ORC.C_SALUTATION = '<max>'),
-                             (HIVE.CUSTOMER_ORC.C_FIRST_NAME = '<max>'),
-                             (HIVE.CUSTOMER_ORC.C_LAST_NAME = '<max>'),
-                             (HIVE.CUSTOMER_ORC.C_PREFERRED_CUST_FLAG =
-                             '<max>'), (HIVE.CUSTOMER_ORC.C_BIRTH_DAY = <max>),
-                             (HIVE.CUSTOMER_ORC.C_BIRTH_MONTH = <max>),
-                             (HIVE.CUSTOMER_ORC.C_BIRTH_YEAR = <max>),
-                             (HIVE.CUSTOMER_ORC.C_BIRTH_COUNTRY = '<max>'),
-                             (HIVE.CUSTOMER_ORC.C_LOGIN = '<max>'),
-                             (HIVE.CUSTOMER_ORC.C_EMAIL_ADDRESS = '<max>'),
-                             (HIVE.CUSTOMER_ORC.C_LAST_REVIEW_DATE = '<max>')
 
 --- SQL operation complete.
 >>explain options 'f' xx;
@@ -2534,7 +2304,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 
 3    .    4    root                                                  1.00E+000
 2    .    3    sort_scalar_aggr                                      1.00E+000
-1    .    2    hash_groupby                                          1.44E+005
+1    .    2    hash_groupby                                          2.88E+006
 .    .    1    orc_scan                        STORE2_SALES_ORC      2.88E+006
 
 --- SQL operation complete.

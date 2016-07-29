@@ -238,7 +238,7 @@ node_count=$(echo $NODE_LIST | wc -w)
 
 
 #==============================================
-#Elasticity
+#Elasticity 
 echo -n "Enable elasticity (Y/N), default is N: "
 read answer
 if [[ "${answer}" =~ ^[Yy]$ ]]; then
@@ -300,12 +300,12 @@ echo "export HOME_DIR=\"$HOME_DIR\"" >> $LOCAL_TRAF_CONFIG
 #==============================================
 #Check location given for Java 65 or greater
 
-echo -n "Specify location of Java 1.7.0_65 or higher (JDK), default is [$JAVA_HOME]: "
+echo -n "Specify location of Java (JDK) (Example: /usr/java/jdk1.8) , default is [$JAVA_HOME]: "
 read answer
 
 if [ -z $answer ]; then
       if [ -z $JAVA_HOME ]; then
-         echo "***ERROR: Must specify location of Java 1.7.0_65 or higher (JDK)."
+         echo "***ERROR: Must specify location of Java (JDK)."
          exit -1
       fi
 else

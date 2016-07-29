@@ -58,6 +58,9 @@ PORT=`echo $URL | sed 's/.*://'`
 AMBARI_HOST=$(echo $URL | sed 's@.*://@@' | sed 's@:.*@@')
 HDFS_NODE=$(echo $HDFS_NODES | head -n1 | awk '{print $1;}')
 HBASE_NODE=$(echo $HBASE_NODES | head -n1 | awk '{print $1;}')
+echo "export AMBARI_HOST=\"$AMBARI_HOST\"" >> $TRAF_CONFIG
+echo "export HDFS_NODE=\"$HDFS_NODE\"" >> $TRAF_CONFIG
+echo "export HBASE_NODE=\"$HBASE_NODE\"" >> $TRAF_CONFIG
 sudo chmod 777 $TRAF_CONFIG
 source $TRAF_CONFIG
 
@@ -132,7 +135,7 @@ fi
 for node in $HBASE_NODES
 do
    copiedOver=$(ssh -q -n $node sudo ls $HADOOP_PATH/hbase-trx* | wc -l)
-   if [[ $copiedOver -eq "0" ]]; then
+   if [[ $copiedOver -ne "1" ]]; then
       echo "***ERROR: $hbase_trx_jar was not copied on $node"
       echo "***ERROR: Please investigate why this happened"
       echo "***ERROR: Trafodion can not start without this. EXITING..."

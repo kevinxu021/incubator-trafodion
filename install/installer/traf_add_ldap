@@ -70,7 +70,7 @@ if [ ${PIPESTATUS[0]} != "0" ]; then
 fi
 
 echo "***INFO: Verifying that LDAP username \"$DB_ROOT_NAME\" exists"
-sudo su $TRAF_USER --login --command "ldapcheck --username=$DB_ROOT_NAME" 
+sudo su $TRAF_USER --login --command "ldapcheck --verbose --username=$DB_ROOT_NAME" 
 if [ ${PIPESTATUS[0]} != "0" ]; then
   echo "***ERROR: traf_authentication_config not configured correctly."
   echo "***ERROR: Configuration file LDAP_AUTH_FILE located $HOME_DIR/$TRAF_USER/$LDAP_AUTH_FILE"
