@@ -6,6 +6,7 @@
 
 package com.esgyn.dbmgr.resources;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -50,23 +51,60 @@ public class QueryResource {
 		if (obj.has("sControlStmts")) {
 			sControlStmts = obj.get("sControlStmts").textValue();
 		}
+		String timeStamp=obj.get("timeStamp").asText();
+		String sessionId = servletRequest.getSession().getId();
+		String key=sessionId+timeStamp;
+		
 		Session soc = SessionModel.getSession(servletRequest, servletResponse);
-		return executeSQLQuery(soc.getUsername(), soc.getPassword(), queryText, sControlStmts);
+		return executeSQLQuery(soc.getUsername(), soc.getPassword(), queryText, sControlStmts,key);
 	}
-
+	@POST
+	@Path("/cancel/")
+	@Produces("application/json")
+	@Consumes("application/json")
+	public Boolean cancelQuery(ObjectNode obj,@Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+		String timeStamp=obj.get("timeStamp").asText();
+		String sessionId = servletRequest.getSession().getId();
+		String Key = sessionId+timeStamp;
+		return cancelSQLQuery(servletResponse,Key);
+	}
+	private Boolean cancelSQLQuery(HttpServletResponse servletResponse,String key) {
+		// TODO Auto-generated method stub
+		Statement stmt=null;
+		if((stmt=(Statement)SessionModel.getStatementObject(key))!=null){
+			try {
+				stmt.cancel();
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}//The operation has been canceled.
+			return true;
+		}else{
+			/*try {
+				servletResponse.sendError(500, "the query was completed, could not be canceled.");
+				_LOG.error("the query was completed, could not be canceled.");
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}*/
+			return false;
+		}
+		
+	}
 	public static TabularResult executeSQLQuery(String user, String password, String queryText)
 			throws EsgynDBMgrException {
-		return executeSQLQuery(user, password, queryText, null);
+		return executeSQLQuery(user, password, queryText, null,null);
 	}
 
-	public static TabularResult executeSQLQuery(String user, String password, String queryText, String sControlStmts)
+	public static TabularResult executeSQLQuery(String user, String password, String queryText, String sControlStmts, String key)
 			throws EsgynDBMgrException {
 		String url = ConfigurationResource.getInstance().getJdbcUrl();
 		Connection connection = null;
 		try {
 			Class.forName(ConfigurationResource.getInstance().getJdbcDriverClass());
 			connection = JdbcHelper.getInstance().getConnection(user, password);
-			return executeQuery(connection, queryText, sControlStmts);
+			return executeQuery(connection, queryText, sControlStmts, key);
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());
@@ -81,7 +119,7 @@ public class QueryResource {
 		}
 	}
 
-	public static TabularResult executeQuery(Connection connection, String queryText, String sControlStmts)
+	public static TabularResult executeQuery(Connection connection, String queryText, String sControlStmts, String key)
 			throws EsgynDBMgrException {
 
 		TabularResult js = new TabularResult();
@@ -96,18 +134,23 @@ public class QueryResource {
 				stmt1.execute(controlText);
 			}
 			stmt1.close();
-
+			
 			if (queryText != null && queryText.trim().toLowerCase().equals("info system")) {
 				stmt = connection.createStatement();
 			} else {
 				stmt = connection.prepareStatement(queryText);
 			}
-
+			if (key!=null) {
+				SessionModel.putStatementObject(key, stmt);
+			}
 			js = executeQuery(stmt, queryText);
 		} catch (Exception e) {
 			_LOG.error("Failed to execute query : " + e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());
 		} finally {
+			if(key!=null){
+				SessionModel.removeStatementObject(key);
+			}
 			if (stmt != null) {
 				try {
 					stmt.close();
@@ -184,7 +227,7 @@ public class QueryResource {
 		Connection connection = null;
 		try {
 			connection = JdbcHelper.getInstance().getAdminConnection();
-			return executeQuery(connection, queryText, sControlStmts);
+			return executeQuery(connection, queryText, sControlStmts,null);
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());
@@ -221,6 +264,9 @@ public class QueryResource {
 		if (obj.has("sQueryType")) {
 			sQueryType = obj.get("sQueryType").textValue();
 		}
+		String timeStamp=obj.get("timeStamp").asText();
+		String sessionId = servletRequest.getSession().getId();
+		String key=sessionId+timeStamp;
 
 		try {
 			Class.forName(ConfigurationResource.getInstance().getJdbcDriverClass());
@@ -230,7 +276,7 @@ public class QueryResource {
 		}
 
 		QueryPlanModel qe = new QueryPlanModel();
-		qe.GeneratePlan(soc.getUsername(), soc.getPassword(), queryText, sControlStmts, sQueryID, sQueryType);
+		qe.GeneratePlan(soc.getUsername(), soc.getPassword(), queryText, sControlStmts, sQueryID, sQueryType,key);
 
 		QueryPlanResponse response = qe.getQueryPlanResponse();
 		return response;

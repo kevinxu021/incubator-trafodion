@@ -1041,7 +1041,7 @@ void createAndInsertDP2Scan( const IndexDesc * idesc,
             HivePartitionAndBucketKey *hpk =
               new(CmpCommon::statementHeap()) HivePartitionAndBucketKey(
                    bef->getTableDesc());
-            hpk->computePartitionPredicates(
+            hpk->computePartAndVirtColPredicates(
                  bef->getGroupAttr(),
                  fileScan->selectionPred());
             if (hpk->computeActivePartitions() < 0)

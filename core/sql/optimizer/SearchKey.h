@@ -922,12 +922,13 @@ public:
   const HHDFSTableStats * getHDFSTableStats() const { return hdfsTableStats_; }
   const ValueIdList &getPartCols() const           { return hivePartColList_; }
   const ValueIdList &getBucketCols() const       { return hiveBucketColList_; }
+  const ValueIdList &getVirtFileCols() const   { return hiveVirtFileColList_; }
+  const ValueIdList &getVirtRowCols() const     { return hiveVirtRowColList_; }
   const ValueIdSet &getCompileTimePartColPreds() const
                                            { return compileTimePartColPreds_; }
   const ValueIdSet &getPartAndVirtColPreds() const // run time part elim preds
                                                { return partAndVirtColPreds_; }
   const ValueIdSet &getBucketColPreds() const       { return bucketColPreds_; }
-
   // compute statistics for selected partitions and buckets
   void accumulateSelectedStats(HHDFSStatsBase &result);
 
@@ -963,7 +964,7 @@ public:
 
   // compute Hive partition/scan range predicates, remove
   // those from selectionPredicates
-  NABoolean computePartitionPredicates(
+  NABoolean computePartAndVirtColPredicates(
        const GroupAttributes *ga,
        ValueIdSet &selectionPredicates);
 

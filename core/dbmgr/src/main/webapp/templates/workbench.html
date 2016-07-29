@@ -1,6 +1,18 @@
 <div id="page-wrapper">
 	<div class="row">
 		<div class="col-lg-12">
+		<div class="pull-right">
+	<div class="btn-toolbar">
+					<div class="btn-group" style="margin-bottom: 10px; margin-top: 10px;">
+						<button type="button" class="btn btn-primary btn-xs dropdown-toggle" data-toggle="dropdown" style="height: 30px;">
+							Actions <span class="caret"></span>
+						</button>
+						<ul class="dropdown-menu pull-right" role="menu">
+							<li><a id="cancelAction">Cancel</a></li>
+						</ul>
+					</div>
+				</div>
+				</div>
 			<h3 class="page-header">Query WorkBench</h3>
 		</div>
 	</div>
@@ -25,6 +37,10 @@
 							style="font-family: FontAwesome;"> Clear</button>
 						<button id="setControlStmts" class="btn btn-info dbmgr-button fa fa-gear"
 							style="font-family: FontAwesome;"> Options</button>
+						<button id="exportQuery" class="btn btn-info dbmgr-button fa-file-text"
+							style="font-family: FontAwesome;height:35px"> Export</button>
+						<button id="importQuery" type="file" class="btn btn-info dbmgr-button fa-file-text-o glyphicon"
+							style="font-family: FontAwesome;height:35px"> <input id="jsonFile" type="file" tabindex="-1" style="width:82px;height:35px;position: absolute;z-index: 2; top: 0; left: 0; opacity: 0; background-color: transparent; color: transparent;" name="file_source">Import</button>
 					</div>
 				</div>
 			</div>

@@ -619,6 +619,11 @@ public:
   // ---------------------------------------------------------------------
   void insertAt(CollIndex index, NAColumn * newColumn);
   void insert(NAColumn * newColumn)	{ insertAt(entries(),newColumn); }
+  void insertArray(const NAColumnArray &src,
+                   Int32 tgtPosition = -1,
+                   Int32 srcStartPosition = 0,
+                   Int32 numEntries = -1);
+  void removeAt(CollIndex start, CollIndex numEntries = 1);
 
   // ---------------------------------------------------------------------
   // check and set whether a column in the column list has ascending or
@@ -649,7 +654,6 @@ public:
   NAColumn * getColumn(Lng32 index) const;	// same as nacolarray[position]
   NAColumn * getColumn(const char* colName) const;
   NAColumn * getColumnByPos(Lng32 position) const;
-  void removeByPosition(Lng32 position);
 
   // return 
   //    i (i>=0) if the column is found in the array via NAColumn::operator==

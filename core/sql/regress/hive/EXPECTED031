@@ -2202,4 +2202,11 @@ SS_QUANTITY
 
 --- SQL operation complete.
 >>
+>>obey $$REGRTSTDIR$$/TEST001(clean_up);
+>>--------------------------------------------------------------------------
+>>
+>>drop view trafodion.hivesch.view_customer$$ORC$$;
+
+--- SQL operation complete.
+>>
 >>log;
