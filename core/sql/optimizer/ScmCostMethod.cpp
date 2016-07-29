@@ -992,6 +992,14 @@ SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbes()
   // Initialize tuplesProcessed to the number of probes.
   CostScalar tuplesProcessed = numProbes;
 
+  HivePartitionAndBucketKey* hiveKey = getFileScan().getHiveSearchKey();
+  if ( getIndexDesc()->getPrimaryTableDesc()->getNATable()->isHiveTable() &&
+       hiveKey && hiveKey->partitionEliminatedCT() )
+  {
+     tuplesProcessed = hiveKey->getRowcountInSelectedPartitions();
+  } 
+
+
   // These values are for all probes.
   CostScalar accessedRows = (getDataRows()/numActivePartitions).getCeiling();
   CostScalar selectedRows = getResultSetCardinalityPerScan();
