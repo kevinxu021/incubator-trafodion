@@ -174,8 +174,9 @@ enum USTAT_ERROR_CODES {UERR_SYNTAX_ERROR                    = 15001,
                         UERR_VOLATILE_TABLES_NOT_SUPPORTED   = 9247,
                         UERR_FASTSTATS_MEM_ALLOCATION_ERROR  = 9248,
                         UERR_IUS_IS_DISABLED                 = 9249,
-                        UERR_NO_ERROR                        = 9250,
-                        UERR_LAST_ERROR                      = 9250
+                        UERR_WARNING_IUS_NO_LONGER_ALL_NULL  = 9250,
+                        UERR_NO_ERROR                        = 9259,
+                        UERR_LAST_ERROR                      = 9259
                        };
 
 // reason of a histogram entry. it is a char value.

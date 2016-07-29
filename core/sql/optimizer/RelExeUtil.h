@@ -242,6 +242,7 @@ public:
     dropAuthorization_(FALSE),
     addSeqTable_(FALSE),
     addSchemaObjects_(FALSE),
+    minimal_(FALSE),
     returnStatus_(FALSE),
     backupTagTimeStamp_(FALSE),
     flags_(0)
@@ -256,6 +257,7 @@ public:
 	 NABoolean createMDviews, NABoolean dropMDviews,
          NABoolean initAuthorization, NABoolean dropAuthorization,
 	 NABoolean addSeqTable, NABoolean updateVersion, NABoolean addSchemaObjects,
+         NABoolean minimal,
 	 char * ddlStmtText,
 	 CharInfo::CharSet ddlStmtTextCharSet,
 	  CollHeap *oHeap = CmpCommon::statementHeap())
@@ -281,6 +283,7 @@ public:
     dropAuthorization_(dropAuthorization),
     addSeqTable_(addSeqTable),
     addSchemaObjects_(addSchemaObjects),
+    minimal_(minimal),
     returnStatus_(FALSE),
     backupTagTimeStamp_(FALSE),
     flags_(0)
@@ -320,6 +323,7 @@ public:
     dropAuthorization_(FALSE),
     addSeqTable_(FALSE),
     addSchemaObjects_(FALSE),
+    minimal_(FALSE),
     returnStatus_(FALSE),
     backupTagTimeStamp_(FALSE),
     flags_(0)
@@ -393,6 +397,7 @@ public:
   NABoolean dropAuthorization() { return dropAuthorization_; }
   NABoolean addSeqTable() { return addSeqTable_; }
   NABoolean addSchemaObjects() { return addSchemaObjects_; }
+  NABoolean minimal() { return minimal_; }
 
   short ddlXnsInfo(NABoolean &ddlXns, NABoolean &xnCanBeStarted);
 
@@ -509,6 +514,8 @@ public:
   NABoolean dropAuthorization_;
   NABoolean addSeqTable_;
   NABoolean addSchemaObjects_;
+  NABoolean minimal_;  // meaningful only when initHbase_ is true; if this is true,
+                       // means create the metadata tables only (and not repository etc.)
 
   // if set, this ddl cannot run under a user transaction. It must run in autocommit
   // mode.
@@ -585,7 +592,9 @@ public:
     AUTHORIZATION_            = 34,
     HBASE_UNLOAD_             = 35,
     HBASE_UNLOAD_TASK_        = 36,
-    GET_QID_                  = 37
+    ORC_FAST_AGGR_            = 37,
+    GET_QID_                  = 38,
+    HIVE_TRUNCATE_            = 39
   };
 
   ExeUtilExpr(ExeUtilType type,
@@ -1052,12 +1061,7 @@ public:
 		    NABoolean noLog = FALSE,
 		    NABoolean ignoreTrigger = FALSE,
 		    NABoolean isPurgedata = FALSE,
-		    CollHeap *oHeap = CmpCommon::statementHeap(),
-		    NABoolean isHiveTable = FALSE,
-		    NAString * hiveTableLocation = NULL,
-                    NAString * hiveHostName = NULL,
-                    Int32 hiveHdfsPort = 0,
-                    Int64 hiveModTS = -1)
+		    CollHeap *oHeap = CmpCommon::statementHeap())
        : ExeUtilExpr(FAST_DELETE_, name, exprNode, NULL, stmtText, stmtTextCharSet, oHeap),
          doPurgedataCat_(doPurgedataCat),
          noLog_(noLog), ignoreTrigger_(ignoreTrigger),
@@ -1066,18 +1070,8 @@ public:
          doParallelDeleteIfXn_(FALSE),
          offlineTable_(FALSE),
          doLabelPurgedata_(FALSE),
-         numLOBs_(0),
-         isHiveTable_(isHiveTable),
-         hiveModTS_(hiveModTS)
+         numLOBs_(0)
   {
-    if (isHiveTable )
-      {
-        CMPASSERT(hiveTableLocation != NULL);
-        hiveTableLocation_ = *hiveTableLocation;
-        if (hiveHostName)
-          hiveHostName_ = *hiveHostName;
-        hiveHdfsPort_ = hiveHdfsPort;
-      }
   };
 
   virtual NABoolean isExeUtilQueryType() { return TRUE; }
@@ -1095,27 +1089,6 @@ public:
   virtual short codeGen(Generator*);
   
   virtual NABoolean aqrSupported() { return TRUE; }
-
-
-  NABoolean isHiveTable()
-  {
-    return isHiveTable_;
-  }
-
-  const NAString &getHiveTableLocation() const
-  {
-    return hiveTableLocation_;
-  }
-
-  const NAString &getHiveHostName() const
-  {
-    return hiveHostName_;
-  }
-
-  const Int32 getHiveHdfsPort() const
-  {
-    return hiveHdfsPort_;
-  }
 
 private:
   NABoolean doPurgedataCat_;
@@ -1142,14 +1115,63 @@ private:
   // if there are LOB columns.
   Lng32 numLOBs_; // number of LOB columns
   NAList<short> lobNumArray_; // array of shorts. Each short is the lob num
+};
 
-  NABoolean isHiveTable_;
+class ExeUtilHiveTruncate : public ExeUtilExpr
+{
+public:
+  ExeUtilHiveTruncate(const CorrName &name,
+                      ConstStringList * pl,
+                      CollHeap *oHeap = CmpCommon::statementHeap())
+       : ExeUtilExpr(HIVE_TRUNCATE_, name, NULL, NULL, NULL, 
+                     CharInfo::UnknownCharSet, oHeap),
+         pl_(pl)
+  {
+  };
+
+  virtual NABoolean isExeUtilQueryType() { return TRUE; }
+
+  virtual RelExpr * copyTopNode(RelExpr *derivedNode = NULL,
+				CollHeap* outHeap = 0);
+
+  virtual RelExpr * bindNode(BindWA *bindWAPtr);
+
+  virtual RelExpr * preCodeGen(Generator * generator,
+			       const ValueIdSet & externalInputs,
+			       ValueIdSet &pulledNewInputs);
+
+  // method to do code generation
+  virtual short codeGen(Generator*);
+  
+  virtual NABoolean aqrSupported() { return FALSE; }
+
+  const NAString &getHiveTableLocation() const
+  {
+    return hiveTableLocation_;
+  }
+
+  const NAString &getHiveHostName() const
+  {
+    return hiveHostName_;
+  }
+
+  const Int32 getHiveHdfsPort() const
+  {
+    return hiveHdfsPort_;
+  }
+
+  ConstStringList* &partnList() { return pl_; }
+
+private:
   NAString  hiveTableLocation_;
   NAString hiveHostName_;
   Int32 hiveHdfsPort_;
 
   // timestamp of hiveTableLocation. 
   Int64 hiveModTS_;
+
+  // list of partitions to be truncated
+  ConstStringList * pl_;
 };
 
 class ExeUtilMaintainObject : public ExeUtilExpr
@@ -1565,7 +1587,8 @@ public:
     COMPONENT_PRIVILEGES_ = 10,
     INVALID_VIEWS_ = 11,
     COMPONENT_OPERATIONS = 12,
-    HBASE_OBJECTS_ = 13
+    HBASE_OBJECTS_ = 13,
+    MONARCH_OBJECTS_ = 14
   };
 
   enum InfoFor

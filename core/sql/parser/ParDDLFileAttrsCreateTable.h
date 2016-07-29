@@ -162,6 +162,10 @@ public:
 
   inline ComReplType xnRepl() const;
 
+  inline NABoolean isStorageTypeSpecified() const;
+
+  inline ComStorageType storageType() const;
+
   //
   // mutators
   //
@@ -252,6 +256,9 @@ private:
   // transaction replication across multiple clusters
   NABoolean       isXnReplSpec_;
   ComReplType     xnRepl_;
+
+  NABoolean       isStorageTypeSpec_;
+  ComStorageType  storageType_;
 
 //-- MV
 
@@ -451,6 +458,15 @@ ParDDLFileAttrsCreateTable::isXnReplSpecified() const
 
 inline ComReplType ParDDLFileAttrsCreateTable::xnRepl() const 
 { return xnRepl_; }
+
+inline NABoolean
+ParDDLFileAttrsCreateTable::isStorageTypeSpecified() const
+{
+  return isStorageTypeSpec_;
+}
+
+inline ComStorageType ParDDLFileAttrsCreateTable::storageType() const 
+{ return storageType_; }
 
 //
 // mutator

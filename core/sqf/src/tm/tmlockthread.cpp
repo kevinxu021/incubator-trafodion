@@ -128,10 +128,12 @@ void * lockThread_main(void *arg)
    arg = arg;
 
    TMTrace(2, ("lockThread_main : ENTRY.\n"));
-
-   SB_Thread::Sthr::usleep(100);
-
-   // Now we should be able to set a pointer to the CTmThreadExample object because it exits
+   while (gv_tm_info.tmLock() == NULL)
+   {
+      SB_Thread::Sthr::usleep(10);
+   }
+   
+   // Now we should be able to set a pointer to the tmLock object because it exits
    // I've just used a global here for simplicity.
    lp_lockTh = gv_tm_info.tmLock();
 

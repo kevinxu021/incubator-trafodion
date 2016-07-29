@@ -4963,12 +4963,7 @@ Scan::synthLogProp(NormWA * normWAPtr)
       if (idesc->isClusteringIndex() &&
           getTableDesc()->getNATable()->isHiveTable())
         {
-          if (getTableDesc()->getNATable()->isORC())
-            // temporary kludge, see Mantis-269, use
-            // methods for Hive tables below once we have virtual columns
-            continue;
-          else
-            createUniquenessConstraintsForHiveTable();
+          createUniquenessConstraintsForHiveTable();
 
           continue;
         }

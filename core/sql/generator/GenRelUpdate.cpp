@@ -132,6 +132,7 @@ void GenericUpdate::setTransactionRequired(Generator *generator,
   {
     // Internal refresh statement and table is non-audited.
     if (!getTableDesc()->getNATable()->isAnMV()  &&
+         !getTableDesc()->getNATable()->isMonarch() &&
          getTableName().getSpecialType() != ExtendedQualName::IUD_LOG_TABLE &&
          getTableName().getSpecialType() != ExtendedQualName::GHOST_IUD_LOG_TABLE)
     {
@@ -1213,9 +1214,16 @@ short HbaseDelete::codeGen(Generator * generator)
     tablename = 
       space->AllocateAndCopyToAlignedSpace(
 					   GenGetQualifiedName(getTableName()), 0);
-
-  NAString serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
-  NAString zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
+  NAString serverNAS;
+  NAString zkPortNAS;
+  if (getTableDesc()->getNATable()->isMonarch()) {
+     serverNAS = ActiveSchemaDB()->getDefaults().getValue(MONARCH_LOCATOR_ADDRESS);
+     zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(MONARCH_LOCATOR_PORT);
+  }
+  else {
+     serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
+     zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
+  }
   char * server = space->allocateAlignedSpace(serverNAS.length() + 1);
   strcpy(server, serverNAS.data());
   char * zkPort = space->allocateAlignedSpace(zkPortNAS.length() + 1);
@@ -1368,6 +1376,14 @@ short HbaseDelete::codeGen(Generator * generator)
           
           hbasescan_tdb->setFirstNRows(firstNrows);
         }
+      if (getTableDesc()->getNATable()->isMonarch())
+        {
+          hbasescan_tdb->setStorageType(COM_STORAGE_MONARCH);
+
+          // TEMP_MONARCH Async operations are not working with monarch.
+          // turn them off until it is fixed.
+          hbasescan_tdb->setAsyncOperations(FALSE);
+         }
     }
 
   if (keyInfo && getSearchKey() && getSearchKey()->isUnique())
@@ -2142,10 +2158,17 @@ short HbaseUpdate::codeGen(Generator * generator)
   if (! tablename)
     tablename = 
       space->AllocateAndCopyToAlignedSpace(
-					   GenGetQualifiedName(getTableName()), 0);
-
-  NAString serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
-  NAString zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
+  					   GenGetQualifiedName(getTableName()), 0);
+  NAString serverNAS;
+  NAString zkPortNAS;
+  if (getTableDesc()->getNATable()->isMonarch()) {
+     serverNAS = ActiveSchemaDB()->getDefaults().getValue(MONARCH_LOCATOR_ADDRESS);
+     zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(MONARCH_LOCATOR_PORT);
+  }
+  else {
+     serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
+     zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
+  }
   char * server = space->allocateAlignedSpace(serverNAS.length() + 1);
   strcpy(server, serverNAS.data());
   char * zkPort = space->allocateAlignedSpace(zkPortNAS.length() + 1);
@@ -2281,6 +2304,11 @@ short HbaseUpdate::codeGen(Generator * generator)
             }
 
           hbasescan_tdb->setHbaseCellTS(ts);
+        }
+
+      if (getTableDesc()->getNATable()->isMonarch())
+        {
+          hbasescan_tdb->setStorageType(COM_STORAGE_MONARCH);
         }
     }
 
@@ -2826,8 +2854,16 @@ short HbaseInsert::codeGen(Generator *generator)
 						       GenGetQualifiedName(getIndexDesc()->getIndexName()), 0);
     }
 
-  NAString serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
-  NAString zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
+  NAString serverNAS;
+  NAString zkPortNAS;
+  if (getTableDesc()->getNATable()->isMonarch()) {
+     serverNAS = ActiveSchemaDB()->getDefaults().getValue(MONARCH_LOCATOR_ADDRESS);
+     zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(MONARCH_LOCATOR_PORT);
+  }
+  else {
+     serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
+     zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
+  }
   char * server = space->allocateAlignedSpace(serverNAS.length() + 1);
   strcpy(server, serverNAS.data());
   char * zkPort = space->allocateAlignedSpace(zkPortNAS.length() + 1);
@@ -2929,7 +2965,7 @@ short HbaseInsert::codeGen(Generator *generator)
   hbasescan_tdb->setListOfOmittedColNames(listOfOmittedColNames);
 
   if ((CmpCommon::getDefault(HBASE_ASYNC_OPERATIONS) == DF_ON)
-           && getInliningInfo().isIMGU())
+      && getInliningInfo().isIMGU())
     hbasescan_tdb->setAsyncOperations(TRUE);
 
   if (preCondExpr)
@@ -2938,10 +2974,19 @@ short HbaseInsert::codeGen(Generator *generator)
   if (insConstraintExpr)
     hbasescan_tdb->setInsConstraintExpr(insConstraintExpr);
 
-  if (getTableDesc()->getNATable()->isSeabaseTable())
+ if (getTableDesc()->getNATable()->isSeabaseTable())
     {
       hbasescan_tdb->setSQHbaseTable(TRUE);
 
+      if (getTableDesc()->getNATable()->isMonarch())
+        {
+          hbasescan_tdb->setStorageType(COM_STORAGE_MONARCH);
+
+          // TEMP_MONARCH Async operations are not working with monarch.
+          // turn them off until it is fixed.
+          hbasescan_tdb->setAsyncOperations(FALSE);
+        }
+ 
       if (isAlignedFormat)
         hbasescan_tdb->setAlignedFormat(TRUE);
 

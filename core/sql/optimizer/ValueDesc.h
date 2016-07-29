@@ -1427,12 +1427,6 @@ public:
 
   void findAllReferencedIndexCols(ValueIdSet & result) const;
 
-  // This method finds all constants referenced directly or indirectly
-  // via this ValueIdSet. This includes degging into VEGs and recursively
-  void findAllReferencingMinMaxConstants(ValueIdSet & result) const;
-
-  void findMinMaxConstants(ValueIdSet& result) const;
-
   // -----------------------------------------------------------------------
   // ValueIdSet::findAllEqualityCols()
   //

@@ -110,6 +110,7 @@ struct table_desc_struct {
   ComAccessPathType accessPathType;     //BT, IX, isVP, hasVP, LobTable --needed for binder check
   ComRowFormat  rowFormat;
   short xn_repl;
+  ComStorageType storageType;
   ULng32 catUID[2];
   ULng32 schemaUID[2];
   ULng32 objectUID[2];
@@ -126,7 +127,8 @@ struct table_desc_struct {
   char * snapshotName;
   char * default_col_fam;
   char * all_col_fams;
-  Int64 tableFlags;
+  Int64 objectFlags;
+  Int64 tablesFlags;
   desc_struct *columns_desc;
   desc_struct *indexes_desc;
   desc_struct *constrnts_desc;

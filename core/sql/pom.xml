@@ -24,6 +24,10 @@
       <id>cloudera</id>
       <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
     </repository>
+    <repository>
+      <id>Ampool-client</id>
+      <url>https://s3-us-west-2.amazonaws.com/ampool/mvn-repo</url>
+    </repository>
   </repositories>
 
   <properties>
@@ -33,7 +37,7 @@
     <hbase-trx.id>${env.HBASE_TRX_ID_CDH}</hbase-trx.id>
     <hive.version>${env.HIVE_DEP_VER_CDH}</hive.version>
     <thrift.version>${env.THRIFT_DEP_VER}</thrift.version>
-    <java.version>1.7</java.version>
+    <java.version>1.8</java.version>
   </properties>
 
   <dependencies>
@@ -89,6 +93,12 @@
       <artifactId>protobuf-java</artifactId>
       <version>2.5.0</version>
     </dependency>
+   <dependency>
+      <groupId>io.ampool</groupId>
+      <artifactId>ampool-core</artifactId>
+      <version>1.0.RC8</version>
+      <scope>compile</scope>
+    </dependency>
   </dependencies>
 
   <groupId>org.trafodion.sql</groupId>
@@ -111,6 +121,15 @@
           </archive>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.5.1</version>
+        <configuration>
+          <source>1.7</source>
+          <target>1.7</target>
+        </configuration>
+       </plugin>
     </plugins>
   </build>
 </project>

@@ -74,8 +74,6 @@ import java.util.StringTokenizer;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-import java.lang.NullPointerException;
-
 public class HBaseAuditControlPoint {
 
     static final Log LOG = LogFactory.getLog(HBaseAuditControlPoint.class);
@@ -94,7 +92,7 @@ public class HBaseAuditControlPoint {
     private int TlogRetryDelay;
     private int TlogRetryCount;
 
-    public HBaseAuditControlPoint(Configuration config) throws Exception {
+    public HBaseAuditControlPoint(Configuration config) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("Enter HBaseAuditControlPoint constructor()");
       this.config = config;
       CONTROL_POINT_TABLE_NAME = config.get("CONTROL_POINT_TABLE_NAME");
@@ -105,10 +103,8 @@ public class HBaseAuditControlPoint {
          pSTRConfig = STRConfig.getInstance(config);
       }
       catch (ZooKeeperConnectionException zke) {
-         LOG.error("Zookeeper Connection Exception trying to get STRConfig instance: " + zke);
-      }
-      catch (IOException ioe) {
-         LOG.error("IO Exception trying to get STRConfig instance: " + ioe);
+         LOG.error("Zookeeper Connection Exception trying to get STRConfig instance: " , zke);
+         throw new IOException(zke);
       }
 
       myClusterId = 0;
@@ -123,8 +119,8 @@ public class HBaseAuditControlPoint {
             TlogRetryDelay = (Integer.parseInt(retryDelayS) > TlogRetryDelay ? Integer.parseInt(retryDelayS) : TlogRetryDelay);
          }
       }
-      catch (Exception e) {
-         if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_RETRY_DELAY is not in ms.env");
+      catch (NumberFormatException e) {
+         if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_RETRY_DELAY is not valid in ms.env");
       }
 
       TlogRetryCount = 40;
@@ -134,20 +130,20 @@ public class HBaseAuditControlPoint {
            TlogRetryCount = (Integer.parseInt(retryCountS) > TlogRetryCount ? Integer.parseInt(retryCountS) : TlogRetryCount);
          }
       }
-      catch (Exception e) {
-         if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_RETRY_COUNT is not in ms.env");
+      catch (NumberFormatException e) {
+         if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_RETRY_COUNT is not valid in ms.env");
       }
 
       disableBlockCache = false;
       try {
          String blockCacheString = System.getenv("TM_TLOG_DISABLE_BLOCK_CACHE");
          if (blockCacheString != null){
-            disableBlockCache = (Integer.parseInt(blockCacheString) != 0);
-            if (LOG.isDebugEnabled()) LOG.debug("disableBlockCache != null");
+             disableBlockCache = (Integer.parseInt(blockCacheString) != 0);
+         if (LOG.isDebugEnabled()) LOG.debug("disableBlockCache != null");
          }
       }
-      catch (Exception e) {
-         if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_DISABLE_BLOCK_CACHE is not in ms.env");
+      catch (NumberFormatException e) {
+         if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_DISABLE_BLOCK_CACHE is not valid in ms.env");
       }
       LOG.info("disableBlockCache is " + disableBlockCache);
       if (disableBlockCache) {
@@ -160,26 +156,15 @@ public class HBaseAuditControlPoint {
       admin = new HBaseAdmin(config);
 
       useAutoFlush = true;
-      try {
-         String autoFlush = System.getenv("TM_TLOG_AUTO_FLUSH");
-         if (autoFlush != null){
-            useAutoFlush = (Integer.parseInt(autoFlush) != 0);
-            if (LOG.isDebugEnabled()) LOG.debug("autoFlush != null");
-         }
-      }
-      catch (Exception e) {
-         if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_AUTO_FLUSH is not in ms.env");
+      String autoFlush = System.getenv("TM_TLOG_AUTO_FLUSH");
+      if (autoFlush != null){
+         useAutoFlush = (Integer.parseInt(autoFlush) != 0);
+         if (LOG.isDebugEnabled()) LOG.debug("autoFlush != null");
       }
       LOG.info("useAutoFlush is " + useAutoFlush);
 
       boolean lvControlPointExists = false;
-      try {
     	  lvControlPointExists = admin.tableExists(CONTROL_POINT_TABLE_NAME);
-      }
-      catch (Exception te) {
-          if (LOG.isDebugEnabled()) LOG.debug("HBaseAuditControlPoint lvControlPointExists exception: " + te);
-    	  throw te;
-      }
       if (LOG.isDebugEnabled()) LOG.debug("HBaseAuditControlPoint lvControlPointExists " + lvControlPointExists);
       currControlPt = -1;
       if (lvControlPointExists == false) {
@@ -189,25 +174,16 @@ public class HBaseAuditControlPoint {
             currControlPt = 1;
          }
          catch (TableExistsException e) {
-            LOG.error("Table " + CONTROL_POINT_TABLE_NAME + " already exists");
+            LOG.error("Table " + CONTROL_POINT_TABLE_NAME + " already exists", e);
+            throw new IOException(e);
          }
       }
-      try {
-         if (LOG.isDebugEnabled()) LOG.debug("try new HTable");
-         table = new HTable(config, desc.getName());
-         table.setAutoFlushTo(this.useAutoFlush);
-      }
-      catch (IOException e) {
-         LOG.error("new HTable IOException");
-      }
+      if (LOG.isDebugEnabled()) LOG.debug("try new HTable");
+      table = new HTable(config, desc.getName());
+      table.setAutoFlushTo(this.useAutoFlush);
 
       if (currControlPt == -1){
-         try {
-            currControlPt = getCurrControlPt(myClusterId);
-         }
-         catch (Exception e2) {
-            if (LOG.isDebugEnabled()) LOG.debug("Exit getCurrControlPoint() exception " + e2);
-         }
+         currControlPt = getCurrControlPt(myClusterId);
       }
       if (LOG.isDebugEnabled()) LOG.debug("currControlPt is " + currControlPt);
 
@@ -215,14 +191,15 @@ public class HBaseAuditControlPoint {
       return;
     }
 
-    public long getCurrControlPt(final int clusterId) throws Exception {
+    public long getCurrControlPt(final int clusterId) throws IOException {
        if (LOG.isTraceEnabled()) LOG.trace("getCurrControlPt:  start, clusterId " + clusterId);
        long lvCpNum = 1;
 
        Get g = new Get(Bytes.toBytes(clusterId));
        if (LOG.isDebugEnabled()) LOG.debug("getCurrControlPt attempting table.get");
-       try {
           Result r = table.get(g);
+          if (r.isEmpty())
+             return lvCpNum;
           if (LOG.isDebugEnabled()) LOG.debug("getCurrControlPt Result: " + r);
           String value = new String(Bytes.toString(r.getValue(CONTROL_POINT_FAMILY, CP_NUM_AND_ASN_HWM)));
           // In theory the above value is the latestversion of the column
@@ -235,14 +212,10 @@ public class HBaseAuditControlPoint {
              if (LOG.isTraceEnabled()) LOG.trace("Value for getCurrControlPt and clusterId: "
                                + clusterId + " is: " + lvCpNum);
           }
-       }
-       catch (NullPointerException e){
-          if (LOG.isTraceEnabled()) LOG.trace("control point for clusterId: " + clusterId + " is not in the table");
-       }
        return lvCpNum;
     }
 
-   public long putRecord(final int clusterId, final long ControlPt, final long startingSequenceNumber) throws Exception {
+   public long putRecord(final int clusterId, final long ControlPt, final long startingSequenceNumber) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("putRecord clusterId: " + clusterId + ", startingSequenceNumber (" + startingSequenceNumber + ")");
       Put p = new Put(Bytes.toBytes(clusterId));
       p.add(CONTROL_POINT_FAMILY, CP_NUM_AND_ASN_HWM, 
@@ -265,13 +238,15 @@ public class HBaseAuditControlPoint {
                         + table.getTableName().toString());                    	 
             }
          }
-         catch (Exception e){
+         catch (IOException e){
              LOG.error("Retrying putRecord on control point: " + ControlPt + " on control point table "
                      + table.getTableName().toString() + " due to Exception " + e);
 //             locator.getRegionLocation(p.getRow(), true);
              table.getRegionLocation(p.getRow(), true);
-
-             Thread.sleep(TlogRetryDelay); // 3 second default
+             try {
+               Thread.sleep(TlogRetryDelay); // 3 second default
+             } catch (InterruptedException ie) {
+             }
              if (retries == TlogRetryCount){
                 LOG.error("putRecord aborting due to excessive retries on on control point table : "
                          + table.getTableName().toString() + " due to Exception; aborting ");
@@ -292,8 +267,9 @@ public class HBaseAuditControlPoint {
       g.addColumn(CONTROL_POINT_FAMILY, CP_NUM_AND_ASN_HWM);
       String ctrlPtToken;
       String asnToken;
-      try {
          Result r = table.get(g);
+         if (r.isEmpty())
+            return lvValue;
          List<Cell> list = r.getColumnCells(CONTROL_POINT_FAMILY, CP_NUM_AND_ASN_HWM);  // returns all versions of this column
          for (Cell element : list) {
             StringTokenizer stok = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(element)), ",");
@@ -313,27 +289,19 @@ public class HBaseAuditControlPoint {
             }
          }
          if (LOG.isTraceEnabled()) LOG.trace("all results scannned for clusterId: " + clusterId + ", but controlPt: " + controlPt + " not found");
-      }
-      catch (NullPointerException e){
-         if (LOG.isTraceEnabled()) LOG.trace("control point for clusterId: " + clusterId + " is not in the table");
-         lvValue = -1;
-      }
-      catch (Exception e1){
-          if (LOG.isTraceEnabled()) LOG.trace("control point for clusterId: " + clusterId + " threw exception " + e1);
-          lvValue = -1;
-       }
       return lvValue;
    }
 
    public long getStartingAuditSeqNum(final int clusterId) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("getStartingAuditSeqNum for clusterId: " + clusterId);
-      long lvAsn = -1;
+      long lvAsn = 1;
 
       Get g = new Get(Bytes.toBytes(clusterId));
       String asnToken;
       if (LOG.isDebugEnabled()) LOG.debug("getStartingAuditSeqNum attempting table.get");
-      try {
          Result r = table.get(g);
+         if (r.isEmpty())
+            return lvAsn;
          if (LOG.isDebugEnabled()) LOG.debug("getStartingAuditSeqNum Result: " + r);
          String value = new String(Bytes.toString(r.getValue(CONTROL_POINT_FAMILY, CP_NUM_AND_ASN_HWM)));
          // In theory the above value is the latestversion of the column
@@ -347,10 +315,7 @@ public class HBaseAuditControlPoint {
             if (LOG.isTraceEnabled()) LOG.trace("Value for getStartingAuditSeqNum and clusterId: "
                 + clusterId + " is: " + lvAsn);
          }
-      }
-      catch (NullPointerException e){
-         if (LOG.isTraceEnabled()) LOG.trace("control point for clusterId: " + clusterId + " is not in the table");
-      }
+      if (LOG.isTraceEnabled()) LOG.trace("getStartingAuditSeqNum - exit returning " + lvAsn);
       return lvAsn;
     }
 
@@ -384,26 +349,12 @@ public class HBaseAuditControlPoint {
                   highValue = currValue;
                }
             }
-         }
-         catch (Exception e) {
-           LOG.error("getNextAuditSeqNum IOException" + e);
          } finally {
             ss.close();
          }
-      }
-      catch (IOException e) {
-         LOG.error("getNextAuditSeqNum IOException setting up scan for "
-                    + lv_tName + " Exception: " + e);
-      }
-      finally {
-         try {
+      } finally {
             remoteTable.close();
             remoteConnection.close();
-         }
-         catch (IOException e) {
-            LOG.error("getNextAuditSeqNum IOException closing table or connection for "
-                        + lv_tName + " Exception: " + e);
-         }
       }
       if (LOG.isTraceEnabled()) LOG.trace("getNextAuditSeqNum returning " + (highValue + 1));
       return (highValue + 1);
@@ -412,18 +363,12 @@ public class HBaseAuditControlPoint {
 
    public long doControlPoint(final int clusterId, final long sequenceNumber, final boolean incrementCP) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("doControlPoint start");
-      try {
 
          if (incrementCP) {
            currControlPt++;
          }
          if (LOG.isTraceEnabled()) LOG.trace("doControlPoint interval (" + currControlPt + "), clusterId: " + clusterId + ", sequenceNumber (" + sequenceNumber+ ") try putRecord");
          putRecord(clusterId, currControlPt, sequenceNumber);
-      }
-      catch (Exception e) {
-         LOG.error("doControlPoint Exception " + e);
-      }
-
       if (LOG.isTraceEnabled()) LOG.trace("doControlPoint - exit");
       return currControlPt;
    }
@@ -431,7 +376,6 @@ public class HBaseAuditControlPoint {
    public long bumpControlPoint(final int clusterId, final int count) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("bumpControlPoint start, count: " + count);
       long currASN = -1;
-      try {
          currControlPt = getCurrControlPt(clusterId);
          currASN = getStartingAuditSeqNum(clusterId);
          for ( int i = 0; i < count; i++ ) {
@@ -440,10 +384,6 @@ public class HBaseAuditControlPoint {
                  + currControlPt + "), clusterId: " + clusterId + ", ASN (" + currASN + ")");
             putRecord(clusterId, currControlPt, currASN);
          }
-      }
-      catch (Exception e) {
-         LOG.error("bumpControlPoint Exception" + e);
-      }
       if (LOG.isTraceEnabled()) LOG.trace("bumpControlPoint - exit");
       return currASN;
    }
@@ -452,16 +392,10 @@ public class HBaseAuditControlPoint {
       if (LOG.isTraceEnabled()) LOG.trace("deleteRecord start for control point " + controlPoint);
       String controlPtString = new String(String.valueOf(controlPoint));
 
-      try {
-         List<Delete> list = new ArrayList<Delete>();
-         Delete del = new Delete(Bytes.toBytes(controlPtString));
-         if (LOG.isDebugEnabled()) LOG.debug("deleteRecord  (" + controlPtString + ") ");
-         table.delete(del);
-      }
-      catch (Exception e) {
-         LOG.error("deleteRecord IOException");
-      }
-
+      List<Delete> list = new ArrayList<Delete>();
+      Delete del = new Delete(Bytes.toBytes(controlPtString));
+      if (LOG.isDebugEnabled()) LOG.debug("deleteRecord  (" + controlPtString + ") ");
+      table.delete(del);
       if (LOG.isTraceEnabled()) LOG.trace("deleteRecord - exit");
       return true;
    }
@@ -475,8 +409,9 @@ public class HBaseAuditControlPoint {
       g.setMaxVersions(versions);  // will return last n versions of row
       g.addColumn(CONTROL_POINT_FAMILY, CP_NUM_AND_ASN_HWM);
       String ctrlPtToken;
-      try {
          Result r = table.get(g);
+         if (r.isEmpty())
+            return false;
          List<Cell> list = r.getColumnCells(CONTROL_POINT_FAMILY, CP_NUM_AND_ASN_HWM);  // returns all versions of this column
          for (Cell cell : list) {
             StringTokenizer stok = 
@@ -497,13 +432,6 @@ public class HBaseAuditControlPoint {
          }
          if (LOG.isDebugEnabled()) LOG.debug("attempting to delete list with " + deleteList.size() + " elements");
          table.delete(deleteList);
-      }
-      catch (NullPointerException e){
-         if (LOG.isTraceEnabled()) LOG.trace("control point for clusterId: " + clusterId + " is not in the table");
-      }
-      catch (Exception e1){
-         if (LOG.isTraceEnabled()) LOG.trace("control point for clusterId: " + clusterId + " threw exception " + e1);
-      }
       if (LOG.isTraceEnabled()) LOG.trace("deleteAgedRecords - exit");
       return true;
    }
@@ -519,8 +447,10 @@ public class HBaseAuditControlPoint {
       g.setMaxVersions(n + 1);  // will return last n+1 versions of row just in case
       g.addColumn(CONTROL_POINT_FAMILY, CP_NUM_AND_ASN_HWM);
       String ctrlPtToken;
-      try {
+      long lvReturn = 1;
          Result r = table.get(g);
+         if (r.isEmpty())
+            return lvReturn; 
          List<Cell> list = r.getColumnCells(CONTROL_POINT_FAMILY, CP_NUM_AND_ASN_HWM);  // returns all versions of this column
          int i = 0;
          for (Cell cell : list) {
@@ -534,7 +464,7 @@ public class HBaseAuditControlPoint {
                   if (LOG.isTraceEnabled()) LOG.trace("Skipping record " + i + " of " + n + " for controlPoint" );
                   continue;
                }
-               long lvReturn = Long.parseLong(ctrlPtToken);;
+               lvReturn = Long.parseLong(ctrlPtToken);;
                if (LOG.isTraceEnabled()) LOG.trace("getNthRecord exit - returning " + lvReturn);
                return lvReturn;
             }
@@ -542,13 +472,6 @@ public class HBaseAuditControlPoint {
                if (LOG.isTraceEnabled()) LOG.trace("No tokens to parse for " + i);
             }
          }
-      } 
-      catch (NullPointerException e){
-	         if (LOG.isTraceEnabled()) LOG.trace("control point record for clusterId: " + clusterId + " is not in the table");
-      }
-      catch (Exception e1){
-         if (LOG.isTraceEnabled()) LOG.trace("control point record for clusterId: " + clusterId + " threw exception " + e1);
-	  }
       if (LOG.isTraceEnabled()) LOG.trace("getNthRecord - exit returning 1");
       return 1;
    }

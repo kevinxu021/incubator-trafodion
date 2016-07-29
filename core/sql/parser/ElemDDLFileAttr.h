@@ -217,7 +217,6 @@ private:
 class ElemDDLFileAttrXnRepl : public ElemDDLFileAttr
 {
 public:
-public:
 
   ElemDDLFileAttrXnRepl(ComReplType xnRepl)
        : ElemDDLFileAttr(ELM_FILE_ATTR_XN_REPL_ELEM)
@@ -247,5 +246,38 @@ public:
 private:
   ComReplType xnRepl_;
 }; // class ElemDDLFileAttrXnRepl
+
+class ElemDDLFileAttrStorageType : public ElemDDLFileAttr
+{
+public:
+
+  ElemDDLFileAttrStorageType(ComStorageType storageType)
+       : ElemDDLFileAttr(ELM_FILE_ATTR_STORAGE_TYPE_ELEM)
+  {
+    storageType_ = storageType;
+  }
+
+  // virtual destructor
+  virtual ~ElemDDLFileAttrStorageType()
+  {
+  };
+
+  // cast
+  virtual ElemDDLFileAttrStorageType * castToElemDDLFileAttrStorageType()
+  {
+    return this; 
+  }
+
+  ComStorageType storageType() { return storageType_; }
+
+  // method for building text
+  virtual NAString getSyntax() const
+  {
+    return "";
+  }
+
+private:
+  ComStorageType storageType_;
+}; // class ElemDDLFileAttrStorageType
 
 #endif // ELEMDDLFILEATTR_H

@@ -32,6 +32,7 @@
 #include "hs_util.h"
 #include "NLSConversion.h"
 #include "ExHdfsScan.h"
+#include "Context.h"
 
 ExHbaseAccessInsertTcb::ExHbaseAccessInsertTcb(
           const ExHbaseAccessTdb &hbaseAccessTdb, 
@@ -1088,7 +1089,7 @@ ExHbaseAccessBulkLoadPrepSQTcb::ExHbaseAccessBulkLoadPrepSQTcb(
 
 ExHbaseAccessBulkLoadPrepSQTcb::~ExHbaseAccessBulkLoadPrepSQTcb()
 {
-  // Flush and close sample file if used, and disconnect from HDFS.
+  // Flush and close sample file if used
   if (hdfs_)
     {
       if (hdfsSampleFile_)
@@ -1096,7 +1097,7 @@ ExHbaseAccessBulkLoadPrepSQTcb::~ExHbaseAccessBulkLoadPrepSQTcb()
           hdfsFlush(hdfs_, hdfsSampleFile_);
           hdfsCloseFile(hdfs_, hdfsSampleFile_);
         }
-      hdfsDisconnect(hdfs_);
+     
     }
 
 }
@@ -1119,6 +1120,10 @@ static const char* TrafToHiveType(Attributes* attrs)
 
   switch (datatype)
   {
+    case REC_BIN8_SIGNED:
+    case REC_BIN8_UNSIGNED:
+      return "tinyint";
+
     case REC_BIN16_SIGNED:
     case REC_BIN16_UNSIGNED:
     case REC_BPINT_UNSIGNED:
@@ -1131,11 +1136,9 @@ static const char* TrafToHiveType(Attributes* attrs)
     case REC_BIN64_SIGNED:
       return "bigint";
 
-    case REC_TDM_FLOAT32:
     case REC_IEEE_FLOAT32:
       return "float";
 
-    case REC_TDM_FLOAT64:
     case REC_IEEE_FLOAT64:
       return "double";
 
@@ -1294,7 +1297,6 @@ ExWorkProcRetcode ExHbaseAccessBulkLoadPrepSQTcb::work()
       lastHandledStep_ = NOT_STARTED;
 
       nextRequest_ = qparent_.down->getHeadIndex();
-
       rowsInserted_ = 0;
       step_ = INSERT_INIT;
     }
@@ -1344,7 +1346,9 @@ ExWorkProcRetcode ExHbaseAccessBulkLoadPrepSQTcb::work()
             srand(time(0));
 
             // Set up HDFS file for sample table.
-            hdfs_ = hdfsConnect("default", 0);
+           
+            ContextCli *currContext = getGlobals()->castToExExeStmtGlobals()->getCliGlobals()->currContext();
+            hdfs_ = currContext->getHdfsServerConnection((char*)"default",0);
             Text samplePath = std::string(((ExHbaseAccessTdb&)hbaseAccessTdb()).getSampleLocation()) +
                                           ((ExHbaseAccessTdb&)hbaseAccessTdb()).getTableName() ;
             char filePart[10];
@@ -1591,7 +1595,7 @@ ExWorkProcRetcode ExHbaseAccessBulkLoadPrepSQTcb::work()
                lastErrorCnd_,
                ehi_,
                LoggingFileCreated_,
-               loggingFileName_);
+               loggingFileName_, &loggingErrorDiags_);
       }
       if (pentry_down->getDiagsArea())
         pentry_down->getDiagsArea()->clear();
@@ -1651,6 +1655,18 @@ ExWorkProcRetcode ExHbaseAccessBulkLoadPrepSQTcb::work()
       case DONE:
       case ALL_DONE:
       {
+        if (step_ == ALL_DONE && eodSeen && (loggingErrorDiags_ != NULL)) {
+	   ex_queue_entry * up_entry = qparent_.up->getTailEntry();
+           ComDiagsArea * diagsArea = up_entry->getDiagsArea();
+           if (!diagsArea)
+            {
+              diagsArea =
+                ComDiagsArea::allocate(getGlobals()->getDefaultHeap());
+              up_entry->setDiagsArea(diagsArea);
+            }
+            diagsArea->mergeAfter(*loggingErrorDiags_);
+            loggingErrorDiags_->clear();
+        }
  
         if (handleDone(rc, (step_ == ALL_DONE ? matches_ : 0)))
           return rc;
@@ -1664,7 +1680,9 @@ ExWorkProcRetcode ExHbaseAccessBulkLoadPrepSQTcb::work()
           if (eodSeen)
           {
             ehi_->closeHFile(table_);
-            ehi_->hdfsClose();
+            // sss This is one place that is unconditionally closing the 
+            // hdfsFs that's part of this thread's JNIenv.
+            //ehi_->hdfsClose();
             hFileParamsInitialized_ = false;
             retcode = ehi_->close();
           }

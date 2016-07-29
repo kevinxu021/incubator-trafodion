@@ -63,6 +63,7 @@
 #include "ExStats.h"
 #include "ExpSeqGen.h"
 #include "ssmpipc.h"
+#include "hdfs.h"
 
 class CliGlobals;
 class HashQueue;
@@ -72,9 +73,10 @@ class ExStatisticsArea;
 class ExControlArea;
 class ExUdrServer;
 class UdrContextMsg;
-class LOBglobals;
 class SequenceValueGenerator;
 class LmRoutine;
+class MonarchClient_JNI;
+class HBaseClient_JNI;
 
 #pragma warning( disable : 4244 )  // warning elimination
 #pragma nowarn(1506)   // warning elimination 
@@ -159,7 +161,6 @@ public:
                      bool &authorizationReady,
                      bool &auditingEnabled);
 
-  LOBglobals* &currLobGlobals() { return lobGlobals_; }
 
   SequenceValueGenerator* &seqGen() { return seqGen_; }
 
@@ -197,6 +198,10 @@ public:
   void setHbaseClient(HBaseClient_JNI *hbaseClientJNI)
   { hbaseClientJNI_ = hbaseClientJNI; }
   HBaseClient_JNI *getHBaseClient() { return hbaseClientJNI_; }
+
+  void setMonarchClient(MonarchClient_JNI *monarchClientJNI)
+  { monarchClientJNI_ = monarchClientJNI; }
+  MonarchClient_JNI *getMonarchClient() { return monarchClientJNI_; }
 
   void flushHtableCache();
   
@@ -446,8 +451,7 @@ private:
   // list of volatile tables created in a session.
   HashQueue * volTabList_;
 
-  LOBglobals * lobGlobals_;
-
+  HashQueue *hdfsHandleList_;
   SequenceValueGenerator * seqGen_;
 
   NABoolean sessionInUse_;
@@ -504,6 +508,7 @@ private:
   NAString jniErrorStr_; 
   HBaseClient_JNI *hbaseClientJNI_;
   HiveClient_JNI *hiveClientJNI_;
+  MonarchClient_JNI *monarchClientJNI_;
 
   // this points to data used by trafSE (traf storage engine) that is context specific.
   // It points to a list of 'black box' of data allocated by user and is returned
@@ -1043,7 +1048,8 @@ public:
   // begins. This step requires a fully initialized CliGlobals so
   // should not be called before CliGlobals initialization completes.
   void initializeUserInfoFromOS();
-
+  hdfsFS getHdfsServerConnection(char *hdfsServer, Int32 port);
+  void disconnectHdfsConnections();
 }; // class ContextCli
 
 /* ContextTidMap - Maps contextCli to  a thread id
@@ -1087,6 +1093,13 @@ ContextCli::getOpenStatementList() const
 {
   return openStatementList_;
 }
+
+struct hdfsConnectStruct
+{
+  hdfsFS hdfsHandle_;
+  Int32 hdfsPort_;
+  char  hdfsServer_[256]; // max length determined by dfs.namenode.fs-limits.max-component-length(255) 
+};
 
 #endif
 

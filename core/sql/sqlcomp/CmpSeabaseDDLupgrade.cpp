@@ -170,13 +170,7 @@ short CmpSeabaseMDupgrade::dropMDtables(ExpHbaseInterface *ehi,
       
     } // for
   
-  Lng32 reposErrcode = dropReposTables(ehi, oldTbls);
-  if (errcode)
-    return errcode;
-  else if (reposErrcode)
-    return reposErrcode;
-  else
-    return 0;
+  return errcode;
 }
 
 short CmpSeabaseMDupgrade::restoreOldMDtables(ExpHbaseInterface *ehi)
@@ -316,12 +310,22 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
   char msgBuf[1000];
   char buf[10000];
 
+  // interfaces for upgrading subsystems; OK to create on stack for
+  // now as they are stateless
+  CmpSeabaseUpgradeRepository upgradeRepository;
+  CmpSeabaseUpgradePrivMgr upgradePrivMgr;
+
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL,
     CmpCommon::context()->sqlSession()->getParentQid());
   ExpHbaseInterface * ehi = NULL;
-
+  NABoolean isMonarch = FALSE;
   while (1)
     {
+      // The line below is useful when debugging upgrade; it shows the step progression
+      // through the upgrade state machine.
+      // cout << "mdui->step() is " << mdui->step() 
+      //      << ", mdui->subStep() is " << mdui->subStep() << endl;
+
       switch (mdui->step())
 	{
 	case UPGRADE_START: 
@@ -367,7 +371,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 	      {
 	      case 0:
 		{
-		  ehi = allocEHI(&ActiveSchemaDB()->getDefaults());
+		  ehi = allocEHI(COM_STORAGE_HBASE, &ActiveSchemaDB()->getDefaults());
 		  
 		  Int64 mdCurrMajorVersion;
 		  Int64 mdCurrMinorVersion;
@@ -443,7 +447,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		
 	      case 2:
 		{
-		  str_sprintf(msgBuf, "  Metadata need to be upgraded or reinitialized.");
+		  str_sprintf(msgBuf, "  Metadata needs to be upgraded or reinitialized.");
 		  mdui->setMsg(msgBuf);
 		  mdui->setEndStep(FALSE);
 		  
@@ -489,7 +493,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 	      {
 	      case 0:
 		{
-		  ehi = allocEHI(&ActiveSchemaDB()->getDefaults());
+		  ehi = allocEHI(COM_STORAGE_HBASE, &ActiveSchemaDB()->getDefaults());
 		  
 		  Int64 mdCurrMajorVersion;
 		  Int64 mdCurrMinorVersion;
@@ -537,7 +541,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
                   else
                     {
                       if (retcode == -1395)
-                        str_sprintf(msgBuf, "   Metadata need to be upgraded or reinitialized (Current Version %Ld.%Ld.%Ld, Expected Version %Ld.%Ld.%Ld).",
+                        str_sprintf(msgBuf, "   Metadata needs to be upgraded or reinitialized (Current Version %Ld.%Ld.%Ld, Expected Version %Ld.%Ld.%Ld).",
                                     mdCurrMajorVersion, mdCurrMinorVersion, mdCurrUpdateVersion,
                                     (Int64)METADATA_MAJOR_VERSION, (Int64)METADATA_MINOR_VERSION, (Int64)METADATA_UPDATE_VERSION);   
                       else
@@ -602,7 +606,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		
 	      case 2:
 		{
-		  str_sprintf(msgBuf, "  Metadata need to be updated with current software version. Run 'initialize trafodion, update software version' to update it.");
+		  str_sprintf(msgBuf, "  Metadata needs to be updated with current software version. Run 'initialize trafodion, update software version' to update it.");
 		  mdui->setMsg(msgBuf);
 		  mdui->setEndStep(FALSE);
 		  
@@ -656,7 +660,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 	      case 1:
 		{
 		  // check if upgrade has already been done.
-		  ehi = allocEHI(&ActiveSchemaDB()->getDefaults());
+		  ehi = allocEHI(COM_STORAGE_HBASE, &ActiveSchemaDB()->getDefaults());
 
 		  Int64 mdCurrMajorVersion;
 		  Int64 mdCurrMinorVersion;
@@ -691,17 +695,17 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 
                               if (isMDUpgradeNeeded())
                                 {
-                                  upgItems += " Catalogs, ";
+                                  upgItems += " Catalogs,";
                                 }
                               if (isViewsUpgradeNeeded())
                                 {
                                   upgItems += " Views,";
                                 }
-                              if (isPrivsUpgradeNeeded())
+                              if (upgradePrivMgr.needsUpgrade(this))
                                 {
                                   upgItems += " Privileges,";
                                 }
-                              if (isReposUpgradeNeeded())
+                              if (upgradeRepository.needsUpgrade(this))
                                 {
                                   upgItems += " Repository,";
                                 }
@@ -711,7 +715,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
                                   upgItems += ".";
                                 }
                             }
-			  str_sprintf(msgBuf, "  Metadata need to be upgraded from Version %Ld.%Ld.%Ld to %Ld.%Ld.%Ld.%s",
+			  str_sprintf(msgBuf, "  Metadata needs to be upgraded from Version %Ld.%Ld.%Ld to %Ld.%Ld.%Ld.%s",
 				      mdCurrMajorVersion, mdCurrMinorVersion/10, 
                                       (mdCurrMinorVersion - (mdCurrMinorVersion/10)*10),
 				      METADATA_MAJOR_VERSION, METADATA_MINOR_VERSION,
@@ -814,7 +818,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		
 	      case 1:
 		{
-		  ehi = allocEHI();
+		  ehi = allocEHI(COM_STORAGE_HBASE);
 
 		  //
 		  // drop metadata tables using hbase drop command
@@ -862,7 +866,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		  //
 		  // backup current metadata using hbase snapshot command
 		  //
-		  ehi = allocEHI();
+		  ehi = allocEHI(COM_STORAGE_HBASE);
 
 		  for (Lng32 i = 0; i < sizeof(allMDupgradeInfo)/sizeof(MDUpgradeInfo); i++)
 		    {
@@ -942,7 +946,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		
 	      case 1:
 		{
-		  ehi = allocEHI();
+		  ehi = allocEHI(COM_STORAGE_HBASE);
 
 		  //
 		  // drop metadata tables using hbase drop command
@@ -1001,7 +1005,10 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		  CmpCommon::context()->setIsUninitializedSeabase(TRUE);
 		  CmpCommon::context()->uninitializedSeabaseErrNum() = -1393; // MD doesn't exist
 
-		  str_sprintf(buf, "initialize trafodion;");
+                  // Use "initialize trafodion, minimal" so we only create the metadata
+                  // tables. The other tables (repository and privilege manager) already
+                  // exist; we will upgrade them later in this method.
+		  str_sprintf(buf, "initialize trafodion, minimal;");
 		  
 		  cliRC = cliInterface.executeImmediate(buf);
 		  if (cliRC < 0)
@@ -1289,7 +1296,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		
 	      case 1:
 		{
-		  ehi = allocEHI();
+		  ehi = allocEHI(COM_STORAGE_HBASE);
 
 		  // drop info about old tables from the new metadata.
 		  // do not drop the actual hbase tables. 
@@ -1351,7 +1358,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 					    catName, schName,
                                             objectType,
                                             FALSE,
-					    TRUE, FALSE))
+					    TRUE, FALSE, isMonarch))
 			{
 			  deallocEHI(ehi); 
 
@@ -1397,7 +1404,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		      if (dropSeabaseObject(ehi, oldViewName,
 					    catName, schName,
 					    COM_VIEW_OBJECT,
-                                            FALSE))
+                                            FALSE, TRUE, TRUE, isMonarch))
 			{
 			  deallocEHI(ehi); 
 
@@ -1448,7 +1455,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		{
                   if (NOT isViewsUpgradeNeeded())
                     {
-                      mdui->setStep(UPGRADE_PRIV_MGR);
+                      mdui->setStep(UPGRADE_REPOS);
                       mdui->setSubstep(0);
                       break;
                     }
@@ -1514,7 +1521,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		    }
 		  
 		  mdui->setMsg("Update Metadata Views: done");
-		  mdui->setStep(UPGRADE_PRIV_MGR);
+		  mdui->setStep(UPGRADE_REPOS);
 		  mdui->setSubstep(0);
 		  mdui->setEndStep(TRUE);
 
@@ -1528,13 +1535,20 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 
         case UPGRADE_PRIV_MGR:
           {
+            // Note: We used to do this case before UPGRADE_REPOS, but
+            // that was changed in Trafodion 2.1 to do it afterwards instead.
+            // The reason is that the Privilege Manager does not adhere
+            // to the CmpSeabaseUpgradeSubsystem class contract; its drop
+            // and recovery logic is packaged in its upgrade method. So,
+            // we have to do the Privilege Manager upgrade last since there
+            // is no way to undo it if we have an error afterward.
 	    switch (mdui->subStep())
 	      {
 	      case 0:
 		{
-                  if (NOT isPrivsUpgradeNeeded())
+                  if (NOT upgradePrivMgr.needsUpgrade(this))
                     {
-                      mdui->setStep(UPGRADE_REPOS);
+                      mdui->setStep(UPDATE_VERSION);
                       mdui->setSubstep(0);
                       break;
                     }
@@ -1549,12 +1563,11 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		
 	      case 1:
 		{
-                  NAString privMgrDoneMsg;
 		  if (xnInProgress(&cliInterface))
 		    {
 		      *CmpCommon::diags() << DgSqlCode(-20123);
 
-		      mdui->setStep(UPGRADE_FAILED);
+		      mdui->setStep(UPGRADE_FAILED_RESTORE_OLD_REPOS);
 		      mdui->setSubstep(0);
 
 		      break;
@@ -1565,16 +1578,16 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		    {
 		      cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
 
-		      mdui->setStep(UPGRADE_FAILED);
+		      mdui->setStep(UPGRADE_FAILED_RESTORE_OLD_REPOS);
 		      mdui->setSubstep(0);
 
 		      break;
 		    }
 		  
-		  cliRC = upgradePrivMgr(&cliInterface, ddlXns, privMgrDoneMsg);
+		  cliRC = upgradePrivMgr.doUpgrade(&cliInterface,mdui,this,ddlXns);
 		  if (cliRC != 0)
 		    {
-		      mdui->setStep(UPGRADE_FAILED);
+		      mdui->setStep(UPGRADE_FAILED_RESTORE_OLD_REPOS);
 		      mdui->setSubstep(0);
 
 		      break;
@@ -1585,14 +1598,14 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		    {
 		      cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
 		    
-		      mdui->setStep(UPGRADE_FAILED);
+		      mdui->setStep(UPGRADE_FAILED_RESTORE_OLD_REPOS);
 		      mdui->setSubstep(0);
 
 		      break;
 		    }
 		  
-		  mdui->setMsg(privMgrDoneMsg.data());
-		  mdui->setStep(UPGRADE_REPOS);
+                  // mdui->setMsg() was called in upgradePrivMgr.doUpgrade()
+		  mdui->setStep(UPDATE_VERSION);
 		  mdui->setSubstep(0);
 		  mdui->setEndStep(TRUE);
 
@@ -1608,7 +1621,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
           {
             if (NOT isReposUpgradeNeeded())
               {
-                mdui->setStep(UPDATE_VERSION);
+                mdui->setStep(UPGRADE_PRIV_MGR);
                 mdui->setSubstep(0);
                 break;
               }
@@ -1623,18 +1636,18 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
                 break;
               }
             
-            cliRC = upgradeRepos(&cliInterface, mdui);
+            cliRC = upgradeRepository.doUpgrade(&cliInterface, mdui, this, ddlXns);
             if (cliRC != 0)
               {
-                mdui->setStep(UPGRADE_FAILED);
-                mdui->setSubstep(0);
+                mdui->setStep(UPGRADE_FAILED_RESTORE_OLD_REPOS);
+                mdui->setSubstep(-(cliRC+1));
                 
                 break;
               }
             
             if (mdui->endStep())
               {
-                mdui->setStep(UPDATE_VERSION);
+                mdui->setStep(UPGRADE_PRIV_MGR);
                 mdui->setSubstep(0);
               }
             
@@ -1662,7 +1675,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		    {
 		      *CmpCommon::diags() << DgSqlCode(-20123);
 
-		      mdui->setStep(UPGRADE_FAILED_RESTORE_OLD_MD);
+		      mdui->setStep(UPGRADE_FAILED_RESTORE_OLD_REPOS);
 		      mdui->setSubstep(0);
 
 		      break;
@@ -1673,7 +1686,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		    {
 		      cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
 
-		      mdui->setStep(UPGRADE_FAILED_RESTORE_OLD_MD);
+		      mdui->setStep(UPGRADE_FAILED_RESTORE_OLD_REPOS);
 		      mdui->setSubstep(0);
 
 		      break;
@@ -1682,7 +1695,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		  cliRC = updateSeabaseVersions(&cliInterface, TRAFODION_SYSCAT_LIT);
 		  if (cliRC < 0)
 		    {
-		      mdui->setStep(UPGRADE_FAILED_RESTORE_OLD_MD);
+		      mdui->setStep(UPGRADE_FAILED_RESTORE_OLD_REPOS);
 		      mdui->setSubstep(0);
 
 		      break;
@@ -1696,7 +1709,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		    {
 		      cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
 		    
-		      mdui->setStep(UPGRADE_FAILED_RESTORE_OLD_MD);
+		      mdui->setStep(UPGRADE_FAILED_RESTORE_OLD_REPOS);
 		      mdui->setSubstep(0);
 
 		      break;
@@ -1708,7 +1721,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
                       (NOT isViewsUpgradeNeeded()))
                     mdui->setStep(METADATA_UPGRADED);
                   else
-                    mdui->setStep(OLD_MD_TABLES_HBASE_DELETE);
+                    mdui->setStep(OLD_REPOS_DROP);
 		  mdui->setSubstep(0);
 		  mdui->setEndStep(TRUE);
                   
@@ -1716,6 +1729,32 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		}
 		break;
 	      } // case
+	  }
+	  break;
+
+	case OLD_REPOS_DROP:
+	  {
+            if (upgradeRepository.needsUpgrade(this))
+              {
+                if (upgradeRepository.doDrops(&cliInterface,mdui,this))
+                  {
+                    // no status message in this case so no return
+                    cliInterface.clearGlobalDiags();
+                    mdui->setStep(OLD_MD_TABLES_HBASE_DELETE);
+                    mdui->setSubstep(0);
+                    mdui->setEndStep(TRUE);
+                  }
+                else
+                  {
+                    if (mdui->endStep())
+                      {
+                        mdui->setStep(OLD_MD_TABLES_HBASE_DELETE);
+                        mdui->setSubstep(0);
+                        mdui->setEndStep(TRUE);
+                      }                   
+                    return 0;
+                  }
+              }
 	  }
 	  break;
 
@@ -1752,7 +1791,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		
 	      case 1:
 		{
-		  ehi = allocEHI();
+		  ehi = allocEHI(COM_STORAGE_HBASE);
 
 		  // drop old tables from hbase.
 		  for (Lng32 i = 0; i < sizeof(allMDupgradeInfo)/sizeof(MDUpgradeInfo); i++)
@@ -1771,7 +1810,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 					    catName, schName,
 					    (mdti.isIndex ? COM_INDEX_OBJECT : COM_BASE_TABLE_OBJECT),
                                             FALSE,
-					    FALSE, TRUE))
+					    FALSE, TRUE, isMonarch))
 			{
 			  // ignore errors. Continue dropping old md tables.
 			}
@@ -1836,6 +1875,51 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 	  }
 	  break;
 
+        case UPGRADE_FAILED_RESTORE_OLD_REPOS:
+          {
+            // Note: We can't combine this case with UPGRADE_FAILED etc.
+            // below, because the subsystem code uses mdui->subStep()
+            // to keep track of its progress.
+
+            if (upgradeRepository.needsUpgrade(this))
+              {
+                if (xnInProgress(&cliInterface))
+                  {
+                    cliRC = rollbackXn(&cliInterface);
+                    if (cliRC < 0)
+                      {
+                        // ignore errors
+                      }
+                  }
+
+                if (upgradeRepository.doUndo(&cliInterface,mdui,this))
+                  {
+                    // ignore errors; no status message so just continue on
+                    cliInterface.clearGlobalDiags();
+                    mdui->setStep(UPGRADE_FAILED_DROP_OLD_MD);
+                    mdui->setSubstep(0);
+                    mdui->setEndStep(TRUE);
+                  }
+                else
+                  {
+                    if (mdui->endStep())
+                      {
+                        mdui->setStep(UPGRADE_FAILED_DROP_OLD_MD);
+                        mdui->setSubstep(0);
+                        mdui->setEndStep(TRUE);
+                      }
+                    return 0;
+                  }
+              }
+            else
+              {
+                mdui->setStep(UPGRADE_FAILED_DROP_OLD_MD);
+                mdui->setSubstep(0);
+                mdui->setEndStep(TRUE);
+              }
+          }
+          break;
+
 	case UPGRADE_FAILED:
 	case UPGRADE_FAILED_RESTORE_OLD_MD:
 	case UPGRADE_FAILED_DROP_OLD_MD:
@@ -1884,7 +1968,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 	      case 2:
 		{
 		  if (ehi == NULL)
-		    ehi = allocEHI();
+		    ehi = allocEHI(COM_STORAGE_HBASE);
 		  
 		  dropMDtables(ehi, TRUE); // drop old MD
 		  deallocEHI(ehi);
@@ -1917,7 +2001,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 	      case 5:
 		{
 		  if (ehi == NULL)
-		    ehi = allocEHI();
+		    ehi = allocEHI(COM_STORAGE_HBASE);
 		  
 		  restoreOldMDtables(ehi); // restore old MD and make them current
 		  deallocEHI(ehi);
@@ -2435,6 +2519,83 @@ short CmpSeabaseMDupgrade::customizeNewMDv23tov30(CmpDDLwithStatusInfo *mdui,
   return -1;
 }
 
+// ----------------------------------------------------------------------------
+// Methods for class CmpSeabaseUpgradeRepository
+// ----------------------------------------------------------------------------
+NABoolean CmpSeabaseUpgradeRepository::needsUpgrade(CmpSeabaseMDupgrade * ddlState)
+{ 
+  return ddlState->isReposUpgradeNeeded();
+}
+
+short CmpSeabaseUpgradeRepository::doUpgrade(ExeCliInterface * cliInterface,
+  CmpDDLwithStatusInfo * mdui,
+  CmpSeabaseMDupgrade * ddlState,
+  NABoolean /* ddlXns */)
+{
+  return ddlState->upgradeRepos(cliInterface,mdui);
+}
+
+short CmpSeabaseUpgradeRepository::doDrops(ExeCliInterface * cliInterface,
+  CmpDDLwithStatusInfo * mdui, CmpSeabaseMDupgrade * ddlState)
+{
+  return ddlState->upgradeReposComplete(cliInterface,mdui);
+}
+
+short CmpSeabaseUpgradeRepository::doUndo(ExeCliInterface * cliInterface,
+  CmpDDLwithStatusInfo * mdui, CmpSeabaseMDupgrade * ddlState)
+{
+  return ddlState->upgradeReposUndo(cliInterface,mdui);
+}
+
+// ----------------------------------------------------------------------------
+// Methods for class CmpSeabaseUpgradePrivMgr
+// ----------------------------------------------------------------------------
+NABoolean CmpSeabaseUpgradePrivMgr::needsUpgrade(CmpSeabaseMDupgrade * ddlState)
+{ 
+  return ddlState->isPrivsUpgradeNeeded();
+}
+
+short CmpSeabaseUpgradePrivMgr::doUpgrade(ExeCliInterface * cliInterface,
+  CmpDDLwithStatusInfo * mdui,
+  CmpSeabaseMDupgrade * ddlState,
+  NABoolean ddlXns)
+{
+  // If this is refactored in the future to return multiple messages
+  // then mdui will need to be passed in, and setEndStep called when
+  // we want to stop redriving this method.
+  NAString doneString;
+  short retcode = ddlState->upgradePrivMgr(cliInterface, ddlXns, doneString);
+  if (!retcode)
+    {
+      mdui->setMsg(doneString.data());
+      mdui->setEndStep(TRUE);
+    }
+  return retcode;
+}
+
+short CmpSeabaseUpgradePrivMgr::doDrops(ExeCliInterface * cliInterface,
+  CmpDDLwithStatusInfo * mdui, CmpSeabaseMDupgrade * ddlState)
+{
+  // At the moment, the privilege manager does not adhere to the contract.
+  // It does its drops inside the CmpSeabaseMDupgrade::upgradePrivMgr
+  // method. That is why the upgrade state machine above must do the
+  // privilege manager last. Because if there were an error afterward
+  // that required us to revert to previous state, we couldn't since
+  // the drops have already been done.
+  return 0;  // stubbed, until Privilege Manager upgrade is refactored
+}
+
+short CmpSeabaseUpgradePrivMgr::doUndo(ExeCliInterface * cliInterface,
+  CmpDDLwithStatusInfo * mdui, CmpSeabaseMDupgrade * ddlState)
+{
+  // At the moment, the privilege manager does not adhere to the contract.
+  // It does its recovery inside the CmpSeabaseMDupgrade::upgradePrivMgr
+  // method. That is why the upgrade state machine above must do the
+  // privilege manager last. Because if there were an error afterward
+  // that required us to revert to previous state, we couldn't since
+  // the drops have already been done.
+  return 0;  // stubbed, until Privilege Manager upgrade is refactored
+}
 // ----------------------------------------------------------------------------
 // method: upgradePrivMgr
 //

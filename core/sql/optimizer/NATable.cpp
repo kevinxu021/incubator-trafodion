@@ -3046,6 +3046,41 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
       SQLBPInt(column_desc->precision, column_desc->null_flag, FALSE, heap);
       break;
 
+    case REC_BIN8_SIGNED:
+      if (column_desc->precision > 0)
+	type = new (heap)
+	SQLNumeric(column_desc->length,
+		   column_desc->precision,
+		   column_desc->scale,
+		   TRUE,
+		   column_desc->null_flag,
+                   heap
+		   );
+      else
+	type = new (heap)
+	SQLTiny(TRUE,
+		 column_desc->null_flag,
+                 heap
+		 );
+      break;
+    case REC_BIN8_UNSIGNED:
+      if (column_desc->precision > 0)
+	type = new (heap)
+	SQLNumeric(column_desc->length,
+		   column_desc->precision,
+		   column_desc->scale,
+		   FALSE,
+		   column_desc->null_flag,
+                   heap
+		   );
+      else
+	type = new (heap)
+	SQLTiny(FALSE,
+		 column_desc->null_flag,
+                 heap
+		 );
+      break;
+
     case REC_BIN16_SIGNED:
       if (column_desc->precision > 0)
 	type = new (heap)
@@ -3080,6 +3115,7 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
                  heap
 		 );
       break;
+
     case REC_BIN32_SIGNED:
       if (column_desc->precision > 0)
 	type = new (heap)
@@ -3131,6 +3167,23 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
                     heap
 		    );
       break;
+    case REC_BIN64_UNSIGNED:
+      if (column_desc->precision > 0)
+	type = new (heap)
+	SQLNumeric(column_desc->length,
+		   column_desc->precision,
+		   column_desc->scale,
+		   FALSE,
+		   column_desc->null_flag,
+                   heap
+		   );
+      else
+	type = new (heap)
+          SQLLargeInt(FALSE,
+		    column_desc->null_flag,
+                    heap
+		    );
+      break;
     case REC_DECIMAL_UNSIGNED:
       type = new (heap)
 	SQLDecimal(column_desc->length,
@@ -3168,16 +3221,6 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
 		  column_desc->null_flag,
 		  heap
 		  );
-      break;
-
-    case REC_TDM_FLOAT32:
-      type = new (heap)
-	SQLRealTdm(column_desc->null_flag, heap, column_desc->precision);
-      break;
-
-    case REC_TDM_FLOAT64:
-      type = new (heap)
-	SQLDoublePrecisionTdm(column_desc->null_flag, heap, column_desc->precision);
       break;
 
     case REC_FLOAT32:
@@ -3344,6 +3387,12 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
       type = new (heap)
 	SQLClob(column_desc->precision,Lob_Invalid_Storage,
 		column_desc->null_flag);
+      break;
+
+    case REC_BOOLEAN :
+      {
+        type = new (heap) SQLBooleanNative(column_desc->null_flag);
+      }
       break;
 
     default:
@@ -3605,8 +3654,15 @@ static NABoolean createNAColumns(desc_struct *column_desc_list	/*IN*/,
       
 NAType* getSQColTypeForHive(const char* hiveType, NAMemory* heap)
 {
-  if ( !strcmp(hiveType, "tinyint") || 
-       !strcmp(hiveType, "smallint")) 
+  if ( !strcmp(hiveType, "tinyint"))
+    {
+      if (CmpCommon::getDefault(TRAF_TINYINT_SUPPORT) == DF_OFF)
+        return new (heap) SQLSmall(TRUE /* neg */, TRUE /* allow NULL*/, heap);
+      else
+        return new (heap) SQLTiny(TRUE /* neg */, TRUE /* allow NULL*/, heap);
+    }
+
+  if ( !strcmp(hiveType, "smallint"))
     return new (heap) SQLSmall(TRUE /* neg */, TRUE /* allow NULL*/, heap);
  
   if ( !strcmp(hiveType, "int")) 
@@ -3615,6 +3671,9 @@ NAType* getSQColTypeForHive(const char* hiveType, NAMemory* heap)
   if ( !strcmp(hiveType, "bigint"))
     return new (heap) SQLLargeInt(TRUE /* neg */, TRUE /* allow NULL*/, heap);
 
+  if ( !strcmp(hiveType, "boolean"))
+    return new (heap) SQLBooleanNative(TRUE, heap);
+ 
   if ( !strcmp(hiveType, "string"))
     {
       Int32 len = CmpCommon::getDefaultLong(HIVE_MAX_STRING_LENGTH);
@@ -3627,13 +3686,16 @@ NAType* getSQColTypeForHive(const char* hiveType, NAMemory* heap)
       CharInfo::CharSet hiveCharsetEnum = CharInfo::getCharSetEnum(hiveCharset);
       Int32 maxNumChars = 0;
       Int32 storageLen = len;
-      return new (heap) SQLVarChar(CharLenInfo(maxNumChars, storageLen),
-                                   TRUE, // allow NULL
-                                   FALSE, // not upshifted
-                                   FALSE, // not case-insensitive
-                                   CharInfo::getCharSetEnum(hiveCharset),
-                                   CharInfo::DefaultCollation,
-                                   CharInfo::IMPLICIT);
+      SQLVarChar * nat = 
+        new (heap) SQLVarChar(CharLenInfo(maxNumChars, storageLen),
+                              TRUE, // allow NULL
+                              FALSE, // not upshifted
+                              FALSE, // not case-insensitive
+                              CharInfo::getCharSetEnum(hiveCharset),
+                              CharInfo::DefaultCollation,
+                              CharInfo::IMPLICIT);
+      nat->setWasHiveString(TRUE);
+      return nat;
     }
   
   if ( !strcmp(hiveType, "float"))
@@ -3905,7 +3967,6 @@ NABoolean createNAKeyColumns(desc_struct *keys_desc_list	/*IN*/,
 }
 
 static void createHiveKeyColumns(const NAColumnArray &colArray  /*IN*/,
-                                 const hive_skey_desc *hsk_desc /*IN*/,
                                  NAColumnArray &keyColArray     /*OUT*/,
                                  CollHeap *heap	                /*IN*/)
 {
@@ -3930,29 +3991,6 @@ static void createHiveKeyColumns(const NAColumnArray &colArray  /*IN*/,
   const char *colName;
   NABoolean persistentKey =
     (CmpCommon::getDefault(HIVE_USE_PERSISTENT_KEY) != DF_OFF);
-
-  if (CmpCommon::getDefault(HIVE_USE_SORT_COLS_IN_KEY) == DF_ON)
-    {
-      // To use a sort order, we have to ensure that we have one ESP per
-      // (sorted) file to read. This would have to be done in the
-      // FileScanRule.
-
-      while (hsk_desc)
-        {
-          NAString colName(hsk_desc->name_);
-          colName.toUpper();
-
-          NAColumn* sortKeyColumn = colArray.getColumn(colName);
-
-          if (sortKeyColumn)
-            {
-              keyColArray.insert(sortKeyColumn);
-              sortKeyColumn->setClusteringKey(ASCENDING);
-            }
-
-          hsk_desc = hsk_desc->next_;
-        }
-    }
 
   for (int i=0; i<2; i++)
     {
@@ -4110,6 +4148,7 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
       NAColumnArray indexKeyColumns(CmpCommon::statementHeap());// the index key columns
       NAColumnArray saveNAColumns(CmpCommon::statementHeap());// save NAColums of secondary index columns
       NAColumnArray partitioningKeyColumns(CmpCommon::statementHeap());// the partitioning key columns
+      NAColumnArray noHiveSortColumns(CmpCommon::statementHeap());// not needed in this method
       PartitioningFunction * partFunc = NULL;
       // is this an index or is it really a VP?
       isVerticalPartition = indexes_desc->body.indexes_desc.isVerticalPartition;
@@ -4604,6 +4643,7 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
 		  allColumns,
 		  indexKeyColumns,
 		  partitioningKeyColumns,
+                  noHiveSortColumns,
 		  partFunc,
 		  indexes_desc->body.indexes_desc.keytag,
 		  uint32ArrayToInt64(
@@ -4726,11 +4766,14 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
       // all columns that belong to an index
       NAColumnArray allColumns(CmpCommon::statementHeap());
 
-      // the index key columns - the SORT columns
+      // the index key columns
       NAColumnArray indexKeyColumns(CmpCommon::statementHeap());
 
       // the BUCKETING columns
       NAColumnArray bucketingKeyColumns(CmpCommon::statementHeap());
+
+      // the sort columns for bucketed tables
+      NAColumnArray sortKeyColumns(CmpCommon::statementHeap());
 
       PartitioningFunction * partFunc = NULL;
       // is this an index or is it really a VP?
@@ -4764,11 +4807,28 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
 
       const hive_skey_desc *hsk_desc = hvt_desc->getSortKeys();
 
+      // handle sorted columns
+      while (hsk_desc)
+        {
+          NAString colName(hsk_desc->name_);
+          colName.toUpper();
+
+          NAColumn* sortKeyColumn = colArray.getColumn(colName);
+
+          if (sortKeyColumn)
+            {
+              sortKeyColumns.insert(sortKeyColumn);
+              if (hsk_desc->orderInt_ == 0)
+                sortKeyColumns.setAscending(sortKeyColumns.entries()-1,FALSE);
+            }
+
+          hsk_desc = hsk_desc->next_;
+        }
+
       // Hive tables don't enforce a unique key, but we can pick virtual
       // columns to form a unique key (this can also be used internally,
       // e.g. for subquery unnesting).
       createHiveKeyColumns(colArray,
-                           hsk_desc,
                            indexKeyColumns,
                            CmpCommon::statementHeap());
 
@@ -4872,22 +4932,6 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
       // for release code, would need to sandbox the ability to write
       // files, e.g. to a fixed log directory
 #endif
-
-      // temporary kludge until virtual columns for ORC are supported
-      // NOTE: This can procuce incorrect results, see Mantis-230!!!
-      // See Mantis-269.
-      if (isORC)
-        {
-          indexKeyColumns.clear();
-
-          // assume all non-virtual columns are index key columns
-          // (but no guarantee for uniqueness)
-          for (CollIndex i=0; i<colArray.entries(); i++)
-            if (!colArray[i]->isHiveVirtualColumn())
-	     indexKeyColumns.insert(colArray[i]);
-        }
-
-      // end of temporary kludge
 
       // Create a node map for partitioning function.
       NodeMap* nodeMap = new (heap) NodeMap(heap, NodeMap::HIVE);
@@ -5015,6 +5059,7 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
 		  allColumns,
 		  indexKeyColumns,
 		  bucketingKeyColumns,
+                  sortKeyColumns,
 		  partFunc,
 		  0, // indexes_desc->body.indexes_desc.keytag,
 
@@ -5364,6 +5409,7 @@ NATable::NATable(BindWA *bindWA,
     newColumns_(heap),
     snapshotName_(NULL),
     xnRepl_(COM_REPL_NONE),
+    storageType_(COM_STORAGE_HBASE),
     prototype_(NULL)
 {
   NAString tblName = qualifiedName_.getQualifiedNameObj().getQualifiedNameAsString();
@@ -5480,6 +5526,8 @@ NATable::NATable(BindWA *bindWA,
         setXnRepl(COM_REPL_ASYNC);
     }
 
+  setStorageType(table_desc->body.table_desc.storageType);
+
   if (corrName.isExternal())
   {
     setIsExternalTable(TRUE);
@@ -5535,9 +5583,16 @@ NATable::NATable(BindWA *bindWA,
       (!(corrName.isSeabaseMD() || corrName.isSpecialTable())))
      setupPrivInfo();
 
-  if ((table_desc->body.table_desc.tableFlags & SEABASE_OBJECT_IS_EXTERNAL_HIVE) != 0 ||
-      (table_desc->body.table_desc.tableFlags & SEABASE_OBJECT_IS_EXTERNAL_HBASE) != 0)
+  if ((table_desc->body.table_desc.objectFlags & SEABASE_OBJECT_IS_EXTERNAL_HIVE) != 0 ||
+      (table_desc->body.table_desc.objectFlags & SEABASE_OBJECT_IS_EXTERNAL_HBASE) != 0)
     setIsExternalTable(TRUE);
+
+  if (CmpSeabaseDDL::isMDflagsSet
+      (table_desc->body.table_desc.tablesFlags, MD_TABLES_HIVE_EXT_COL_ATTRS))
+    setHiveExtColAttrs(TRUE);
+  if (CmpSeabaseDDL::isMDflagsSet
+      (table_desc->body.table_desc.tablesFlags, MD_TABLES_HIVE_EXT_KEY_ATTRS))
+    setHiveExtKeyAttrs(TRUE);
 
   rcb_ = table_desc->body.table_desc.rcb;
   rcbLen_ = table_desc->body.table_desc.rcbLen;
@@ -6101,7 +6156,8 @@ NATable::NATable(BindWA *bindWA,
     privInfo_(NULL),
     newColumns_(heap),
     snapshotName_(NULL),
-    xnRepl_(COM_REPL_NONE)
+    xnRepl_(COM_REPL_NONE),
+    storageType_(COM_STORAGE_HBASE)
 {
 
   NAString tblName = qualifiedName_.getQualifiedNameObj().getQualifiedNameAsString();
@@ -8125,16 +8181,28 @@ ExpHbaseInterface* NATable::getHBaseInterface() const
       getSpecialType() == ExtendedQualName::VIRTUAL_TABLE)
     return NULL;
 
-   return NATable::getHBaseInterfaceRaw();
+   return NATable::getHBaseInterfaceRaw
+     ((storageType_ == COM_STORAGE_MONARCH));
 }
 
-ExpHbaseInterface* NATable::getHBaseInterfaceRaw() 
+ExpHbaseInterface* NATable::getHBaseInterfaceRaw(NABoolean isMonarchTable) 
 {
   NADefaults* defs = &ActiveSchemaDB()->getDefaults();
-  const char* server = defs->getValue(HBASE_SERVER);
-  const char* zkPort = defs->getValue(HBASE_ZOOKEEPER_PORT);
+  const char* server;
+  const char* zkPort;
+  if (isMonarchTable) {
+     server = defs->getValue(MONARCH_LOCATOR_ADDRESS);
+     zkPort = defs->getValue(MONARCH_LOCATOR_PORT);
+  }
+  else {
+     server = defs->getValue(HBASE_SERVER);
+     zkPort = defs->getValue(HBASE_ZOOKEEPER_PORT);
+  }
+  NABoolean replSync = FALSE;
   ExpHbaseInterface* ehi = ExpHbaseInterface::newInstance
-                           (STMTHEAP, server, zkPort);
+                           (STMTHEAP, server, zkPort, 
+                            (isMonarchTable ? COM_STORAGE_MONARCH : COM_STORAGE_HBASE),
+                           replSync);
 
   Lng32 retcode = ehi->init(NULL);
   if (retcode < 0)
@@ -8148,13 +8216,12 @@ ExpHbaseInterface* NATable::getHBaseInterfaceRaw()
     delete ehi;
     return NULL;
   }
-
   return ehi;
 }
 
 NAArray<HbaseStr> *NATable::getRegionsBeginKey(const char* hbaseName) 
 {
-  ExpHbaseInterface* ehi = getHBaseInterfaceRaw();
+  ExpHbaseInterface* ehi = getHBaseInterfaceRaw(FALSE);
   NAArray<HbaseStr> *keyArray = NULL;
 
   if (!ehi)
@@ -8239,15 +8306,18 @@ short NATable::updateExtTableAttrs(NATable *etTable)
 {
   NAFileSet *fileset = this->getClusteringIndex();
   NAFileSet *etFileset = etTable->getClusteringIndex();
+  Int32 numUserCols = getUserColumnCount();
 
-  if (getUserColumnCount() != etTable->getUserColumnCount())
+  if (numUserCols != etTable->getUserColumnCount())
     return -1;
 
-  colcount_ = etTable->getColumnCount();
-  colArray_ = etTable->getNAColumnArray();
-
-  addVirtualHiveColumns(colArray_, this, colcount_-1, heap_);
-  colcount_ += 4;
+  // save the virtual columns, those are not contained in the
+  // external table
+  colArray_.removeAt(0, numUserCols);
+  colArray_.insertArray(etTable->getNAColumnArray(),
+                        0, // insert at position 0
+                        0, // stat with et column 0
+                        numUserCols);
 
   // mark the partition columns in the external table
   NAColumnArray &myCols = fileset->allColumns_;
@@ -8256,22 +8326,22 @@ short NATable::updateExtTableAttrs(NATable *etTable)
     if (myCols[i]->isHivePartColumn())
       etFileset->markAsHivePartitioningColumn(i);
 
-  fileset->allColumns_ = etFileset->getAllColumns();
-  addVirtualHiveColumns(fileset->allColumns_, this, 
-                        fileset->allColumns_.entries()-1, heap_);
+  // assert that the general layout of the columns hasn't changed,
+  // user columns first, followed by virtual columns, and the fileset
+  // columns are the same as the base table columns
+  CMPASSERT(myCols.entries() == colArray_.entries());
+  for (CollIndex u=numUserCols; u<myCols.entries(); u++)
+    CMPASSERT(myCols[u]->isHiveVirtualColumn());
 
-  if (NOT etFileset->hasOnlySyskey()) // explicit key was specified
-    {
-      keyLength_ = etTable->getKeyLength();
-      recordLength_ = etTable->getRecordLength();
-      
-      fileset->keysDesc_ = etFileset->getKeysDesc();
-      fileset->indexKeyColumns_ = etFileset->getIndexKeyColumns();
-      fileset->keyLength_ = etFileset->getKeyLength();
-      fileset->encodedKeyLength_ = etFileset->getEncodedKeyLength();
-    }
+  myCols.removeAt(0, numUserCols);
+  myCols.insertArray(etFileset->getAllColumns(),
+                     0, // insert at position 0
+                     0, // stat with et column 0
+                     numUserCols);
 
-  /*
+  // Note that the key cannot be changed with an external table
+
+  /* those can't be changed with an external table, either
   fileset->partitioningKeyColumns_ = etFileset->getPartitioningKeyColumns();
   fileset->partFunc_ = etFileset->getPartitioningFunction();
   fileset->countOfFiles_ = etFileset->getCountOfFiles();
@@ -8279,7 +8349,6 @@ short NATable::updateExtTableAttrs(NATable *etTable)
 
   return 0;
 }
-
 
 // get details of this NATable cache entry
 void NATableDB::getEntryDetails(
@@ -8653,7 +8722,11 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
            table = new (naTableHeap) NATable
              (bindWA, corrName, naTableHeap, htbl);
 
-           if  (CmpCommon::getDefault(HIVE_USE_EXT_TABLE_ATTRS) == DF_ON)
+           // 'table' is the NATable for underlying hive table.
+           // That table may also have an associated external table.
+           // Skip processing the external table defn, if only the 
+           // underlying hive table is needed.
+           if (NOT bindWA->returnHiveTableDefn())
              {
                // if this hive/orc table has an associated external table, 
                // get table desc for it.
@@ -8669,26 +8742,39 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
                     qn.getObjectName(),
                     COM_BASE_TABLE_OBJECT);
                
-               if (etDesc)
+               if (table && etDesc)
                  {
                    CorrName cn(qn);
                    NATable * etTable = new (naTableHeap) NATable
                      (bindWA, cn, naTableHeap, etDesc);
                    
-                   short rc = table->updateExtTableAttrs(etTable);
-                   if ((rc) && (NOT bindWA->externalTableDrop()))
+                   // if ext and hive columns dont match, return error
+                   // unless it is a drop stmt.
+                   if ((table->getUserColumnCount() != etTable->getUserColumnCount()) &&
+                       (NOT bindWA->externalTableDrop()))
                      {
                        *CmpCommon::diags()
                          << DgSqlCode(-8437);
-
+                       
                        bindWA->setErrStatus();
                        return NULL;
                      }
-
+                   
+                   if (etTable->hiveExtColAttrs() || etTable->hiveExtKeyAttrs())
+                     {
+                       // attrs were explicitly specified for this external
+                       // table. Merge them with the hive table attrs.
+                       short rc = table->updateExtTableAttrs(etTable);
+                       if (rc)
+                         {
+                           bindWA->setErrStatus();
+                           return NULL;
+                         }
+                     }
                    table->setHasHiveExtTable(TRUE);
-                 }
-             } // use  hive ext attrs
-	 }
+                 } // ext table 
+             } // allowExternalTables
+         } // htbl
        else 
          {
            if ((hiveMetaDB_->getErrCode() == 0)||

@@ -33,9 +33,11 @@
 #include "CompException.h"
 #include "ex_ex.h"
 #include "HBaseClient_JNI.h"
+#include "orc/HdfsOrcFile.hh"
 // for DNS name resolution
 #include <netdb.h>
-
+#include "Globals.h"
+#include "Context.h"
 // Initialize static variables
 THREAD_P CollIndex HHDFSMasterHostList::numSQNodes_(0);
 THREAD_P NABoolean HHDFSMasterHostList::hasVirtualSQNodes_(FALSE);
@@ -887,7 +889,7 @@ void HHDFSListPartitionStats::populate(hdfsFS fs,
   // to avoid a crash, due to lacking permissions, check the directory
   // itself first
   hdfsFileInfo *dirInfo = hdfsGetPathInfo(fs, dir.data());
-
+  
   if (!dirInfo)
     {
       diags.recordError(NAString("Could not access HDFS directory ") + dir,
@@ -938,6 +940,7 @@ void HHDFSListPartitionStats::populate(hdfsFS fs,
           }
 
       hdfsFreeFileInfo(fileInfos, numFiles);
+      hdfsFreeFileInfo(dirInfo,1);
 
       // aggregate statistics over all buckets
       for (Int32 b=0; b<=defaultBucketIdx_; b++)
@@ -1085,7 +1088,7 @@ NABoolean HHDFSListPartitionStats::validateAndRefresh(hdfsFS fs, HHDFSDiags &dia
       } // loop over actual files in the directory
 
   hdfsFreeFileInfo(fileInfos, numFiles);
-
+  hdfsFreeFileInfo(dirInfo,1);
   // check for file stats that we did not visit at the end of each bucket
   for (CollIndex i=0; i<=getLastValidBucketIndx() && result; i++)
     if (bucketStatsList_.used(i) &&
@@ -1463,7 +1466,7 @@ void HHDFSTableStats::initLOBInterface()
   lobGlob_ = NULL;
 
   ExpLOBinterfaceInit
-    (lobGlob_, heap_, TRUE);
+    (lobGlob_, heap_, GetCliGlobals()->currContext(), TRUE);
 }
 
 void HHDFSTableStats::releaseLOBInterface()
@@ -1476,17 +1479,11 @@ NABoolean HHDFSTableStats::connectHDFS(const NAString &host, Int32 port)
 {
   NABoolean result = TRUE;
 
-  // establish connection to HDFS if needed
-  if (fs_ == NULL ||
-      currHdfsHost_ != host ||
-      currHdfsPort_ != port)
-    {
-      if (fs_)
-        {
-          hdfsDisconnect(fs_);
-          fs_ = NULL;
-        }
-      fs_ = hdfsConnect(host, port);
+  // establish connection to HDFS . Conect to the connection cached in the context.
+ 
+  
+  fs_ = ((GetCliGlobals()->currContext())->getHdfsServerConnection((char *)host.data(),port));
+     
       
       if (fs_ == NULL)
         {
@@ -1500,15 +1497,14 @@ NABoolean HHDFSTableStats::connectHDFS(const NAString &host, Int32 port)
         }
       currHdfsHost_ = host;
       currHdfsPort_ = port;
-    }
+      //  }
   return result;
 }
 
 void HHDFSTableStats::disconnectHDFS()
 {
-  if (fs_)
-    hdfsDisconnect(fs_);
-  fs_ = NULL;
+  // No op. The disconnect happens at the context level wehn the session 
+  // is dropped or the thread exits.
 }
 
 
@@ -1793,23 +1789,84 @@ THREAD_P Int64 HHDFSORCFileStats::totalAccumulatedRows_ = 0;
 THREAD_P Int64 HHDFSORCFileStats::totalAccumulatedTotalSize_ = 0;
 THREAD_P Int64 HHDFSORCFileStats::totalAccumulatedStripes_ = 0;
 
-void HHDFSORCFileStats::populate(hdfsFS fs,
-                hdfsFileInfo *fileInfo,
-                Int32& samples,
-                HHDFSDiags &diags,
-                NABoolean doEstimation,
-                char recordTerminator)
+void HHDFSORCFileStats::print(FILE *ofd)
 {
-   // do not estimate # of records on ORC files
-   HHDFSFileStats::populate(fs, fileInfo, samples, diags, FALSE, recordTerminator);
+  fprintf(ofd, ">>>> ORC File:    %s\n", getFileName().data());
+  fprintf(ofd, "---numOfRows_.entries(): %d---\n", numOfRows_.entries());
+  fprintf(ofd, "---offsets_.entries(): %d---\n", offsets_.entries());
+  fprintf(ofd, "---totalBytes_.entries(): %d---\n", totalBytes_.entries());
+  fprintf(ofd, "---numStrips_.entries(): %d---\n", numStripes_);
+  fprintf(ofd, "---totalRows_: %d---\n", totalRows_);
+  // per stripe info
+  for(int i = 0; i < numOfRows_.entries(); i++)
+  {
+      fprintf(ofd, "---strip: %d---\n", i);
+      fprintf(ofd, "number of rows: %lu\n", numOfRows_[i]);
+      fprintf(ofd, "offset: %lu\n", offsets_[i]);
+      fprintf(ofd, "bytes: %lu\n", totalBytes_[i]);
+  }
+  fprintf(ofd, "totalAccumulatedRows: %lu\n", totalAccumulatedRows_);
+  fprintf(ofd, "totalAccumulatedTotalSize: %lu\n", totalAccumulatedTotalSize_);
+  fprintf(ofd, "totalAccumulatedStripes: %lu\n", totalAccumulatedStripes_);
+  HHDFSStatsBase::print(ofd, "file");
+}
 
-   NABoolean readStripeInfo = doEstimation || 
-                             (CmpCommon::getDefault(ORC_READ_STRIPE_INFO) == DF_ON);
-   NABoolean readNumRows = doEstimation || 
-                           (CmpCommon::getDefault(ORC_READ_NUM_ROWS) == DF_ON);
+void HHDFSORCFileStats::populateWithCplus(HHDFSDiags &diags, hdfsFS fs, hdfsFileInfo *fileInfo, NABoolean readStripeInfo, NABoolean readNumRows, NABoolean needToOpenORCI)
+{
+           //use C++ code to decode ORC stream read from libhdfs.so
+           std::unique_ptr<orc::Reader> cppReader (0);
+           if ( needToOpenORCI ) {
+               try{
+	         cppReader = orc::createReader(orc::readHDFSFile(fileInfo, fs), orc::ReaderOptions());
+               }
+               catch(...)
+               {
+                 diags.recordError(NAString("ORC C++ Reader error."));                
+                 return;
+               }
+           }
+           //NULL pointer
+	   if(cppReader.get() == 0)
+           {
+               diags.recordError(NAString("ORC C++ Reader error."));
+               return;
+           }
+	   
+	   if(readStripeInfo) {
+	       for(int i = 0; i < cppReader->getNumberOfStripes(); i++) {
+		   std::unique_ptr<orc::StripeInformation> stripeInfo = cppReader->getStripe(i);
+		   numOfRows_.insert(stripeInfo->getNumberOfRows());
+		   offsets_.insert(stripeInfo->getOffset());
+		   totalBytes_.insert(stripeInfo->getLength());
+	       }
+               numStripes_ = cppReader->getNumberOfStripes();
+               totalAccumulatedStripes_ += numStripes_;              
+	   } else {
+               if ( totalAccumulatedTotalSize_ > 0 ) {
+                   float stripesPerByteRatio = float(totalAccumulatedStripes_) / totalAccumulatedTotalSize_;
+                   numStripes_ = totalSize_ * stripesPerByteRatio;
+               } else
+                   numStripes_ = 1;
+           }
 
-   NABoolean needToOpenORCI = (readStripeInfo || readNumRows );
+	   
+	   if ( readNumRows ) {
+	   	totalRows_ = cppReader->getNumberOfRows();
+	   	totalStringLengths_ = cppReader->getSumStringLengths();
+                totalAccumulatedRows_ += totalRows_;
+                totalAccumulatedTotalSize_ += totalSize_;
+	   } 
+	   else {
+	       if ( totalAccumulatedTotalSize_ > 0 ) {
+                   float rowsPerByteRatio =  float(totalAccumulatedRows_) / totalAccumulatedTotalSize_;
+                   totalRows_ = totalSize_ * rowsPerByteRatio;
+               } else
+                   sampledRows_ = 100;
+	   }
+}
 
+void HHDFSORCFileStats::populateWithJNI(HHDFSDiags &diags, NABoolean readStripeInfo, NABoolean readNumRows, NABoolean needToOpenORCI)
+{
    ExpORCinterface* orci = NULL;
    Lng32 rc = 0;
 
@@ -1899,6 +1956,40 @@ void HHDFSORCFileStats::populate(hdfsFS fs,
         return;
       }
       delete orci;
+   }
+}
+
+
+void HHDFSORCFileStats::populate(hdfsFS fs,
+                hdfsFileInfo *fileInfo,
+                Int32& samples,
+                HHDFSDiags &diags,
+                NABoolean doEstimation,
+                char recordTerminator)
+{
+   // do not estimate # of records on ORC files
+   HHDFSFileStats::populate(fs, fileInfo, samples, diags, FALSE, recordTerminator);
+
+   NABoolean readStripeInfo = doEstimation || 
+                             (CmpCommon::getDefault(ORC_READ_STRIPE_INFO) == DF_ON);
+   NABoolean readNumRows = doEstimation || 
+                           (CmpCommon::getDefault(ORC_READ_NUM_ROWS) == DF_ON);
+
+   NABoolean needToOpenORCI = (readStripeInfo || readNumRows );
+   
+   if(CmpCommon::getDefault(ORC_USE_CPP_READER) == DF_OFF)
+     populateWithJNI(diags, readStripeInfo, readNumRows, needToOpenORCI);
+   else
+     populateWithCplus(diags, fs, fileInfo, readStripeInfo, readNumRows, needToOpenORCI);
+   //print log for regression test
+   NAString logFile = 
+        ActiveSchemaDB()->getDefaults().getValue(ORC_HDFS_STATS_LOG_FILE);
+   if (logFile.length()){
+       FILE *ofd = fopen(logFile, "a");
+       if (ofd){
+           print(ofd);
+           fclose(ofd);
+       }
    }
 }
 

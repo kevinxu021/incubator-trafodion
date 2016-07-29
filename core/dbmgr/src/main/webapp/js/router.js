@@ -30,11 +30,16 @@ define([
         'views/help/AboutView',
         'model/Session',
         'model/Localizer',
+        'views/workloads/WorkloadProfileConfigurationView',
+        'views/workloads/WorkloadSLAConfigurationView',
+        'views/workloads/WorkloadMappingConfigurationView',
+	'views/tools/SQLConverterView',
         'metismenu'
         ], function($, _, Backbone, NavbarView, DashboardView, WorkbenchView, DCSServerView, LoginView, 
         		SchemasView, SchemaDetailView, SchemaObjectsView, SchemaObjectDetailView,
         		ActiveWorkloadsView, ActiveQueryDetailView, HistoricalWorkloadsView, HistoricalWorkloadDetailView, QueryPlanView, 
-        		LogsView, CreateLibraryView, AlterLibraryView, AlertsSummaryView, AlertDetailView, AboutView, Session, Localizer) {
+        		LogsView, CreateLibraryView, AlterLibraryView, AlertsSummaryView, AlertDetailView, AboutView, Session, Localizer,
+        		WorkloadProfileConfigurationView, WorkloadSLAConfigurationView, WorkloadMappingConfigurationView, SQLConverterView) {
 	'use strict';
 
 	var currentSelection = null;
@@ -60,6 +65,10 @@ define([
 	var alertsSummaryView = null;
 	var alertDetailView = null;
 	var aboutView = null;
+	var sqlConverterView = null;
+	var workloadProfileConfigurationView = null;
+	var workloadSLAConfigurationView = null;
+	var workloadMappingConfigurationView = null;
 	
 	var AppRouter = Backbone.Router.extend({
 		execute: function(callback, args, name) {
@@ -94,8 +103,12 @@ define([
 			'workloads/history/querydetail(/*args)':'showHistoricalWorkloadDetail',
 			'workloads/active/querydetail(/*args)':'showActiveQueryDetail',
 			'workloads/queryplan(/*args)':'showQueryPlan',
+			'workloads/configuration/profiles':'showWorkloadProfiles',
+			'workloads/configuration/slas':'showWorkloadSLAs',
+			'workloads/configuration/mappings':'showWorkloadMappings',
 			'tools/createlibrary(?*:params)':'createLibrary',
 			'tools/alterlibrary(?*:params)':'alterLibrary',
+			'tools/sqlconverter':'showSQLConverter',
 			'alerts': 'showAlertsSummary',
 			'alert/detail(/*args)': 'showAlertDetail',
 			'help/about': 'showAbout',
@@ -177,6 +190,10 @@ define([
 		alertsSummaryView = null;
 		alertDetailView = null;
 		aboutView = null;
+		workloadProfileConfigurationView = null;
+		workloadSLAConfigurationView = null;
+		workloadMappingConfigurationView = null;
+		sqlConverterView = null;
 		currentView = null;
 	};
 
@@ -307,6 +324,30 @@ define([
 			switchView(activeQueryDetailView, args);
 		});	
 		
+		app_router.on('route:showWorkloadProfiles', function (args) {
+			if(workloadProfileConfigurationView == null){
+				workloadProfileConfigurationView = new WorkloadProfileConfigurationView();
+				viewCollection.push(workloadProfileConfigurationView);
+			}
+			switchView(workloadProfileConfigurationView, args);
+		});	
+		
+		app_router.on('route:showWorkloadSLAs', function (args) {
+			if(workloadSLAConfigurationView == null){
+				workloadSLAConfigurationView = new WorkloadSLAConfigurationView();
+				viewCollection.push(workloadSLAConfigurationView);
+			}
+			switchView(workloadSLAConfigurationView, args);
+		});	
+
+		app_router.on('route:showWorkloadMappings', function (args) {
+			if(workloadMappingConfigurationView == null){
+				workloadMappingConfigurationView = new WorkloadMappingConfigurationView();
+				viewCollection.push(workloadMappingConfigurationView);
+			}
+			switchView(workloadMappingConfigurationView, args);
+		});	
+
 		app_router.on('route:showQueryPlan', function (args) {
 			if(queryPlanView == null){
 				queryPlanView = new QueryPlanView();
@@ -357,6 +398,15 @@ define([
 				viewCollection.push(alterLibraryView);
 			}
 			switchView(alterLibraryView, args);
+		});
+		
+		app_router.on('route:showSQLConverter', function (args, params) {
+			var args = deparam();
+			if(sqlConverterView == null){
+				sqlConverterView = new SQLConverterView();
+				viewCollection.push(sqlConverterView);
+			}
+			switchView(sqlConverterView, args);
 		});
 		
 		app_router.on('route:showAbout', function (args) {

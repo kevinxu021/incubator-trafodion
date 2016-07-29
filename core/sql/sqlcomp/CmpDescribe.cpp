@@ -2257,18 +2257,14 @@ short CmpDescribeHiveTable (
       // show the ddl of source hive table first.
       if ((type == 2) &&
           (naTable->isHiveTable()) &&
-          (naTable->hasHiveExtTable()) &&
-          (CmpCommon::getDefault(HIVE_USE_EXT_TABLE_ATTRS) == DF_ON))
+          (naTable->hasHiveExtTable()))
         {
           // remove current cache key and turn off ext table attr cqd.
           // This will return the underlying hive natable.
           bindWA.getSchemaDB()->getNATableDB()->remove(naTable->getKey());
-          NAString op("OFF");
-          ActiveSchemaDB()->getDefaults().validateAndInsert
-            ("HIVE_USE_EXT_TABLE_ATTRS", op, FALSE);
 
-          hiveExtTabAttrDefTurnedOff = TRUE;
-
+          // retrieve underlying hive table definition
+          bindWA.setReturnHiveTableDefn(TRUE);
           naTable = bindWA.getNATable((CorrName&)dtName); 
           if (naTable == NULL || bindWA.errStatus())
             return -1;
@@ -2285,16 +2281,6 @@ short CmpDescribeHiveTable (
   if (NOT ((type == 1) || (type == 2)))
     return -1;
 
-  if (hiveExtTabAttrDefTurnedOff)
-    {
-      // remove table key from natable cache. Next call to get natable
-      // will get the external table defn, if one exists
-      bindWA.getSchemaDB()->getNATableDB()->remove(naTable->getKey());
-      NAString op("ON");
-      ActiveSchemaDB()->getDefaults().validateAndInsert
-        ("HIVE_USE_EXT_TABLE_ATTRS", op, FALSE);
-    }      
-   
   char * buf = new (heap) char[15000];
   CMPASSERT(buf);
 
@@ -2409,6 +2395,8 @@ short CmpDescribeHiveTable (
            for(hive_skey_desc* hsd = sortkeyHeader; hsd; hsd = hsd->next_)
            {
                skStr += hsd->name_;
+               if (hsd->orderInt_ == 0)
+                 skStr += " DESC";
                skStr += ",";
            }
            skStr[skStr.length()-1] = ')';
@@ -2421,21 +2409,6 @@ short CmpDescribeHiveTable (
        outputShortLine(space, bktStr);
   }
 
-  if ((naTable->getClusteringIndex()) &&
-      (isHiveExtTable) &&
-      (naTable->isORC()) &&
-      (type == 1))
-    {
-      NAFileSet * naf = naTable->getClusteringIndex();
-      
-      sprintf(buf,  "  PRIMARY KEY ");
-      
-      cmpDisplayPrimaryKey(naf->getIndexKeyColumns(), 
-                           naf->getIndexKeyColumns().entries(),
-                           FALSE,
-                           space, buf, TRUE, TRUE, TRUE);
-    } // if
-  
   const HHDFSTableStats* hTabStats = 
     naTable->getClusteringIndex()->getHHDFSTableStats();
   if (hTabStats->isOrcFile())
@@ -2465,8 +2438,15 @@ short CmpDescribeHiveTable (
 
   // if this hive table has an associated external table, show ddl
   // for that external table.
-if ((isHiveExtTable) && (type == 2))
+  if ((type == 2) &&
+      (bindWA.returnHiveTableDefn()))
     {
+      // remove table key from natable cache. Next call to get natable
+      // will get the external table defn, if one exists
+      bindWA.getSchemaDB()->getNATableDB()->remove(naTable->getKey());
+
+      bindWA.setReturnHiveTableDefn(FALSE);
+
       char * dummyBuf;
       ULng32 dummyLen;
       
@@ -2486,7 +2466,7 @@ if ((isHiveExtTable) && (type == 2))
                                          dummyBuf, dummyLen, heap, 
                                          NULL, 
                                          TRUE, FALSE, FALSE, TRUE, TRUE,
-                                         NULL, FALSE, NULL, NULL, &space);
+                                         NULL, 0, NULL, NULL, &space);
 
       outputShortLine(space, ";");
     }
@@ -2873,6 +2853,7 @@ short CmpDescribeSeabaseTable (
 
   NABoolean isVolatile = naTable->isVolatileTable();
   NABoolean isExternalTable = naTable->isExternalTable();
+  ComStorageType storageType = naTable->storageType();
 
   NABoolean isExternalHbaseTable = FALSE;
   NABoolean isExternalHiveTable = FALSE;
@@ -2890,7 +2871,7 @@ short CmpDescribeSeabaseTable (
       else if (qn.getCatalogName() == HIVE_SYSTEM_CATALOG)
         isExternalHiveTable = TRUE;
     }
-  
+
   char * buf = new (heap) char[15000];
   CMPASSERT(buf);
 
@@ -2898,7 +2879,7 @@ short CmpDescribeSeabaseTable (
   time(&tp);
   
   Space lSpace;
-  
+
   Space * space;
   if (inSpace)
     space = inSpace;
@@ -3030,10 +3011,11 @@ short CmpDescribeSeabaseTable (
                 "-- Definition current  %s",
                 tableName.data(), ctime(&tp));
       else
-        sprintf(buf,  "-- Definition of Trafodion%stable %s\n"
+        sprintf(buf,  "-- Definition of %s%stable %s\n"
                 "-- Definition current  %s",
+                ((storageType == COM_STORAGE_MONARCH) ? "Monarch" : "Trafodion"),
                 (isVolatile ? " volatile " : isExternalTable ? " external " : " "), 
-                tableName.data(),
+                tableName.data(), 
                 ctime(&tp));
       outputShortLine(*space, buf);
     }
@@ -3041,7 +3023,7 @@ short CmpDescribeSeabaseTable (
     {
       sprintf(buf,  "CREATE%sTABLE %s",
               (isVolatile ? " VOLATILE " : isExternalTable ? " EXTERNAL " : " "), 
-               (isExternalTable ? extName.data() : tableName.data()));
+              (isExternalTable ? objectName.data() : tableName.data()));
       outputShortLine(*space, buf);
     }
 
@@ -3050,7 +3032,8 @@ short CmpDescribeSeabaseTable (
   if ((NOT isExternalTable) ||
       ((isExternalTable) && 
        ((isExternalHbaseTable && (type == 1)) ||
-        (isExternalHiveTable))))
+        (isExternalHiveTable && (type != 2)) ||
+        (isExternalHiveTable && (type == 2) && (naTable->hiveExtColAttrs())))))
     {
       outputShortLine(*space, "  ( ");
       cmpDisplayColumns(naTable->getNAColumnArray(), 
@@ -3060,7 +3043,6 @@ short CmpDescribeSeabaseTable (
                         identityColPos,
                         isExternalTable, naTable->isSQLMXAlignedTable(),
                         colName, ada, nacol, natype);
-
       closeParan = TRUE;
     }
 
@@ -3305,7 +3287,7 @@ short CmpDescribeSeabaseTable (
             {
               strcat(attrs, "DEFAULT COLUMN FAMILY '");
               strcat(attrs, naTable->defaultColFam());
-              strcat(attrs, "'");
+              strcat(attrs, "' ");
             }
           outputShortLine(*space, attrs);
 
@@ -3314,7 +3296,6 @@ short CmpDescribeSeabaseTable (
 
       if (xnRepl != COM_REPL_NONE)
         {
-          strcpy(attrs, "  ");
           if (NOT attributesSet)
             {
               strcpy(attrs, " ATTRIBUTES ");
@@ -3329,6 +3310,14 @@ short CmpDescribeSeabaseTable (
           outputShortLine(*space, attrs);
         }
 
+      if (storageType == COM_STORAGE_MONARCH) {
+         if (NOT attributesSet) {
+            strcpy(attrs, " ATTRIBUTES ");
+            attributesSet = TRUE;
+         }
+         strcat(attrs, "STORAGE MONARCH ");
+         outputShortLine(*space, attrs);
+      }
       if (!isView && (naTable->hbaseCreateOptions()) &&
           (naTable->hbaseCreateOptions()->entries() > 0))
         {
@@ -3350,7 +3339,8 @@ short CmpDescribeSeabaseTable (
           outputShortLine(*space, "  ) ");
         }
 
-      if (isExternalTable)
+      if ((isExternalTable) &&
+          (type == 2))
         {
           sprintf(buf, "  FOR %s", extName.data());
           outputShortLine(*space, buf);
@@ -3405,10 +3395,10 @@ short CmpDescribeSeabaseTable (
 	      if (naf->uniqueIndex())
 		strcat(vu, "unique ");
 
-	      sprintf(buf,  "\n-- Definition of%sTrafodion%sindex %s\n"
+	      sprintf(buf,  "\n-- Definition of%s%s%sindex %s\n"
 		      "-- Definition current  %s",
 		      ((NOT naf->isCreatedExplicitly()) ? " implicit " : " "),
-		      vu,
+                      ((storageType == COM_STORAGE_MONARCH) ? "Monarch" : "Trafodion"),		      vu,
 		      indexName.data(),
 		      ctime(&tp));
 	      outputShortLine(*space, buf);
@@ -3744,7 +3734,7 @@ short CmpDescribeSequence(
   char * sqlmxRegr = getenv("SQLMX_REGRESS");
   NABoolean displayPrivilegeGrants = TRUE;
   if (((CmpCommon::getDefault(SHOWDDL_DISPLAY_PRIVILEGE_GRANTS) == DF_SYSTEM) && sqlmxRegr) ||
-       (CmpCommon::getDefault(SHOWDDL_DISPLAY_PRIVILEGE_GRANTS) == DF_OFF))
+      (CmpCommon::getDefault(SHOWDDL_DISPLAY_PRIVILEGE_GRANTS) == DF_OFF))
     displayPrivilegeGrants = FALSE;
 
   // If authorization enabled, display grant statements
@@ -4556,7 +4546,7 @@ static short CmpDescribeTableHDFSCache(const CorrName  &dtName, char *&outbuf, U
     tableList.push_back(naTable->getTableName().getQualifiedNameAsAnsiString().data());
     //Call Java method to get hdfs cache information for this table.
     CmpSeabaseDDL cmpSBD(STMTHEAP);
-    ExpHbaseInterface * ehi = cmpSBD.allocEHI();
+    ExpHbaseInterface * ehi = cmpSBD.allocEHI(naTable->isMonarch());
     NAArray<HbaseStr> * rows = ehi->showTablesHDFSCache(tableList);
     if(rows == NULL)
         return -1;
@@ -4698,7 +4688,7 @@ static short CmpDescribeSchemaHDFSCache(const NAString  & schemaText, char *&out
     }
     CmpSeabaseDDL cmpSBD(STMTHEAP);
     //Call Java method to get hdfs cache information for this table.
-    ExpHbaseInterface * ehi = cmpSBD.allocEHI();
+    ExpHbaseInterface * ehi = cmpSBD.allocEHI(FALSE);
     if (ehi == NULL) 
         return -1; 
     NAArray<HbaseStr> *rows = ehi->showTablesHDFSCache(tableList);
@@ -4767,6 +4757,7 @@ static short CmpDescribeSchemaHDFSCache(const NAString  & schemaText, char *&out
         outputShortLine(space, "");
         outputShortLine(space, msg.c_str());
     }
+    deleteNAArray(STMTHEAP, rows);
     outbuflen = space.getAllocatedSpaceSize();
     outbuf = new (heap) char[outbuflen];
     space.makeContiguous(outbuf, outbuflen);

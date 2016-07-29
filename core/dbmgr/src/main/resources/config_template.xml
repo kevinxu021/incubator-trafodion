@@ -25,7 +25,7 @@
 	<entry key="maxStatementsCache">100</entry>
 	
 	<!-- The Trafodion REST Server URI -->
-	<entry key="trafodionRestServerUri">REST_HOST:REST_PORT</entry>
+	<entry key="trafodionRestServerUri">http://REST_HOST:REST_PORT</entry>
 	
 	<!-- The EsgynDB DCS Master Info URI -->
 	<entry key="dcsMasterInfoUri">http://DCS_HOST:DCS_INFO_PORT</entry>
@@ -58,9 +58,12 @@
 	<entry key="timeZoneName">TIMEZONE_NAME</entry>
 	
 	<!-- The openTSDB HTTP URI-->
-	<entry key="openTSDBUri">TSD_HOST:TSD_PORT</entry>
+	<entry key="openTSDBUri">http://TSD_HOST:TSD_PORT</entry>
 	
 	<!-- The Alerts HTTP URI-->
-	<entry key="alertsUri">BOSUN_HOST:BOSUN_PORT</entry>
+	<entry key="alertsUri">http://BOSUN_HOST:BOSUN_PORT</entry>
+	
+	<!-- Enable/Disable WMS Features-->
+	<entry key="enableWMS">false</entry>
 	
 </properties>

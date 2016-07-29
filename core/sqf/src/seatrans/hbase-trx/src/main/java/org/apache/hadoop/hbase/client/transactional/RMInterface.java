@@ -78,9 +78,13 @@ import org.apache.hadoop.hbase.regionserver.transactional.IdTm;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTmException;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTmId;
 
+import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
+import org.apache.hadoop.hbase.ipc.ServerRpcController;
+
 import org.apache.zookeeper.KeeperException;
 
-import java.util.ArrayList;
+import com.google.protobuf.ByteString;
+
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -122,14 +126,8 @@ public class RMInterface {
        try {
           pSTRConfig = STRConfig.getInstance(lv_config);
        }
-       catch (InterruptedException int_exception) {
-	   System.out.println("Interrupted Exception trying to get STRConfig instance: " + int_exception);
-       }
        catch (IOException ioe) {
           LOG.error("IO Exception trying to get STRConfig instance: " + ioe);
-       }
-       catch (KeeperException zke) {
-          LOG.error("Zookeeper Connection Exception trying to get STRConfig instance: " + zke);
        }
     }
 
@@ -144,7 +142,7 @@ public class RMInterface {
     }
 
     private IdTm idServer;
-    private static final int ID_TM_SERVER_TIMEOUT = 1000;
+    private static final int ID_TM_SERVER_TIMEOUT = 1000; // 1 sec 
 
     public enum AlgorithmType {
        MVCC, SSCC
@@ -349,7 +347,7 @@ public class RMInterface {
               IdTmId startId;
               try {
                  startId = new IdTmId();
-                 if (LOG.isTraceEnabled()) LOG.trace("registerTransaction getting new startId");
+                 if (LOG.isTraceEnabled()) LOG.trace("registerTransaction getting new startId with timeout " + ID_TM_SERVER_TIMEOUT);
                  idServer.id(ID_TM_SERVER_TIMEOUT, startId);
                  if (LOG.isTraceEnabled()) LOG.trace("registerTransaction idServer.id returned: " + startId.val);
               } catch (IdTmException exc) {
@@ -438,12 +436,12 @@ public class RMInterface {
     }
 
     public void createTable(HTableDescriptor desc, byte[][] keys, int numSplits, int keyLength, long transID) throws IOException {
-
-        if (LOG.isTraceEnabled()) LOG.trace("createTable ENTER: ");
-            byte[] lv_byte_desc = desc.toByteArray();
-            byte[] lv_byte_tblname = desc.getNameAsString().getBytes();
-            if (LOG.isTraceEnabled()) LOG.trace("createTable: htabledesc bytearray: " + lv_byte_desc + "desc in hex: " + Hex.encodeHexString(lv_byte_desc));
-            createTableReq(lv_byte_desc, keys, numSplits, keyLength, transID, lv_byte_tblname);
+    	if (LOG.isTraceEnabled()) LOG.trace("Enter createTable, txid: " + transID + " Table: " + desc.getNameAsString());
+        byte[] lv_byte_desc = desc.toByteArray();
+        byte[] lv_byte_tblname = desc.getNameAsString().getBytes();
+        if (LOG.isTraceEnabled()) LOG.trace("createTable: htabledesc bytearray: " + lv_byte_desc + "desc in hex: " + Hex.encodeHexString(lv_byte_desc));
+        createTableReq(lv_byte_desc, keys, numSplits, keyLength, transID, lv_byte_tblname);
+        if (LOG.isTraceEnabled()) LOG.trace("Exit createTable, txid: " + transID + " Table: " + desc.getNameAsString());
     }
 
     public void truncateTableOnAbort(String tblName, long transID) throws IOException {
@@ -489,15 +487,18 @@ public class RMInterface {
     static public synchronized void unregisterTransaction(final long transactionID) {
       TransactionState ts = null;
       if (LOG.isTraceEnabled()) LOG.trace("Enter unregisterTransaction txid: " + transactionID);
-        ts = mapTransactionStates.remove(transactionID);
+      ts = mapTransactionStates.remove(transactionID);
       if (ts == null) {
         LOG.warn("mapTransactionStates.remove did not find transid " + transactionID);
       }
+      if (LOG.isTraceEnabled()) LOG.trace("Exit unregisterTransaction txid: " + transactionID);
     }
 
     // Not used?
     static public synchronized void unregisterTransaction(TransactionState ts) {
+        if (LOG.isTraceEnabled()) LOG.trace("Enter unregisterTransaction ts: " + ts.getTransactionId());
         mapTransactionStates.remove(ts.getTransactionId());
+        if (LOG.isTraceEnabled()) LOG.trace("Exit unregisterTransaction ts: " + ts.getTransactionId());
     }
 
     public synchronized TransactionState getTransactionState(final long transactionID) throws IOException {

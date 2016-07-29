@@ -5261,9 +5261,9 @@ RelExpr * GroupByOnJoinRule::nextSubstitute(RelExpr * before,
   else
     tjcol = &t1jcol;
 
-  // add all columns that are functionally dependent on grcol,
-  // this will increase the chance that we cover the join columns
-  const ValueIdSet &constr = oldGB->getGroupAttr()->getConstraints();
+  // Add all columns that are functionally dependent on grcol,
+  // this will increase the chance that we cover the join columns.
+  const ValueIdSet &constr = oldJoin->getGroupAttr()->getConstraints();
 
   for (ValueId v = constr.init(); constr.next(v); constr.advance(v))
     {

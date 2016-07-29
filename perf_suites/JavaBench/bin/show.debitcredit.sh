@@ -39,7 +39,7 @@ case $key in
 esac
 done
 
-if [ ${SCHEMA] = "default" ] ; then
+if [ ${SCHEMA} = "default" ] ; then
     SCHEMA=$(grep schema ${JAVABENCH_TEST_HOME}/${DATABASE,,}.properties | awk '{ print $3 }')
 fi
 if [ -z "$LOGDIRECTORY" ]; then

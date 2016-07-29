@@ -742,6 +742,8 @@ short FileScan::genForOrc(Generator * generator,
          
           ValueId &colValId = ppi.colValId();
           char * colName = NULL;
+	  NAString colType;
+
           if (colValId != NULL_VALUE_ID)
             {
               ItemExpr * ie = colValId.getItemExpr();
@@ -770,6 +772,7 @@ short FileScan::genForOrc(Generator * generator,
 
               const NAType &typ = operValId.getType();
               Lng32 dl = typ.getDisplayLength();
+	      colType = typ.getTypeName();
               
               if (typ.getTypeQualifier() != NA_CHARACTER_TYPE)
                 {
@@ -787,7 +790,7 @@ short FileScan::genForOrc(Generator * generator,
             }
 
           ComTdbOrcPPI * tdbPPI = 
-            new(space) ComTdbOrcPPI(type, colName, operAttrIndex);
+            new(space) ComTdbOrcPPI(type, colName, operAttrIndex, colType);
           tdbListOfOrcPPI->insert(tdbPPI);
         } // for
 
@@ -984,10 +987,7 @@ short FileScan::codeGenForHive(Generator * generator)
           {
             virtCols.insert(allHdfsVals[i]);
             if (inProjExpr || inExecutorPred)
-              {
-                GenAssert(!isOrc, "ORC virtual columns not yet supported");
-                numVirtColsUsed++;
-              }
+              numVirtColsUsed++;
           }
         // convertSkipList[i] remains at 0
       }
@@ -1114,6 +1114,7 @@ short FileScan::codeGenForHive(Generator * generator)
   //   by making sure that the output ValueIds created during
   //   binding refer to the outputs of the move expression
   ValueIdList origExprVids;
+
   NABoolean longVC = FALSE;
   for (int ii = 0; ii < (int)allHdfsVals.entries();ii++)
   {
@@ -1157,17 +1158,17 @@ short FileScan::codeGenForHive(Generator * generator)
       longVC = TRUE;
   } // for (ii = 0; ii < allHdfsVals; ii++)
     
-  // use CIF if there are long varchars (> 1K length) and CIF has not
-  // been explicitly turned off.
-  if (longVC && (CmpCommon::getDefault(COMPRESSED_INTERNAL_FORMAT) != DF_OFF))
-    generator->setCompressedInternalFormat();
-
   UInt32 hiveScanMode = CmpCommon::getDefaultLong(HIVE_SCAN_SPECIAL_MODE);
   //enhance pCode to handle this mode in the future
   //this is for JIRA 1920
   if((hiveScanMode & 2 ) > 0)   //if HIVE_SCAN_SPECIAL_MODE is 2, disable pCode
     exp_gen->setPCodeMode(ex_expr::PCODE_NONE);
 
+  // use CIF if there are long varchars (> 1K length) and CIF has not
+  // been explicitly turned off.
+  if (longVC && (CmpCommon::getDefault(COMPRESSED_INTERNAL_FORMAT) != DF_OFF))
+    generator->setCompressedInternalFormat();
+ 
   // Add ascii columns to the MapTable. After this call the MapTable
   // has ascii values in the work ATP at index asciiTuppIndex.
   exp_gen->processValIdList(
@@ -2406,15 +2407,6 @@ short HbaseAccess::genListOfColNames(Generator * generator,
   return 0;
 }
 
-// colIdformat:
-//     2 bytes len, len bytes colname.
-//
-// colname format: 
-//       <colfam>:<colQual>  (for base table access)
-//       <colfam>:@<colQual>   (for index access)
-//
-//                colQual is 1,2,4 bytes
-//
 short HbaseAccess::convNumToId(const char * colQualPtr, Lng32 colQualLen,
                                NAString &cid)
 {
@@ -2441,6 +2433,15 @@ short HbaseAccess::convNumToId(const char * colQualPtr, Lng32 colQualLen,
   return 0;
 }
 
+// colIdformat:
+//     2 bytes len, len bytes colname.
+//
+// colname format: 
+//       <colfam>:<colQual>  (for base table access)
+//       <colfam>:@<colQual>   (for index access)
+//
+//                colQual is 1,2,4 bytes
+//
 short HbaseAccess::createHbaseColId(const NAColumn * nac,
 				    NAString &cid, 
 				    NABoolean isSecondaryIndex,
@@ -3373,8 +3374,16 @@ short HbaseAccess::codeGen(Generator * generator)
                 getDefault(TRAF_TABLE_SNAPSHOT_SCAN_TABLE_SIZE_THRESHOLD)*1024*1024)
     latestSnpSupport = latest_snp_small_table;
 
-  NAString serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
-  NAString zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
+  NAString serverNAS;
+  NAString zkPortNAS;
+  if (getTableDesc()->getNATable()->isMonarch()) {
+     serverNAS = ActiveSchemaDB()->getDefaults().getValue(MONARCH_LOCATOR_ADDRESS);
+     zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(MONARCH_LOCATOR_PORT);
+  }
+  else {
+     serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
+     zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
+  }
   char * server = space->allocateAlignedSpace(serverNAS.length() + 1);
   strcpy(server, serverNAS.data());
   char * zkPort = space->allocateAlignedSpace(zkPortNAS.length() + 1);
@@ -3431,9 +3440,17 @@ short HbaseAccess::codeGen(Generator * generator)
     new(space) ComTdbHbaseAccess::HbasePerfAttributes();
   if (CmpCommon::getDefault(COMP_BOOL_184) == DF_ON)
     hbpa->setUseMinMdamProbeSize(TRUE);
+
+  Float32 samplePerc = samplePercent();
+
+  // TEMP_MONARCH Sample not supported with monarch tables.
+  if (getTableDesc()->getNATable()->isSeabaseTable() &&
+      getTableDesc()->getNATable()->isMonarch())
+    samplePerc = 0;
+
   generator->setHBaseNumCacheRows(MAXOF(getEstRowsAccessed().getValue(),
                                         getMaxCardEst().getValue()), 
-                                  hbpa, samplePercent()) ;
+                                  hbpa, samplePerc) ;
   generator->setHBaseCacheBlocks(computedHBaseRowSizeFromMetaData,
                                  getEstRowsAccessed().getValue(),hbpa);
 
@@ -3552,7 +3569,7 @@ short HbaseAccess::codeGen(Generator * generator)
 		      server,
                       zkPort,
 		      hbpa,
-		      samplePercent(),
+		      samplePerc,
 		      snapAttrs,
 
                       hbo
@@ -3568,6 +3585,11 @@ short HbaseAccess::codeGen(Generator * generator)
 
   if (getTableDesc()->getNATable()->isSeabaseTable())
     {
+      if (getTableDesc()->getNATable()->isMonarch())
+        {
+          hbasescan_tdb->setStorageType(COM_STORAGE_MONARCH);
+        }
+      
       hbasescan_tdb->setSQHbaseTable(TRUE);
 
       if (isAlignedFormat)
@@ -3582,7 +3604,7 @@ short HbaseAccess::codeGen(Generator * generator)
           GenAssert(getFirstNRows() > 0, "first N rows must not be set.");
         }
     }
- 
+
   if (keyInfo && searchKey() && searchKey()->isUnique())
     hbasescan_tdb->setUniqueKeyInfo(TRUE);
 

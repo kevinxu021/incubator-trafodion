@@ -3574,6 +3574,18 @@ NABoolean BiArith::hasEquivalentProperties(ItemExpr * other)
     (this->divToDownscale_ == otherBiArith->divToDownscale_);
 }
 
+ItemExpr * UnArith::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
+{
+  UnArith *result;
+
+  if (derivedNode == NULL)
+    result = new (outHeap) UnArith();
+  else
+    result = (UnArith*)derivedNode;
+
+  return result;
+}
+
 // -----------------------------------------------------------------------
 // member functions for class ColReference
 // -----------------------------------------------------------------------
@@ -8334,7 +8346,8 @@ ItemExpr * DateFormat::copyTopNode(ItemExpr *derivedNode,
   else
     result = (DateFormat*)derivedNode;
 
-  frmt_ = result->frmt_;
+  result->frmt_ = frmt_;
+  result->dateFormat_ = dateFormat_;
 
   return BuiltinFunction::copyTopNode(result,outHeap);
 
@@ -10500,11 +10513,19 @@ NABoolean ConstValue::isExactNumeric() const
 	  ((NumericType *)type_)->isExact());
 }
 
+// exact numeric value can only be returned for certain types
+// and if the value is within max largeint range.
 NABoolean ConstValue::canGetExactNumericValue() const
 {
   if (isExactNumeric())
     {
       NumericType &t = (NumericType &) *type_;
+
+      // if unsigned largeint and value greater than largeint max,
+      // cannot return exact numeric value.
+      if ((t.getFSDatatype() == REC_BIN64_UNSIGNED) &&
+          ((*(UInt64*)value_) > LLONG_MAX))
+        return FALSE;
 
       // for now we can't do it for arbitrary exact numeric types, sorry
       if (NOT t.isDecimal() AND
@@ -10529,6 +10550,13 @@ Int64 ConstValue::getExactNumericValue(Lng32 &scale) const
   CMPASSERT(t.getNominalSize() == storageSize_);
   switch (storageSize_)
     {
+    case 1:
+      if (t.isUnsigned())
+	result = *((UInt8 *) value_);
+      else
+	result = *((Int8 *) value_);
+      break;
+
     case 2:
       if (t.isUnsigned())
 	result = *((unsigned short *) value_);
@@ -10544,8 +10572,17 @@ Int64 ConstValue::getExactNumericValue(Lng32 &scale) const
       break;
 
     case 8:
-      CMPASSERT(t.isSigned());
-      result = *((Int64 *) value_);
+      if (t.isUnsigned())
+        {
+          if ((*(UInt64*)value_) > LLONG_MAX)
+            {
+              CMPASSERT(0);
+            }
+          else
+            result = *(UInt64*)value_;
+        }
+      else
+        result = *((Int64 *) value_);
       break;
 
     default:
@@ -11245,12 +11282,11 @@ UInt32 ConstValue::computeHashValue(const NAType& columnType)
            break; 
          case REC_BIN32_SIGNED:
          case REC_BIN32_UNSIGNED:
-         case REC_TDM_FLOAT32:
          case REC_IEEE_FLOAT32:
            flags = ExHDPHash::SWAP_FOUR;
            break;
          case REC_BIN64_SIGNED:
-         case REC_TDM_FLOAT64:
+         case REC_BIN64_UNSIGNED:
          case REC_IEEE_FLOAT64:
            flags = ExHDPHash::SWAP_EIGHT;
            break;
@@ -12121,6 +12157,14 @@ Cast::Cast(ItemExpr *val1Ptr, const NAType *type, OperatorTypeEnum otype,
   flags_(0)
 {
   ValueId vid = val1Ptr ? val1Ptr->getValueId() : NULL_VALUE_ID;
+
+  if ((type->getFSDatatype() == 132) &&
+      (vid != NULL_VALUE_ID) &&
+      (vid.getType().getFSDatatype() == 136))
+    {
+      Lng32 ij = 1;
+    }
+
   checkForTruncation_ = FALSE;
   if (checkForTrunc)
     if (vid == NULL_VALUE_ID)
@@ -12139,8 +12183,7 @@ Cast::Cast(ItemExpr *val1Ptr, const NAType *type, OperatorTypeEnum otype,
        }
     }
              
-  noStringTruncationWarnings_ = noStringTrunWarnings;
-  convertNullWhenError_ = FALSE;
+  setNoStringTruncationWarnings(noStringTrunWarnings);
 }
 
 Cast::Cast(ItemExpr *val1Ptr, ItemExpr *errorOutPtr, const NAType *type,
@@ -12153,8 +12196,7 @@ Cast::Cast(ItemExpr *val1Ptr, ItemExpr *errorOutPtr, const NAType *type,
   flags_(0)
 {
   checkForTruncation_ = checkForTrunc;
-  noStringTruncationWarnings_ = noStringTrunWarnings;
-  convertNullWhenError_ = FALSE;
+  setNoStringTruncationWarnings(noStringTrunWarnings);
 }
 
 Cast::~Cast() {}
@@ -12310,7 +12352,7 @@ NABoolean Cast::hasEquivalentProperties(ItemExpr * other)
       (this->type_->operator == (*(tmp->type_) )) &&
       (this->checkForTruncation_ == tmp->checkForTruncation_ ) &&
       (this->reverseDataErrorConversionFlag_ == tmp->reverseDataErrorConversionFlag_ ) &&
-      (this->noStringTruncationWarnings_ == tmp->noStringTruncationWarnings_  ) &&
+    //      (this->noStringTruncationWarnings_ == tmp->noStringTruncationWarnings_  ) &&
       (this->flags_ == tmp->flags_);
 }
 // --------------------------------------------------------------
@@ -13038,6 +13080,7 @@ ItemExpr * Repeat::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
     result = derivedNode;
   
   ((Repeat *) result)->setMaxLength(getMaxLength());
+  ((Repeat *) result)->maxLengthWasExplicitlySet_ = maxLengthWasExplicitlySet_;
 
   return BuiltinFunction::copyTopNode(result, outHeap);
 }

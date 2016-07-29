@@ -239,6 +239,7 @@ ExHbaseAccessTcb::ExHbaseAccessTcb(
   , colValVec_(NULL)
   , colValVecSize_(0)
   , colValEntry_(0)
+  , loggingErrorDiags_(NULL)
 {
   Space * space = (glob ? glob->getSpace() : NULL);
   CollHeap * heap = (glob ? glob->getDefaultHeap() : NULL);
@@ -361,6 +362,7 @@ ExHbaseAccessTcb::ExHbaseAccessTcb(
 					(char*)hbaseAccessTdb.server_, 
 					//                                        (char*)"2181", 
 					(char*)hbaseAccessTdb.zkPort_,
+                                        ((ComTdbHbaseAccess &) hbaseAccessTdb).getStorageType(),
 					((ComTdbHbaseAccess &) hbaseAccessTdb).replSync(),
                                         jniDebugPort,
                                         jniDebugTimeout);
@@ -713,7 +715,9 @@ short ExHbaseAccessTcb::setupError(Lng32 retcode, const char * str, const char *
       Lng32 intParam1 = -retcode;
       ComDiagsArea * diagsArea = NULL;
       ExRaiseSqlError(getHeap(), &diagsArea, 
-		      (ExeErrorCode)(8448), NULL, &intParam1, 
+                      (hbaseAccessTdb().getStorageType() == COM_STORAGE_HBASE
+                       ? (ExeErrorCode)(8448) : (ExeErrorCode)(8451)),
+                      NULL, &intParam1, 
 		      &cliError, NULL, 
 		      (str ? (char*)str : (char*)" "),
 		      getHbaseErrStr(retcode),
@@ -1178,17 +1182,17 @@ Lng32 ExHbaseAccessTcb::createSQRowFromHbaseFormat(Int64 *latestRowTimestamp)
               Int64 v = 0;
               if (colName.length() == sizeof(char))
                 v = *(char*)colName.data();
-              else if (colName.length() == sizeof(unsigned short))
+              else if (colName.length() == sizeof(UInt16))
                 v = *(UInt16*)colName.data();
-              else if (colName.length() == sizeof(Lng32))
+              else if (colName.length() == sizeof(ULng32))
                 v = *(ULng32*)colName.data();
 
-              char buf[10];
+              char buf[20];
               str_sprintf(buf, "%Ld", v);
               ComDiagsArea * diagsArea = NULL;
               ExRaiseSqlError(getHeap(), &diagsArea,
-                              (ExeErrorCode)(8034),
-                              NULL, NULL, NULL, NULL, buf);
+                              (ExeErrorCode)(EXE_DEFAULT_VALUE_INCONSISTENT_ERROR),
+                              NULL, NULL, NULL, NULL, buf, hbaseAccessTdb().getTableName());
               pentry_down->setDiagsArea(diagsArea);
               return -1;
             }
@@ -2986,22 +2990,28 @@ void ExHbaseAccessTcb::handleException(NAHeap *heap,
                                     ComCondition *errorCond,
                                     ExpHbaseInterface * ehi,
                                     NABoolean & LoggingFileCreated,
-                                    char *loggingFileName)
+                                    char *loggingFileName,
+                                    ComDiagsArea **loggingErrorDiags)
 {
   Lng32 errorMsgLen = 0;
   charBuf *cBuf = NULL;
   char *errorMsg;
   Lng32 retcode;
 
+  if (*loggingErrorDiags != NULL)
+     return;
+
   if (!LoggingFileCreated) {
      retcode = ehi->hdfsCreateFile(loggingFileName);
      if (retcode == HBASE_ACCESS_SUCCESS)
         LoggingFileCreated = TRUE;
-     else
-        ex_assert(0, "Error while creating the log file");
+     else 
+        goto logErrorReturn;
   }
+  
   retcode = ehi->hdfsWrite(logErrorRow, logErrorRowLen);
-  ex_assert((retcode == HBASE_ACCESS_SUCCESS), "Error while writing the log file");
+  if (retcode != HBASE_ACCESS_SUCCESS) 
+     goto logErrorReturn;
   if (errorCond != NULL) {
      errorMsgLen = errorCond->getMessageLength();
      const NAWcharBuf wBuf((NAWchar*)errorCond->getMessageText(), errorMsgLen, heap);
@@ -3012,9 +3022,18 @@ void ExHbaseAccessTcb::handleException(NAHeap *heap,
      errorMsgLen++;
   }
   else {
-     errorMsgLen = strlen("[UNKNOWN EXCEPTION]\n");
+     errorMsg = (char *)"[UNKNOWN EXCEPTION]\n";
+     errorMsgLen = strlen(errorMsg);
   }
   retcode = ehi->hdfsWrite(errorMsg, errorMsgLen);
+logErrorReturn:
+  if (retcode != HBASE_ACCESS_SUCCESS) {
+     *loggingErrorDiags = ComDiagsArea::allocate(heap);
+     **loggingErrorDiags << DgSqlCode(EXE_ERROR_WHILE_LOGGING)
+                 << DgString0(loggingFileName)
+                 << DgString1((char *)GetCliGlobals()->currContext()->getJniErrorStr().data());
+  }
+  return;
 }
 
 void ExHbaseAccessTcb::incrErrorCount( ExpHbaseInterface * ehi,Int64 & totalExceptionCount,

@@ -903,6 +903,13 @@ public:
    void setUpdConstraintExpr(ExExprPtr exprPtr) {
       updConstraintExpr_ = exprPtr;
    }
+
+   void setStorageType(ComStorageType storageType) {
+      storageType_ = storageType;
+   } 
+
+   ComStorageType getStorageType() { return storageType_; } 
+
  protected:
   enum
   {
@@ -1053,6 +1060,7 @@ public:
   UInt16 hbaseRowsetVsbbSize_; 
   UInt16 trafLoadFlushSize_;
   ComHbaseAccessOptionsPtr comHbaseAccessOptions_; 
+  ComStorageType storageType_;
   char fillers[2];
 
   Int64 firstNRows_;

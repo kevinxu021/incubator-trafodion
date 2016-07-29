@@ -857,6 +857,7 @@ SimpleFileScanOptimizer::scmComputeCostVectorsForORC()
        printf("blockSize=%f\n", blockSize.getValue());
        printf("blocks scale factor=%f\n", numBlocksScaleFactor.getValue());
        printf("numBlocks=%f\n", numBlocks.getValue());
+       printf("numActivePartitions=%d\n", getEstNumActivePartitionsAtRuntime());
     }
 
 
@@ -1226,6 +1227,7 @@ SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbes()
 
 Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
 {
+      
   estimateEffTotalRowCount(totalRowCount_, effectiveTotalRowCount_);
   
   NABoolean isAnIndexJoin = FALSE;
@@ -1243,17 +1245,25 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
 
   CMPASSERT(hdfsStats);
 
-  CostScalar totalFileSize = hdfsStats->getTotalSize();
+  CostScalar totalFileSizeOriginal = hdfsStats->getTotalSize();
+  CostScalar totalFileSizeNormalized = totalFileSizeOriginal;
 
   // collect fact about whether some columns are sorted. 
   NABoolean leadingColumnsSorted = 
       getIndexDesc()->isSortedORCHive() && isLeadingKeyColCovered();
 
-  // if the scan is on a sorted leading, the total scan size is one stripe. 
+  CostScalar stripes = MAXOF(hdfsStats->getNumStripes(), 1.0);
+
+  // if the scan is on a sorted leading, the total scan size is the amount
+  // of data in one stripe
   if (leadingColumnsSorted)
   {
-     totalFileSize /= hdfsStats->getNumStripes();
+     totalFileSizeNormalized /= stripes;
   }
+
+  CollIndex numActivePartitions = getEstNumActivePartitionsAtRuntime();
+
+  totalFileSizeNormalized /= numActivePartitions;
 
   // width of columns involved in predicates against the scan
   CostScalar involvedColSize = getFileScan().getTotalColumnWidthForExecPreds();
@@ -1261,13 +1271,16 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
 
   CostScalar tuplesProduced = getResultSetCardinality();
   
-  //// # of rows accessed by successful probes
-  //CostScalar tuplesProcessed = getDataRows(); 
-  //// add # of rows accessed by failed probes
-  //tuplesProcessed += (numfailedProbes * effectiveTotalRowCount_);
+  // # of rows accessed by successful probes
+  CostScalar tuplesProcessed = getDataRows(); 
 
-  CostScalar tuplesProcessed = effectiveTotalRowCount_; 
-  
+  // add # of rows accessed by failed probes
+  CostScalar avgRowsPerStripe = hdfsStats->getTotalRows() / stripes.getValue();
+
+  tuplesProcessed += numfailedProbes * 
+          ((leadingColumnsSorted) ? avgRowsPerStripe : effectiveTotalRowCount_);
+
+  tuplesProcessed = MAXOF(tuplesProcessed, tuplesProduced); 
 
   // Now compute the sequential I/O
   CostScalar skipRatio = 1;
@@ -1280,7 +1293,7 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
   // factor in the column design in ORC reader in that only the data for the
   // columns needed is scanned.
   CostScalar totalDataScanned =
-           totalProbes * totalFileSize * skipRatio * (involvedColSize/rowSize);
+           totalProbes * totalFileSizeNormalized * skipRatio * (involvedColSize/rowSize);
 
   CostScalar blockSize = getIndexDesc()->getNAFileSet()->getBlockSize();
 
@@ -1296,29 +1309,6 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
     numBlocks *= numBlocksScaleFactor;
   }
 
-  if ( CmpCommon::getDefault(NCM_ORC_COSTING_DEBUG) == DF_ON  &&
-       getIndexDesc()->getPrimaryTableDesc()->getNATable()->isORC() )
-    {
-      
-      NAString tname((getIndexDesc()->getPrimaryTableDesc()->getNATable()->getTableName()).getQualifiedNameAsAnsiString());
-       printf("Multi-set cost for %s:\n", tname.data());
-       printf("numProbes=%f \n", numProbes.getValue());
-       printf("successful probes=%f \n", successfulProbes_.getValue());
-       printf("numUniqueSuccessfulProbes=%f \n", numUniqueSuccessfulProbes.getValue());
-       printf("failed probes=%f \n", numfailedProbes.getValue());
-       printf("tuple processed=%f \n", tuplesProcessed.getValue());
-       printf("tuple produced=%f \n", tuplesProduced.getValue());
-       printf("totalProbes=%f\n", totalProbes.getValue());
-       printf("totalFileSize=%f\n", totalFileSize.getValue());
-       printf("totalDataScanned=%f\n", totalDataScanned.getValue());
-       printf("involvedColSiz=%f\n", involvedColSize.getValue());
-       printf("recordLength=%f\n", rowSize.getValue());
-       printf("blockSize=%f\n", blockSize.getValue());
-       printf("blocksScaleFactor=%f\n", numBlocksScaleFactor.getValue());
-       printf("numBlocks=%f\n", numBlocks.getValue());
-    }
- 
-
   // Some book keeping: 
   // set the field before it is normalized and mutiplied by the row size factor.
   setTuplesProcessed(tuplesProcessed);
@@ -1333,10 +1323,35 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
       castToReplicateNoBroadcastPartitioningFunction();
 
   if ( !repN ) {
-    CostScalar numActivePartitions = getEstNumActivePartitionsAtRuntime();
     tuplesProduced  /= numActivePartitions;
     tuplesProcessed /= numActivePartitions;
   }
+
+  if ( CmpCommon::getDefault(NCM_ORC_COSTING_DEBUG) == DF_ON  &&
+       getIndexDesc()->getPrimaryTableDesc()->getNATable()->isORC() )
+    {
+      
+      NAString tname((getIndexDesc()->getPrimaryTableDesc()->getNATable()->getTableName()).getQualifiedNameAsAnsiString());
+       printf("Multi-set cost for %s:\n", tname.data());
+       printf("numProbes=%f \n", numProbes.getValue());
+       printf("successful probes=%f \n", successfulProbes_.getValue());
+       printf("numUniqueSuccessfulProbes=%f \n", numUniqueSuccessfulProbes.getValue());
+       printf("failed probes=%f \n", numfailedProbes.getValue());
+       printf("tuple processed=%f \n", tuplesProcessed.getValue());
+       printf("tuple produced=%f \n", tuplesProduced.getValue());
+       printf("totalProbes=%f\n", totalProbes.getValue());
+       printf("totalFileSizeOriginal=%f\n", totalFileSizeOriginal.getValue());
+       printf("totalFileSizeNormalized=%f\n", totalFileSizeNormalized.getValue());
+       printf("totalNumStripes=%d\n", hdfsStats->getNumStripes());
+       printf("totalDataScanned=%f\n", totalDataScanned.getValue());
+       printf("involvedColSiz=%f\n", involvedColSize.getValue());
+       printf("recordLength=%f\n", rowSize.getValue());
+       printf("blockSize=%f\n", blockSize.getValue());
+       printf("blocksScaleFactor=%f\n", numBlocksScaleFactor.getValue());
+       printf("numBlocks=%f\n", numBlocks.getValue());
+       printf("numActivePartitions=%d\n", numActivePartitions);
+    }
+ 
 
   // Factor in row sizes.
   CostScalar rowSizeFactor = scmRowSizeFactor(rowSize);

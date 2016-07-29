@@ -66,6 +66,7 @@ public class YCSBLoader extends Thread {
 	public static volatile int commitsize = 1;
 	public static volatile boolean option_trace = false;
 	public static volatile boolean option_debug = false;
+        public static volatile boolean option_aligned = false;
 	public static volatile boolean option_responsecurve = false;
 	public static volatile boolean option_perstreamsummary = false;
 
@@ -75,6 +76,8 @@ public class YCSBLoader extends Thread {
 	public static volatile int test_interval = 0;
 
 	public static volatile int scale_factor;
+        public static volatile int start_sf = -1;
+        public static volatile int end_sf = -1;
 
 	public static volatile Properties props = new Properties();
 	public static volatile String jdbc_driver =  null;
@@ -315,6 +318,10 @@ public class YCSBLoader extends Thread {
 				if ( database.equals("seaquest") ) {
 					sql_statement = sql_statement + " hash partition";
 				}
+
+                                if ( option_aligned) {
+                                        sql_statement = sql_statement + " attribute aligned format ";
+                                }
 
 				if ( option_compression && option_block_encoding ) {
 					sql_statement = sql_statement + " hbase_options ( data_block_encoding = '" + block_encoding_type + "', compression = '" + compression_type + "' )";
@@ -678,11 +685,21 @@ public class YCSBLoader extends Thread {
 		YCSBLoader[] stream = new YCSBLoader[number_of_streams];
 		int threads_started=0;
 
-		int scale_per_stream = scale_factor / number_of_streams;
-		if ( scale_per_stream == 0 ) {
-			scale_per_stream = 1;
-		}
-		int scale_indx = 1;
+                int scale_per_stream;
+
+                if (start_sf > 0) {
+                  scale_per_stream  = (end_sf - start_sf + 1) / number_of_streams;
+                }
+                else {
+                  scale_per_stream  = scale_factor / number_of_streams;
+                  start_sf = 1;
+                  end_sf   = scale_factor;
+                }
+                if ( scale_per_stream == 0 ) {
+                        scale_per_stream = 1;
+                }
+
+                int scale_indx = start_sf;
 
 		System.out.println("\n   Starting up streams : " + dateformat.format(new Date()) );
 		for ( int strm_idx = 0; strm_idx < number_of_streams; strm_idx++ ) {
@@ -691,9 +708,9 @@ public class YCSBLoader extends Thread {
 			stream[strm_idx].start_scale = scale_indx;
 			stream[strm_idx].stop_scale = scale_indx + scale_per_stream - 1;
 
-			if ( strm_idx < scale_factor ) {
+			if ( strm_idx < end_sf ) {
 				if ( strm_idx == (number_of_streams - 1 )) { // Last stream
-					stream[strm_idx].stop_scale = scale_factor;
+					stream[strm_idx].stop_scale = end_sf;
 				}
 
 				stream[strm_idx].start();
@@ -1316,6 +1333,7 @@ public class YCSBLoader extends Thread {
 				+ "     batchsize <batchsize> : Load using jdbc batches of the given size.\n"
 				+ "     commitsize <commitsize> : Disable Autocommit and commit every <commitsize> rows_added.\n"
 				+ "     salt <saltsize> : Create the table with salting.\n"
+                                + "     aligned : Create each table with aligned format attribute.\n"
 				+ "     compression : Create the table with compression.\n"
 				+ "     compressiontype <compressiontype> : Overrides default compression type of SNAPPY"
 				+ "     blockencoding <blockencodingtype> : Create the table with block_encoding.\n"
@@ -1348,6 +1366,8 @@ public class YCSBLoader extends Thread {
 				switch ( option ) {
 					case "schema": schema = args[++indx]; break;
 					case "streams": number_of_streams = Integer.parseInt(args[++indx]); break;
+                                        case "streamrange": start_sf = Integer.parseInt(args[++indx]);
+                                                            end_sf = Integer.parseInt(args[++indx]); break;
 					case "dropcreate": option_dropcreate = true; break;
 					case "drop": option_drop = true; break;
 					case "create": option_create = true; break;
@@ -1370,6 +1390,7 @@ public class YCSBLoader extends Thread {
 					case "intervallength": length_of_interval = Integer.parseInt(args[++indx]); break;
 					case "trace": option_trace = true; break;
 					case "debug": option_debug = true; break;
+                                        case "aligned": option_aligned = true; break;
 					default: {
 						System.out.println(syntax);
 						throw new Exception("ERROR : Invalid option specified ( option = " + option + " )");
@@ -1423,13 +1444,13 @@ public class YCSBLoader extends Thread {
 			System.out.println("   " + String.format("%16s", "Schema" ) + " : " + schema);
 			System.out.println("   " + String.format("%16s", "ScaleFactor" ) + " : " + scale_factor);
 			System.out.println("   " + String.format("%16s", "Streams" ) + " : " + number_of_streams);
-
+                        if (start_sf > -1) { System.out.println("   " + String.format("%16s", "Streamrange" ) + " : " + start_sf + " - " + end_sf); }
 			if (option_dropcreate) { System.out.println("   " + String.format("%16s", "DropCreate" ) + " : " + option_dropcreate); }
 			if (option_drop) { System.out.println("   " + String.format("%16s", "Drop" ) + " : " + option_drop); }
 			if (option_createschema) { System.out.println("   " + String.format("%16s", "CreateSchema" ) + " : " + option_createschema); }
 			if (option_create) { System.out.println("   " + String.format("%16s", "Create" ) + " : " + option_create); }
 			if (option_delete) { System.out.println("   " + String.format("%16s", "Delete" ) + " : " + option_delete); }
-			if (option_maintain) { System.out.println("   " + String.format("%16s", "Maintian" ) + " : " + option_maintain); }
+			if (option_maintain) { System.out.println("   " + String.format("%16s", "Maintain" ) + " : " + option_maintain); }
 			if (option_check) { System.out.println("   " + String.format("%16s", "Check" ) + " : " + option_check); }
 			if (option_load) { System.out.println("   " + String.format("%16s", "Load" ) + " : " + option_load); }
 
@@ -1442,6 +1463,7 @@ public class YCSBLoader extends Thread {
 			if (option_compression) { System.out.println("   " + String.format("%16s", "Compression" ) + " : " + compression_type); }
 			if (option_block_encoding) { System.out.println("   " + String.format("%16s", "BlockEncoding" ) + " : " + block_encoding_type); }
 			if (option_randomload) { System.out.println("   " + String.format("%16s", "RandomLoad" ) + " : " + option_randomload); }
+                        if (option_aligned) { System.out.println("   " + String.format("%16s", "Aligned" ) + " : " + option_aligned); }
 
 			if ( number_of_intervals != VERY_LONG_TIME ) { System.out.println("   " + String.format("%16s", "Intervals" ) + " : " + number_of_intervals); }
 			System.out.println("   " + String.format("%16s", "IntervalLength" ) + " : " + length_of_interval);

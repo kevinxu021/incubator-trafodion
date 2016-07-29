@@ -32,6 +32,7 @@ define(['moment',
 			this.databaseVersion = "";
 			this.databaseEdition = "";
 			this.serverConfigLoaded = false;
+			this.enableWMS = false;
 			this.LIBRARY_CREATED_EVENT = 'LIBRARY_CREATED_EVENT';
 			this.LIBRARY_DROPPED_EVENT = 'LIBRARY_DROPPED_EVENT';
 			this.LIBRARY_ALTERED_EVENT = 'LIBRARY_ALTERED_EVENT';
@@ -77,11 +78,18 @@ define(['moment',
 				_this.databaseVersion = data.databaseVersion;
 				_this.dbmgrTimeZone = data.dbmgrTimeZone;
 				_this.dbmgrUtcOffset = data.dbmgrUTCOffset;
+				_this.enableWMS = data.enableWMS;
 				
 				if(_this.isAdvanced()){
 					$('.dbmgr-adv').show();
 				}else{
 					$('.dbmgr-adv').hide();
+				}
+				
+				if(_this.enableWMS){
+					$('.dbmgr-wms').show();
+				}else{
+					$('.dbmgr-wms').hide();
 				}
 			};
 
@@ -476,6 +484,13 @@ define(['moment',
 				return s.toLowerCase().replace(/^(.)|\s(.)/g, function($1) {
 					return $1.toUpperCase();
 				});
+			};
+			
+			this.UpperCaseFirst = function(v){
+				if(v.length > 0)
+					return v.charAt(0).toUpperCase() + v.substr(1);
+				else
+					return v.toUpperCase();
 			};
 
 			this.crackSQLAnsiName = function(ansiName) {

@@ -99,7 +99,8 @@ ex_tcb * ExExeUtilGetMetadataInfoTdb::build(ex_globals * glob)
   else if (getVersion())
     exe_util_tcb =
       new(glob->getSpace()) ExExeUtilGetMetadataInfoVersionTcb(*this, glob);
-  else if (queryType() == ComTdbExeUtilGetMetadataInfo::HBASE_OBJECTS_)
+  else if (queryType() == ComTdbExeUtilGetMetadataInfo::HBASE_OBJECTS_ ||
+              queryType() == ComTdbExeUtilGetMetadataInfo::MONARCH_OBJECTS_)
     exe_util_tcb =
       new(glob->getSpace()) ExExeUtilGetHbaseObjectsTcb(*this, glob);
   else
@@ -2987,9 +2988,18 @@ ExExeUtilGetHbaseObjectsTcb::ExExeUtilGetHbaseObjectsTcb(
 {
   int jniDebugPort = 0;
   int jniDebugTimeout = 0;
+  ComStorageType storageType;
+
+  if (((ComTdbExeUtilGetMetadataInfo *)getTdb())->queryType() ==
+             ComTdbExeUtilGetMetadataInfo::MONARCH_OBJECTS_)
+     storageType = COM_STORAGE_MONARCH;
+  else
+     storageType = COM_STORAGE_HBASE;
   ehi_ = ExpHbaseInterface::newInstance(glob->getDefaultHeap(),
 					(char*)exe_util_tdb.server(), 
 					(char*)exe_util_tdb.zkPort(),
+                                        storageType,
+                                        FALSE, //replSync
                                         jniDebugPort,
                                         jniDebugTimeout);
 
@@ -3062,7 +3072,7 @@ short ExExeUtilGetHbaseObjectsTcb::work()
             hbaseTables_ = ehi_->listAll("");
             if (! hbaseTables_)
               {
-                step_ = HANDLE_ERROR_;
+                step_ = DONE_;
                 break;
               }
 
@@ -5641,6 +5651,8 @@ ExExeUtilRegionStatsTcb::ExExeUtilRegionStatsTcb(
   ehi_ = ExpHbaseInterface::newInstance(glob->getDefaultHeap(),
 					(char*)"", //exe_util_tdb.server(), 
 					(char*)"", //exe_util_tdb.zkPort(),
+                                        ((ComTdbHbaseAccess *)getTdb())->getStorageType(),
+                                        ((ComTdbHbaseAccess *)getTdb())->replSync(),
                                         jniDebugPort,
                                         jniDebugTimeout);
 
@@ -6508,7 +6520,8 @@ else
     return rc;  
                 
   //EOD of LOB data file
-  hdfsFS fs = hdfsConnect((char*)getLItdb().getHdfsServer(),getLItdb().getHdfsPort());
+  
+  hdfsFS fs = currContext->getHdfsServerConnection((char*)getLItdb().getHdfsServer(),getLItdb().getHdfsPort());
   if (fs == NULL)
     return LOB_DATA_FILE_OPEN_ERROR;
 
@@ -6797,7 +6810,7 @@ short ExExeUtilLobInfoTableTcb::collectLobInfo(char * tableName,Int32 currLobNum
                                         lobDescChunkFileBuf, LOBINFO_MAX_FILE_LEN*2);
     char *lobDataFile = 
 	      ExpLOBoper::ExpGetLOBname
-	      (getLItdb().objectUID_, currLobNum, 
+      (getLItdb().objectUID_, currLobNum, 
 	       tgtLobNameBuf, LOBINFO_MAX_FILE_LEN);
    
   if (getLItdb().getLobTypeList()[(currLobNum-1)*sizeof(Int32)] == Lob_External_HDFS_File)
@@ -6809,7 +6822,8 @@ short ExExeUtilLobInfoTableTcb::collectLobInfo(char * tableName,Int32 currLobNum
       str_cpy_all(lobInfo_->lobDataFile,  lobDataFile,strlen(lobDataFile));
     }             
   //EOD of LOB data file
-  hdfsFS fs = hdfsConnect(getLItdb().getHdfsServer(),getLItdb().getHdfsPort());
+  // hdfsFS fs = hdfsConnect(getLItdb().getHdfsServer(),getLItdb().getHdfsPort());
+  hdfsFS fs = currContext->getHdfsServerConnection((char*)getLItdb().getHdfsServer(),getLItdb().getHdfsPort());
   if (fs == NULL)
     return LOB_DATA_FILE_OPEN_ERROR;
 
