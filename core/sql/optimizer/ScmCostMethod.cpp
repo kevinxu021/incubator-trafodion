@@ -717,23 +717,32 @@ SimpleFileScanOptimizer::scmComputeCostVectors()
   CostScalar numActivePartitions;
   CostScalar tuplesProcessed, tuplesProduced, tuplesSent = csZero;
 
-  numActivePartitions = getEstNumActivePartitionsAtRuntime();
   if (logPhysPartFunc != NULL)
     syncAccess = logPhysPartFunc->getSynchronousAccess(); 
 
+  HivePartitionAndBucketKey* hiveKey = getFileScan().getHiveSearchKey();
+  if ( getIndexDesc()->getPrimaryTableDesc()->getNATable()->isHiveTable() &&
+       hiveKey && hiveKey->partitionEliminatedCT() ) 
+  {
+     tuplesProcessed = hiveKey->getRowcountInSelectedPartitions();
+  } else {
+     tuplesProcessed = getSingleSubsetSize();
+  }
+
+  numActivePartitions = getEstNumActivePartitionsAtRuntime();
+
+  setProbes(1);
+  setTuplesProcessed(tuplesProcessed);
+
   if (syncAccess)
   {
-    tuplesProcessed = getSingleSubsetSize();
     tuplesProduced = getResultSetCardinality();
   }
   else
   {
-    tuplesProcessed = (getSingleSubsetSize()/numActivePartitions).getCeiling();
+    tuplesProcessed /= numActivePartitions.getCeiling();
     tuplesProduced = getResultSetCardinalityPerScan();
   }
-
-  setProbes(1);
-  setTuplesProcessed(getSingleSubsetSize());
 
   CostScalar numBlocks = getNumBlocksForRows(tuplesProcessed);
   //CostScalar numBlocks = estimateSeqKBReadPerScan()/getBlockSizeInKb();
@@ -773,24 +782,56 @@ SimpleFileScanOptimizer::scmComputeCostVectorsForORC()
   CostScalar numActivePartitions;
   CostScalar tuplesProcessed, tuplesProduced, tuplesSent = csZero;
 
-  numActivePartitions = getEstNumActivePartitionsAtRuntime();
   if (logPhysPartFunc != NULL)
     syncAccess = logPhysPartFunc->getSynchronousAccess(); 
 
+
+ const HHDFSTableStats* hdfsStats =
+             getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
+
+  CMPASSERT(hdfsStats);
+
+  CostScalar totalFileSizeOriginal;
+  CostScalar totalFileSize;
+
+
+  // Take into consideration the # of rows eliminated due to 
+  // compilation time partition elimination.
+  HivePartitionAndBucketKey* hiveKey = getFileScan().getHiveSearchKey();
+  if ( hiveKey && hiveKey->partitionEliminatedCT() ) {
+     tuplesProcessed = hiveKey->getRowcountInSelectedPartitions();
+
+     totalFileSizeOriginal = hiveKey->getTotalSize();
+     totalFileSize = totalFileSizeOriginal;
+  } else {
+     tuplesProcessed = getSingleSubsetSize();
+
+     totalFileSizeOriginal = hdfsStats->getTotalSize();
+     totalFileSize = totalFileSizeOriginal;
+  }
+     
+  numActivePartitions = getEstNumActivePartitionsAtRuntime();
+
+  // fix Bugzilla #1110.
+  setEstRowsAccessed(tuplesProcessed);
+  setTuplesProcessed(tuplesProcessed);
+  setProbes(1);
+
   if (syncAccess)
   {
-    tuplesProcessed = getSingleSubsetSize();
     tuplesProduced = getResultSetCardinality();
   }
   else
   {
-    tuplesProcessed = (getSingleSubsetSize()/numActivePartitions).getCeiling();
+    tuplesProcessed /= numActivePartitions.getCeiling();
     tuplesProduced = getResultSetCardinalityPerScan();
+
+    totalFileSize /= numActivePartitions;
   }
 
-  setProbes(1);
-  setTuplesProcessed(tuplesProcessed);
-  setEstRowsAccessed(getSingleSubsetSize());
+  tuplesProduced = MINOF(tuplesProcessed, tuplesProduced);
+
+
 
   //
   // Estimate the amount of the data to be scanned. 
@@ -809,24 +850,13 @@ SimpleFileScanOptimizer::scmComputeCostVectorsForORC()
 
   CostScalar rowSize = recordSizeInKb_ * csOneKiloBytes;
 
-  const HHDFSTableStats* hdfsStats = 
-             getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
-
-  CMPASSERT(hdfsStats);
-
-  CostScalar totalFileSizeOriginal = hdfsStats->getTotalSize();
-  CostScalar totalFileSize = totalFileSizeOriginal;
-
-  if (!syncAccess)
-    totalFileSize /= numActivePartitions;
 
   CostScalar skipRatio = 1;
 
   if ( CmpCommon::getDefault(NCM_ORC_COSTING_APPLY_SKIP_RATIO) == DF_ON )
     skipRatio = tuplesProduced / MAXOF(tuplesProcessed, 1.0);
   
-  CostScalar dataScanned = 
-           totalFileSize * skipRatio * (involvedColSize/rowSize);
+  CostScalar dataScanned = totalFileSize * skipRatio * (involvedColSize/rowSize);
 
   CostScalar blockSize = getIndexDesc()->getNAFileSet()->getBlockSize();
   
@@ -875,8 +905,6 @@ SimpleFileScanOptimizer::scmComputeCostVectorsForORC()
   numBlocks *= seqIORowSizeFactor;
   */
 
-  // fix Bugzilla #1110.
-  setEstRowsAccessed(getSingleSubsetSize());
 
   Cost* scanCost = 
     scmCost(tuplesProcessed, tuplesProduced, csZero, csZero, numBlocks, csOne,
@@ -963,6 +991,14 @@ SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbes()
   // The probes are pushed down from the nested join to the right child.
   // Initialize tuplesProcessed to the number of probes.
   CostScalar tuplesProcessed = numProbes;
+
+  HivePartitionAndBucketKey* hiveKey = getFileScan().getHiveSearchKey();
+  if ( getIndexDesc()->getPrimaryTableDesc()->getNATable()->isHiveTable() &&
+       hiveKey && hiveKey->partitionEliminatedCT() )
+  {
+     tuplesProcessed = hiveKey->getRowcountInSelectedPartitions();
+  } 
+
 
   // These values are for all probes.
   CostScalar accessedRows = (getDataRows()/numActivePartitions).getCeiling();
@@ -1245,9 +1281,6 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
 
   CMPASSERT(hdfsStats);
 
-  CostScalar totalFileSizeOriginal = hdfsStats->getTotalSize();
-  CostScalar totalFileSizeNormalized = totalFileSizeOriginal;
-
   // collect fact about whether some columns are sorted. 
   NABoolean leadingColumnsSorted = 
       getIndexDesc()->isSortedORCHive() && isLeadingKeyColCovered();
@@ -1256,31 +1289,54 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
 
   // if the scan is on a sorted leading, the total scan size is the amount
   // of data in one stripe
-  if (leadingColumnsSorted)
-  {
-     totalFileSizeNormalized /= stripes;
-  }
-
-  CollIndex numActivePartitions = getEstNumActivePartitionsAtRuntime();
-
-  totalFileSizeNormalized /= numActivePartitions;
 
   // width of columns involved in predicates against the scan
   CostScalar involvedColSize = getFileScan().getTotalColumnWidthForExecPreds();
   CostScalar rowSize = recordSizeInKb_ * csOneKiloBytes;
 
-  CostScalar tuplesProduced = getResultSetCardinality();
+  CostScalar tuplesProcessed, tuplesProduced; 
   
   // # of rows accessed by successful probes
-  CostScalar tuplesProcessed = getDataRows(); 
-
-  // add # of rows accessed by failed probes
+  HivePartitionAndBucketKey* hiveKey = getFileScan().getHiveSearchKey();
+       
   CostScalar avgRowsPerStripe = hdfsStats->getTotalRows() / stripes.getValue();
 
-  tuplesProcessed += numfailedProbes * 
+  CostScalar totalFileSizeOriginal, totalFileSizeNormalized;
+
+  CollIndex numActivePartitions = getEstNumActivePartitionsAtRuntime();
+
+  if ( hiveKey && hiveKey->partitionEliminatedCT() ) {
+
+     // for one probe
+     if ( leadingColumnsSorted ) {
+        tuplesProcessed = avgRowsPerStripe;
+        totalFileSizeOriginal = hdfsStats->getTotalSize() / stripes.getValue();
+     } else {
+        tuplesProcessed = hiveKey->getRowcountInSelectedPartitions();
+        totalFileSizeOriginal = hiveKey->getTotalSize();
+     }
+
+     tuplesProcessed *= numProbes;
+
+
+  } else {
+     // for successful probes
+     tuplesProcessed = getDataRows(); 
+
+     // add # of rows for failed probes
+     tuplesProcessed += numfailedProbes * 
           ((leadingColumnsSorted) ? avgRowsPerStripe : effectiveTotalRowCount_);
 
-  tuplesProcessed = MAXOF(tuplesProcessed, tuplesProduced); 
+     totalFileSizeOriginal = hdfsStats->getTotalSize();
+
+  }
+     
+  totalFileSizeNormalized = totalFileSizeOriginal;
+  totalFileSizeNormalized /= numActivePartitions;
+
+  tuplesProduced = getResultSetCardinality();
+  tuplesProduced = MINOF(tuplesProcessed, tuplesProduced);
+
 
   // Now compute the sequential I/O
   CostScalar skipRatio = 1;
@@ -1452,10 +1508,11 @@ Cost*
 FileScanOptimizer::scmComputeCostForSingleSubset()
 {
     SimpleFileScanOptimizer *sfso = 
-      new (STMTHEAP) SimpleFileScanOptimizer(getFileScan(),
-					     getResultSetCardinality(),
-					     getContext(),
-					     getExternalInputs());
+         new (STMTHEAP) SimpleFileScanOptimizer(getFileScan(),
+	   				        getResultSetCardinality(),
+	   				        getContext(),
+	   				        getExternalInputs());
+
     SearchKey *searchKey = NULL;
     MdamKey *mdamKey = NULL;
     Cost* c = 
