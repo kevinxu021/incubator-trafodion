@@ -85,24 +85,25 @@ public class SessionModel {
     }
   }
 
- /* public static void putSessionObjectForUser(String userName, String partKey, Object obj) {
-    String key = userName.toLowerCase() + ":" + partKey;
-    if (!activeSessions.containsKey(key)) {
-      synchronized (activeSessions) {
-        activeSessions.put(key, obj);
-      }
-    }
-  }*/
+	public static void putSessionObjectForUser(String userName, String partKey, Object obj) {
+	    String key = userName.toLowerCase() + ":" + partKey;
+	    if (!activeSessions.containsKey(key)) {
+	      synchronized (activeSessions) {
+	        activeSessions.put(key, obj);
+	      }
+	    }
+	}
 
-  /*public static Object getSessionObjectForUser(String userName, String partKey) {
-    String key = userName.toLowerCase() + ":" + partKey;
-    if (activeSessions.containsKey(key)) {
-      return activeSessions.get(key); // no synchronization needed, not a
-      // structural change
-    }
-    return null;
-  }*/
-  public static void putStatementObject(String key,Object obj){
+	public static Object getSessionObjectForUser(String userName, String partKey) {
+	    String key = userName.toLowerCase() + ":" + partKey;
+	    if (activeSessions.containsKey(key)) {
+	      return activeSessions.get(key); // no synchronization needed, not a
+	      // structural change
+	    }
+	    return null;
+	}
+
+	public static void putStatementObject(String key, Object obj) {
 	  //since only one query could be executed on workbench, so no matter key exist or not. we store it.
 	      synchronized (activeStatements) {
 	    	  activeStatements.put(key, obj);
@@ -123,6 +124,7 @@ public class SessionModel {
 	      }
 	    }
   }
+
   public static boolean containsKey(String userName, String partKey) {
     String key = userName.toLowerCase() + ":" + partKey;
     return activeSessions.containsKey(key);

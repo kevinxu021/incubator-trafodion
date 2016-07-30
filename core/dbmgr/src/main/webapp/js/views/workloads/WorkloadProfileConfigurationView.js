@@ -206,6 +206,11 @@ define([
 			if(profileDialogParams != null){
 				if(profileDialogParams.type && profileDialogParams.type == 'add'){
 					$(PROFILE_NAME).attr('disabled', false);
+
+					$('#wprofile-form input, select, textarea, table').prop('disabled', false);
+					$(PROFILE_APPLY_BTN).attr('disabled', false);
+					$(PROFILE_RESET_BTN).attr('disabled', false);
+					
 					$(PROFILE_DIALOG_TITLE).text('Add Profile');
 					$(PROFILE_NAME).val("");
 					var cqds = profileDialogParams.data["cqd"].replace(/<br>/g,"\n"); 
@@ -227,7 +232,7 @@ define([
 					}					
 					$(PROFILE_DIALOG_TITLE).text('Alter Profile');
 					$(PROFILE_NAME).attr('disabled', true);
-					$(PROFILE_NAME).val(profileDialogParams.data["Profile Name"]);
+					$(PROFILE_NAME).val(profileDialogParams.data["name"]);
 					var cqds = profileDialogParams.data["cqd"].replace(/<br>/g,"\n"); 
 					$(CQD_CONTAINER).val(cqds);
 					var sets = profileDialogParams.data["set"].replace(/<br>/g,"\n"); 
@@ -350,7 +355,7 @@ define([
 				$.each(keys, function(k, v) {
 					var obj = new Object();
 					obj.title = common.UpperCaseFirst(v);
-					if(v == 'Profile Name'){
+					if(v == 'name'){
 						profileNameColIndex = k;
 					}
 					if(v == 'lastUpdate'){
