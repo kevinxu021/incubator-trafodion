@@ -86,6 +86,15 @@ public:
   //
   Cost* scmComputeCostForSingleSubset();
 
+  Int64 getRowcountInSelectedPartitions();
+  NABoolean canEliminatePartitionsForHive();
+
+  void computeAccessMetricsForHive();
+
+  Int64 getTotalFileSizeInPartnsSelectedForHive() const
+        { return totalFileSizeInPartnsSelected_; }
+  Int64 getRowcountInPartnsSelectedForHive() const 
+        { return rcInPartnsSelected_; }
 
 private:
 
@@ -564,6 +573,7 @@ private:
   CostScalar getProbeCacheCostAdjFactor() const;
   NABoolean  isProbeCacheApplicable() const;
 
+private:
   // Private Data members -
   // Cache these values from IndexDesc in this class.
   //
@@ -702,6 +712,13 @@ private:
 
   // Indicates if the probes are partially in order.
   NABoolean partialOrderProbes_;
+
+  // for Hive partition elimination processing. These two 
+  // data members are for partitions to be scanned, which is
+  // the total number of partitions minus those eliminated CT or RT
+  // through preds on partition column predicates. 
+  Int64 totalFileSizeInPartnsSelected_;  // total file size
+  Int64 rcInPartnsSelected_;             // total # of rows
 
 }; // class SimpleFileScanOptimizer
 
