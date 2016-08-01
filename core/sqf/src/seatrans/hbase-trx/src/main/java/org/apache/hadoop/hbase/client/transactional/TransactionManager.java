@@ -2655,7 +2655,7 @@ public class TransactionManager {
                         //Check for TableNotFoundException, if that is the case, no further
                         //processing needed. This is not an error. Possible we are retrying the entire set of DDL changes
                         //because this transaction is being redriven for some reason.
-                        if(LOG.isTraceEnabled()) LOG.trace(" TableNotFoundException exception in abortDDL deleteTable, Continuing: txID: " + transactionState.getTransactionId());
+                        LOG.error(" TableNotFoundException exception in abortDDL deleteTable, may not be error if redriving, Continuing: txID: " + transactionState.getTransactionId());
                         retry = false;
                     }
                     catch(Exception e){
@@ -2708,14 +2708,14 @@ public class TransactionManager {
                         //Check for TableNotDisabledException, if that is the case, no further
                         //processing needed. This is not an error. Possible we are retrying the entire set of DDL changes
                         //because this transaction is being redriven for some reason.
-                        if(LOG.isTraceEnabled()) LOG.trace(" TableNotDisabledException exception in abortDDL enableTable, Continuing: txID: " + transactionState.getTransactionId());
+                        LOG.error(" TableNotDisabledException exception in abortDDL, Step: enableTable, may not be error if redriving,  Continuing: txID: " + transactionState.getTransactionId());
                         retry = false;
                     }
                     catch(Exception e){
                         LOG.error("Fatal exception in abortDDL, Step : enableTable: TxID:" + transactionState.getTransactionId() + "Exception: " + e);
                         if(retryCount == RETRY_ATTEMPTS)
                         {
-                            LOG.error("Fatal Exception in doCommitDDL, Step: DeleteTable. Raising UnsuccessfulDDLException TxID:" + transactionState.getTransactionId() );
+                            LOG.error("Fatal Exception in abortDDL, Step: enableTable. Raising UnsuccessfulDDLException TxID:" + transactionState.getTransactionId() );
 
                             //Throw this exception after all retry attempts.
                             //Throwing a new exception gets out of the loop.

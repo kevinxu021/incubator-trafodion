@@ -232,7 +232,11 @@ public class MappingResource extends ResourceBase {
                     sdata = sdata + ";" + Constants.ORDER_NUMBER + "=" + Constants.DEFAULT_ORDER_NUMBER;
                 status = servlet.postWmsMapping(key, sdata);
             }
-            if (status == Response.Status.CREATED)
+            if (status == Response.Status.NOT_ACCEPTABLE)
+                result = "406 Out of range";
+            else if(status == Response.Status.NOT_MODIFIED)
+                result = "304 duplicated number";
+            else if (status == Response.Status.CREATED)
                 result = "201 Created.";
             return Response.status(status).type(MIMETYPE_TEXT).entity(result).build();
         } catch (Exception e) {

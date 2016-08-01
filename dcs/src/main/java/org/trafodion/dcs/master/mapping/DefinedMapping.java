@@ -199,122 +199,139 @@ public class DefinedMapping  {
         String lastUpdate = "";
         // searching attributes
         String attribute;
-        
-        if( ! mappingsMap.isEmpty())
-            sortByValues(mappingsMap);
-        
+        String znode = "";
+       
         HashMap<String, String> attributes = cc.getAttributes();
-        Set<String> mappingsKeys = mappingsMap.keySet();
-        
-        boolean bFound = false;
-        boolean bNotEqual = false;
-        for(String mappingsKey : mappingsKeys){
-            if(LOG.isDebugEnabled())
-                LOG.debug("mappingsKey :" + mappingsKey);
-            bNotEqual = false;
-            LinkedHashMap<String,String> mapp = mappingsMap.get(mappingsKey);
-            Set<String> mappKeys = mapp.keySet();
-            for(String mappKey : mappKeys){
-                String value = mapp.get(mappKey);
 
-                if (value == null || value.length()==0)continue;
-                if (mappKey.equals(Constants.IS_ACTIVE) && value.equals("no")){
-                    bNotEqual = true;
-                    break;
-                }
-                attribute = "";
-                bNotEqual = false;
-                switch(mappKey){
-                    case Constants.USER_NAME:
-                    case Constants.APPLICATION_NAME:
-                    case Constants.SESSION_NAME:
-                    case Constants.ROLE_NAME:
-                    case Constants.CLIENT_IP_ADDRESS:
-                    case Constants.CLIENT_HOST_NAME:
-                        attribute = attributes.get(mappKey);
-                        if(LOG.isDebugEnabled())
-                            LOG.debug("mappKey :" + mappKey + " attribute :" + attribute + " value :" + value);
-                        if (attribute == null || attribute.length()==0)break;
-                        if (!attribute.equals(value))
-                            bNotEqual = true;
-                        break;
-                }
-                if (bNotEqual == true)break;
-            }
-            if (bNotEqual == false){
-                bFound = true;
-                sla = mapp.get(Constants.SLA);
-                break;
-            }
-        }
-        if (bFound == false)
+        if (attributes.isEmpty()){
             sla = Constants.DEFAULT_WMS_SLA_NAME;
-        if(LOG.isDebugEnabled())
-            LOG.debug("sla :" + sla);
-        
-        String znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + sla;
-        byte data[];
-        try {
-            Stat stat = zkc.exists(znode,false);
-            if(stat != null) {
-                data = zkc.getData(znode, false, stat);
-                attributes = new LinkedHashMap<>();
-                String delims = "[=:]";
-                String[] tokens = (new String(data)).split(delims);
-                for (int i = 0; i < tokens.length; i=i+2){
-                    switch(tokens[i]){
-                        case Constants.ON_CONNECT_PROFILE:
-                            cprofile = tokens[i + 1];
-                            break;
-                        case Constants.ON_DISCONNECT_PROFILE:
-                            dprofile = tokens[i + 1];
-                            break;
-                       case Constants.PRIORITY:
-                            priority = tokens[i + 1];
-                            break;
-                        case Constants.LIMIT:
-                            limit = tokens[i + 1];
-                            break;
-                        case Constants.THROUGHPUT:
-                            throughput = tokens[i + 1];
-                            break;
-                    }
-                }
-            }
-        } catch(Exception e){
-            LOG.error("Exception while reading sla znodes: [" + znode + "] " + e.getMessage());
-            cprofile = Constants.DEFAULT_WMS_PROFILE_NAME;
-            dprofile = Constants.DEFAULT_WMS_PROFILE_NAME;
             priority = "";
             limit = "";
             throughput = "";
-        }
-        znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + cprofile;
-        if(LOG.isDebugEnabled())
-            LOG.debug("Profile znode :" + znode);
-        try {
-            Stat stat = zkc.exists(znode,false);
-            if(stat != null) {
-                data = zkc.getData(znode, false, stat);
-                attributes = new LinkedHashMap<>();
-                String delims = "[=:]";
-                String[] tokens = (new String(data)).split(delims);
-                for (int i = 0; i < tokens.length; i=i+2){
-                    switch(tokens[i]){
-                    case Constants.LAST_UPDATE:
-                        lastUpdate = tokens[i + 1];
-                        break;
-                    case Constants.HOST_LIST:
-                        hostList = tokens[i + 1];
-                        break;
-                    }
-                }
-            }
-        } catch(Exception e){
-            LOG.error("Exception while reading profile znodes: [" + znode + "] " + e.getMessage());
             cprofile = Constants.DEFAULT_WMS_PROFILE_NAME;
             dprofile = Constants.DEFAULT_WMS_PROFILE_NAME;
             lastUpdate = "1";
+            hostList = "";
+        }
+        else {
+              if( ! mappingsMap.isEmpty())
+                  sortByValues(mappingsMap);
+              
+              Set<String> mappingsKeys = mappingsMap.keySet();
+              
+              boolean bFound = false;
+              boolean bNotEqual = false;
+              for(String mappingsKey : mappingsKeys){
+                  if(LOG.isDebugEnabled())
+                      LOG.debug("mappingsKey :" + mappingsKey);
+                  bNotEqual = false;
+                  LinkedHashMap<String,String> mapp = mappingsMap.get(mappingsKey);
+                  Set<String> mappKeys = mapp.keySet();
+                  for(String mappKey : mappKeys){
+                      String value = mapp.get(mappKey);
+
+                      if (value == null || value.length()==0)continue;
+                      if (mappKey.equals(Constants.IS_ACTIVE) && value.equals("no")){
+                          bNotEqual = true;
+                          break;
+                      }
+                      attribute = "";
+                      bNotEqual = false;
+                      switch(mappKey){
+                          case Constants.USER_NAME:
+                          case Constants.APPLICATION_NAME:
+                          case Constants.SESSION_NAME:
+                          case Constants.ROLE_NAME:
+                          case Constants.CLIENT_IP_ADDRESS:
+                          case Constants.CLIENT_HOST_NAME:
+                              attribute = attributes.get(mappKey);
+                              if(LOG.isDebugEnabled())
+                                  LOG.debug("mappKey :" + mappKey + " attribute :" + attribute + " value :" + value);
+                              if (attribute == null || attribute.length()==0)break;
+                              if (!attribute.equals(value))
+                                  bNotEqual = true;
+                              break;
+                      }
+                      if (bNotEqual == true)break;
+                  }
+                  if (bNotEqual == false){
+                      bFound = true;
+                      sla = mapp.get(Constants.SLA);
+                      break;
+                  }
+              }
+              if (bFound == false)
+                  sla = Constants.DEFAULT_WMS_SLA_NAME;
+              if(LOG.isDebugEnabled())
+                  LOG.debug("sla :" + sla);
+        
+              znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + sla;
+              byte data[];
+              try {
+                  Stat stat = zkc.exists(znode,false);
+                  if(stat != null) {
+                      data = zkc.getData(znode, false, stat);
+                      attributes = new LinkedHashMap<>();
+                      String delims = "[=:]";
+                      String[] tokens = (new String(data)).split(delims);
+                      for (int i = 0; i < tokens.length; i=i+2){
+                          switch(tokens[i].trim()){
+                              case Constants.ON_CONNECT_PROFILE:
+                                  cprofile = tokens[i + 1].trim();
+                                  break;
+                              case Constants.ON_DISCONNECT_PROFILE:
+                                  dprofile = tokens[i + 1].trim();
+                                  break;
+                            case Constants.PRIORITY:
+                                  priority = tokens[i + 1].trim();
+                                  break;
+                              case Constants.LIMIT:
+                                  limit = tokens[i + 1].trim();
+                                  break;
+                              case Constants.THROUGHPUT:
+                                  throughput = tokens[i + 1].trim();
+                                  break;
+                          }
+                      }
+                  }
+              } catch(Exception e){
+                  LOG.error("Exception while reading sla znodes: [" + znode + "] " + e.getMessage());
+                  cprofile = Constants.DEFAULT_WMS_PROFILE_NAME;
+                  dprofile = Constants.DEFAULT_WMS_PROFILE_NAME;
+                  priority = "";
+                  limit = "";
+                  throughput = "";
+              }
+              znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + cprofile;
+              if(LOG.isDebugEnabled())
+                  LOG.debug("Profile znode :" + znode);
+              try {
+                  Stat stat = zkc.exists(znode,false);
+                  if(stat != null) {
+                      data = zkc.getData(znode, false, stat);
+                      attributes = new LinkedHashMap<>();
+                      String tkn = "";
+                      String delims = "[=:]";
+                      String[] tokens = (new String(data)).split(delims);
+                      for (int i = 0; i < tokens.length; i=i+2){
+                          switch(tokens[i].trim()){
+                          case Constants.LAST_UPDATE:
+                              lastUpdate = tokens[i + 1].trim();
+                              break;
+                          case Constants.HOST_LIST:
+                              tkn = tokens[i + 1].trim();
+                              if(tkn.length()>0)
+                                hostList = tkn;
+                              break;
+                          }
+                      }
+                  }
+              } catch(Exception e){
+                  LOG.error("Exception while reading profile znodes: [" + znode + "] " + e.getMessage());
+                  cprofile = Constants.DEFAULT_WMS_PROFILE_NAME;
+                  dprofile = Constants.DEFAULT_WMS_PROFILE_NAME;
+                  lastUpdate = "1";
+              }
         }
         cc.setSla(sla);
         cc.setPriority(priority);
@@ -323,7 +340,8 @@ public class DefinedMapping  {
         cc.setConnectProfile(cprofile);
         cc.setDisconnectProfile(dprofile);
         cc.setLastUpdate(lastUpdate);
+        cc.setHostList(hostList);
         if(LOG.isDebugEnabled())
-            LOG.debug("Profile znode :" + znode + ", sla :" + sla + ", priority :" + priority + ", limit :" + limit + ", throughput :" + throughput + ", connect profile :" + cprofile + ", disconnect profile :" + dprofile +  ", lastUpdate :" + lastUpdate);
+            LOG.debug("Profile znode :" + znode + ", sla :" + sla + ", priority :" + priority + ", limit :" + limit + ", throughput :" + throughput + ", connect profile :" + cprofile + ", disconnect profile :" + dprofile +  ", hostList :" + hostList + ", lastUpdate :" + lastUpdate);
     }
 }

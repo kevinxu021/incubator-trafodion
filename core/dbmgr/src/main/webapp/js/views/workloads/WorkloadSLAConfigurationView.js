@@ -87,7 +87,9 @@ define([
 
 			slaFormValidator = $(SLA_FORM).validate({
 				rules: {
-					"sla_name": { required: true, alphanumeric: true}
+					"sla_name": { required: true, alphanumeric: true},
+					"sla_limit": { digits: true},
+					"sla_throughput" : { number: true}
 				},
 				highlight: function(element) {
 					$(element).closest('.form-group').addClass('has-error');
@@ -183,19 +185,34 @@ define([
 			if(slaDialogParams != null){
 				if(slaDialogParams.type && slaDialogParams.type == 'add'){
 					$(SLA_NAME).attr('disabled', false);
+					$('#wsla-form input, select').prop('disabled', false);
+					$(SLA_APPLY_BTN).attr('disabled', false);
+					$(SLA_RESET_BTN).attr('disabled', false);
 					$(SLA_DIALOG_TITLE).text('Add SLA');
 					$(SLA_NAME).val("");
 					$(SLA_PRIORITY).val();
+					var priority = slaDialogParams.data["priority"];
+					$(SLA_PRIORITY).val(priority != null ? priority.toLowerCase() : "");
 					$(SLA_LIMIT).val(slaDialogParams.data["limit"]);
 					$(SLA_THROUGHPUT).val(slaDialogParams.data["throughput"]);
 					$(SLA_CONNECT_PROFILE_NAME).val(slaDialogParams.data["onConnectProfile"]);
 					$(SLA_DISCONNECT_PROFILE_NAME).val(slaDialogParams.data["onDisconnectProfile"]);
 				}
 				if(slaDialogParams.type && slaDialogParams.type == 'alter'){
+					if(slaDialogParams.data["isDefault"] == 'yes'){
+						$('#wsla-form input, select').prop('disabled', true);
+						$(SLA_APPLY_BTN).attr('disabled', true);
+						$(SLA_RESET_BTN).attr('disabled', true);
+					}else{
+						$('#wsla-form input, select').prop('disabled', false);
+						$(SLA_APPLY_BTN).attr('disabled', false);
+						$(SLA_RESET_BTN).attr('disabled', false);
+					}
 					$(SLA_DIALOG_TITLE).text('Alter SLA');
 					$(SLA_NAME).attr('disabled', true);
-					$(SLA_NAME).val(slaDialogParams.data["SLA Name"]);
-					$(SLA_PRIORITY).val();
+					$(SLA_NAME).val(slaDialogParams.data["name"]);
+					var priority = slaDialogParams.data["priority"];
+					$(SLA_PRIORITY).val(priority != null ? priority.toLowerCase() : "");
 					$(SLA_LIMIT).val(slaDialogParams.data["limit"]);
 					$(SLA_THROUGHPUT).val(slaDialogParams.data["throughput"]);
 					$(SLA_CONNECT_PROFILE_NAME).val(slaDialogParams.data["onConnectProfile"]);
@@ -224,15 +241,24 @@ define([
 
 				dataTableColNames = [];
 				var updateTimeColIndex = -1;
+				var isDefColIndex = -1;
+				var priorityColIndex = -1;
+				
 				// add needed columns
 				$.each(keys, function(k, v) {
 					var obj = new Object();
 					obj.title = common.UpperCaseFirst(v);
-					if(v == 'SLA Name'){
+					if(v == 'name'){
 						slaNameColIndex = k;
 					}
 					if(v == 'lastUpdate'){
 						updateTimeColIndex = k;
+					}
+					if(v == 'isDefault'){
+						isDefColIndex = k;
+					}
+					if(v == 'priority'){
+						priorityColIndex = k;
 					}
 					aoColumns.push(obj);
 					dataTableColNames.push(v);
@@ -263,31 +289,60 @@ define([
 						}
 					});
 				}
+				if(priorityColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ priorityColIndex ],
+						"mData": priorityColIndex,
+						"mRender": function ( data, type, full ) {
+							if(data != null){
+								return common.toProperCase(data);
+							}else 
+								return data;
+						}
+					});
+				}
 				if(updateTimeColIndex >=0){
 					aoColumnDefs.push({
 						"aTargets": [ updateTimeColIndex ],
 						"mData": updateTimeColIndex,
 						"mRender": function ( data, type, full ) {
-							if(type == 'display'){
+							if(data != null){
 								return common.toServerLocalDateFromMilliSeconds(parseInt(data), 'YYYY-MM-DD HH:mm:ss');
 							}else 
 								return data;
 						}
 					});
 				}
-				aoColumnDefs.push({
-					"aTargets": [ 6 ],
-					"mData": 6,
-					"visible" : false,
-					"searchable" : false
-				});
+				if(isDefColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [isDefColIndex ],
+						"mData": isDefColIndex,
+						"visible" : false,
+						"searchable" : false
+					});					
+				}
 				aoColumnDefs.push({
 					"aTargets": [ deleteSLAIconColIndex ],
 					"mData": deleteSLAIconColIndex,
 					"className": "dt-center",
-					"mRender": function ( data, type, full ) {
-						if ( type === 'display' ) {
-							return '<a class="fa fa-trash-o"></a>';
+					"mRender": function ( data, type, full, meta ) {
+						if(type === 'display'){
+							
+							var aoColumns = meta.settings.aoColumns;
+							var defColIndex = -1;
+							
+							$.each(aoColumns, function(i, v){
+								if(v.title == 'IsDefault'){
+									defColIndex = i;
+									return;
+								}
+							});
+							
+							if(defColIndex >= 0 && full[defColIndex] == 'no'){
+								return '<a class="delete-profile fa fa-trash-o"></a>';
+							}
+							else return "";
+							
 						} else return "";
 
 					}
@@ -336,8 +391,10 @@ define([
 							}else{
 								if(cell.column == deleteSLAIconColIndex){
 									var data = slasDataTable.row(cell.row).data();
-									$(DELETE_SLA_NAME).text(data[slaNameColIndex]);
-									$(SLA_DELETE_DIALOG).modal('show');
+									if(data[isDefColIndex] == 'no'){
+										$(DELETE_SLA_NAME).text(data[slaNameColIndex]);
+										$(SLA_DELETE_DIALOG).modal('show');
+									}
 								}
 							}
 						}
@@ -469,7 +526,7 @@ define([
 			var keys = result.columnNames;
 			var profileNameColIndex = -1;
 			$.each(keys, function(k, v) {
-				if(v == 'Profile Name'){
+				if(v == 'name'){
 					profileNameColIndex = k;
 				}
 			});

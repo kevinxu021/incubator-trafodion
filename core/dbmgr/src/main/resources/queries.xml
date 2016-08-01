@@ -831,7 +831,7 @@
 		</query>		
 		<query>
 			<name>WMS_ADD_ALTER_MAPPING</name>
-			<text><![CDATA[{"url":"%1$s/v1/wms/mappings", "method":"POST", "jsonParameter":{"%2$s":{"userName":"%3$s","applicationName":"%4$s","sessionName":"%5$s","roleName":"%6$s","sla":"%7$s","clientIpAddress":"%8$s","clientHostName":"%9$s","orderNumber":"%10$s", "isDefault":"no","lastUpdate":""}}, "contentType":"application/json"}]]></text>
+			<text><![CDATA[{"url":"%1$s/v1/wms/mappings", "method":"POST", "jsonParameter":{"%2$s":{"userName":"%3$s","applicationName":"%4$s","sessionName":"%5$s","roleName":"%6$s","sla":"%7$s","clientIpAddress":"%8$s","clientHostName":"%9$s","orderNumber":"%10$s", "isActive":"%11$s", "isDefault":"no","lastUpdate":""}}, "contentType":"application/json"}]]></text>
 		</query>
 		<query>
 			<name>WMS_DELETE_MAPPING</name>
