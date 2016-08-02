@@ -2510,10 +2510,12 @@ HivePartitionAndBucketKey::HivePartitionAndBucketKey(TableDesc *tDesc)
      : hdfsTableStats_(tDesc->getNATable()->getClusteringIndex()->getHHDFSTableStats()),
        selectedPartitions_(&(((HHDFSTableStats *) hdfsTableStats_)->listPartitionStatsList_),
                            (CollHeap *) NULL),
-       partColValuesAsFunc_(tDesc->getNATable()->getClusteringIndex()->getHivePartColValues())
+       partColValuesAsFunc_(tDesc->getNATable()->getClusteringIndex()->getHivePartColValues()),
+       partitionEliminatedCT_(FALSE)
 {
   // mark all buckets as selected
   selectedSingleBucket_ = -1;
+
   // select all partitions by default
   selectedPartitions_.complement();
 
@@ -2701,61 +2703,68 @@ NABoolean HivePartitionAndBucketKey::convertHivePartColValsToSQL(
       // strip leading and trailing blanks
       token = token.strip(NAString::both);
 
-      switch (colType->getTypeQualifier())
+      if (token.compareTo("__HIVE_DEFAULT_PARTITION__") == 0)
         {
-        case NA_CHARACTER_TYPE:
-          if (token.contains("'"))
-                {
-                  reportError(
-                       partNum,
-                       c,
-                       naTable,
-                       hiveVals,
-                       "Partitioning column value containing a quote");
-                  return FALSE;
-                }
-
-          // surround the value with quotes, Hive does not
-          // use quotes for character constants in partitions
-          sqlPartKeyValues.append("'");
-          sqlPartKeyValues.append(token);
-          sqlPartKeyValues.append("'");
-          break;
-
-        case NA_NUMERIC_TYPE:
-          // just copy the value unchanged
-          sqlPartKeyValues.append(token);
-          break;
-
-        case NA_DATETIME_TYPE:
+          sqlPartKeyValues += "cast(NULL as ";
+          sqlPartKeyValues += colType->getTypeSQLname(TRUE);
+          sqlPartKeyValues += ")";
+        }
+      else
+        switch (colType->getTypeQualifier())
           {
-            // surround the value by quotes and prefix it
-            // with date or timestamp (2000-01-01 becomes
-            // date '2000-01-01')
-            const DatetimeType *dtt =
-              static_cast<const DatetimeType *>(colType);
-
-            if (dtt->getSubtype() == DatetimeType::SUBTYPE_SQLDate)
-              sqlPartKeyValues.append("date ");
-            else
+          case NA_CHARACTER_TYPE:
+            if (token.contains("'"))
               {
-                CMPASSERT(dtt->getSubtype() == DatetimeType::SUBTYPE_SQLTimestamp);
-                sqlPartKeyValues.append("timestamp ");
+                reportError(
+                     partNum,
+                     c,
+                     naTable,
+                     hiveVals,
+                     "Partitioning column value containing a quote");
+                return FALSE;
               }
 
+            // surround the value with quotes, Hive does not
+            // use quotes for character constants in partitions
             sqlPartKeyValues.append("'");
             sqlPartKeyValues.append(token);
             sqlPartKeyValues.append("'");
-          }
-          break;
+            break;
 
-        default:
-          // For now we only support characters and strings
-          // as Hive partition columns
-          reportError(partNum, c, naTable, hiveVals,
-                      "Unsupported type for partition column");
-          return FALSE;
-        }
+          case NA_NUMERIC_TYPE:
+            // just copy the value unchanged
+            sqlPartKeyValues.append(token);
+            break;
+
+          case NA_DATETIME_TYPE:
+            {
+              // surround the value by quotes and prefix it
+              // with date or timestamp (2000-01-01 becomes
+              // date '2000-01-01')
+              const DatetimeType *dtt =
+                static_cast<const DatetimeType *>(colType);
+
+              if (dtt->getSubtype() == DatetimeType::SUBTYPE_SQLDate)
+                sqlPartKeyValues.append("date ");
+              else
+                {
+                  CMPASSERT(dtt->getSubtype() == DatetimeType::SUBTYPE_SQLTimestamp);
+                  sqlPartKeyValues.append("timestamp ");
+                }
+
+              sqlPartKeyValues.append("'");
+              sqlPartKeyValues.append(token);
+              sqlPartKeyValues.append("'");
+            }
+            break;
+
+          default:
+            // For now we only support characters and strings
+            // as Hive partition columns
+            reportError(partNum, c, naTable, hiveVals,
+                        "Unsupported type for partition column");
+            return FALSE;
+          }
 
       startPos = endPos+1;
     }
@@ -2854,12 +2863,11 @@ NABoolean HivePartitionAndBucketKey::computePartAndVirtColPredicates(
 
 int HivePartitionAndBucketKey::computeActivePartitions()
 {
-  if (hivePartColList_.isEmpty())
-    return 1;
-  else
+  Int32 originalNumPartns = selectedPartitions_.entries();
+  Int32 result = originalNumPartns;
+  if (!hivePartColList_.isEmpty())
     {
       Parser p(CmpCommon::context());
-      int result = selectedPartitions_.entries();
 
       // loop over selected partitions so far (usually will be all the partitions)
       for (CollIndex p=0;
@@ -2943,8 +2951,10 @@ int HivePartitionAndBucketKey::computeActivePartitions()
             }
         } // loop over list partitions
 
-      return result;
-    } // table is partitioned
+    }
+    partitionEliminatedCT_ = (result < originalNumPartns);
+
+    return result;
 }
 
 void HivePartitionAndBucketKey::reportError(int part,
@@ -3584,4 +3594,20 @@ CompareHiveFileIterator::operator()(HiveFileIterator& t1, HiveFileIterator& t2)
 {
    // return TRUE iff t1's total size is less than t2's. 
    return (t1.getFileStats()->getTotalSize() < t2.getFileStats()->getTotalSize());
+}
+
+Int64 HivePartitionAndBucketKey::getRowcountInSelectedPartitions()
+{
+  Int64 rc = 0.0;
+  for (CollIndex i=0; selectedPartitions_.nextUsed(i); i++)
+  {
+      HHDFSListPartitionStats *lps = selectedPartitions_.element(i);
+      rc += lps->getTotalRows();
+  }
+  return rc;
+}
+
+Int32 HivePartitionAndBucketKey::getNumOfSelectedPartitions()
+{
+  return selectedPartitions_.entries();
 }
