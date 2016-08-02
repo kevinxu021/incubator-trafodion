@@ -285,6 +285,11 @@ define([
 			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 			serverHandler.on(serverHandler.WRKBNCH_CANCEL_SUCCESS, this.handleMessage);
 			serverHandler.on(serverHandler.WRKBNCH_CANCEL_ERROR, this.handleMessage);
+			$('[data-toggle="tooltip"]').tooltip({
+				trigger : 'hover',
+				container : "body",
+				html : true
+			}).css('overflow', 'hidden');
 		},
 		doResume: function(){
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
@@ -426,9 +431,9 @@ define([
 			}
 
 			if(controlStmts && controlStmts.length > 0){
-				$(OPTIONS_BTN).text(" Options ON");
+				$(OPTIONS_BTN).text(" ON");
 			}else{
-				$(OPTIONS_BTN).text(" Options");
+				$(OPTIONS_BTN).text(" ");
 			}
 			$(CONTROL_DIALOG).modal('hide')
 		},
@@ -467,7 +472,7 @@ define([
 				$(CONTROL_STMTS_TEXT).val();
 			
 			$(SCALAR_RESULT).text("");
-			$(OPTIONS_BTN).text(" Options");
+			$(OPTIONS_BTN).text(" ");
 			if(resultsDataTable  != null){
 				try{
 					resultsDataTable.clear().draw();
