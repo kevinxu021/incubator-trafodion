@@ -3596,7 +3596,7 @@ CompareHiveFileIterator::operator()(HiveFileIterator& t1, HiveFileIterator& t2)
    return (t1.getFileStats()->getTotalSize() < t2.getFileStats()->getTotalSize());
 }
 
-Int64 HivePartitionAndBucketKey::getRowcountInSelectedPartitions()
+Int64 HivePartitionAndBucketKey::getRowcountInSelectedPartitionsCT()
 {
   Int64 rc = 0.0;
   for (CollIndex i=0; selectedPartitions_.nextUsed(i); i++)
@@ -3607,7 +3607,3 @@ Int64 HivePartitionAndBucketKey::getRowcountInSelectedPartitions()
   return rc;
 }
 
-Int32 HivePartitionAndBucketKey::getNumOfSelectedPartitions()
-{
-  return selectedPartitions_.entries();
-}
