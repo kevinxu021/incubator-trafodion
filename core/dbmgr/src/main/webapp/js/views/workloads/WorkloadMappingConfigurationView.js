@@ -88,7 +88,7 @@ define([
 			$.validator.addMethod("alphanumeric", function(value, element) {
 				return this.optional(element) || /^\w+$/i.test(value);
 			}, "Only alphanumeric characters and underscores are allowed");
-
+			
 			mappingFormValidator = $(MAPPING_FORM).validate({
 				rules: {
 					"mapping_name": { required: true, alphanumeric: true}
@@ -475,6 +475,7 @@ define([
 				return;
 			}
 			var mapping = {};
+			mapping.action = mappingDialogParams.type;
 			mapping.name = $(MAPPING_NAME).val();
 			mapping.user = $(MAPPING_USER).val();
 			mapping.application = $(MAPPING_APPLICATION).val();
@@ -508,6 +509,7 @@ define([
 		},
 		mappingResetBtnClicked: function(){
 			_this.doReset();
+			mappingFormValidator.resetForm();
 		},
 		addAlterMappingSuccess: function(data){
 			$(ADD_MAPPING_ERROR_CONTAINER).text("");
@@ -527,7 +529,7 @@ define([
 
 			var msg = "";
 			if (jqXHR.responseText) {
-				msg =  "Failed to create mapping : " + jqXHR.responseText;
+				msg =  jqXHR.responseText;
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
 					msg = "Error : Unable to communicate with the server.";
@@ -546,7 +548,7 @@ define([
 		deleteMappingError: function(jqXHR){
 			var msg = "";
 			if (jqXHR.responseText) {
-				msg =  "Failed to delete mapping : " + jqXHR.responseText;
+				msg =  jqXHR.responseText;
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
 					msg = "Error : Unable to communicate with the server.";

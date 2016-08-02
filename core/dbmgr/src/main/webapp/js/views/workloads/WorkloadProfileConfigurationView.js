@@ -595,6 +595,7 @@ define([
 				return;
 			}
 			var profile = {};
+			profile.action = profileDialogParams.type;
 			profile.name = $(PROFILE_NAME).val();
 			profile.cqds = $(CQD_CONTAINER).val();
 			profile.sets = $(SET_CONTAINER).val();
@@ -616,6 +617,7 @@ define([
 		},
 		profileResetBtnClicked: function(){
 			_this.doReset();
+			profileFormValidator.resetForm();
 		},
 		addAlterProfileSuccess: function(data){
 			$(ADD_PROFILE_ERROR_CONTAINER).text("");
@@ -635,7 +637,7 @@ define([
 
 			var msg = "";
 			if (jqXHR.responseText) {
-				msg =  "Failed to create profile : " + jqXHR.responseText;
+				msg =  jqXHR.responseText;
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
 					msg = "Error : Unable to communicate with the server.";
@@ -654,7 +656,7 @@ define([
 		deleteProfileError: function(jqXHR){
 			var msg = "";
 			if (jqXHR.responseText) {
-				msg =  "Failed to delete profile : " + jqXHR.responseText;
+				msg =  jqXHR.responseText;
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
 					msg = "Error : Unable to communicate with the server.";

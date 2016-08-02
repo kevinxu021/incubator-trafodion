@@ -460,6 +460,7 @@ define([
 				return;
 			}
 			var sla = {};
+			sla.action = slaDialogParams.type;
 			sla.name = $(SLA_NAME).val();
 			sla.priority = $(SLA_PRIORITY).val();
 			sla.limit = $(SLA_LIMIT).val();
@@ -474,6 +475,7 @@ define([
 		},
 		slaResetBtnClicked: function(){
 			_this.doReset();
+			slaFormValidator.resetForm();
 		},
 		addAlterSLASuccess: function(data){
 			$(ADD_SLA_ERROR_CONTAINER).text("");
@@ -493,7 +495,7 @@ define([
 
 			var msg = "";
 			if (jqXHR.responseText) {
-				msg =  "Failed to create SLA : " + jqXHR.responseText;
+				msg =  jqXHR.responseText;
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
 					msg = "Error : Unable to communicate with the server.";
@@ -512,7 +514,7 @@ define([
 		deleteSLAError: function(jqXHR){
 			var msg = "";
 			if (jqXHR.responseText) {
-				msg =  "Failed to delete SLA : " + jqXHR.responseText;
+				msg = jqXHR.responseText;
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
 					msg = "Error : Unable to communicate with the server.";
