@@ -4882,6 +4882,8 @@ CostMethodFastExtract::scmComputeOperatorCostInternal(RelExpr* op,
 // 1) tuple processed, which is the total number of rows scanned;
 // 2) total file size, which is the total bytes scanned.
 // 
+// If we enter this method, canEliminatePartitionsForHive() must have been
+// called, which means PE is feasible.
 void SimpleFileScanOptimizer::computeAccessMetricsForHive()
 {
   HivePartitionAndBucketKey* hiveKey = getFileScan().getHiveSearchKey();
@@ -4900,14 +4902,10 @@ void SimpleFileScanOptimizer::computeAccessMetricsForHive()
      return;
   }
 
-  // PE(RT) is feasible, compute the total
+  // PE(CT) is not feaible, but PE(RT) is.
   combindPreds += hiveKey->getPartAndVirtColPreds();
 
-  IndexDescHistograms scanHist(
-                         *getIndexDesc(), 
-                         (getIndexDesc()->getPrimaryTableDesc()
-                                        ->getNATable()->getNAColumnArray()).entries()
-                               );
+  Histograms scanHist(getIndexDesc()->getPrimaryTableDesc()->getTableColStats());
 
   // if there is no stats, bail out
   if ( scanHist.isEmpty() ) 
