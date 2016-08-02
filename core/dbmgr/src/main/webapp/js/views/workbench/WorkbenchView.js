@@ -277,7 +277,11 @@ define([
 
 				}
 			});
-			
+			$(CONTROL_DIALOG).on('shown.bs.modal', function(e){
+				setTimeout(function() {
+					controlStmtEditor.refresh();
+        		},1);
+			});			
 			_this.clearAll();
 			serverHandler.on(serverHandler.WRKBNCH_EXECUTE_SUCCESS, this.displayResults);
 			serverHandler.on(serverHandler.WRKBNCH_EXECUTE_ERROR, this.showErrorMessage);
