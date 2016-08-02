@@ -4904,7 +4904,9 @@ void SimpleFileScanOptimizer::computeAccessMetricsForHive()
   combindPreds += hiveKey->getPartAndVirtColPreds();
 
   IndexDescHistograms scanHist(
-                         *getIndexDesc(), getIndexDesc()->getIndexKey().entries()
+                         *getIndexDesc(), 
+                         (getIndexDesc()->getPrimaryTableDesc()
+                                        ->getNATable()->getNAColumnArray()).entries()
                                );
 
   // if there is no stats, bail out
