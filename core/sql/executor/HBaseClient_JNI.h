@@ -280,8 +280,7 @@ private:
   NAString getLastJavaError();
 
   enum JAVA_METHODS {
-    JM_CTOR = 0
-   ,JM_GET_ERROR 
+    JM_GET_ERROR
    ,JM_SCAN_OPEN 
    ,JM_DELETE    
    ,JM_COPROC_AGGR
@@ -556,7 +555,6 @@ private:
 private:  
   enum JAVA_METHODS {
     JM_CTOR = 0
-   ,JM_GET_ERROR 
    ,JM_INIT
    ,JM_CLEANUP   
    ,JM_GET_HTC
@@ -793,7 +791,6 @@ private:
 
   enum JAVA_METHODS {
     JM_CTOR = 0
-   ,JM_GET_ERROR
    ,JM_INIT_HFILE_PARAMS
    ,JM_CLOSE_HFILE
    ,JM_DO_BULK_LOAD
