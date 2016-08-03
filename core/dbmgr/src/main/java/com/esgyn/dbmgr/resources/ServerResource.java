@@ -13,6 +13,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URI;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Properties;
@@ -35,6 +36,7 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.trafodion.ci.ScriptsInterface;
 
 import com.esgyn.dbmgr.common.EsgynDBMgrException;
 import com.esgyn.dbmgr.common.Helper;
@@ -359,9 +361,12 @@ public class ServerResource {
 		ObjectNode objNode = mapper.createObjectNode();
 		objNode.put("status", "OK");
 		File inputFile = null, outputFile = null;
+		long ms = DateTime.now().getMillis();
+		String inFileName = String.format("batch_%1$s.sql", ms);
+		String outFileName = String.format("batch_%1$s.log", ms);
 
 		try {
-			inputFile = new File("infile.sql");
+			inputFile = new File(inFileName);
 			FileWriter fw = new FileWriter(inputFile);
 			fw.write(obj.get("text").textValue());
 			fw.close();
@@ -372,7 +377,8 @@ public class ServerResource {
 			throw ee;
 		}
 		try {
-			String args = "-s=" + srcSqlType + " -t=" + tgtSqlType + " -in=infile.sql";
+			String args = String.format("-s=%1$s -t=%2$s -in=%3$s -out=%4$s", srcSqlType, tgtSqlType, inFileName,
+					outFileName);
 			_LOG.debug(args);
 			ProcessBuilder pb = new ProcessBuilder("sqlines", args);
 			Process process = pb.start();
@@ -391,7 +397,7 @@ public class ServerResource {
 			}
 			_LOG.debug("Std Output : " + sb.toString());
 			try {
-				outputFile = new File("infile_out.sql");
+				outputFile = new File(outFileName);
 				BufferedReader fw = new BufferedReader(new FileReader(outputFile));
 				sb = new StringBuilder();
 				String line = null;
@@ -430,5 +436,93 @@ public class ServerResource {
 			}
 		}
 		return objNode;
+	}
+
+	@POST
+	@Path("/executebatch/")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public ObjectNode executeBatchSQL(ObjectNode obj, @Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectNode objNode = mapper.createObjectNode();
+		objNode.put("status", "OK");
+		File inputFile = null, outputFile = null;
+		long ms = DateTime.now().getMillis();
+		String inFileName = String.format("batch_%1$s.sql", ms);
+		String outFileName = String.format("batch_%1$s.log", ms);
+
+		try {
+			inputFile = new File(inFileName);
+			FileWriter fw = new FileWriter(inputFile);
+			fw.write(obj.get("text").textValue());
+			fw.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to query to temp file", e);
+			_LOG.error(ee.getMessage());
+			throw ee;
+		}
+
+		Session soc = SessionModel.getSession(servletRequest, servletResponse);
+		executeSQLUsingTrafCI(inFileName, outFileName, ConfigurationResource.getInstance().getJdbcUrl(),
+				soc.getUsername(), soc.getPassword());
+
+		StringBuilder sb = new StringBuilder();
+		try {
+			outputFile = new File(outFileName);
+			BufferedReader fw = new BufferedReader(new FileReader(outputFile));
+			sb = new StringBuilder();
+			String line = null;
+			while ((line = fw.readLine()) != null) {
+				sb.append(line + System.getProperty("line.separator"));
+			}
+			fw.close();
+			objNode.put("output", sb.toString());
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to read command log file ", e);
+			_LOG.error(ee.getMessage());
+			throw ee;
+		} finally {
+			// Conversion is done, delete the input and output files
+			try {
+				if (inputFile != null) {
+					inputFile.delete();
+				}
+			} catch (Exception ex) {
+
+			}
+			try {
+				if (outputFile != null) {
+					outputFile.delete();
+				}
+			} catch (Exception ex) {
+
+			}
+		}
+
+		return objNode;
+	}
+
+	private static void executeSQLUsingTrafCI(String inFile, String outFile, String jdbcUrl, String userName,
+			String password) throws EsgynDBMgrException {
+		try {
+			String uriString = jdbcUrl.substring("jdbc:".length());
+			URI uri = new URI(uriString);
+			String host = uri.getHost();
+			int port = uri.getPort();
+
+			ScriptsInterface scriptInterface = new ScriptsInterface();
+			scriptInterface.openConnection(userName, password, host, String.valueOf(port), "");
+			scriptInterface.executeScript(inFile, outFile);
+			scriptInterface.disconnect();
+		} catch (Exception e) {
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to execute batch ", e);
+			_LOG.error(ee.getMessage());
+			throw ee;
+		}
 	}
 }
