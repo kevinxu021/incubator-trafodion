@@ -153,8 +153,8 @@ function editTrafbashrc {
 source $TRAF_CONFIG
 
 sudo chmod 777 $HOME_DIR/$TRAF_USER/.bashrc
-sudo sed -i -e "s@export NODE_LIST=.*@export NODE_LIST=\"$NODE_LIST\"@" $HOME_DIR/$TRAF_USER/.bashrc
-sudo sed -i -e "s@export MY_NODES=.*@export MY_NODES=\"$MY_NODES\"@" $HOME_DIR/$TRAF_USER/.bashrc
+sudo sed -i -e "/export NODE_LIST/d" $HOME_DIR/$TRAF_USER/.bashrc
+sudo sed -i -e "/export MY_NODES=/d" $HOME_DIR/$TRAF_USER/.bashrc
 
 }
 
