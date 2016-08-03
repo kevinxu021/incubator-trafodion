@@ -23,8 +23,9 @@ define([
 	TGT_SQL_TYPE = '#tgt_sql_type',
 	CLEAR_BTN = '#clearBtn',
 	CONVERT_BTN = '#convertBtn',
-	SAVE_BTN = '#saveBtn';
-	
+	SAVE_BTN = '#saveBtn',
+	EXEC_BTN = '#executeBtn',
+	EXEC_RESULTS = '#exec-result';
 	var resizeTimer = null;			
 
 	var _this = null;
@@ -55,8 +56,12 @@ define([
 			$(CLEAR_BTN).on('click',this.clearAll);
 			$(CONVERT_BTN).on('click',this.convertSQL);
 			$(SAVE_BTN).on('click', this.saveSQL);
+			$(EXEC_BTN).on('click', this.executeBatchSQL);
+			$('#executingImg').hide();
 			serverHandler.on(serverHandler.CONVERT_SQL_SUCCESS, this.displayResults);
 			serverHandler.on(serverHandler.CONVERT_SQL_ERROR, this.showErrorMessage);
+			serverHandler.on(serverHandler.BATCH_SQL_SUCCESS, this.batchExecSuccess);
+			serverHandler.on(serverHandler.BATCH_SQL_FAILURE, this.showErrorMessage);
 			
 			if(CodeMirror.mimeModes["text/x-esgyndb"] == null){
 				common.defineEsgynSQLMime(CodeMirror);
@@ -96,7 +101,7 @@ define([
 					tgtQueryTextEditor.setSize($(this).width(), $(this).height());
 				}
 			});
-			$(tgtQueryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"600px", "font-size":"12px"});
+			$(tgtQueryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"540px", "font-size":"12px"});
 
 			_this.clearAll();
 
@@ -109,6 +114,7 @@ define([
 			$(CLEAR_BTN).on('click',this.clearAll);
 			$(CONVERT_BTN).on('click',this.convertSQL);
 			$(SAVE_BTN).off('click', this.saveSQL);
+			$(EXEC_BTN).on('click', this.executeBatchSQL);
 			//serverHandler.on(serverHandler.CONVERT_SQL_SUCCESS, this.displayResults);
 			//serverHandler.on(serverHandler.CONVERT_SQL_ERROR, this.showErrorMessage);
 		},
@@ -118,6 +124,7 @@ define([
 			$(CLEAR_BTN).off('click',this.clearAll);
 			$(CONVERT_BTN).off('click',this.convertSQL);
 			$(SAVE_BTN).off('click', this.saveSQL);
+			$(EXEC_BTN).off('click', this.executeBatchSQL);
 			//serverHandler.off(serverHandler.CONVERT_SQL_SUCCESS, this.displayResults);
 			//serverHandler.off(serverHandler.CONVERT_SQL_ERROR, this.showErrorMessage);
 		},
@@ -136,6 +143,7 @@ define([
 			if(tgtQueryTextEditor)
 				tgtQueryTextEditor.setValue("");
 			$(SRC_FILE_NAME).val("");
+			$(EXEC_RESULTS).text("");
 		},
 		onFileSelected : function(e) {
 			var files = e.target.files;
@@ -146,27 +154,26 @@ define([
 				r.onload = function(e) { 
 					var contents = e.target.result;
 					srcQueryTextEditor.setValue(contents);
+					tgtQueryTextEditor.setValue("");
+					$(EXEC_RESULTS).text("");
 				}
 				r.readAsText(FILE);
 			} else { 
 				alert("Failed to load file.");
 			}
 		},
-		saveSQL: function(){
-			var blob = new Blob([tgtQueryTextEditor.getValue()], {type: "text/plain;charset=utf-8"});
-			saveAs(blob, "ConvertedSQL.sql");
-		},
 		convertSQL: function () {
 			var param = {};
 			param.text = srcQueryTextEditor.getValue();
 			param.srcType = $(SRC_SQL_TYPE).val();
-			param.tgtType = $(TGT_SQL_TYPE).val();
+			param.tgtType = "esgyndb";//$(TGT_SQL_TYPE).val();
 			if(param.text != null && param.text.length > 0){
+				$(CONVERT_BTN).prop('disabled', true);
+				$(EXEC_BTN).prop('disabled', true);
 				serverHandler.convertSQL(param);
 			}else{
 				alert("Source SQL text cannot be empty!");
 			}
-			
 		},
 
 		sessionTimeout: function() {
@@ -176,11 +183,44 @@ define([
 		displayResults: function (result){
 			_this.hideLoading();
 			tgtQueryTextEditor.setValue(result.convertedText);
+			$(CONVERT_BTN).prop('disabled', false);
+			$(EXEC_BTN).prop('disabled', false);
+		},
+		saveSQL: function(){
+			var blob = new Blob([tgtQueryTextEditor.getValue()], {type: "text/plain;charset=utf-8"});
+			saveAs(blob, "EsgynDBSQL.sql");
+			var output = $(EXEC_RESULTS).text();
+			if(output.length > 0) {
+				var blob = new Blob([output], {type: "text/plain;charset=utf-8"});
+				saveAs(blob, "EsgynDBSQL.log");
+			}
+		},
+		executeBatchSQL: function(){
+			var param = {};
+			param.text = tgtQueryTextEditor.getValue();
+			if(param.text != null && param.text.length > 0){
+				$(EXEC_RESULTS).text("Executing SQL ...");
+				$(CONVERT_BTN).prop('disabled', true);
+				$(EXEC_BTN).prop('disabled', true);
+				$('#executingImg').show();
+				serverHandler.executeBatchSQL(param);
+			}else{
+				alert("EsgynDB SQL text cannot be empty!");
+			}
+		},
+		batchExecSuccess: function(result){
+			$('#executingImg').hide();
+			$(EXEC_RESULTS).text(result.output);
+			$(CONVERT_BTN).prop('disabled', false);
+			$(EXEC_BTN).prop('disabled', false);
 		},
 		showErrorMessage: function (jqXHR) {
+			$(CONVERT_BTN).prop('disabled', false);
+			$(EXEC_BTN).prop('disabled', false);
+			$('#executingImg').hide();
 			if(jqXHR.requestor !=null && jqXHR.requestor != _this) //error message is probably for different page
 				return;
-			alert(jqXHR.responseText);
+			tgtQueryTextEditor.setValue(jqXHR.responseText);
 		}        
 	});
 

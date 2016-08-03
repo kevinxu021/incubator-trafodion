@@ -243,6 +243,8 @@ define([
 				var updateTimeColIndex = -1;
 				var isDefColIndex = -1;
 				var priorityColIndex = -1;
+				var onConnProfileIndex = -1;
+				var onDisconProfileIndex = -1;
 				
 				// add needed columns
 				$.each(keys, function(k, v) {
@@ -260,6 +262,13 @@ define([
 					if(v == 'priority'){
 						priorityColIndex = k;
 					}
+					if(v == 'onConnectProfile'){
+						onConnProfileIndex = k;
+					}
+					if(v == 'onDisconnectProfile'){
+						onDisconProfileIndex = k;
+					}
+					
 					aoColumns.push(obj);
 					dataTableColNames.push(v);
 				});
@@ -298,6 +307,30 @@ define([
 								return common.toProperCase(data);
 							}else 
 								return data;
+						}
+					});
+				}
+				if(onConnProfileIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ onConnProfileIndex ],
+						"mData": onConnProfileIndex,
+						"mRender": function ( data, type, full ) {
+							if(data != null && data != 'null'){
+								return data;
+							}else 
+								return "";
+						}
+					});
+				}
+				if(onDisconProfileIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ onDisconProfileIndex ],
+						"mData": onDisconProfileIndex,
+						"mRender": function ( data, type, full ) {
+							if(data != null && data != 'null'){
+								return data;
+							}else 
+								return "";
 						}
 					});
 				}
