@@ -2662,7 +2662,12 @@ public class TransactionManager {
                 retrySleep = TM_SLEEP;
                 retry = true;
                 String tblName = di.next();
-                enableTable(transactionState, tblName);
+                try {
+                   enableTable(transactionState, tblName);
+                } catch(TableNotFoundException t) {
+                   // Most likely the table is created and dropped within the same transaction
+                   LOG.error("Exception in abortDDL while enabling the table, but continuing: txID: ", t); 
+                }
             } //while
         }
 
