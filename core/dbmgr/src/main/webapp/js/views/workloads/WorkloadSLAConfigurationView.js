@@ -243,6 +243,8 @@ define([
 				var updateTimeColIndex = -1;
 				var isDefColIndex = -1;
 				var priorityColIndex = -1;
+				var onConnProfileIndex = -1;
+				var onDisconProfileIndex = -1;
 				
 				// add needed columns
 				$.each(keys, function(k, v) {
@@ -260,6 +262,13 @@ define([
 					if(v == 'priority'){
 						priorityColIndex = k;
 					}
+					if(v == 'onConnectProfile'){
+						onConnProfileIndex = k;
+					}
+					if(v == 'onDisconnectProfile'){
+						onDisconProfileIndex = k;
+					}
+					
 					aoColumns.push(obj);
 					dataTableColNames.push(v);
 				});
@@ -298,6 +307,30 @@ define([
 								return common.toProperCase(data);
 							}else 
 								return data;
+						}
+					});
+				}
+				if(onConnProfileIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ onConnProfileIndex ],
+						"mData": onConnProfileIndex,
+						"mRender": function ( data, type, full ) {
+							if(data != null && data != 'null'){
+								return data;
+							}else 
+								return "";
+						}
+					});
+				}
+				if(onDisconProfileIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ onDisconProfileIndex ],
+						"mData": onDisconProfileIndex,
+						"mRender": function ( data, type, full ) {
+							if(data != null && data != 'null'){
+								return data;
+							}else 
+								return "";
 						}
 					});
 				}
@@ -460,6 +493,7 @@ define([
 				return;
 			}
 			var sla = {};
+			sla.action = slaDialogParams.type;
 			sla.name = $(SLA_NAME).val();
 			sla.priority = $(SLA_PRIORITY).val();
 			sla.limit = $(SLA_LIMIT).val();
@@ -474,6 +508,7 @@ define([
 		},
 		slaResetBtnClicked: function(){
 			_this.doReset();
+			slaFormValidator.resetForm();
 		},
 		addAlterSLASuccess: function(data){
 			$(ADD_SLA_ERROR_CONTAINER).text("");
@@ -493,7 +528,7 @@ define([
 
 			var msg = "";
 			if (jqXHR.responseText) {
-				msg =  "Failed to create SLA : " + jqXHR.responseText;
+				msg =  jqXHR.responseText;
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
 					msg = "Error : Unable to communicate with the server.";
@@ -512,7 +547,7 @@ define([
 		deleteSLAError: function(jqXHR){
 			var msg = "";
 			if (jqXHR.responseText) {
-				msg =  "Failed to delete SLA : " + jqXHR.responseText;
+				msg = jqXHR.responseText;
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
 					msg = "Error : Unable to communicate with the server.";

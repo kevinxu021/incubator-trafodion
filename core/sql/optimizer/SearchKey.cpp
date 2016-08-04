@@ -2703,68 +2703,68 @@ NABoolean HivePartitionAndBucketKey::convertHivePartColValsToSQL(
       // strip leading and trailing blanks
       token = token.strip(NAString::both);
 
-      switch (colType->getTypeQualifier())
+      if (token.compareTo("__HIVE_DEFAULT_PARTITION__") == 0)
         {
-        case NA_CHARACTER_TYPE:
-          if (token.contains("'"))
-                {
-                  reportError(
-                       partNum,
-                       c,
-                       naTable,
-                       hiveVals,
-                       "Partitioning column value containing a quote");
-                  return FALSE;
-                }
-
-          // surround the value with quotes, Hive does not
-          // use quotes for character constants in partitions
-          sqlPartKeyValues.append("'");
-          sqlPartKeyValues.append(token);
-          sqlPartKeyValues.append("'");
-          break;
-
-        case NA_NUMERIC_TYPE:
-          // Temp. workaround (when the partition column contains NULL) 
-          // until the fix is available
-          
-          //if ( strcmp(hivePartKeyValues, "__HIVE_DEFAULT_PARTITION__") == 0 )
-          //  sqlPartKeyValues.append("4999999");
-          //else
-          
-          // just copy the value unchanged
-          sqlPartKeyValues.append(token);
-          break;
-
-        case NA_DATETIME_TYPE:
+          sqlPartKeyValues += "cast(NULL as ";
+          sqlPartKeyValues += colType->getTypeSQLname(TRUE);
+          sqlPartKeyValues += ")";
+        }
+      else
+        switch (colType->getTypeQualifier())
           {
-            // surround the value by quotes and prefix it
-            // with date or timestamp (2000-01-01 becomes
-            // date '2000-01-01')
-            const DatetimeType *dtt =
-              static_cast<const DatetimeType *>(colType);
-
-            if (dtt->getSubtype() == DatetimeType::SUBTYPE_SQLDate)
-              sqlPartKeyValues.append("date ");
-            else
+          case NA_CHARACTER_TYPE:
+            if (token.contains("'"))
               {
-                CMPASSERT(dtt->getSubtype() == DatetimeType::SUBTYPE_SQLTimestamp);
-                sqlPartKeyValues.append("timestamp ");
+                reportError(
+                     partNum,
+                     c,
+                     naTable,
+                     hiveVals,
+                     "Partitioning column value containing a quote");
+                return FALSE;
               }
 
+            // surround the value with quotes, Hive does not
+            // use quotes for character constants in partitions
             sqlPartKeyValues.append("'");
             sqlPartKeyValues.append(token);
             sqlPartKeyValues.append("'");
-          }
-          break;
+            break;
 
-        default:
-          // For now we only support characters and strings
-          // as Hive partition columns
-          reportError(partNum, c, naTable, hiveVals,
-                      "Unsupported type for partition column");
-          return FALSE;
-        }
+          case NA_NUMERIC_TYPE:
+            // just copy the value unchanged
+            sqlPartKeyValues.append(token);
+            break;
+
+          case NA_DATETIME_TYPE:
+            {
+              // surround the value by quotes and prefix it
+              // with date or timestamp (2000-01-01 becomes
+              // date '2000-01-01')
+              const DatetimeType *dtt =
+                static_cast<const DatetimeType *>(colType);
+
+              if (dtt->getSubtype() == DatetimeType::SUBTYPE_SQLDate)
+                sqlPartKeyValues.append("date ");
+              else
+                {
+                  CMPASSERT(dtt->getSubtype() == DatetimeType::SUBTYPE_SQLTimestamp);
+                  sqlPartKeyValues.append("timestamp ");
+                }
+
+              sqlPartKeyValues.append("'");
+              sqlPartKeyValues.append(token);
+              sqlPartKeyValues.append("'");
+            }
+            break;
+
+          default:
+            // For now we only support characters and strings
+            // as Hive partition columns
+            reportError(partNum, c, naTable, hiveVals,
+                        "Unsupported type for partition column");
+            return FALSE;
+          }
 
       startPos = endPos+1;
     }

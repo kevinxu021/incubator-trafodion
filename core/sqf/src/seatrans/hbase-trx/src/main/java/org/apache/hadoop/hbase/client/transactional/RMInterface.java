@@ -40,14 +40,12 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.fs.Path;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.client.HConnectionManager;
-import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
@@ -123,20 +121,12 @@ public class RMInterface {
     private CompletionService<Integer> compPool;
     private int intThreads = 16;
     protected Map<Integer, TransactionalTableClient> peer_tables;
+    private Connection connection;
     static {
         System.loadLibrary("stmlib");
     }
 
     private static STRConfig pSTRConfig = null;
-    static {
-       Configuration lv_config = HBaseConfiguration.create();
-       try {
-          pSTRConfig = STRConfig.getInstance(lv_config);
-       }
-       catch (IOException ioe) {
-          LOG.error("IO Exception trying to get STRConfig instance: " + ioe);
-       }
-    }
 
     private native void registerRegion(int port, byte[] hostname, long startcode, byte[] regionInfo);
     private native int createTableReq(byte[] lv_byte_htabledesc, byte[][] keys, int numSplits, int keyLength, long transID, byte[] tblName);
@@ -157,10 +147,12 @@ public class RMInterface {
 
     private AlgorithmType transactionAlgorithm;
 
-    public RMInterface(final String tableName, boolean pb_synchronized) throws IOException {
+    public RMInterface(final String tableName, Connection connection, boolean pb_synchronized) throws IOException {
         if (LOG.isTraceEnabled()) LOG.trace("RMInterface constructor:"
 					    + " tableName: " + tableName
 					    + " synchronized: " + pb_synchronized);
+        if (pSTRConfig == null)
+           pSTRConfig = STRConfig.getInstance(connection.getConfiguration());
         bSynchronized = pb_synchronized;
 
         String usePIT = System.getenv("TM_USE_PIT_RECOVERY");
@@ -169,6 +161,7 @@ public class RMInterface {
             recoveryToPitMode = (Integer.parseInt(usePIT) == 1) ? true : false;
         }
 
+        this.connection = connection;
         transactionAlgorithm = AlgorithmType.MVCC;
         String envset = System.getenv("TM_USE_SSCC");
         if( envset != null)
@@ -180,21 +173,16 @@ public class RMInterface {
            if (LOG.isTraceEnabled()) LOG.trace("Algorithm type: MVCC"
 						+ " tableName: " + tableName
 						+ " peerCount: " + pSTRConfig.getPeerCount());
-           ttable = new TransactionalTable(Bytes.toBytes(tableName));
+           ttable = new TransactionalTable(Bytes.toBytes(tableName), connection);
         }
         else if(transactionAlgorithm == AlgorithmType.SSCC)
         {
-           ttable = new SsccTransactionalTable( Bytes.toBytes(tableName));
+           ttable = new SsccTransactionalTable( Bytes.toBytes(tableName), connection);
         }
 
 	setSynchronized(bSynchronized);
 
-        try {
-           idServer = new IdTm(false);
-        }
-        catch (Exception e){
-           LOG.error("RMInterface: Exception creating new IdTm: " + e);
-        }
+        idServer = new IdTm(false);
 
         String asyncSet = System.getenv("TM_ASYNC_RMI");
         if(asyncSet != null) {
@@ -208,7 +196,8 @@ public class RMInterface {
         if (LOG.isTraceEnabled()) LOG.trace("RMInterface constructor exit");
     }
 
-    public RMInterface() throws IOException {
+    public RMInterface(Connection connection) throws IOException {
+       this.connection = connection;
 
     }
 
@@ -232,8 +221,7 @@ public class RMInterface {
     public void pushRegionEpoch (HTableDescriptor desc, final TransactionState ts) throws IOException {
        LOG.info("pushRegionEpoch start; transId: " + ts.getTransactionId());
 
-       TransactionalTable ttable1 = new TransactionalTable(Bytes.toBytes(desc.getNameAsString()));
-       HConnection connection = ttable1.getConnection();
+       TransactionalTable ttable1 = new TransactionalTable(Bytes.toBytes(desc.getNameAsString()), connection);
        long lvTransid = ts.getTransactionId();
        RegionLocator rl = connection.getRegionLocator(desc.getTableName());
        List<HRegionLocation> regionList = rl.getAllRegionLocations();
@@ -251,10 +239,9 @@ public class RMInterface {
           }
 
           final HRegionLocation lv_location = location;
-          final HConnection lv_connection = connection;
-          compPool.submit(new RMCallable2(ts, lv_location, lv_connection ) {
+          compPool.submit(new RMCallable2(ts, lv_location, connection ) {
              public Integer call() throws IOException {
-                return pushRegionEpochX(ts, lv_location, lv_connection);
+                return pushRegionEpochX(ts, lv_location, connection);
              }
           });
           try {
@@ -287,7 +274,7 @@ public class RMInterface {
 	    if (LOG.isTraceEnabled()) LOG.trace(" peerCount: " + pSTRConfig.getPeerCount());
 	    if( transactionAlgorithm == AlgorithmType.MVCC) {
 		peer_tables = new HashMap<Integer, TransactionalTableClient>();
-		for ( Map.Entry<Integer, HConnection> e : pSTRConfig.getPeerConnections().entrySet() ) {
+		for ( Map.Entry<Integer, Connection> e : pSTRConfig.getPeerConnections().entrySet() ) {
 		    int           lv_peerId = e.getKey();
 		    if (lv_peerId == 0) continue;
 		    if (! isSTRUp(lv_peerId)) {
@@ -303,10 +290,13 @@ public class RMInterface {
 	    }
 	    else if(transactionAlgorithm == AlgorithmType.SSCC) {
 		peer_tables = new HashMap<Integer, TransactionalTableClient>();
-		for ( Map.Entry<Integer, HConnection> e : pSTRConfig.getPeerConnections().entrySet() ) {
+		for ( Map.Entry<Integer, Connection> e : pSTRConfig.getPeerConnections().entrySet() ) {
 		    int           lv_peerId = e.getKey();
-		    if (lv_peerId == 0) continue;
-		    peer_tables.put(lv_peerId, new SsccTransactionalTable(ttable.getTableName()));
+		    if (lv_peerId == 0) 
+			continue;
+		    if (! isSTRUp(lv_peerId)) 
+			continue;
+		    peer_tables.put(lv_peerId, new SsccTransactionalTable(ttable.getTableName(), e.getValue()));
 		}
 	    }
 	}
@@ -376,13 +366,13 @@ public class RMInterface {
     private abstract class RMCallable2 implements Callable<Integer>{
        TransactionState transactionState;
        HRegionLocation  location;
-       HConnection connection;
+       Connection connection;
        HTable table;
        byte[] startKey;
        byte[] endKey_orig;
        byte[] endKey;
 
-       RMCallable2(TransactionState txState, HRegionLocation location, HConnection connection) {
+       RMCallable2(TransactionState txState, HRegionLocation location, Connection connection) {
           this.transactionState = txState;
           this.location = location;
           this.connection = connection;
@@ -399,7 +389,7 @@ public class RMInterface {
        }
 
        public Integer pushRegionEpochX(final TransactionState txState,
-        		           final HRegionLocation location, HConnection connection) throws IOException {
+        		           final HRegionLocation location, Connection connection) throws IOException {
           if (LOG.isTraceEnabled()) LOG.trace("pushRegionEpochX -- Entry txState: " + txState
                    + " location: " + location);
         	
@@ -992,10 +982,6 @@ public class RMInterface {
     }
     public void flushCommits() throws IOException {
          ttable.flushCommits();
-    }
-    public HConnection getConnection()
-    {
-        return ttable.getConnection();
     }
     public byte[][] getEndKeys()
                     throws IOException

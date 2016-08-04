@@ -1078,7 +1078,7 @@ public class MTableClient {
 /*
               if (clearRegionCache)
               {
-                 HConnection connection = table.getConnection();
+                 Connection connection = table.getConnection();
                  connection.clearRegionCache(tableName.getBytes());
               }
               table.close();

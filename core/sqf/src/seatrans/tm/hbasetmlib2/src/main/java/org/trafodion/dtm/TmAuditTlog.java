@@ -35,15 +35,12 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
+import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Delete;
@@ -133,14 +130,13 @@ import org.trafodion.dtm.HBaseAuditControlPoint;
 public class TmAuditTlog {
 
    static final Log LOG = LogFactory.getLog(TmAuditTlog.class);
-   private static HBaseAdmin admin;
    private Configuration config;
    private static String TLOG_TABLE_NAME;
    private static final byte[] TLOG_FAMILY = Bytes.toBytes("tf");
    private static final byte[] ASN_STATE = Bytes.toBytes("as");
    private static final byte[] QUAL_TX_STATE = Bytes.toBytes("tx");
    private static HTable[] table;
-   private static HConnection connection;
+   private static Connection connection;
    private static HBaseAuditControlPoint tLogControlPoint;
    private static long tLogControlPointNum;
    private static long tLogHashKey;
@@ -211,7 +207,7 @@ public class TmAuditTlog {
       byte[] endKey_orig;
       byte[] endKey;
 
-     TlogCallable(TransactionState txState, HRegionLocation location, HConnection connection) {
+     TlogCallable(TransactionState txState, HRegionLocation location, Connection connection) throws IOException {
         transactionState = txState;
         this.location = location;
         try {
@@ -353,7 +349,7 @@ public class TmAuditTlog {
       byte[] endKey_orig;
       byte[] endKey;
 
-      TlogCallable1(TransactionState txState, HRegionLocation location, HConnection connection) {
+      TlogCallable1(TransactionState txState, HRegionLocation location, Connection connection) {
          transactionState = txState;
          this.location = location;
          try {
@@ -509,7 +505,7 @@ public class TmAuditTlog {
       byte[] endKey_orig;
       byte[] endKey;
 
-      TlogCallable2(TransactionState txState, HRegionLocation location, HConnection connection) {
+      TlogCallable2(TransactionState txState, HRegionLocation location, Connection connection) {
          transactionState = txState;
          this.location = location;
          try {
@@ -779,20 +775,19 @@ public class TmAuditTlog {
      // send to regions in order to retrience the desired set of transactions
      TransactionState transactionState = new TransactionState(0);
      CompletionService<ArrayList<TransactionState>> compPool = new ExecutorCompletionService<ArrayList<TransactionState>>(tlogThreadPool);
-     HConnection targetTableConnection = HConnectionManager.createConnection(this.config);
 
      try {
         if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval node: " + pv_nodeId
                       + ", asn: " + pv_ASN + " in thread " + threadId);
 
-        HTableInterface targetTable;
+        Table targetTable;
         List<HRegionLocation> regionList;
 
         // For every Tlog table for this node
         for (int index = 0; index < tlogNumLogs; index++) {
            String lv_tLogName = new String("TRAFODION._DTM_.TLOG" + String.valueOf(pv_nodeId) + "_LOG_" + Integer.toHexString(index));
-           targetTable = targetTableConnection.getTable(TableName.valueOf(lv_tLogName));
-           RegionLocator rl = targetTableConnection.getRegionLocator(TableName.valueOf(lv_tLogName));
+           targetTable = connection.getTable(TableName.valueOf(lv_tLogName));
+           RegionLocator rl = connection.getRegionLocator(TableName.valueOf(lv_tLogName));
            regionList = rl.getAllRegionLocations();
            loopCount++;
            
@@ -830,7 +825,6 @@ public class TmAuditTlog {
                    + ", node: " + pv_nodeId + " " + e2);
        throw new IOException(e2);
      }
-     HConnectionManager.deleteStaleConnection(targetTableConnection);
      if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval tlog callable requests completed in thread "
          + threadId + ".  " + results.size() + " results returned.");
      return results;
@@ -949,9 +943,9 @@ public class TmAuditTlog {
       }
    }
 
-   public TmAuditTlog (Configuration config) throws IOException  {
-
+   public TmAuditTlog (Configuration config, Connection connection) throws IOException, RuntimeException {
       this.config = config;
+      this.connection = connection;
       this.dtmid = Integer.parseInt(config.get("dtmid"));
       if (LOG.isTraceEnabled()) LOG.trace("Enter TmAuditTlog constructor for dtmid " + dtmid);
       TLOG_TABLE_NAME = config.get("TLOG_TABLE_NAME");
@@ -1036,8 +1030,6 @@ public class TmAuditTlog {
          if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_RETRY_COUNT is not in ms.env");
       }
 
-      connection = HConnectionManager.createConnection(config);
-
       tlogNumLogs = 1;
       try {
          String numLogs = System.getenv("TM_TLOG_NUM_LOGS");
@@ -1098,7 +1090,6 @@ public class TmAuditTlog {
          hcol.setBlockCacheEnabled(false);
       }
       hcol.setMaxVersions(versions);
-      admin = new HBaseAdmin(config);
 
       filler = new byte[fillerSize];
       Arrays.fill(filler, (byte) ' ');
@@ -1144,44 +1135,33 @@ public class TmAuditTlog {
       long lvAsn = 0;
 
       if (LOG.isTraceEnabled()) LOG.trace("try new HBaseAuditControlPoint");
-      tLogControlPoint = new HBaseAuditControlPoint(config);
-      lvAsn = tLogControlPoint.getStartingAuditSeqNum(myClusterId); 
-      LOG.info("Starting Audit Sequence Number is " + lvAsn);
-
+      tLogControlPoint = new HBaseAuditControlPoint(config, connection);
       tlogAuditLock = new Object[tlogNumLogs];
       table = new HTable[tlogNumLogs];
 
-      try {
          // Get the asn from the last control point.  This ignores 
          // any asn increments between the last control point
          // write and a system crash and could result in asn numbers
          // being reused.  However this would just mean that some old 
          // records are held onto a bit longer before cleanup and is safe.
-         asn.set(lvAsn);
-      }
-      catch (Exception e2){
-         if (LOG.isDebugEnabled()) LOG.debug("Exception setting the ASN " , e2);
-         if (LOG.isDebugEnabled()) LOG.debug("Setting the ASN to 1");
-         asn.set(1L);  // Couldn't read the asn so start asn at 1
-      }
+      lvAsn = tLogControlPoint.getStartingAuditSeqNum(myClusterId); 
+      asn.set(lvAsn);
 
+      LOG.info("Starting Audit Sequence Number is " + lvAsn);
+
+      Admin admin  = connection.getAdmin();
       for (int i = 0 ; i < tlogNumLogs; i++) {
          tlogAuditLock[i]      = new Object();
          String lv_tLogName = new String(TLOG_TABLE_NAME + "_LOG_" + Integer.toHexString(i));
-         if (LOG.isTraceEnabled()) LOG.trace("Checking if Tlog table " + lv_tLogName + " exists" );
-         boolean lvTlogExists = false; 
-         try {
-            lvTlogExists = admin.tableExists(lv_tLogName);
-         } catch (IOException e) {
-               if (LOG.isTraceEnabled()) LOG.trace("Tlog table " + lv_tLogName + (lvTlogExists? " exists" : " does not exist" ));
-        }
+         boolean lvTlogExists = admin.tableExists(TableName.valueOf(lv_tLogName));
+         if (LOG.isTraceEnabled()) LOG.trace("Tlog table " + lv_tLogName + (lvTlogExists? " exists" : " does not exist" ));
          HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(lv_tLogName));
          desc.addFamily(hcol);
 
          if (lvTlogExists == false) {
             // Need to prime the asn for future writes
-            try {
-               if (LOG.isTraceEnabled()) LOG.trace("Creating the table " + lv_tLogName);
+          try {
+              if (LOG.isTraceEnabled()) LOG.trace("Creating the table " + lv_tLogName);
                admin.createTable(desc);
                asn.set(1L);  // TLOG didn't exist previously, so start asn at 1
             }
@@ -1201,6 +1181,7 @@ public class TmAuditTlog {
          table[i].setAutoFlushTo(this.useAutoFlush);
 
       }
+      admin.close();
 
       lvAsn = asn.get();
       // This control point write needs to be delayed until after recovery completes, 
@@ -1316,11 +1297,8 @@ public class TmAuditTlog {
          Table recoveryTable;
          int lv_ownerNid = (int)TransactionState.getNodeId(lvTransid);
          String lv_tLogName = new String("TRAFODION._DTM_.TLOG" + String.valueOf(lv_ownerNid) + "_LOG_" + Integer.toHexString(lv_lockIndex));
-         if (LOG.isTraceEnabled()) LOG.trace("TLOG putSingleRecord with recoveryASN != 0 on table " + lv_tLogName);
-         Connection recoveryTableConnection = ConnectionFactory.createConnection(this.config);
-         if (LOG.isTraceEnabled()) LOG.trace("putSingleRecord new HConnection: " + recoveryTableConnection);
-         recoveryTable = recoveryTableConnection.getTable(TableName.valueOf(lv_tLogName));
-         RegionLocator locator = recoveryTableConnection.getRegionLocator(recoveryTable.getName());
+         recoveryTable = connection.getTable(TableName.valueOf(lv_tLogName));
+         RegionLocator locator = connection.getRegionLocator(recoveryTable.getName());
 
          try {
             boolean complete = false;
@@ -1372,15 +1350,8 @@ public class TmAuditTlog {
             throw e2;
          }
          finally {
-            try {
                locator.close();
                recoveryTable.close();
-               recoveryTableConnection.close();
-            }
-            catch (IOException e) {
-               LOG.error("putSingleRecord IOException closing locator, recovery table or connection for table "
-                   + lv_tLogName + " Exception: " + e);
-            }
          }
       }
       else {
@@ -1748,12 +1719,11 @@ public class TmAuditTlog {
 
    public boolean deleteAgedEntries(final long lvAsn) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("deleteAgedEntries start:  Entries older than " + lvAsn + " will be removed");
-      HTableInterface deleteTable;
-      HConnection deleteConnection = HConnectionManager.createConnection(this.config);
-//    Connection deleteConnection = ConnectionFactory.createConnection(this.config);
 
+      Table deleteTable;
       for (int i = 0; i < tlogNumLogs; i++) {
          String lv_tLogName = new String(TLOG_TABLE_NAME + "_LOG_" + Integer.toHexString(i));
+
          if (LOG.isTraceEnabled()) LOG.trace("delete table is: " + lv_tLogName);
 
          deleteTable = connection.getTable(TableName.valueOf(lv_tLogName));
@@ -2012,7 +1982,7 @@ public class TmAuditTlog {
 
       // This request might be for a transaction not originating on this node, so we need to open
       // the appropriate Tlog
-      HTableInterface unknownTransactionTable;
+      Table unknownTransactionTable;
       long lvTransid = ts.getTransactionId();
       int lv_ownerNid = (int)TransactionState.getNodeId(lvTransid);
       int lv_lockIndex = (int)(TransactionState.getTransSeqNum(lvTransid) & tLogHashKey);
@@ -2185,8 +2155,6 @@ public class TmAuditTlog {
             }
          }
       } while (! complete && retries < TlogRetryCount);  // default give up after 5 minutes
-
-      HConnectionManager.deleteStaleConnection(connection);
       LOG.info("getTransactionState: returning ts: " + ts);
 //            if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: returning transid: " + ts.getTransactionId() + " state: " + lvTxState);
 
@@ -2223,7 +2191,6 @@ public class TmAuditTlog {
       // send to regions in order to retrience the desired set of transactions
       TransactionState transactionState = new TransactionState(0);
       CompletionService<Integer> compPool = new ExecutorCompletionService<Integer>(tlogThreadPool);
-      Connection targetTableConnection = ConnectionFactory.createConnection(this.config);
 
       try {
          if (LOG.isTraceEnabled()) LOG.trace("deleteEntriesOlderThanASN: "
@@ -2233,8 +2200,7 @@ public class TmAuditTlog {
          // For every Tlog table for this node
          for (int index = 0; index < tlogNumLogs; index++) {
             String lv_tLogName = new String("TRAFODION._DTM_.TLOG" + String.valueOf(this.dtmid) + "_LOG_" + Integer.toHexString(index));
-            RegionLocator locator = targetTableConnection.getRegionLocator(TableName.valueOf(lv_tLogName));
-            regionList = locator.getAllRegionLocations();
+            regionList = connection.getRegionLocator(TableName.valueOf(lv_tLogName)).getAllRegionLocations();
             loopIndex++;
             int regionIndex = 0;
             // For every region in this table
@@ -2260,7 +2226,6 @@ public class TmAuditTlog {
                    throw new IOException(e2);
                 }
             }
-            locator.close();
          }
       } catch (Exception e) {
          LOG.error("exception in deleteEntriesOlderThanASN for ASN: "
