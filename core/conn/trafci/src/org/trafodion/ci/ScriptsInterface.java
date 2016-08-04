@@ -56,6 +56,17 @@ public class ScriptsInterface
       String portNumber,
       String dsnName) throws IOException, SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException
    {
+      openConnection( userName, password, roleName, serverName, portNumber, dsnName, 0);
+   }
+
+   public void openConnection(String userName,
+      String password,
+      String roleName,
+      String serverName,
+      String portNumber,
+      String dsnName,
+      int caller) throws IOException, SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException
+   {
 
       //System.setOut(new PrintStream(new BufferedOutputStream(new FileOutputStream("c:\\output.dat"))));
       cwObj=new ConsoleWriter();
@@ -86,7 +97,7 @@ public class ScriptsInterface
          serverName,
          portNumber,
          dsnName,
-         0);
+         caller);
   } finally {
 		  cwObj.setConsoleOut(true);
 	  }

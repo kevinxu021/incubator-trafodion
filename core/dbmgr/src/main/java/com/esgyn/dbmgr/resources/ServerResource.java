@@ -37,6 +37,7 @@ import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.trafodion.ci.ScriptsInterface;
+import org.trafodion.ci.SessionDefaults;
 
 import com.esgyn.dbmgr.common.EsgynDBMgrException;
 import com.esgyn.dbmgr.common.Helper;
@@ -516,7 +517,8 @@ public class ServerResource {
 			int port = uri.getPort();
 
 			ScriptsInterface scriptInterface = new ScriptsInterface();
-			scriptInterface.openConnection(userName, password, host, String.valueOf(port), "");
+			scriptInterface.openConnection(userName, password, "", host, String.valueOf(port), "",
+					SessionDefaults.PRUNI);
 			scriptInterface.executeScript(inFile, outFile);
 			scriptInterface.disconnect();
 		} catch (Exception e) {

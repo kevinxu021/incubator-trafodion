@@ -102,8 +102,9 @@
 			    CAST(O.object_uid  AS CHAR(26)) as "Object ID",
 			    T.KEY_LENGTH AS "Key Length", T.ROW_TOTAL_LENGTH as "Row Total Length", 
                 T.NUM_SALT_PARTNS as "Number Salt Partitions", T2.region_count as "Region Count",
-				T2.store_file_size_mb as "Store File Size (MB)", T2.mem_store_size_mb as" Mem Store Size (MB)", 
-				T2.read_requests_count as "Read Requests Count", T2.write_requests_count as "Write Requests Count"
+                CAST( CASE WHEN 1 > T2.store_file_size_mb THEN 0 ELSE (T2.store_file_size_mb/(1024*1024)) END AS DECIMAL(18,2)) AS "Store File Size (MB)" , 
+                CAST( CASE WHEN 1 > T2.mem_store_size_mb THEN 0 ELSE (T2.mem_store_size_mb/(1024*1024)) END AS DECIMAL(18,2)) AS "Mem Store Size (MB)" , 
+ 				T2.read_requests_count as "Read Requests Count", T2.write_requests_count as "Write Requests Count"
 			    FROM TRAFODION."_MD_".OBJECTS O, TRAFODION."_MD_".TABLES T,
                 (select schema_name, object_name, count(*) as region_count,
                  sum(store_file_size) as store_file_size_mb, sum(mem_store_size) as mem_store_size_mb,
@@ -128,8 +129,9 @@
 			    CAST(O.object_uid  AS CHAR(26)) as "Object ID",
 			    T.KEY_LENGTH AS "Key Length", T.ROW_TOTAL_LENGTH as "Row Total Length", 
                 T.NUM_SALT_PARTNS as "Number Salt Partitions", T2.region_count as "Region Count",
-				T2.store_file_size_mb as "Store File Size (MB)", T2.mem_store_size_mb as" Mem Store Size (MB)", 
-				T2.read_requests_count as "Read Requests Count", T2.write_requests_count as "Write Requests Count"
+                CAST( CASE WHEN 1 > T2.store_file_size_mb THEN 0 ELSE (T2.store_file_size_mb/(1024*1024)) END AS DECIMAL(18,2)) AS "Store File Size (MB)" , 
+                CAST( CASE WHEN 1 > T2.mem_store_size_mb THEN 0 ELSE (T2.mem_store_size_mb/(1024*1024)) END AS DECIMAL(18,2)) AS "Mem Store Size (MB)" , 
+ 				T2.read_requests_count as "Read Requests Count", T2.write_requests_count as "Write Requests Count"
 			    FROM TRAFODION."_MD_".OBJECTS O, TRAFODION."_MD_".TABLES T,
                 (select schema_name, object_name, count(*) as region_count,
                  sum(store_file_size) as store_file_size_mb, sum(mem_store_size) as mem_store_size_mb,
@@ -291,8 +293,10 @@
 			<!-- Get HBase Region info for a database object -->
 			<name>SELECT_OBJECT_REGIONS</name>
 			<text><![CDATA[select region_num, region_name, num_stores, num_store_files,
-				store_file_uncomp_size as store_file_uncomp_size_mb, store_file_size as store_file_size_mb, 
-				mem_store_size as mem_store_size_mb, read_requests_count, write_requests_count
+                CAST( CASE WHEN 1 > store_file_uncomp_size THEN 0 ELSE (store_file_uncomp_size/(1024*1024)) END AS DECIMAL(18,2)) AS store_file_uncomp_size , 
+                CAST( CASE WHEN 1 > store_file_size THEN 0 ELSE (store_file_size/(1024*1024)) END AS DECIMAL(18,2)) AS store_file_size_mb , 
+                CAST( CASE WHEN 1 > mem_store_size THEN 0 ELSE (mem_store_size/(1024*1024)) END AS DECIMAL(18,2)) AS mem_store_size_mb , 
+				read_requests_count, write_requests_count
 				from table(region stats (%1$s %2$s))
 			]]></text>
 		</query>			
