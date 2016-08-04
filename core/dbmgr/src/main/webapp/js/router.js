@@ -1,8 +1,8 @@
-// @@@ START COPYRIGHT @@@
-//
-// (C) Copyright 2015-2016 Esgyn Corporation
-//
-// @@@ END COPYRIGHT @@@
+//@@@ START COPYRIGHT @@@
+
+//(C) Copyright 2015-2016 Esgyn Corporation
+
+//@@@ END COPYRIGHT @@@
 
 define([
         'jquery',
@@ -33,19 +33,21 @@ define([
         'views/workloads/WorkloadProfileConfigurationView',
         'views/workloads/WorkloadSLAConfigurationView',
         'views/workloads/WorkloadMappingConfigurationView',
-	'views/tools/SQLConverterView',
+        'views/tools/SQLConverterView',
+        'views/tools/ScriptExecutorView',
         'metismenu'
         ], function($, _, Backbone, NavbarView, DashboardView, WorkbenchView, DCSServerView, LoginView, 
         		SchemasView, SchemaDetailView, SchemaObjectsView, SchemaObjectDetailView,
         		ActiveWorkloadsView, ActiveQueryDetailView, HistoricalWorkloadsView, HistoricalWorkloadDetailView, QueryPlanView, 
         		LogsView, CreateLibraryView, AlterLibraryView, AlertsSummaryView, AlertDetailView, AboutView, Session, Localizer,
-        		WorkloadProfileConfigurationView, WorkloadSLAConfigurationView, WorkloadMappingConfigurationView, SQLConverterView) {
+        		WorkloadProfileConfigurationView, WorkloadSLAConfigurationView, WorkloadMappingConfigurationView, SQLConverterView,
+        		ScriptExecutorView) {
 	'use strict';
 
 	var currentSelection = null;
 	var currentView = null;
 	var viewCollection = [];
-	
+
 	var dashboardView = null;
 	var workbenchView = null;
 	var dcsServerView = null;
@@ -69,7 +71,8 @@ define([
 	var workloadProfileConfigurationView = null;
 	var workloadSLAConfigurationView = null;
 	var workloadMappingConfigurationView = null;
-	
+	var scriptExecutorView = null;
+
 	var AppRouter = Backbone.Router.extend({
 		execute: function(callback, args, name) {
 			if (Session.getUser() == null) {
@@ -109,6 +112,7 @@ define([
 			'tools/createlibrary(?*:params)':'createLibrary',
 			'tools/alterlibrary(?*:params)':'alterLibrary',
 			'tools/sqlconverter':'showSQLConverter',
+			'tools/executescript':'showScriptExecutor',
 			'alerts': 'showAlertsSummary',
 			'alert/detail(/*args)': 'showAlertDetail',
 			'help/about': 'showAbout',
@@ -119,29 +123,29 @@ define([
 			'*actions': 'defaultAction'
 		}
 	});
-	
+
 	var deparam = function(){
 		var urlHash = window.location.hash;
 		var paramIndex = urlHash.indexOf('?');
-		
-	    var result = {};
-	    if( paramIndex < 0){
-	        return result;
-	    }
-	    var paramString = urlHash.substring(paramIndex + 1);
-	    $.each(paramString.split('&'), function(index, value){
-	        if(value){
-	            var param = value.split('=');
-	            result[param[0]] = param[1];
-	        }
-	    });
-	    return result;
+
+		var result = {};
+		if( paramIndex < 0){
+			return result;
+		}
+		var paramString = urlHash.substring(paramIndex + 1);
+		$.each(paramString.split('&'), function(index, value){
+			if(value){
+				var param = value.split('=');
+				result[param[0]] = param[1];
+			}
+		});
+		return result;
 	};
-	
+
 	var switchView = function(view, args) {
-		
+
 		$('#side-menu').metisMenu();
-		
+
 		if (currentView && (currentView != view || currentView == schemasView)) {
 			// Detach the old view
 			currentView.remove();
@@ -162,7 +166,7 @@ define([
 			loginView.doLogout();
 		}
 		window.location.hash = '/login';
-		
+
 		$.each(viewCollection, function(i, v){
 			if(v.doCleanup){
 				v.doCleanup();
@@ -170,7 +174,7 @@ define([
 			v = null;
 		});
 		viewCollection = [];
-		
+
 		dashboardView = null;
 		workbenchView = null;
 		dcsServerView = null;
@@ -194,6 +198,7 @@ define([
 		workloadSLAConfigurationView = null;
 		workloadMappingConfigurationView = null;
 		sqlConverterView = null;
+		scriptExecutorView = null;
 		currentView = null;
 	};
 
@@ -203,7 +208,7 @@ define([
 			loginView.sessionTimedOut = true;
 		}
 	};
-	
+
 	var initialize = function(){
 
 		var navV = new NavbarView();
@@ -255,19 +260,19 @@ define([
 				schemasView = new SchemasView();	
 				viewCollection.push(schemasView);
 			}
-			
+
 			switchView(schemasView);
 		});
-		
+
 		app_router.on('route:showSchemaDetail', function () {
-			
+
 			var args = deparam();
-			
+
 			if(schemaDetailView == null){
 				schemaDetailView = new SchemaDetailView();	
 				viewCollection.push(schemaDetailView);
 			}
-			
+
 			switchView(schemaDetailView, args);
 		});
 
@@ -277,7 +282,7 @@ define([
 				schemaObjectsView = new SchemaObjectsView();	
 				viewCollection.push(schemaObjectsView);
 			}
-			
+
 			switchView(schemaObjectsView, args);
 		});
 
@@ -299,7 +304,7 @@ define([
 			}
 			switchView(historicalWorkloadsView, args);
 		});
-		
+
 		app_router.on('route:showHistoricalWorkloadDetail', function (args) {
 			if(historicalWorkloadDetailView == null){
 				historicalWorkloadDetailView = new HistoricalWorkloadDetailView();
@@ -307,7 +312,7 @@ define([
 			}
 			switchView(historicalWorkloadDetailView, args);
 		});
-		
+
 		app_router.on('route:showActiveWorkloads', function (args) {
 			if(activeWorkloadsView == null){
 				activeWorkloadsView = new ActiveWorkloadsView();
@@ -315,7 +320,7 @@ define([
 			}
 			switchView(activeWorkloadsView, args);
 		});		
-		
+
 		app_router.on('route:showActiveQueryDetail', function (args) {
 			if(activeQueryDetailView == null){
 				activeQueryDetailView = new ActiveQueryDetailView();
@@ -323,7 +328,7 @@ define([
 			}
 			switchView(activeQueryDetailView, args);
 		});	
-		
+
 		app_router.on('route:showWorkloadProfiles', function (args) {
 			if(workloadProfileConfigurationView == null){
 				workloadProfileConfigurationView = new WorkloadProfileConfigurationView();
@@ -331,7 +336,7 @@ define([
 			}
 			switchView(workloadProfileConfigurationView, args);
 		});	
-		
+
 		app_router.on('route:showWorkloadSLAs', function (args) {
 			if(workloadSLAConfigurationView == null){
 				workloadSLAConfigurationView = new WorkloadSLAConfigurationView();
@@ -355,7 +360,7 @@ define([
 			}
 			switchView(queryPlanView, args);
 		});	
-		
+
 		app_router.on('route:showLogs', function (args) {
 			if(logsView == null){
 				logsView = new LogsView();
@@ -363,7 +368,7 @@ define([
 			}
 			switchView(logsView, args);
 		});		
-		
+
 		app_router.on('route:showAlertsSummary', function(args){
 			if(alertsSummaryView == null){
 				alertsSummaryView = new AlertsSummaryView();
@@ -371,7 +376,7 @@ define([
 			}
 			switchView(alertsSummaryView, args);
 		});
-		
+
 		app_router.on('route:showAlertDetail', function(args){
 			if(alertDetailView == null){
 				alertDetailView = new AlertDetailView();
@@ -379,7 +384,7 @@ define([
 			}
 			switchView(alertDetailView, args);
 		});
-		
+
 		app_router.on('route:createLibrary', function (args, params) {
 			var args = deparam();
 
@@ -389,7 +394,7 @@ define([
 			}
 			switchView(createLibraryView, args);
 		});
-		
+
 		app_router.on('route:alterLibrary', function (args, params) {
 			var args = deparam();
 
@@ -399,7 +404,7 @@ define([
 			}
 			switchView(alterLibraryView, args);
 		});
-		
+
 		app_router.on('route:showSQLConverter', function (args, params) {
 			var args = deparam();
 			if(sqlConverterView == null){
@@ -408,7 +413,16 @@ define([
 			}
 			switchView(sqlConverterView, args);
 		});
-		
+
+		app_router.on('route:showScriptExecutor', function (args, params) {
+			var args = deparam();
+			if(scriptExecutorView == null){
+				scriptExecutorView = new ScriptExecutorView();
+				viewCollection.push(scriptExecutorView);
+			}
+			switchView(scriptExecutorView, args);
+		});
+
 		app_router.on('route:showAbout', function (args) {
 			if(aboutView == null){
 				aboutView = new AboutView();
@@ -419,16 +433,16 @@ define([
 
 		app_router.on('route:showTools', function (args) {
 		});	
-		
+
 		app_router.on('route:doLogout', function () {
 			logout();
 		});
-		
+
 		app_router.on('route:showUserGuide', function(){
 			var uri = window.location.protocol+'://'+window.location.host+'/docs/';
 			window.open(uri);
 		});
-		
+
 		app_router.on('route:doSessionTimeout', function(){
 			logout();
 			if(loginView != null) {
@@ -445,7 +459,7 @@ define([
 			}
 
 			switchView(dashboardView);
-			
+
 		});
 
 
