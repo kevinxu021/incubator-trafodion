@@ -1281,8 +1281,8 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
   CMPASSERT(hdfsStats);
 
   // collect fact about whether some columns are sorted. 
-  NABoolean leadingColumnsSorted = 
-      getIndexDesc()->isSortedORCHive() && isLeadingKeyColCovered();
+  NABoolean leadingJoinColumnsSorted = 
+      getIndexDesc()->isSortedORCHive() && isLeadingHiveSortKeyColCovered();
 
   CostScalar stripes = MAXOF(hdfsStats->getNumStripes(), 1.0);
 
@@ -1307,7 +1307,7 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
   if ( canEliminatePartitionsForHive() ) 
   {
      // for one probe
-     if ( leadingColumnsSorted ) {
+     if ( leadingJoinColumnsSorted ) {
         tuplesProcessed = avgRowsPerStripe;
         totalFileSizeOriginal = hdfsStats->getTotalSize() / stripes.getValue();
      } else {
@@ -1319,14 +1319,22 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
 
 
   } else {
-     // for successful probes
-     tuplesProcessed = getDataRows(); 
+     if ( leadingJoinColumnsSorted ) {
 
-     // add # of rows for failed probes
-     tuplesProcessed += numfailedProbes * 
-          ((leadingColumnsSorted) ? avgRowsPerStripe : effectiveTotalRowCount_);
+        tuplesProcessed = avgRowsPerStripe;
+        tuplesProcessed += numfailedProbes * avgRowsPerStripe;
 
-     totalFileSizeOriginal = hdfsStats->getTotalSize();
+        totalFileSizeOriginal = hdfsStats->getTotalSize() / stripes.getValue();
+
+     } else {
+        // for successful probes
+        tuplesProcessed = getDataRows(); 
+
+        // add # of rows for failed probes
+        tuplesProcessed += numfailedProbes * effectiveTotalRowCount_;
+
+        totalFileSizeOriginal = hdfsStats->getTotalSize();
+     }
 
   }
      
@@ -1388,6 +1396,7 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
       
       NAString tname((getIndexDesc()->getPrimaryTableDesc()->getNATable()->getTableName()).getQualifiedNameAsAnsiString());
        printf("Multi-set cost for %s:\n", tname.data());
+       printf("leading join column sorted=%d \n", leadingJoinColumnsSorted);
        printf("numProbes=%f \n", numProbes.getValue());
        printf("successful probes=%f \n", successfulProbes_.getValue());
        printf("numUniqueSuccessfulProbes=%f \n", numUniqueSuccessfulProbes.getValue());

@@ -4449,7 +4449,7 @@ Context* NestedJoin::createContextForAChild(Context* myContext,
                // of prefix of inner child clustering key by join columns, local
                // predicates and and constant expressions
              )
-           ) AND OCBJoinIsFeasible(myContext)
+           ) AND OCBJoinIsFeasible(myContext) 
          )
         {
           OCBJoinIsConsidered = TRUE;
@@ -6129,6 +6129,12 @@ NABoolean NestedJoin::OCBJoinIsFeasible(const Context* myContext) const
 
     for (CollIndex i = 0; i < availIndexes.entries(); i++)
     {
+      // OCB into hive tables is not allowed because NJ into hive is
+      // implmented as plan 0 and 1. It is also incorrect because each
+      // ESP may access all partitions of the hive table.
+      if ( availIndexes[0]->getPrimaryTableDesc()->getNATable()->isHiveTable() )
+         return FALSE;
+
       rightPartFunc = availIndexes[i]->getPartitioningFunction();
 
       if ( rightPartFunc )
@@ -14508,7 +14514,12 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   Lng32 numSQNodes = HHDFSMasterHostList::getNumSQNodes();
 
   // minimum # of ESPs required by the parent
-  Lng32 minESPs = (partReq ?  partReq->getCountOfPartitions() : 1);
+  Lng32 minESPs;
+
+  if ( partReq )
+     minESPs = partReq->getCountOfPartitions();
+  else 
+     minESPs = CURRSTMT_OPTDEFAULTS->getMaximumDegreeOfParallelism();
 
   if (partReq && partReq->castToRequireApproximatelyNPartitions())
     minESPs = partReq->castToRequireApproximatelyNPartitions()->

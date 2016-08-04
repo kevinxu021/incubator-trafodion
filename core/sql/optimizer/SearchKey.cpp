@@ -2725,6 +2725,13 @@ NABoolean HivePartitionAndBucketKey::convertHivePartColValsToSQL(
           break;
 
         case NA_NUMERIC_TYPE:
+          // Temp. workaround (when the partition column contains NULL) 
+          // until the fix is available
+          
+          //if ( strcmp(hivePartKeyValues, "__HIVE_DEFAULT_PARTITION__") == 0 )
+          //  sqlPartKeyValues.append("4999999");
+          //else
+          
           // just copy the value unchanged
           sqlPartKeyValues.append(token);
           break;
