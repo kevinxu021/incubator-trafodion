@@ -292,8 +292,11 @@ public class RMInterface {
 		peer_tables = new HashMap<Integer, TransactionalTableClient>();
 		for ( Map.Entry<Integer, Connection> e : pSTRConfig.getPeerConnections().entrySet() ) {
 		    int           lv_peerId = e.getKey();
-		    if (lv_peerId == 0) continue;
-		    peer_tables.put(lv_peerId, new SsccTransactionalTable(ttable.getTableName(), connection));
+		    if (lv_peerId == 0) 
+			continue;
+		    if (! isSTRUp(lv_peerId)) 
+			continue;
+		    peer_tables.put(lv_peerId, new SsccTransactionalTable(ttable.getTableName(), e.getValue()));
 		}
 	    }
 	}
