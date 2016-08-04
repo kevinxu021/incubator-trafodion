@@ -54,20 +54,15 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.TableNotFoundException;
-import org.apache.hadoop.hbase.TableNotEnabledException;
-import org.apache.hadoop.hbase.TableNotDisabledException;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.client.Durability;
@@ -151,7 +146,7 @@ public class TransactionManager {
   private int RETRY_ATTEMPTS;
   private final TransactionLogger transactionLogger;
   private JtaXAResource xAResource;
-  private HBaseAdmin hbadmin;
+  private Connection connection;
   private TmDDL tmDDL;
   private boolean batchRSMetricsFlag = false;
   private boolean recoveryToPitMode = false;
@@ -212,10 +207,10 @@ public class TransactionManager {
   }
 
   // getInstance to return the singleton object for TransactionManager
-    public synchronized static TransactionManager getInstance(final Configuration conf) 
-	throws ZooKeeperConnectionException, IOException {
+  public synchronized static TransactionManager getInstance(final Configuration conf, Connection connection) 
+      throws ZooKeeperConnectionException, IOException {
     if (g_TransactionManager == null) {
-      g_TransactionManager = new TransactionManager(conf);
+      g_TransactionManager = new TransactionManager(conf, connection);
     }
     return g_TransactionManager;
   }
@@ -247,9 +242,7 @@ public class TransactionManager {
   }
 
   public void init(final TmDDL tmddl) throws IOException {
-    this.config = HBaseConfiguration.create();
     this.tmDDL = tmddl;
-      hbadmin = new HBaseAdmin(config);
   }
 
   /**
@@ -263,7 +256,7 @@ public class TransactionManager {
         byte[] endKey_orig;
         byte[] endKey;
 
-        TransactionManagerCallable(TransactionState txState, TransactionRegionLocation location, HConnection connection) 
+        TransactionManagerCallable(TransactionState txState, TransactionRegionLocation location, Connection connection) 
                throws IOException {
         transactionState = txState;
         this.location = location;
@@ -341,6 +334,7 @@ public class TransactionManager {
                   String msg = new String ("ERROR occurred while calling doCommitX coprocessor service in doCommitX for transaction: "
                               + transactionId + " participantNum " + participantNum );
                   LOG.error(msg, e);
+                  transactionState.requestPendingCountDec(true);
                   throw new DoNotRetryIOException(msg,e);
                }
                if(result.size() == 0) {
@@ -361,15 +355,7 @@ public class TransactionManager {
            	     ArrayList<String> dropList = new ArrayList<String>();
 		     ArrayList<String> truncateList = new ArrayList<String>();
   		     StringBuilder state = new StringBuilder ();
- 		     try {
-                        tmDDL.getRow(transactionState.getTransactionId(), state, createList, dropList, truncateList);
- 		     }
-                     catch(Exception e){
-                       LOG.error("doCommitX, exception in tmDDL getRow: " + e);
-                       if(LOG.isTraceEnabled()) LOG.trace("doCommitX, exception in tmDDL getRow:: txID: " + transactionState.getTransactionId());
-		       state.append("INVALID"); //to avoid processing further down this path.
-                     }
-                    
+                     tmDDL.getRow(transactionState.getTransactionId(), state, createList, dropList, truncateList);
                      if(state.toString().equals("VALID") && dropList.size() > 0)
                      {
                        Iterator<String> di = dropList.iterator();
@@ -540,6 +526,7 @@ public class TransactionManager {
                } catch (ServiceException se) {
                   String msg = "ERROR occurred while calling doCommitX coprocessor service in doCommitX";
                   LOG.error(msg + ":", se);
+                  transactionState.requestPendingCountDec(true);
                   throw new DoNotRetryIOException(msg, se);
                } catch (Throwable e) {
                   String msg = "ERROR occurred while calling doCommitX coprocessor service in doCommitX";
@@ -970,7 +957,8 @@ public class TransactionManager {
         int retryCount = 0;
             int retrySleep = TM_SLEEP;
 
-        if( TRANSACTION_ALGORITHM == AlgorithmType.MVCC){
+        Admin admin = connection.getAdmin();
+        if( TRANSACTION_ALGORITHM == AlgorithmType.MVCC) {
         do {
             try {
 
@@ -1005,6 +993,7 @@ public class TransactionManager {
               } catch (Throwable t) {
                   String msg = "ERROR occurred while calling doAbortX coprocessor service";
                   LOG.error(msg,  t);
+                  transactionState.requestPendingCountDec(true);
                   throw new DoNotRetryIOException(msg, t);
               }
               
@@ -1032,6 +1021,12 @@ public class TransactionManager {
                  retry = false;
               }
            }
+          catch (UnknownTransactionException ute) {
+             LOG.error("Got unknown exception in doAbortX by participant " + participantNum
+                       + " for transaction: " + transactionId, ute);
+             transactionState.requestPendingCountDec(true);
+             throw ute;
+          }
           catch (RetryTransactionException rte) {
              if (rte.toString().contains("Asked to commit a non-pending transaction ")) {
                  LOG.error(" doCommitX will not retry transaction: " + transactionId , rte);
@@ -1041,6 +1036,7 @@ public class TransactionManager {
               if (retryCount == RETRY_ATTEMPTS) {
                   String errMsg = "Exceeded retry attempts in doAbortX: " + retryCount;
                   LOG.error(errMsg, rte); 
+                  transactionState.requestPendingCountDec(true);
                   throw new DoNotRetryIOException(errMsg, rte);
               }
               else {
@@ -1059,7 +1055,7 @@ public class TransactionManager {
                  if (LOG.isWarnEnabled()) LOG.warn("doAbortX -- " + table.toString() + " location being refreshed");
                  if (LOG.isWarnEnabled()) LOG.warn("doAbortX -- lv_hri: " + lv_hri);
                  if (LOG.isWarnEnabled()) LOG.warn("doAbortX -- location.getRegionInfo(): " + location.getRegionInfo());
-                 if (hbadmin.isTableEnabled(table.getTableName())) {
+                 if (admin.isTableEnabled(TableName.valueOf(table.getTableName()))) {
                     table.getRegionLocation(startKey, true);
                  }
                  else {
@@ -1118,6 +1114,7 @@ public class TransactionManager {
               } catch (Throwable e) {
                   String msg = "ERROR occurred while calling doAbortX coprocessor service";
                   LOG.error(msg + ":",  e);
+                  transactionState.requestPendingCountDec(true);
                   throw new DoNotRetryIOException(msg,e);
               }
 
@@ -1141,10 +1138,17 @@ public class TransactionManager {
               retry = false;
               }
           }
+          catch (UnknownTransactionException ute) {
+             LOG.error("Got unknown exception in doAbortX by participant " + participantNum
+                       + " for transaction: " + transactionId, ute);
+             transactionState.requestPendingCountDec(true);
+             throw ute;
+          }
           catch (RetryTransactionException rte) {
                 if (retryCount == RETRY_ATTEMPTS){
                    String errMsg = new String ("Exceeded retry attempts in doAbortX: " + retryCount + " (Not ingoring)");
                    LOG.error(errMsg);
+                   transactionState.requestPendingCountDec(true);
                    throw new RollbackUnsuccessfulException(errMsg, rte);  
                 }
                 LOG.error("doAbortX participant " + participantNum + " retrying transaction "
@@ -1162,7 +1166,7 @@ public class TransactionManager {
                  if (LOG.isWarnEnabled()) LOG.warn("doAbortX -- " + table.toString() + " location being refreshed");
                  if (LOG.isWarnEnabled()) LOG.warn("doAbortX -- lv_hri: " + lv_hri);
                  if (LOG.isWarnEnabled()) LOG.warn("doAbortX -- location.getRegionInfo(): " + location.getRegionInfo());
-                 if (hbadmin.isTableEnabled(table.getTableName())) {
+                 if (admin.isTableEnabled(TableName.valueOf(table.getTableName()))) {
                     table.getRegionLocation(startKey, true);
                  }
                  else {
@@ -1188,6 +1192,7 @@ public class TransactionManager {
 
       } while (retryCount < RETRY_ATTEMPTS && retry == true);
         }
+      admin.close();
       // We have received our reply so decrement outstanding count
       transactionState.requestPendingCountDec(false);
 
@@ -1464,6 +1469,7 @@ public class TransactionManager {
             if(retryCount == RETRY_ATTEMPTS){
                String errMsg = "Exceeded retry attempts in doAbortX: " + retryCount + " (not ingoring)";
                LOG.error(errMsg, rte);
+               transactionState.requestPendingCountDec(true);
                throw new RollbackUnsuccessfulException("doAbortX, Batch - coprocessor error", rte);
             }
             LOG.error("doAbortX - Batch - participant " + participantNum + " retrying transaction "
@@ -1479,10 +1485,6 @@ public class TransactionManager {
             		+ "-- location being refreshed : " + location.getRegionInfo().getRegionNameAsString()
                     + " endKey: " + Hex.encodeHexString(location.getRegionInfo().getEndKey())
                     + " for transaction: " + transactionId);
-            if(retryCount == RETRY_ATTEMPTS){
-               LOG.error("Exceeded retry attempts in doAbortX: " + retryCount + " (ingoring)");
-            }
-
            if (LOG.isWarnEnabled()) {
              LOG.warn("doAbortX - Batch - -- " + table.toString() + " location being refreshed");
              LOG.warn("doAbortX - Batch - -- lv_hri: " + lv_hri);
@@ -1490,19 +1492,19 @@ public class TransactionManager {
            }
            table.getRegionLocation(startKey, true);
 
-            if (LOG.isTraceEnabled()) LOG.trace("doAbortX - Batch - -- setting retry, count: " + retryCount);
-            refresh = false;
-            retryCount++;
-       }
+           if (LOG.isTraceEnabled()) LOG.trace("doAbortX - Batch - -- setting retry, count: " + retryCount);
+           refresh = false;
+           retryCount++;
+        }
       } while (retryCount < RETRY_ATTEMPTS && retry == true);
 
       transactionState.requestPendingCountDec(false);
       if(LOG.isTraceEnabled()) LOG.trace("doAbortX - Batch -- EXIT txID: " + transactionId);
       return 0;
-    }
+   }
   
     public Integer pushRegionEpochX(final TransactionState txState,
-          final HRegionLocation location, HConnection connection) throws IOException {
+          final HRegionLocation location, Connection connection) throws IOException {
        if (LOG.isTraceEnabled()) LOG.trace("pushRegionEpochX -- Entry txState: " + txState
                      + " location: " + location);
 
@@ -1603,9 +1605,9 @@ public class TransactionManager {
      * @param conf
      * @throws ZooKeeperConnectionException
      */
-    private TransactionManager(final Configuration conf) throws ZooKeeperConnectionException, IOException {
-        this(LocalTransactionLogger.getInstance(), conf);
-
+    private TransactionManager(final Configuration conf, Connection connection) throws ZooKeeperConnectionException, IOException {
+        this(LocalTransactionLogger.getInstance(), conf, connection);
+        this.connection = connection;
         int intThreads = 16;
         String retryAttempts = System.getenv("TMCLIENT_RETRY_ATTEMPTS");
         String numThreads = System.getenv("TM_JAVA_THREAD_POOL_SIZE");
@@ -1661,10 +1663,13 @@ public class TransactionManager {
      * @param conf
      * @throws ZooKeeperConnectionException
      */
-    protected TransactionManager(final TransactionLogger transactionLogger, final Configuration conf)
-	throws IOException {
-        this.transactionLogger = transactionLogger;        
+    protected TransactionManager(final TransactionLogger transactionLogger, final Configuration conf, Connection conn)
+            throws ZooKeeperConnectionException, IOException {
+        this.transactionLogger = transactionLogger;
+        conf.setInt("hbase.client.retries.number", 3);
+        connection = conn;
     }
+
 
 
     /**
@@ -1982,38 +1987,14 @@ public class TransactionManager {
             ArrayList<String> dropList = new ArrayList<String>();
             ArrayList<String> truncateList = new ArrayList<String>();
             StringBuilder state = new StringBuilder ();
-            try {
-                tmDDL.getRow(transactionState.getTransactionId(), state, createList, dropList, truncateList);
-            }
-            catch(Exception e){
-                LOG.error("exception in doPrepare getRow: " + e);
-                if(LOG.isTraceEnabled()) LOG.trace("exception in doPrepare getRow: txID: " + transactionState.getTransactionId());
-                state.append("INVALID"); //to avoid processing further down this path.
-                commitError = TransactionalReturn.COMMIT_UNSUCCESSFUL;
-            }
-
-            //Return if error at this point.
-            if(commitError != 0)
-                return commitError;
-
+            tmDDL.getRow(transactionState.getTransactionId(), state, createList, dropList, truncateList);
             if(state.toString().equals("VALID") && dropList.size() > 0)
             {
                 Iterator<String> di = dropList.iterator();
                 while (di.hasNext())
                 {
-                try {
-                        //physical drop of table from hbase.
-                        disableTable(transactionState, di.next());
-                    }
-                    catch(Exception e){
-                        if(LOG.isTraceEnabled()) LOG.trace("exception in doPrepare disableTable: txID: " + transactionState.getTransactionId());
-                        LOG.error("exception in doCommit, Step : DeleteTable: " + e);
-
-                        //Any error at this point should be considered prepareCommit as unsuccessful.
-                        //Retry logic can be added only if it is retryable error: TODO.
-                        commitError = TransactionalReturn.COMMIT_UNSUCCESSFUL;
-                        break;
-                    }
+                    //physical drop of table from hbase.
+                    disableTable(transactionState, di.next());
                 }
             }
         }
@@ -2085,8 +2066,7 @@ public class TransactionManager {
     public void pushRegionEpoch (HTableDescriptor desc, final TransactionState ts) throws IOException {
        LOG.info("pushRegionEpoch start; transId: " + ts.getTransactionId());
 
-       TransactionalTable ttable1 = new TransactionalTable(Bytes.toBytes(desc.getNameAsString()));
-       HConnection connection = ttable1.getConnection();
+       TransactionalTable ttable1 = new TransactionalTable(Bytes.toBytes(desc.getNameAsString()), connection);
        long lvTransid = ts.getTransactionId();
        RegionLocator rl = connection.getRegionLocator(desc.getTableName());
        List<HRegionLocation> regionList = rl.getAllRegionLocations();
@@ -2098,12 +2078,11 @@ public class TransactionManager {
        int result = 0;
        for (HRegionLocation location : regionList) {
           final byte[] regionName = location.getRegionInfo().getRegionName();
-          final HConnection lv_connection = connection;
           final TransactionRegionLocation lv_location = 
                                  new TransactionRegionLocation(location.getRegionInfo(), location.getServerName());
-          compPool.submit(new TransactionManagerCallable(ts, lv_location, lv_connection) {
+          compPool.submit(new TransactionManagerCallable(ts, lv_location, connection) {
              public Integer call() throws IOException {
-                return pushRegionEpochX(ts, lv_location, lv_connection);
+                return pushRegionEpochX(ts, lv_location, connection);
              }
           });
           boolean loopExit = false;
@@ -2310,7 +2289,7 @@ public class TransactionManager {
                 tmDDL.getRow(transactionState.getTransactionId(), state, createList, dropList, truncateList);
                 retry = false;
             }
-            catch(Exception e){
+            catch(IOException e){
                 LOG.error("Exception in doCommitDDL, Step: getRow. txID: " + transactionState.getTransactionId() + "Exception: " + e);
 
                 if(retryCount == RETRY_ATTEMPTS)
@@ -2334,7 +2313,7 @@ public class TransactionManager {
             }
         } while (retryCount < RETRY_ATTEMPTS && retry == true);
 
-        if(state.toString().equals("VALID") && dropList.size() > 0)
+        if (state.toString().equals("VALID") && dropList.size() > 0)
         {
             Iterator<String> di = dropList.iterator();
             while (di.hasNext())
@@ -2357,7 +2336,7 @@ public class TransactionManager {
                         if(LOG.isTraceEnabled()) LOG.trace(" TableNotFoundException exception in doCommitDDL deleteTable, Continuing: txID: " + transactionState.getTransactionId());
                         retry = false;
                     }
-                    catch(Exception e){
+                    catch(IOException e){
                         LOG.error("Fatal exception in doCommitDDL, Step : DeleteTable: TxID:" + transactionState.getTransactionId() + "Exception: " + e);
 
                         if(retryCount == RETRY_ATTEMPTS)
@@ -2394,7 +2373,7 @@ public class TransactionManager {
             tmDDL.deleteRow(transactionState.getTransactionId());
             retry = false;
         }
-        catch(Exception e)
+        catch (IOException e)
         {
             LOG.error("Fatal Exception in doCommitDDL, Step: deleteRow. txID: " + transactionState.getTransactionId() + "Exception: " + e);
 
@@ -2496,31 +2475,14 @@ public class TransactionManager {
                loopCount--;
                LOG.error("exception in abort: " + iae + " Reducing loopCount to: " + loopCount + " Trans: "
                    + transactionState + "  Region: " + location.getRegionInfo().getRegionName());
-/*
-          } catch (Exception e) {
-                loopCount--;
-                LOG.error("Got Exception during abort. Reducing loopCount to: "
-                            + loopCount + "Transaction: ["
-                            + transactionState.getTransactionId() + "], region: ["
-                            + location.getRegionInfo().getRegionNameAsString() + "]. Ignoring. " + e);
-*/
           }
-            /*
-            } catch (UnknownTransactionException e) {
-        LOG.error("exception in abort: " + e);
-                LOG.info("Got unknown transaction exception during abort. Transaction: ["
-                        + transactionState.getTransactionId() + "], region: ["
-                        + location.getRegionInfo().getRegionNameAsString() + "]. Ignoring.");
-            } catch (NotServingRegionException e) {
-                LOG.info("Got NSRE during abort. Transaction: [" + transactionState.getTransactionId() + "], region: ["
-                        + location.getRegionInfo().getRegionNameAsString() + "]. Ignoring.");
-            }
-            */
         }
 
         // all requests sent at this point, can record the count
         transactionState.completeSendInvoke(loopCount);
     }
+         
+        CommitUnsuccessfulException savedCue = null;
 
         //if DDL is involved with this transaction, need to unwind it.
         if(transactionState.hasDDLTx())
@@ -2528,28 +2490,30 @@ public class TransactionManager {
 
             //First wait for abort requests sent to all regions is received back.
             //This TM thread gets SUSPENDED until all abort threads complete!!!
-            try{
+            boolean loopExit = false;
+            do
+            {
+              try {
                 transactionState.completeRequest();
-            }
-            catch(Exception e){
-                LOG.error("Exception in abort() completeRequest. txID: " + transactionState.getTransactionId() + "Exception: " + e);
-                //return; //Do not return here. This thread should continue servicing DDL operations.
-            }
-
-            try{
-                abortDDL(transactionState);
-            }
-            catch(Exception e){
-                LOG.error("FATAL Exception calling abortDDL for transaction: " + transactionState.getTransactionId() + "Exception: "  + e);
-                throw new UnsuccessfulDDLException(e);
-            }
+                loopExit = true; 
+              } 
+              catch (InterruptedException ie) {}
+              catch (CommitUnsuccessfulException cue) {
+                 loopExit = true;
+                 LOG.error("Exception at the time of aborting DDL transaction", cue); 
+                 savedCue = cue;
+              }
+            } while (loopExit == false);
+            abortDDL(transactionState);
+            if (savedCue != null)
+               throw savedCue; 
         }
 
         if(LOG.isTraceEnabled()) LOG.trace("Abort -- EXIT txID: " + transactionState.getTransactionId());
 
     }
 
-    void abortDDL(final TransactionState transactionState) throws UnsuccessfulDDLException
+    void abortDDL(final TransactionState transactionState) throws IOException, UnsuccessfulDDLException
     {
         //if tables were created, then they need to be dropped.
         ArrayList<String> createList = new ArrayList<String>();
@@ -2566,7 +2530,7 @@ public class TransactionManager {
                 tmDDL.getRow(transactionState.getTransactionId(), state, createList, dropList, truncateList);
                 retry = false;
             }
-            catch(Exception e){
+            catch (IOException e){
                 LOG.error("Fatal Exception in abortDDL, Step: getRow. txID: " + transactionState.getTransactionId() + "Exception: " + e);
 
                 if(retryCount == RETRY_ATTEMPTS)
@@ -2588,11 +2552,11 @@ public class TransactionManager {
                     retrySleep += TM_SLEEP_INCR;
                 }
             }
-        }while (retryCount < RETRY_ATTEMPTS && retry == true);
+        } while (retryCount < RETRY_ATTEMPTS && retry == true);
 
         // if tables were recorded to be truncated on an upsert using load,
         // then they will be truncated on an abort transaction
-        if(state.toString().equals("VALID") && truncateList.size() > 0)
+        if (state.toString().equals("VALID") && truncateList.size() > 0)
         {
             if(LOG.isTraceEnabled()) LOG.trace("truncateList -- ENTRY txID: " + transactionState.getTransactionId());
 
@@ -2609,7 +2573,7 @@ public class TransactionManager {
                         truncateTable(transactionState, tblName);
                         retry = false;
                     }
-                    catch(Exception e){
+                    catch (IOException e){
                         LOG.error("Fatal exception in abortDDL, Step : truncateTable: TxID:" + transactionState.getTransactionId() + "Exception: " + e);
 
                         if(retryCount == RETRY_ATTEMPTS)
@@ -2658,7 +2622,7 @@ public class TransactionManager {
                         LOG.error(" TableNotFoundException exception in abortDDL deleteTable, may not be error if redriving, Continuing: txID: " + transactionState.getTransactionId());
                         retry = false;
                     }
-                    catch(Exception e){
+                    catch (IOException e){
                         LOG.error("Fatal exception in abortDDL, Step : DeleteTable: TxID:" + transactionState.getTransactionId() + "Exception: " + e);
 
                         if(retryCount == RETRY_ATTEMPTS)
@@ -2698,43 +2662,13 @@ public class TransactionManager {
                 retrySleep = TM_SLEEP;
                 retry = true;
                 String tblName = di.next();
-                do
-                {
-                    try {
-                           enableTable(transactionState, tblName);
-                           retry = false;
-                    }
-                    catch(TableNotDisabledException t){
-                        //Check for TableNotDisabledException, if that is the case, no further
-                        //processing needed. This is not an error. Possible we are retrying the entire set of DDL changes
-                        //because this transaction is being redriven for some reason.
-                        LOG.error(" TableNotDisabledException exception in abortDDL, Step: enableTable, may not be error if redriving,  Continuing: txID: " + transactionState.getTransactionId());
-                        retry = false;
-                    }
-                    catch(Exception e){
-                        LOG.error("Fatal exception in abortDDL, Step : enableTable: TxID:" + transactionState.getTransactionId() + "Exception: " + e);
-                        if(retryCount == RETRY_ATTEMPTS)
-                        {
-                            LOG.error("Fatal Exception in abortDDL, Step: enableTable. Raising UnsuccessfulDDLException TxID:" + transactionState.getTransactionId() );
-
-                            //Throw this exception after all retry attempts.
-                            //Throwing a new exception gets out of the loop.
-                            throw new UnsuccessfulDDLException(e);
-                        }
-
-                        retryCount++;
-                        if (retryCount < RETRY_ATTEMPTS)
-                        {
-                            try {
-                                Thread.sleep(retrySleep);
-                            } catch(InterruptedException ex) {
-                                Thread.currentThread().interrupt();
-                            }
-                            retrySleep += TM_SLEEP_INCR;
-                        }
-                    }
-                }while(retryCount < RETRY_ATTEMPTS && retry == true);
-            }//while
+                try {
+                   enableTable(transactionState, tblName);
+                } catch(TableNotFoundException t) {
+                   // Most likely the table is created and dropped within the same transaction
+                   LOG.error("Exception in abortDDL while enabling the table, but continuing: txID: ", t); 
+                }
+            } //while
         }
 
         //update TDDL post operation, delete the transaction from TmDDL
@@ -2747,14 +2681,13 @@ public class TransactionManager {
                 tmDDL.deleteRow(transactionState.getTransactionId());
                 retry = false;
             }
-            catch(Exception e)
+            catch (IOException e)
             {
                 LOG.error("Fatal Exception in abortDDL, Step: deleteRow. txID: " + transactionState.getTransactionId() + "Exception: " + e);
 
                 if(retryCount == RETRY_ATTEMPTS)
                 {
                     LOG.error("Fatal Exception in abortDDL, Step: deleteRow. Raising UnsuccessfulDDLException. txID: " + transactionState.getTransactionId());
-
                     //Throw this exception after all retry attempts.
                     //Throwing a new exception gets out of the loop.
                     throw new UnsuccessfulDDLException(e);
@@ -2806,20 +2739,22 @@ public class TransactionManager {
     public void createTable(final TransactionState transactionState, HTableDescriptor desc, Object[]  beginEndKeys)
             throws IOException {
         if (LOG.isTraceEnabled()) LOG.trace("createTable ENTRY, transactionState: " + transactionState.getTransactionId());
-
+        Admin admin = connection.getAdmin();
+        try {
             if (beginEndKeys != null && beginEndKeys.length > 0) {
                byte[][] keys = new byte[beginEndKeys.length][];
                for (int i = 0; i < beginEndKeys.length; i++){
                   keys[i] = (byte[])beginEndKeys[i];
                   if (LOG.isTraceEnabled()) LOG.trace("createTable with key #" + i + "value" + keys[i] + ") called.");
                }
-               hbadmin.createTable(desc, keys);
+               admin.createTable(desc, keys);
             }
             else {
-            hbadmin.createTable(desc);
+              admin.createTable(desc);
             }
-            // hbadmin.close();
-
+         } finally {
+            admin.close();
+         }
             // Set transaction state object as participating in ddl transaction
             transactionState.setDDLTx(true);
 
@@ -3056,7 +2991,7 @@ public class TransactionManager {
        return returnStatus;
    }
 
-    private void waitForCompletion(String tblName,HBaseAdmin admin)
+    private void waitForCompletion(String tblName,Admin admin)
        throws IOException {
        // poll for completion of an asynchronous operation
        boolean keepPolling = true;
@@ -3081,8 +3016,10 @@ public class TransactionManager {
     public void alterTable(final TransactionState transactionState, String tblName, Object[]  tableOptions)
            throws IOException {
         if (LOG.isTraceEnabled()) LOG.trace("alterTable ENTRY, transactionState: " + transactionState.getTransactionId());
-        
-           HTableDescriptor htblDesc = hbadmin.getTableDescriptor(tblName.getBytes());
+        Admin admin = connection.getAdmin();
+        try { 
+           TableName tableName = TableName.valueOf(tblName);
+           HTableDescriptor htblDesc = admin.getTableDescriptor(tableName);
            HColumnDescriptor[] families = htblDesc.getColumnFamilies();
            HColumnDescriptor colDesc = families[0];  // Trafodion keeps SQL columns only in first column family
            int defaultVersionsValue = colDesc.getMaxVersions();
@@ -3091,14 +3028,16 @@ public class TransactionManager {
               setDescriptors(tableOptions,htblDesc /*out*/,colDesc /*out*/, defaultVersionsValue);
            
            if (status.tableDescriptorChanged()) {
-              hbadmin.modifyTable(tblName,htblDesc);
-              waitForCompletion(tblName,hbadmin);
+              admin.modifyTable(tableName,htblDesc);
+              waitForCompletion(tblName,admin);
            }
            else if (status.columnDescriptorChanged()) {
-              hbadmin.modifyColumn(tblName,colDesc);
-              waitForCompletion(tblName,hbadmin);
+              admin.modifyColumn(tableName,colDesc);
+              waitForCompletion(tblName,admin);
            }
-           hbadmin.close();
+        } finally {
+           admin.close();
+        }
 
            // Set transaction state object as participating in ddl transaction
            transactionState.setDDLTx(true);
@@ -3145,24 +3084,23 @@ public class TransactionManager {
 
     //Called only by Abort or Commit processing.
     public void deleteTable(final TransactionState transactionState, final String tblName)
-            throws IOException{
+            throws IOException {
         if (LOG.isTraceEnabled()) LOG.trace("deleteTable ENTRY, TxId: " + transactionState.getTransactionId() + " tableName " + tblName);
-        try{
-            disableTable(transactionState, tblName);
-        }
-        catch (TableNotEnabledException e) {
-            //If table is not enabled, no need to throw exception. Continue.
-            //if (LOG.isTraceEnabled()) LOG.trace("deleteTable , TableNotEnabledException. This is a expected exception.  Step: disableTable, TxId: " +
-            //    transactionState.getTransactionId() + " TableName " + tblName + "Exception: " + e);
-        }
-            hbadmin.deleteTable(tblName);
+        disableTable(transactionState, tblName);
+        Admin admin = connection.getAdmin();
+        admin.deleteTable(TableName.valueOf(tblName));
+        admin.close();
     }
 
     //Called only by Abort processing.
     public void enableTable(final TransactionState transactionState, String tblName)
             throws IOException{
         if (LOG.isTraceEnabled()) LOG.trace("enableTable ENTRY, TxID: " + transactionState.getTransactionId() + " tableName " + tblName);
-            hbadmin.enableTable(tblName);
+        Admin admin = connection.getAdmin();
+        TableName tableName = TableName.valueOf(tblName);
+        if (admin.isTableDisabled(tableName))
+           admin.enableTable(TableName.valueOf(tblName));
+        admin.close();
     }
 
     // Called only by Abort processing to delete data from a table
@@ -3170,23 +3108,27 @@ public class TransactionManager {
             throws IOException{
         if (LOG.isTraceEnabled()) LOG.trace("truncateTable ENTRY, TxID: " + transactionState.getTransactionId() +
             "table: " + tblName);
-
-            TableName tablename = TableName.valueOf(tblName);
-            HTableDescriptor hdesc = hbadmin.getTableDescriptor(tablename);
+        Admin admin = connection.getAdmin();
+            TableName tableName = TableName.valueOf(tblName);
+            HTableDescriptor hdesc = admin.getTableDescriptor(tableName);
 
             // To be changed in 2.0 for truncate table
-            //hbadmin.truncateTable(tablename, true);
-            hbadmin.disableTable(tblName);
-            hbadmin.deleteTable(tblName);
-            hbadmin.createTable(hdesc);
-            hbadmin.close();
+            if (admin.isTableEnabled(tableName))
+               admin.disableTable(tableName);
+            admin.deleteTable(tableName);
+            admin.createTable(hdesc);
+            admin.close();
     }
 
     //Called only by DoPrepare.
     public void disableTable(final TransactionState transactionState, String tblName)
             throws IOException{
         if (LOG.isTraceEnabled()) LOG.trace("disableTable ENTRY, TxID: " + transactionState.getTransactionId() + " tableName " + tblName);
-            hbadmin.disableTable(tblName);
+            Admin admin = connection.getAdmin();
+            TableName tableName = TableName.valueOf(tblName);
+            if (admin.isTableEnabled(tableName))
+               admin.disableTable(tableName);
+            admin.close();
         if (LOG.isTraceEnabled()) LOG.trace("disableTable EXIT, TxID: " + transactionState.getTransactionId() + " tableName " + tblName);
     }
 
@@ -3202,35 +3144,7 @@ public class TransactionManager {
         HRegionInfo regionInfo = null;
         HTable table = null;
 
-        /*
-         * hostname and port no longer needed for RPC
-        final byte [] delimiter = ",".getBytes();
-        String[] result = hostnamePort.split(new String(delimiter), 3);
-
-        if (result.length < 2)
-                throw new IllegalArgumentException("Region array format is incorrect");
-
-        String hostname = result[0];
-        int port = Integer.parseInt(result[1]);
-        LOG.debug("recoveryRequest regionInfo -- hostname:" + hostname + " port:" + port);
-        */
-
-        /*
-         *  New way of parsing HRegionInfo used instead
-        ByteArrayInputStream lv_bis = new ByteArrayInputStream(regionArray);
-        DataInputStream lv_dis = new DataInputStream(lv_bis);
-        try {
-                regionInfo.readFields(lv_dis);
-        } catch (Exception e) {
-                StringWriter sw = new StringWriter();
-                PrintWriter pw = new PrintWriter(sw);
-                e.printStackTrace(pw);
-                LOG.error("recoveryRequest exception in regionInfo.readFields() " + sw.toString());
-                throw new Exception();
-        }
-        */
-
-            regionInfo = HRegionInfo.parseFrom(regionArray);
+        regionInfo = HRegionInfo.parseFrom(regionArray);
 
         final String regionName = regionInfo.getRegionNameAsString();
         final int tmID = tmid;
