@@ -2955,7 +2955,7 @@ SimpleFileScanOptimizer::ordersMatch(
 
 } // SimpleFileScanOptimizer::ordersMatch()
 
-NABoolean SimpleFileScanOptimizer::isLeadingKeyColCovered()
+NABoolean SimpleFileScanOptimizer::isLeadingKeyColCovered(const ValueIdList *keys)
 {
   ValueIdSet allPreds;
   allPreds = getSingleSubsetPreds();
@@ -2966,12 +2966,10 @@ NABoolean SimpleFileScanOptimizer::isLeadingKeyColCovered()
   allPreds.findAllReferencedBaseCols(allReferencedBaseCols);
 
   CollIndex x = 0;
-  const IndexDesc *iDesc = getIndexDesc();
-  const ValueIdList *currentIndexSortKey = &(iDesc->getOrderOfKeyValues());
 
-  for (x = 0; x < (*currentIndexSortKey).entries() && !foundKey; x++)
+  for (x = 0; x < (*keys).entries() && !foundKey; x++)
   {
-    ValueId firstkey = (*currentIndexSortKey)[x];
+    ValueId firstkey = (*keys)[x];
     ItemExpr *cv;
     NABoolean isaConstant = FALSE;
     ValueId firstkeyCol;
@@ -2994,5 +2992,19 @@ NABoolean SimpleFileScanOptimizer::isLeadingKeyColCovered()
   }
 
   return foundKey;
+}
+
+NABoolean SimpleFileScanOptimizer::isLeadingKeyColCovered()
+{
+  const IndexDesc *iDesc = getIndexDesc();
+  const ValueIdList *indexSortKey = &(iDesc->getOrderOfKeyValues());
+  return isLeadingKeyColCovered(indexSortKey);
+}
+
+NABoolean SimpleFileScanOptimizer::isLeadingHiveSortKeyColCovered()
+{
+  const IndexDesc *iDesc = getIndexDesc();
+  const ValueIdList *hiveSortKey = &(iDesc->getOrderOfHiveSortKeyValues());
+  return isLeadingKeyColCovered(hiveSortKey);
 }
 

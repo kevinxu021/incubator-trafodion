@@ -584,6 +584,9 @@ ValueId::castToBaseColumn(NABoolean *isaConstant) const
         case ITM_BASECOLUMN:
           return (BaseColumn *)ie;
 
+        case ITM_INDEXCOLUMN:
+          return (BaseColumn *)(((IndexColumn*)ie)->getDefinition().getItemExpr());
+
         case ITM_INSTANTIATE_NULL:
 		case ITM_UNPACKCOL:
 		  ie = (*ie)[0] ;
@@ -620,21 +623,20 @@ ValueId::castToBaseColumn(NABoolean *isaConstant) const
             break;
           }
 
-		default:
-		  if (ie->getArity() > 0)
-		  {
-			ie = (*ie)[0];
-			break;
-		  }
-		  else
-                  {
-                       if (isaConstant)
-                       {
-                         *isaConstant = ie->doesExprEvaluateToConstant
-                           (FALSE,TRUE);
-                       }
-			return NULL;
-                  }
+          default:
+             if (ie->getArity() > 0)
+             {
+		ie = (*ie)[0];
+		break;
+             }
+             else
+             {
+               if (isaConstant)
+               {
+                  *isaConstant = ie->doesExprEvaluateToConstant(FALSE,TRUE);
+               }
+		return NULL;
+             }
         }
     } // end of while
 	return NULL;
