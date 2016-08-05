@@ -14519,7 +14519,7 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   if ( partReq )
      minESPs = partReq->getCountOfPartitions();
   else 
-     minESPs = CURRSTMT_OPTDEFAULTS->getMaximumDegreeOfParallelism();
+     minESPs = 1;
 
   if (partReq && partReq->castToRequireApproximatelyNPartitions())
     minESPs = partReq->castToRequireApproximatelyNPartitions()->
