@@ -422,7 +422,7 @@ define([
 					{
 						"aTargets": [ 2],
 						"mData": 2,
-						"className" : "dbmgr-nowrap",
+						"className" : "dt-body-right dbmgr-nowrap",
 						"mRender": function ( data, type, full ) {
 							//if (type === 'display') {
 							if(data != null || data != -1)
@@ -435,7 +435,7 @@ define([
 					{
 						"aTargets": [3 ],
 						"mData": 3,
-						"className" : "dbmgr-nowrap",
+						"className" : "dt-body-right dbmgr-nowrap",
 						"mRender": function ( data, type, full ) {
 							//if (type === 'display') {
 							if(data != null || data != -1)

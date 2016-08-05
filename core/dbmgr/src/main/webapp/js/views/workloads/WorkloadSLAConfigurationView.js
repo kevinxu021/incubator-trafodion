@@ -245,6 +245,8 @@ define([
 				var priorityColIndex = -1;
 				var onConnProfileIndex = -1;
 				var onDisconProfileIndex = -1;
+				var limitColIndex = -1;
+				var throughputColIndex = -1;
 				
 				// add needed columns
 				$.each(keys, function(k, v) {
@@ -267,6 +269,12 @@ define([
 					}
 					if(v == 'onDisconnectProfile'){
 						onDisconProfileIndex = k;
+					}
+					if(v == 'limit'){
+						limitColIndex = k;
+					}
+					if(v == 'throughput'){
+						throughputColIndex = k;
 					}
 					
 					aoColumns.push(obj);
@@ -338,6 +346,7 @@ define([
 					aoColumnDefs.push({
 						"aTargets": [ updateTimeColIndex ],
 						"mData": updateTimeColIndex,
+						"className" : "dt-body-right",
 						"mRender": function ( data, type, full ) {
 							if(data != null){
 								return common.toServerLocalDateFromMilliSeconds(parseInt(data), 'YYYY-MM-DD HH:mm:ss');
@@ -345,6 +354,32 @@ define([
 								return data;
 						}
 					});
+				}
+				if(limitColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ limitColIndex ],
+						"mData": limitColIndex,
+						"className" : "dt-body-right",
+						"mRender": function ( data, type, full ) {
+							if(data != null && data.length > 0){
+								return common.formatNumberWithCommas(parseInt(data));
+							}else 
+								return data;
+						}
+					});					
+				}
+				if(throughputColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ throughputColIndex ],
+						"mData": throughputColIndex,
+						"className" : "dt-body-right",
+						"mRender": function ( data, type, full ) {
+							if(data != null && data.length > 0){
+								return common.formatNumberWithCommas(parseInt(data));
+							}else 
+								return data;
+						}
+					});					
 				}
 				if(isDefColIndex >=0){
 					aoColumnDefs.push({

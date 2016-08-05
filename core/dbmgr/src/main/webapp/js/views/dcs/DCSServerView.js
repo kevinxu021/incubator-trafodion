@@ -149,6 +149,9 @@ define([
 				$.each(keys, function(k, v) {
 					var obj = new Object();
 					obj.title = v;
+					if(v == 'CONNECTED_INTERVAL_SEC'){
+						obj.title = 'CONNECTED_INTERVAL';
+					}
 					aoColumns.push(obj);
 				});
 
@@ -169,13 +172,43 @@ define([
 					stateSave: true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
-					"aoColumnDefs": [ {
-						"aTargets": [ 2 ],
-						"mData": 2,
-						"mRender": function ( data, type, full ) {
-							return moment(data , 'ddd MMM DD HH:mm:ss Z YYYY').format('YYYY-MM-DD HH:mm:ss');
-						}
-					} ],
+					"aoColumnDefs": [ 
+						{
+							"aTargets": [ 2 ],
+							"mData": 2,
+							"className" : "dt-body-right dbmgr-nowrap",
+							"mRender": function ( data, type, full ) {
+								if(data != null && data.length > 0){
+									return moment(data , 'ddd MMM DD HH:mm:ss Z YYYY').format('YYYY-MM-DD HH:mm:ss');
+								}
+							}
+						},
+						{
+							"aTargets": [ 17 ],
+							"mData": 17,
+							"className" : "dt-body-right",
+							"mRender": function ( data, type, full ) {
+								if(data != null && data.length > 0){
+									return common.millisecondsToString(data);
+								}else{
+									return "";
+								}
+							}
+						},
+						{
+							"aTargets": [ 18 ],
+							"mData": 18,
+							"className" : "dt-body-right dbmgr-nowrap",
+							"mRender": function ( data, type, full ) {
+								if(data != null && data.length > 0){
+									return moment(data , 'ddd MMM DD HH:mm:ss Z YYYY').format('YYYY-MM-DD HH:mm:ss');
+								}else{
+									return "";
+								}
+							}
+						},
+
+					],
 					buttons: [
 	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
 	                           { extend : 'csv', exportOptions: { columns: ':visible' } },

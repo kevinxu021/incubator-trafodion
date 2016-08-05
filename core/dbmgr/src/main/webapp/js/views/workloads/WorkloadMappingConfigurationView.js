@@ -89,9 +89,14 @@ define([
 				return this.optional(element) || /^\w+$/i.test(value);
 			}, "Only alphanumeric characters and underscores are allowed");
 			
+			$.validator.addMethod("wms_ordernumber", function(value, element) {
+				return value > 0 && value <= 98;
+			}, "Order number has to between 1 and 98");
+
 			mappingFormValidator = $(MAPPING_FORM).validate({
 				rules: {
-					"mapping_name": { required: true, alphanumeric: true}
+					"mapping_name": { required: true, alphanumeric: true},
+					"mapping_seq_no": { required: true, digits: true, wms_ordernumber: true}
 				},
 				highlight: function(element) {
 					$(element).closest('.form-group').addClass('has-error');
@@ -207,7 +212,7 @@ define([
 					$(MAPPING_CLIENT_IP).val(mappingDialogParams.data["clientIpAddress"]);
 					$(MAPPING_CLIENT_HOST).val(mappingDialogParams.data["clientHostName"]);
 					$(MAPPING_SLA).val(mappingDialogParams.data["sla"]);
-					$(MAPPING_SEQ_NO).val(mappingDialogParams.data["orderNumber"]);					
+					$(MAPPING_SEQ_NO).val("");					
 				}
 				if(mappingDialogParams.type && mappingDialogParams.type == 'alter'){
 					if(mappingDialogParams.data["isDefault"] == 'yes'){
@@ -259,6 +264,7 @@ define([
 				var updateTimeColIndex = -1;
 				var isDefColIndex = -1;
 				var stateColIndex = -1;
+				var orderNumColIndex = -1;
 				
 				// add needed columns
 				$.each(keys, function(k, v) {
@@ -276,6 +282,9 @@ define([
 					}
 					if(v == 'isActive'){
 						stateColIndex = k;
+					}
+					if(v == 'orderNumber'){
+						orderNumColIndex = k;
 					}
 					aoColumns.push(obj);
 					dataTableColNames.push(v);
@@ -306,10 +315,19 @@ define([
 						}
 					});
 				}
+				if(orderNumColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ orderNumColIndex ],
+						"mData": orderNumColIndex,
+						"className" : "dt-body-right"
+					});
+					
+				}
 				if(updateTimeColIndex >=0){
 					aoColumnDefs.push({
 						"aTargets": [ updateTimeColIndex ],
 						"mData": updateTimeColIndex,
+						"className" : "dt-body-right",
 						"mRender": function ( data, type, full ) {
 							if(data != null){
 								return common.toServerLocalDateFromMilliSeconds(parseInt(data), 'YYYY-MM-DD HH:mm:ss');
