@@ -13,12 +13,46 @@ namespace EsgynDB.Data
         public short RetryCount;
 
         public string ClientUsername;
+        public string ccExtention;
 
         private byte[] _clientUsername;
-        private EsgynDBEncoder encoder;
+        private byte[] _ccExtention;
 
         public void WriteToDataStream(DataStream ds)
         {
+            ConnectionContext.WriteToDataStream(ds);
+            UserDescription.WriteToDataStream(ds);
+
+            ds.WriteInt32(ServerType);
+            ds.WriteInt16(RetryCount);
+
+            //TODO: splitting up how the struct is written is messy
+            ds.WriteUInt32((uint)ConnectionContext.InContextOptions1);
+            ds.WriteUInt32(ConnectionContext.InContextOptions2);
+            ds.WriteString(ConnectionContext._clientVproc);
+
+            ds.WriteString(_clientUsername);
+            ds.WriteString(_ccExtention);
+        }
+
+        public int PrepareMessageParams(EsgynDBEncoder enc)
+        {
+            int len = 22; //5*4 Int32, 1*2 Int16
+
+            len += ConnectionContext.PrepareMessageParams(enc);
+            len += UserDescription.PrepareMessageParams(enc);
+
+            if (ConnectionContext._clientVproc.Length > 0)
+            {
+                len += ConnectionContext._clientVproc.Length + 1;
+            }
+
+            _clientUsername = enc.GetBytes(ClientUsername, enc.Transport);
+            if (_clientUsername.Length > 0)
+            {
+                len += _clientUsername.Length + 1;
+            }
+
             IPHostEntry heserver = Dns.GetHostEntry(ConnectionContext.ComputerName);
             String ipClientAddress = "";
 
@@ -35,45 +69,19 @@ namespace EsgynDB.Data
             }
 
             String roleName = ConnectionContext.UserRole;
-            String ccExtention = String.Format("{{\"sessionName\":\"{0}\",\"ipClientAddress\":\"{1}\",\"clientHostName\":\"{2}\",\"userName\":\"{3}\",\"roleName\":\"{4}\",\"applicationName\":\"{5}\"}}",
+            ccExtention = String.Format("{{\"sessionName\":\"{0}\",\"ipClientAddress\":\"{1}\",\"clientHostName\":\"{2}\",\"userName\":\"{3}\",\"roleName\":\"{4}\",\"applicationName\":\"{5}\"}}",
                        ConnectionContext.SessionName,
                        ipClientAddress,
                        ConnectionContext.ComputerName,
                        ClientUsername,
                        roleName,
-                       System.AppDomain.CurrentDomain.FriendlyName;);
+                       System.AppDomain.CurrentDomain.FriendlyName);
 
-            ConnectionContext.WriteToDataStream(ds);
-            UserDescription.WriteToDataStream(ds);
+            _ccExtention = enc.GetBytes(ccExtention, enc.Transport);
 
-            ds.WriteInt32(ServerType);
-            ds.WriteInt16(RetryCount);
-
-            //TODO: splitting up how the struct is written is messy
-            ds.WriteUInt32((uint)ConnectionContext.InContextOptions1);
-            ds.WriteUInt32(ConnectionContext.InContextOptions2);
-            ds.WriteString(ConnectionContext._clientVproc);
-
-            ds.WriteString(_clientUsername);
-            //ds.WriteString(encoder.GetBytes(ccExtention, encoder.Transport));
-        }
-
-        public int PrepareMessageParams(EsgynDBEncoder enc)
-        {
-            int len = 22; //5*4 Int32, 1*2 Int16
-            encoder = enc;
-            len += ConnectionContext.PrepareMessageParams(enc);
-            len += UserDescription.PrepareMessageParams(enc);
-
-            if (ConnectionContext._clientVproc.Length > 0)
+            if (_ccExtention.Length > 0)
             {
-                len += ConnectionContext._clientVproc.Length + 1;
-            }
-
-            _clientUsername = enc.GetBytes(ClientUsername, enc.Transport);
-            if (_clientUsername.Length > 0)
-            {
-                len += _clientUsername.Length + 1;
+                len += _ccExtention.Length + 1;
             }
 
             return len;
