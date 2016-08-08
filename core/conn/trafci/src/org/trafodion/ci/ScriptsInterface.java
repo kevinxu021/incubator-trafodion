@@ -20,9 +20,7 @@
 // @@@ END COPYRIGHT @@@
 package org.trafodion.ci;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.sql.SQLException;
 
 public class ScriptsInterface
@@ -159,6 +157,12 @@ public class ScriptsInterface
    // This will support multiple connections
    //     System.exit(0); 
    }
+
+	public void interrupt() {
+		if (sessObj != null) {
+			sessObj.setQueryInterrupted(true);
+		}
+	}
 
 
 }
