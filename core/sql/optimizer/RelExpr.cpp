@@ -15030,7 +15030,22 @@ Lng32 FileScan::getTotalColumnWidthForExecPreds() const
   const TableAnalysis* tAnalysis = tdesc->getTableAnalysis();
   const ValueIdSet & usedCols = tAnalysis->getUsedCols() ;
 
-  return usedCols.getRowLength();
+  if ( isHiveOrcTable() ) {
+     Lng32 lengthForNonChars = usedCols.getRowLengthOfNonCharColumns();
+     Lng32 numOfcharCols = usedCols.getNumOfCharColumns();
+
+     const HHDFSTableStats* hdfsStats =
+             getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
+
+     const NAColumnArray &nac = 
+          getIndexDesc()->getNAFileSet()->getAllColumns();
+
+     Lng32 avgLengthPerRow = hdfsStats->getAvgStringLengthPerRow();
+
+     return lengthForNonChars + avgLengthPerRow * (numOfcharCols / nac.entries());
+  }
+  else
+     return usedCols.getRowLength();
 }
 
 // This function checks if the passed RelExpr is a UDF rule created by a CQS
