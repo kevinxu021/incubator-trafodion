@@ -24,6 +24,7 @@
 #ifndef DESC_H
 #define DESC_H
 
+<<<<<<< HEAD
 typedef Lng32 DataType;
 
 #include "Platform.h"
@@ -500,5 +501,8 @@ desc_struct *readtabledef_make_column_desc(
 				desc_struct *passedDesc = NULL,
 				SQLCHARSET_CODE datacharset = SQLCHARSETCODE_UNKNOWN // i.e., use CharInfo::DefaultCharSet;
 				);
+=======
+obsolete file, should not be included. Will give syntax error if it is.
+>>>>>>> 19c96b1... metadata access performance improvement for accessing traf objects
 
 #endif

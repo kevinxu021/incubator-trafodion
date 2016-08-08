@@ -2843,6 +2843,7 @@ short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
           ddlNode->castToStmtDDLNode()->ddlXns()) &&
             ((ddlNode->getOperatorType() == DDL_CLEANUP_OBJECTS) ||
              (ddlNode->getOperatorType() == DDL_ALTER_TABLE_DROP_COLUMN) ||
+             (ddlNode->getOperatorType() == DDL_ALTER_SCHEMA) ||
              (ddlNode->getOperatorType() == DDL_CREATE_INDEX) ||
              (ddlNode->getOperatorType() == DDL_POPULATE_INDEX) ||
              (ddlNode->getOperatorType() == DDL_ALTER_TABLE_ALTER_COLUMN_DATATYPE)))
@@ -2864,7 +2865,8 @@ RelExpr * DDLExpr::preCodeGen(Generator * generator,
   if (! GenericUtilExpr::preCodeGen(generator,externalInputs,pulledNewInputs))
     return NULL;
   
-  if (specialDDL())
+  if ((specialDDL()) ||
+      (initHbase_))
     {
       generator->setAqrEnabled(FALSE);
     }

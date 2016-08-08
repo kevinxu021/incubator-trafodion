@@ -561,15 +561,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
                   Int64 expSWUpdVersion = SOFTWARE_UPDATE_VERSION;
 
                   char expProdStr[100];
-#ifdef __ignore
-                  const char * s = xstr(SOFTWARE_PROD_NAME);
-                  if (strstr(s, "Apache"))
-                    strcpy(expProdStr, "Apache ");
-                  else if (strstr(s, "Enterprise"))
-                    strcpy(expProdStr, "Enterprise ");
-                  else
-                    expProdStr[0] = 0;
-#endif
+
                   if (IsEnterpriseLevel() && IsAdvancedLevel())
                     strcpy(expProdStr, "Advanced ");
                   else if (IsEnterpriseLevel())

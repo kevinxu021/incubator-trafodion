@@ -80,7 +80,7 @@ class SchemaDB;
 class StmtDDLCreateView;
 class StmtLevelAccessOptions;
 class StmtDDLCreateTrigger;
-struct desc_struct;
+struct TrafDesc;
 class NARoutine;
 class HbaseColUsageInfo;
 
@@ -1338,7 +1338,7 @@ public:
   // --------------------------------------------------------------------
   NATable *getNATable(CorrName &corrName,
 		      NABoolean catmanCollectTableUsages = TRUE,
-		      desc_struct *inTableDesc = NULL);
+		      TrafDesc *inTableDesc = NULL);
 
   TableDesc *createTableDesc(const NATable *naTable,
                              CorrName &corrName,
@@ -1353,7 +1353,7 @@ public:
   // (i.e. the same table can be referred to many times, via many corr names).
   // --------------------------------------------------------------------
 //  NARoutine *getNARoutine(QualifiedName &routineName,
-//		          desc_struct *inRoutineDesc = NULL);
+//		          TrafDesc *inRoutineDesc = NULL);
 
 
   // --------------------------------------------------------------------

@@ -45,7 +45,6 @@
 #include "NATable.h"
 #include "Sqlcomp.h"
 #include "Const.h"
-#include "desc.h"
 #include "dfs2rec.h"
 #include "hs_read.h"
 #include "parser.h"
@@ -86,6 +85,7 @@
 #include "ComSmallDefs.h"
 #include "CmpMain.h"
 #include "CompException.h"
+#include "TrafDDLdesc.h"
 #define MAX_NODE_NAME 9
 
 #include "SqlParserGlobals.h"
@@ -95,7 +95,7 @@
 
 
 #include "SqlParserGlobals.h"
-extern desc_struct *generateSpecialDesc(const CorrName& corrName);
+extern TrafDesc *generateSpecialDesc(const CorrName& corrName);
 
 #include "CmpMemoryMonitor.h"
 
@@ -1866,7 +1866,7 @@ NABoolean checkColumnTypeForSupportability(const NAColumnArray & partColArray, c
 // -----------------------------------------------------------------------
 #pragma nowarn(1506)   // warning elimination
 static RangePartitionBoundaries * createRangePartitionBoundaries
-                                     (desc_struct * part_desc_list,
+                                     (TrafDesc * part_desc_list,
 				      Lng32 numberOfPartitions,
 			              const NAColumnArray & partColArray,
 				      NAMemory* heap)
@@ -1878,8 +1878,8 @@ static RangePartitionBoundaries * createRangePartitionBoundaries
   //             first partition and the last element is the descriptor
   //             for the last partition, in partitioning key sequence.
   // ---------------------------------------------------------------------
-    desc_struct * partns_desc = part_desc_list;
-  CMPASSERT(partns_desc->body.partns_desc.primarypartition);
+    TrafDesc * partns_desc = part_desc_list;
+  CMPASSERT(partns_desc->partnsDesc()->primarypartition);
 
 
   // Check all the partitioning keys.  If any of them are not
@@ -1888,7 +1888,7 @@ static RangePartitionBoundaries * createRangePartitionBoundaries
   // Skip past the primary partition, so that a meaningful first
   // key value can be used for the error message.
 
-  char* key = (partns_desc->header.next) ->body.partns_desc.firstkey;
+  char* key = (partns_desc->next) ->partnsDesc()->firstkey;
 
   if ( !checkColumnTypeForSupportability(partColArray, key) )
     return NULL;
@@ -1915,14 +1915,14 @@ static RangePartitionBoundaries * createRangePartitionBoundaries
   // string in the SMD.
   // NOTE: The RangePartitionBoundaries is 0 based.
   // ---------------------------------------------------------------------
-  partns_desc = partns_desc->header.next; // skip the primary partition
+  partns_desc = partns_desc->next; // skip the primary partition
   Lng32 counter = 1;
   char* encodedKey;
 
   while (partns_desc AND (counter < numberOfPartitions))
     {
-      encodedKey = partns_desc->body.partns_desc.encodedkey;
-      size_t encodedKeyLen = partns_desc->body.partns_desc.encodedkeylen;
+      encodedKey = partns_desc->partnsDesc()->encodedkey;
+      size_t encodedKeyLen = partns_desc->partnsDesc()->encodedkeylen;
 
       if(heap != CmpCommon::statementHeap() && encodedKeyLen > 0)
       {
@@ -1933,19 +1933,19 @@ static RangePartitionBoundaries * createRangePartitionBoundaries
         //to make it "\0\0".
         encodedKey = new(heap) char [encodedKeyLen+2];
         encodedKey[encodedKeyLen] = encodedKey[encodedKeyLen+1] = '\0';
-        str_cpy_all(encodedKey, partns_desc->body.partns_desc.encodedkey,
+        str_cpy_all(encodedKey, partns_desc->partnsDesc()->encodedkey,
                     encodedKeyLen);
       }
 
       ItemExpr *rangePartBoundValues = NULL;
 
-      if (partns_desc->body.partns_desc.firstkey)
+      if (partns_desc->partnsDesc()->firstkey)
         // Extract and parse the partition boundary values, producing an
         // ItemExprList of the boundary values.
         //
         rangePartBoundValues = getRangePartitionBoundaryValues(
-             partns_desc->body.partns_desc.firstkey,
-             partns_desc->body.partns_desc.firstkeylen,
+             partns_desc->partnsDesc()->firstkey,
+             partns_desc->partnsDesc()->firstkeylen,
              heap);
       else
         rangePartBoundValues = getRangePartitionBoundaryValuesFromEncodedKeys(
@@ -1971,7 +1971,7 @@ static RangePartitionBoundaries * createRangePartitionBoundaries
         // ERROR 1123 Unable to process the partition key values...
         *CmpCommon::diags()
           << DgSqlCode(-1123)
-          << DgString0(partns_desc->body.partns_desc.firstkey)
+          << DgString0(partns_desc->partnsDesc()->firstkey)
           << DgTableName(tableName);
         delete partBounds;
         //coverity[leaked_storage]
@@ -1983,7 +1983,7 @@ static RangePartitionBoundaries * createRangePartitionBoundaries
            rangePartBoundValues,
            encodedKey);
 
-      partns_desc = partns_desc->header.next;
+      partns_desc = partns_desc->next;
     } // end while (partns_desc)
 
   // ---------------------------------------------------------------------
@@ -2007,7 +2007,7 @@ static RangePartitionBoundaries * createRangePartitionBoundaries
 // This method is used for creating a rangePartitioningFunction.
 // -----------------------------------------------------------------------
 static PartitioningFunction * createRangePartitioningFunction
-                                (desc_struct * part_desc_list,
+                                (TrafDesc * part_desc_list,
 			         const NAColumnArray & partKeyColArray,
                                  NodeMap* nodeMap,
 				 NAMemory* heap)
@@ -2015,12 +2015,12 @@ static PartitioningFunction * createRangePartitioningFunction
   // ---------------------------------------------------------------------
   // Compute the number of partitions.
   // ---------------------------------------------------------------------
-  desc_struct * partns_desc = part_desc_list;
+  TrafDesc * partns_desc = part_desc_list;
   Lng32 numberOfPartitions = 0;
   while (partns_desc)
     {
       numberOfPartitions++;
-      partns_desc = partns_desc->header.next;
+      partns_desc = partns_desc->next;
     }
 
   // ---------------------------------------------------------------------
@@ -2069,19 +2069,19 @@ static PartitioningFunction * createRangePartitioningFunction
 // -----------------------------------------------------------------------
 // LCOV_EXCL_START :cnu
 static PartitioningFunction * createRoundRobinPartitioningFunction
-                                (desc_struct * part_desc_list,
+                                (TrafDesc * part_desc_list,
                                  NodeMap* nodeMap,
 				 NAMemory* heap)
 {
   // ---------------------------------------------------------------------
   // Compute the number of partitions.
   // ---------------------------------------------------------------------
-  desc_struct * partns_desc = part_desc_list;
+  TrafDesc * partns_desc = part_desc_list;
   Lng32 numberOfPartitions = 0;
   while (partns_desc)
     {
       numberOfPartitions++;
-      partns_desc = partns_desc->header.next;
+      partns_desc = partns_desc->next;
     }
 
   // ---------------------------------------------------------------------
@@ -2106,7 +2106,7 @@ static PartitioningFunction * createRoundRobinPartitioningFunction
 // This method is used for creating a HashDistPartitioningFunction.
 // -----------------------------------------------------------------------
 static PartitioningFunction * createHashDistPartitioningFunction
-                                (desc_struct * part_desc_list,
+                                (TrafDesc * part_desc_list,
 			         const NAColumnArray & partKeyColArray,
                                  NodeMap* nodeMap,
 				 NAMemory* heap)
@@ -2114,12 +2114,12 @@ static PartitioningFunction * createHashDistPartitioningFunction
   // ---------------------------------------------------------------------
   // Compute the number of partitions.
   // ---------------------------------------------------------------------
-  desc_struct * partns_desc = part_desc_list;
+  TrafDesc * partns_desc = part_desc_list;
   Lng32 numberOfPartitions = 0;
   while (partns_desc)
     {
       numberOfPartitions++;
-      partns_desc = partns_desc->header.next;
+      partns_desc = partns_desc->next;
     }
 
   // ---------------------------------------------------------------------
@@ -2139,7 +2139,7 @@ static PartitioningFunction * createHashDistPartitioningFunction
 // This method is used for creating a Hash2PartitioningFunction.
 // -----------------------------------------------------------------------
 static PartitioningFunction * createHash2PartitioningFunction
-                                (desc_struct * part_desc_list,
+                                (TrafDesc * part_desc_list,
                                  const NAColumnArray & partKeyColArray,
                                  NodeMap* nodeMap,
                                  NAMemory* heap)
@@ -2147,12 +2147,12 @@ static PartitioningFunction * createHash2PartitioningFunction
   // ---------------------------------------------------------------------
   // Compute the number of partitions.
   // ---------------------------------------------------------------------
-  desc_struct * partns_desc = part_desc_list;
+  TrafDesc * partns_desc = part_desc_list;
   Lng32 numberOfPartitions = 0;
   while (partns_desc)
     {
       numberOfPartitions++;
-      partns_desc = partns_desc->header.next;
+      partns_desc = partns_desc->next;
     }
 
   // ---------------------------------------------------------------------
@@ -2186,16 +2186,16 @@ static PartitioningFunction * createHash2PartitioningFunction
 
 
 static 
-NodeMap* createNodeMapForHbase(desc_struct* desc, const NATable* table,
+NodeMap* createNodeMapForHbase(TrafDesc* desc, const NATable* table,
                                int numSaltBuckets, NAMemory* heap)
 {
    Int32 partns = 0;
    Int32 numRegions = 0;
-   desc_struct* hrk = desc;
+   TrafDesc* hrk = desc;
  
    while ( hrk ) {
      numRegions++;
-     hrk=hrk->header.next;
+     hrk=hrk->next;
    }
 
    if (numSaltBuckets <= 1)
@@ -2231,13 +2231,13 @@ NodeMap* createNodeMapForHbase(desc_struct* desc, const NATable* table,
 
 static 
 PartitioningFunction*
-createHash2PartitioningFunctionForHBase(desc_struct* desc,
+createHash2PartitioningFunctionForHBase(TrafDesc* desc,
                                         const NATable * table,
                                         int numSaltBuckets,
                                         NAMemory* heap)
 {
 
-   desc_struct* hrk = desc;
+   TrafDesc* hrk = desc;
  
    NodeMap* nodeMap = createNodeMapForHbase(desc, table, numSaltBuckets, heap);
 
@@ -2470,23 +2470,23 @@ createRangePartitioningFunctionForSingleRegionHBase(
    }
 
 
-   struct desc_struct* head = NULL;
-   struct desc_struct* tail = NULL;
+   struct TrafDesc* head = NULL;
+   struct TrafDesc* tail = NULL;
 
    Int32 i=0;
    for ( i=0; i<regionsToFake; i++ ) {
 
      if ( tail == NULL ) {
-        head = tail = new (heap) struct desc_struct;
+        head = tail = new (heap) TrafPartnsDesc();
 
         // to satisfy createRangePartitionBoundaries() in NATable.cpp
-        tail->body.partns_desc.primarypartition = 1;
+        tail->partnsDesc()->primarypartition = 1;
 
      } else {
-        tail->header.next = new (heap) struct desc_struct;
-        tail = tail->header.next;
+        tail->next = new (heap) TrafPartnsDesc();
+        tail = tail->next;
      }
-     tail->header.next = NULL;
+     tail->next = NULL;
 
      NAString firstkey('(');
      for ( Int32 i=0; i<keys; i++ ) {
@@ -2514,14 +2514,14 @@ createRangePartitioningFunctionForSingleRegionHBase(
 
      Int32 len = firstkey.length();
 
-     tail->body.partns_desc.firstkeylen = len;
-     tail->body.partns_desc.firstkey = new (heap) char[len];
-     memcpy(tail->body.partns_desc.firstkey, firstkey.data(), len);
+     tail->partnsDesc()->firstkeylen = len;
+     tail->partnsDesc()->firstkey = new (heap) char[len];
+     memcpy(tail->partnsDesc()->firstkey, firstkey.data(), len);
 
      // For now, assume firstkey == encodedkey
-     tail->body.partns_desc.encodedkeylen = len;
-     tail->body.partns_desc.encodedkey = new (heap) char[len];
-     memcpy(tail->body.partns_desc.encodedkey, firstkey.data(), len);
+     tail->partnsDesc()->encodedkeylen = len;
+     tail->partnsDesc()->encodedkey = new (heap) char[len];
+     memcpy(tail->partnsDesc()->encodedkey, firstkey.data(), len);
 
    }
 
@@ -2534,43 +2534,43 @@ createRangePartitioningFunctionForSingleRegionHBase(
 }
 
 void
-populatePartnDescOnEncodingKey( struct desc_struct* prevEndKey,
-                               struct desc_struct* tail, 
-                               struct desc_struct* hrk, 
+populatePartnDescOnEncodingKey( struct TrafDesc* prevEndKey,
+                               struct TrafDesc* tail, 
+                               struct TrafDesc* hrk, 
                                NAMemory* heap)
 {
      if (!prevEndKey) {
        // the start key of the first partitions has all zeroes in it
-       Int32 len = hrk->body.hbase_region_desc.endKeyLen;
+       Int32 len = hrk->hbaseRegionDesc()->endKeyLen;
 
-       tail->body.partns_desc.encodedkeylen = len;
-       tail->body.partns_desc.encodedkey = new (heap) char[len];
-       memset(tail->body.partns_desc.encodedkey, 0, len);
+       tail->partnsDesc()->encodedkeylen = len;
+       tail->partnsDesc()->encodedkey = new (heap) char[len];
+       memset(tail->partnsDesc()->encodedkey, 0, len);
      }
      else {
        // the beginning key of this partition is the end key of
        // the previous one
        // (HBase returns end keys, we need begin keys here)
-       Int32 len = prevEndKey->body.hbase_region_desc.endKeyLen;
+       Int32 len = prevEndKey->hbaseRegionDesc()->endKeyLen;
 
        // For HBase regions, we don't have the text representation
        // (value, value, ... value) of the boundary, just the encoded
        // key.
-       tail->body.partns_desc.encodedkeylen = len;
-       tail->body.partns_desc.encodedkey = new (heap) char[len];
-       memcpy(tail->body.partns_desc.encodedkey, 
-              prevEndKey->body.hbase_region_desc.endKey, len);
+       tail->partnsDesc()->encodedkeylen = len;
+       tail->partnsDesc()->encodedkey = new (heap) char[len];
+       memcpy(tail->partnsDesc()->encodedkey, 
+              prevEndKey->hbaseRegionDesc()->endKey, len);
      }
 }
 
 void
-populatePartnDescOnFirstKey( struct desc_struct* ,
-                             struct desc_struct* tail, 
-                             struct desc_struct* hrk,
+populatePartnDescOnFirstKey( struct TrafDesc* ,
+                             struct TrafDesc* tail, 
+                             struct TrafDesc* hrk,
                              NAMemory* heap)
 {
-   char* buf = hrk->body.hbase_region_desc.beginKey;
-   Int32 len = hrk->body.hbase_region_desc.beginKeyLen;
+   char* buf = hrk->hbaseRegionDesc()->beginKey;
+   Int32 len = hrk->hbaseRegionDesc()->beginKeyLen;
 
    NAString firstkey('(');
    firstkey.append('\'');
@@ -2579,51 +2579,49 @@ populatePartnDescOnFirstKey( struct desc_struct* ,
    firstkey.append(')');
 
    Int32 keyLen = firstkey.length();
-   tail->body.partns_desc.firstkeylen = keyLen;
-   tail->body.partns_desc.firstkey = new (heap) char[keyLen];
-   memcpy(tail->body.partns_desc.firstkey, firstkey.data(), keyLen);
+   tail->partnsDesc()->firstkeylen = keyLen;
+   tail->partnsDesc()->firstkey = new (heap) char[keyLen];
+   memcpy(tail->partnsDesc()->firstkey, firstkey.data(), keyLen);
 
-   tail->body.partns_desc.encodedkeylen = keyLen;
-   tail->body.partns_desc.encodedkey = new (heap) char[keyLen];
-   memcpy(tail->body.partns_desc.encodedkey, firstkey.data(), keyLen);
+   tail->partnsDesc()->encodedkeylen = keyLen;
+   tail->partnsDesc()->encodedkey = new (heap) char[keyLen];
+   memcpy(tail->partnsDesc()->encodedkey, firstkey.data(), keyLen);
 }
 
-typedef void (*populatePartnDescT)( struct desc_struct* prevEndKey,
-                                    struct desc_struct* tail, 
-                                    struct desc_struct* hrk,
+typedef void (*populatePartnDescT)( struct TrafDesc* prevEndKey,
+                                    struct TrafDesc* tail, 
+                                    struct TrafDesc* hrk,
                                     NAMemory* heap);
-static struct desc_struct*
-convertRangeDescToPartnsDesc(desc_struct* desc, populatePartnDescT funcPtr, NAMemory* heap)
+static struct TrafDesc*
+convertRangeDescToPartnsDesc(TrafDesc* desc, populatePartnDescT funcPtr, NAMemory* heap)
 {
-   desc_struct* hrk = desc;
-   desc_struct* prevEndKey = NULL;
+   TrafDesc* hrk = desc;
+   TrafDesc* prevEndKey = NULL;
  
-   struct desc_struct* head = NULL;
-   struct desc_struct* tail = NULL;
+   struct TrafDesc* head = NULL;
+   struct TrafDesc* tail = NULL;
 
    Int32 i=0;
    while ( hrk ) {
 
-     struct desc_struct *newNode = new (heap) struct desc_struct;
-     memset(&newNode->header, 0, sizeof(newNode->header));
-     memset(&newNode->body.partns_desc, 0, sizeof(tail->body.partns_desc));
-     newNode->header.nodetype = DESC_PARTNS_TYPE;
+     struct TrafDesc *newNode = 
+       TrafAllocateDDLdesc(DESC_PARTNS_TYPE, NULL);
 
      if ( tail == NULL ) {
         head = tail = newNode;
 
         // to satisfy createRangePartitionBoundaries() in NATable.cpp
-        tail->body.partns_desc.primarypartition = 1;
+        tail->partnsDesc()->primarypartition = 1;
 
      } else {
-        tail->header.next = newNode;
-        tail = tail->header.next;
+        tail->next = newNode;
+        tail = tail->next;
      }
 
      (*funcPtr)(prevEndKey, tail, hrk, heap);
 
      prevEndKey = hrk;
-     hrk     = hrk->header.next;
+     hrk     = hrk->next;
    }
 
    return head;
@@ -2633,14 +2631,14 @@ convertRangeDescToPartnsDesc(desc_struct* desc, populatePartnDescT funcPtr, NAMe
 static 
 PartitioningFunction*
 createRangePartitioningFunctionForMultiRegionHBase(Int32 partns,
-                                        desc_struct* desc, 
+                                        TrafDesc* desc, 
                                         const NATable* table, 
 			                const NAColumnArray & partKeyColArray,
                                         NAMemory* heap)
 {
    NodeMap* nodeMap = createNodeMapForHbase(desc, table, -1, heap);
 
-   struct desc_struct* 
+   struct TrafDesc* 
       partns_desc = ( table->isHbaseCellTable() || table->isHbaseRowTable()) ?
          convertRangeDescToPartnsDesc(desc, populatePartnDescOnFirstKey, heap)
              :
@@ -2670,8 +2668,8 @@ createRangePartitioningFunctionForHive(HHDFSTableStats * hiveHDFSTableStats,
                                            numParts,
                                            NodeMapEntry::ACTIVE,
                                            NodeMap::HIVE);
-      struct desc_struct *partns_desc = NULL;
-      struct desc_struct *last = NULL;
+      TrafDesc *partns_desc = NULL;
+      TrafDesc *last = NULL;
 
       for (int c=0; c<allCols.entries(); c++)
         if (allCols[c]->isHivePartColumn())
@@ -2679,11 +2677,8 @@ createRangePartitioningFunctionForHive(HHDFSTableStats * hiveHDFSTableStats,
 
       for (int p=0; p<numParts; p++)
         {
-          struct desc_struct * curr = new(heap) struct desc_struct;
-
-          memset(&curr->header, 0, sizeof(curr->header));
-          memset(&curr->body.partns_desc, 0, sizeof(curr->body.partns_desc));
-          curr->header.nodetype = DESC_PARTNS_TYPE;
+          struct TrafDesc *curr = 
+            TrafAllocateDDLdesc(DESC_PARTNS_TYPE, NULL);
 
           if (p == 0)
             {
@@ -2692,7 +2687,7 @@ createRangePartitioningFunctionForHive(HHDFSTableStats * hiveHDFSTableStats,
               // createRangePartitioningFunction() below. In
               // hiveHDFSTableStats, partition 0 represents the table,
               // not an individual partition.
-              curr->body.partns_desc.primarypartition = 1;
+              curr->partnsDesc()->primarypartition = 1;
               CMPASSERT((*hiveHDFSTableStats)[p]->getPartitionKeyValues().length() == 0);
             }
           else
@@ -2712,11 +2707,11 @@ createRangePartitioningFunctionForHive(HHDFSTableStats * hiveHDFSTableStats,
               // copy only the character representation, a comma-separated
               // list of values, into the "firstkey" field, leave encoded
               // values blank
-              curr->body.partns_desc.firstkey = new(heap) char[partKeyValsLen+1];
-              memcpy(curr->body.partns_desc.firstkey,
+              curr->partnsDesc()->firstkey = new(heap) char[partKeyValsLen+1];
+              memcpy(curr->partnsDesc()->firstkey,
                      partKeyValsSQL.data(),
                      partKeyValsLen+1);
-              curr->body.partns_desc.firstkeylen = partKeyValsLen;
+              curr->partnsDesc()->firstkeylen = partKeyValsLen;
             }
 
           if (partns_desc == NULL)
@@ -2726,7 +2721,7 @@ createRangePartitioningFunctionForHive(HHDFSTableStats * hiveHDFSTableStats,
           else
             {
               // append at the end of the linked list
-              last->header.next = curr;
+              last->next = curr;
               last = curr;
             }
         }
@@ -2746,13 +2741,13 @@ createRangePartitioningFunctionForHive(HHDFSTableStats * hiveHDFSTableStats,
     return NULL;
 }
 
-Int32 findDescEntries(desc_struct* desc)
+Int32 findDescEntries(TrafDesc* desc)
 {
    Int32 partns = 0;
-   desc_struct* hrk = desc;
+   TrafDesc* hrk = desc;
    while ( hrk ) {
      partns++;
-     hrk = hrk->header.next;
+     hrk = hrk->next;
    }
    return partns;
 }
@@ -2763,7 +2758,7 @@ Int32 findDescEntries(desc_struct* desc)
 //
 static 
 PartitioningFunction*
-createRangePartitioningFunctionForHBase(desc_struct* desc, 
+createRangePartitioningFunctionForHBase(TrafDesc* desc, 
 			                const NATable* table,
                                         const NAColumnArray & partKeyColArray,
                                         NAMemory* heap)
@@ -2806,7 +2801,7 @@ static PartitioningFunction * createHivePartitioningFunction
 // associated with this table or index.
 // -----------------------------------------------------------------------
 #pragma nowarn(1506)   // warning elimination
-static void createNodeMap (desc_struct* part_desc_list,
+static void createNodeMap (TrafDesc* part_desc_list,
 		           NodeMap*     nodeMap,
                            NAMemory*    heap,
                            char * tableName,
@@ -2816,7 +2811,7 @@ static void createNodeMap (desc_struct* part_desc_list,
   // Loop over all partitions creating a DP2 node map entry for each
   // partition.
   // ---------------------------------------------------------------------
-  desc_struct* partns_desc      = part_desc_list;
+  TrafDesc* partns_desc      = part_desc_list;
   CollIndex    currentPartition = 0;
   if(NOT partns_desc)
   {
@@ -2827,11 +2822,11 @@ static void createNodeMap (desc_struct* part_desc_list,
   else{
     while (partns_desc)
     {
-      NodeMapEntry entry(partns_desc->body.partns_desc.partitionname,
-	partns_desc->body.partns_desc.givenname,
+      NodeMapEntry entry(partns_desc->partnsDesc()->partitionname,
+	partns_desc->partnsDesc()->givenname,
         heap,tableIdent);
       nodeMap->setNodeMapEntry(currentPartition,entry,heap);
-      partns_desc = partns_desc->header.next;
+      partns_desc = partns_desc->next;
       currentPartition++;
     }
   }
@@ -2970,7 +2965,7 @@ static void createNodeMap (hive_tbl_desc* hvt_desc,
 // on the local node.
 //-------------------------------------------------------------------------
 #pragma nowarn(262)   // warning elimination
-static NABoolean checkRemote(desc_struct* part_desc_list,
+static NABoolean checkRemote(TrafDesc* part_desc_list,
                              char * tableName)
 {
     return TRUE;
@@ -2978,19 +2973,17 @@ static NABoolean checkRemote(desc_struct* part_desc_list,
 #pragma warn(262)  // warning elimination
 
 
-// warning elimination (removed "inline")
 static NAString makeTableName(const NATable *table,
-			      const columns_desc_struct *column_desc)
+			      const TrafColumnsDesc *column_desc)
 {
   return NAString(
-	      table ?
-		table->getTableName().getQualifiedNameAsAnsiString().data() :
-	      column_desc->tablename ?
-		column_desc->tablename : "");
+       table ?
+       table->getTableName().getQualifiedNameAsAnsiString().data() : "");
 }
+
 // warning elimination (removed "inline")
 static NAString makeColumnName(const NATable *table,
-			       const columns_desc_struct *column_desc)
+			       const TrafColumnsDesc *column_desc)
 {
   NAString nam(makeTableName(table, column_desc));
   if (!nam.isNull()) nam += ".";
@@ -2999,9 +2992,9 @@ static NAString makeColumnName(const NATable *table,
 }
 
 // -----------------------------------------------------------------------
-// Method for creating NAType from desc_struct.
+// Method for creating NAType from TrafDesc.
 // -----------------------------------------------------------------------
-NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
+NABoolean createNAType(TrafColumnsDesc *column_desc	/*IN*/,
 		       const NATable *table  		/*IN*/,
 		       NAType *&type       		/*OUT*/,
 		       NAMemory *heap			/*IN*/,
@@ -3013,7 +3006,7 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
   //
   #define REC_INTERVAL REC_MIN_INTERVAL
 
-  DataType datatype = column_desc->datatype;
+  Int16 datatype = column_desc->datatype;
   if (REC_MIN_INTERVAL <= datatype && datatype <= REC_MAX_INTERVAL)
     datatype = REC_INTERVAL;
 
@@ -3021,7 +3014,7 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
 
   if ( DFS2REC::isAnyCharacter(column_desc->datatype) )
   {
-     if ( CharInfo::isCharSetSupported(column_desc->character_set) == FALSE ) {
+     if ( CharInfo::isCharSetSupported(column_desc->characterSet()) == FALSE ) {
        if (!errorCode)
        {
          *CmpCommon::diags() << DgSqlCode(-4082)
@@ -3034,7 +3027,7 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
        return TRUE; // error
      }
 
-     if ( CharInfo::is_NCHAR_MP(column_desc->character_set) )
+     if ( CharInfo::is_NCHAR_MP(column_desc->characterSet()) )
         charCount /= SQL_DBCHAR_SIZE;
   }
 
@@ -3043,7 +3036,7 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
 
     case REC_BPINT_UNSIGNED :
       type = new (heap)
-      SQLBPInt(column_desc->precision, column_desc->null_flag, FALSE, heap);
+      SQLBPInt(column_desc->precision, column_desc->isNullable(), FALSE, heap);
       break;
 
     case REC_BIN8_SIGNED:
@@ -3053,13 +3046,13 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
 		   column_desc->precision,
 		   column_desc->scale,
 		   TRUE,
-		   column_desc->null_flag,
+		   column_desc->isNullable(),
                    heap
 		   );
       else
 	type = new (heap)
 	SQLTiny(TRUE,
-		 column_desc->null_flag,
+		 column_desc->isNullable(),
                  heap
 		 );
       break;
@@ -3070,13 +3063,13 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
 		   column_desc->precision,
 		   column_desc->scale,
 		   FALSE,
-		   column_desc->null_flag,
+		   column_desc->isNullable(),
                    heap
 		   );
       else
 	type = new (heap)
 	SQLTiny(FALSE,
-		 column_desc->null_flag,
+		 column_desc->isNullable(),
                  heap
 		 );
       break;
@@ -3088,13 +3081,13 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
 		   column_desc->precision,
 		   column_desc->scale,
 		   TRUE,
-		   column_desc->null_flag,
+		   column_desc->isNullable(),
                    heap
 		   );
       else
 	type = new (heap)
 	SQLSmall(TRUE,
-		 column_desc->null_flag,
+		 column_desc->isNullable(),
                  heap
 		 );
       break;
@@ -3105,13 +3098,13 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
 		   column_desc->precision,
 		   column_desc->scale,
 		   FALSE,
-		   column_desc->null_flag,
+		   column_desc->isNullable(),
                    heap
 		   );
       else
 	type = new (heap)
 	SQLSmall(FALSE,
-		 column_desc->null_flag,
+		 column_desc->isNullable(),
                  heap
 		 );
       break;
@@ -3123,13 +3116,13 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
 		   column_desc->precision,
 		   column_desc->scale,
 		   TRUE,
-		   column_desc->null_flag,
+		   column_desc->isNullable(),
                    heap
 		   );
       else
 	type = new (heap)
 	SQLInt(TRUE,
-	       column_desc->null_flag,
+	       column_desc->isNullable(),
                heap
 	       );
       break;
@@ -3140,13 +3133,13 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
 		   column_desc->precision,
 		   column_desc->scale,
 		   FALSE,
-		   column_desc->null_flag,
+		   column_desc->isNullable(),
                    heap
 		   );
       else
 	type = new (heap)
 	SQLInt(FALSE,
-	       column_desc->null_flag,
+	       column_desc->isNullable(),
                heap
 	       );
       break;
@@ -3157,13 +3150,13 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
 		   column_desc->precision,
 		   column_desc->scale,
 		   TRUE,
-		   column_desc->null_flag,
+		   column_desc->isNullable(),
                    heap
 		   );
       else
 	type = new (heap)
 	SQLLargeInt(TRUE,
-		    column_desc->null_flag,
+		    column_desc->isNullable(),
                     heap
 		    );
       break;
@@ -3174,13 +3167,13 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
 		   column_desc->precision,
 		   column_desc->scale,
 		   FALSE,
-		   column_desc->null_flag,
+		   column_desc->isNullable(),
                    heap
 		   );
       else
 	type = new (heap)
           SQLLargeInt(FALSE,
-		    column_desc->null_flag,
+		    column_desc->isNullable(),
                     heap
 		    );
       break;
@@ -3189,7 +3182,7 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
 	SQLDecimal(column_desc->length,
 		   column_desc->scale,
 		   FALSE,
-		   column_desc->null_flag,
+		   column_desc->isNullable(),
                    heap
 		   );
       break;
@@ -3198,7 +3191,7 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
 	SQLDecimal(column_desc->length,
 		   column_desc->scale,
 		   TRUE,
-		   column_desc->null_flag,
+		   column_desc->isNullable(),
                    heap
 		   );
       break;
@@ -3208,7 +3201,7 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
 		  column_desc->scale,
 		  TRUE, // is a real bignum
 		  FALSE,
-		  column_desc->null_flag,
+		  column_desc->isNullable(),
 		  heap
 		  );
       break;
@@ -3218,65 +3211,65 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
 		  column_desc->scale,
 		  TRUE, // is a real bignum
 		  TRUE,
-		  column_desc->null_flag,
+		  column_desc->isNullable(),
 		  heap
 		  );
       break;
 
     case REC_FLOAT32:
       type = new (heap)
-	SQLReal(column_desc->null_flag, heap, column_desc->precision);
+	SQLReal(column_desc->isNullable(), heap, column_desc->precision);
       break;
 
     case REC_FLOAT64:
       type = new (heap)
-	SQLDoublePrecision(column_desc->null_flag, heap, column_desc->precision);
+	SQLDoublePrecision(column_desc->isNullable(), heap, column_desc->precision);
       break;
 
     case REC_BYTE_F_DOUBLE:
       charCount /= SQL_DBCHAR_SIZE;	    // divide the storage length by 2
       type = new (heap)
 	SQLChar(charCount,
-		column_desc->null_flag,
-		column_desc->upshift,
-		column_desc->caseinsensitive,
+		column_desc->isNullable(),
+		column_desc->isUpshifted(),
+		column_desc->isCaseInsensitive(),
 		FALSE,
-		column_desc->character_set,
-		column_desc->collation_sequence,
+		column_desc->characterSet(),
+		column_desc->collationSequence(),
 		CharInfo::IMPLICIT
 		);
       break;
 
     case REC_BYTE_F_ASCII:
-      if (column_desc->character_set == CharInfo::UTF8 ||
-          (column_desc->character_set == CharInfo::SJIS &&
+      if (column_desc->characterSet() == CharInfo::UTF8 ||
+          (column_desc->characterSet() == CharInfo::SJIS &&
            column_desc->encoding_charset == CharInfo::SJIS))
       {
-        Lng32 maxBytesPerChar = CharInfo::maxBytesPerChar(column_desc->character_set);
+        Lng32 maxBytesPerChar = CharInfo::maxBytesPerChar(column_desc->characterSet());
         Lng32 sizeInChars = charCount ;  // Applies when CharLenUnit == BYTES
         if ( column_desc->precision > 0 )
            sizeInChars = column_desc->precision;
         type = new (heap)
 	SQLChar(CharLenInfo(sizeInChars, charCount/*in_bytes*/),
-		column_desc->null_flag,
-		column_desc->upshift,
-		column_desc->caseinsensitive,
+		column_desc->isNullable(),
+		column_desc->isUpshifted(),
+		column_desc->isCaseInsensitive(),
 		FALSE, // varLenFlag
-		column_desc->character_set,
-		column_desc->collation_sequence,
+		column_desc->characterSet(),
+		column_desc->collationSequence(),
 		CharInfo::IMPLICIT, // Coercibility
-		column_desc->encoding_charset
+		column_desc->encodingCharset()
 		);
       }
       else // keep the old behavior
       type = new (heap)
 	SQLChar(charCount,
-		column_desc->null_flag,
-		column_desc->upshift,
-		column_desc->caseinsensitive,
+		column_desc->isNullable(),
+		column_desc->isUpshifted(),
+		column_desc->isCaseInsensitive(),
 		FALSE,
-		column_desc->character_set,
-		column_desc->collation_sequence,
+		column_desc->characterSet(),
+		column_desc->collationSequence(),
 		CharInfo::IMPLICIT
 		);
       break;
@@ -3285,32 +3278,32 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
       charCount /= SQL_DBCHAR_SIZE;	    // divide the storage length by 2
       // fall thru
     case REC_BYTE_V_ASCII:
-      if (column_desc->character_set == CharInfo::SJIS ||
-          column_desc->character_set == CharInfo::UTF8)
+      if (column_desc->characterSet() == CharInfo::SJIS ||
+          column_desc->characterSet() == CharInfo::UTF8)
       {
-        Lng32 maxBytesPerChar = CharInfo::maxBytesPerChar(column_desc->character_set);
+        Lng32 maxBytesPerChar = CharInfo::maxBytesPerChar(column_desc->characterSet());
         Lng32 sizeInChars = charCount ;  // Applies when CharLenUnit == BYTES
         if ( column_desc->precision > 0 )
            sizeInChars = column_desc->precision;
         type = new (heap)
 	SQLVarChar(CharLenInfo(sizeInChars, charCount/*in_bytes*/),
-		   column_desc->null_flag,
-		   column_desc->upshift,
-		   column_desc->caseinsensitive,
-		   column_desc->character_set,
-		   column_desc->collation_sequence,
+		   column_desc->isNullable(),
+		   column_desc->isUpshifted(),
+		   column_desc->isCaseInsensitive(),
+		   column_desc->characterSet(),
+		   column_desc->collationSequence(),
 		   CharInfo::IMPLICIT, // Coercibility
-		   column_desc->encoding_charset
+		   column_desc->encodingCharset()
 		   );
       }
       else // keep the old behavior
       type = new (heap)
 	SQLVarChar(charCount,
-		   column_desc->null_flag,
-		   column_desc->upshift,
-		   column_desc->caseinsensitive,
-		   column_desc->character_set,
-		   column_desc->collation_sequence,
+		   column_desc->isNullable(),
+		   column_desc->isUpshifted(),
+		   column_desc->isCaseInsensitive(),
+		   column_desc->characterSet(),
+		   column_desc->collationSequence(),
 		   CharInfo::IMPLICIT
 		   );
       break;
@@ -3319,33 +3312,33 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
       type = new (heap)
 	SQLLongVarChar(charCount,
 		       FALSE,
-		       column_desc->null_flag,
-		       column_desc->upshift,
-		       column_desc->caseinsensitive,
-		       column_desc->character_set,
-		       column_desc->collation_sequence,
+		       column_desc->isNullable(),
+		       column_desc->isUpshifted(),
+		       column_desc->isCaseInsensitive(),
+		       column_desc->characterSet(),
+		       column_desc->collationSequence(),
 		       CharInfo::IMPLICIT
 		      );
       break;
     case REC_DATETIME:
       type = DatetimeType::constructSubtype(
-					    column_desc->null_flag,
-					    column_desc->datetimestart,
-					    column_desc->datetimeend,
+					    column_desc->isNullable(),
+					    column_desc->datetimeStart(),
+					    column_desc->datetimeEnd(),
 					    column_desc->datetimefractprec,
 					    heap
 					    );
       CMPASSERT(type);
       if (!type->isSupportedType())
 	{
-         column_desc->defaultClass = COM_NO_DEFAULT;           // can't set a default for these, either.
+          column_desc->setDefaultClass(COM_NO_DEFAULT);           // can't set a default for these, either.
 	  // 4030 Column is an unsupported combination of datetime fields
      if (!errorCode)
      {
          *CmpCommon::diags() << DgSqlCode(4030)
 	    << DgColumnName(makeColumnName(table, column_desc))
-	    << DgInt0(column_desc->datetimestart)
-	    << DgInt1(column_desc->datetimeend)
+	    << DgInt0(column_desc->datetimeStart())
+	    << DgInt1(column_desc->datetimeEnd())
 	    << DgInt2(column_desc->datetimefractprec);
      }
      else
@@ -3356,10 +3349,10 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
       break;
     case REC_INTERVAL:
       type = new (heap)
-         SQLInterval(column_desc->null_flag,
-		    column_desc->datetimestart,
+         SQLInterval(column_desc->isNullable(),
+		    column_desc->datetimeStart(),
 		    column_desc->intervalleadingprec,
-		    column_desc->datetimeend,
+		    column_desc->datetimeEnd(),
 		    column_desc->datetimefractprec,
                     heap
 		    );
@@ -3368,7 +3361,7 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
          return TRUE;                                            // error
       if (!type->isSupportedType())
       {
-        column_desc->defaultClass = COM_NO_DEFAULT;           // can't set a default for these, either.
+        column_desc->setDefaultClass(COM_NO_DEFAULT);           // can't set a default for these, either.
         if (!errorCode)
           *CmpCommon::diags() << DgSqlCode(3044) << DgString0(column_desc->colname);
         else
@@ -3380,18 +3373,18 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
     case REC_BLOB :
       type = new (heap)
 	SQLBlob(column_desc->precision,Lob_Invalid_Storage,
-		column_desc->null_flag);
+		column_desc->isNullable());
       break;
 
     case REC_CLOB :
       type = new (heap)
 	SQLClob(column_desc->precision,Lob_Invalid_Storage,
-		column_desc->null_flag);
+		column_desc->isNullable());
       break;
 
     case REC_BOOLEAN :
       {
-        type = new (heap) SQLBooleanNative(column_desc->null_flag);
+        type = new (heap) SQLBooleanNative(column_desc->isNullable());
       }
       break;
 
@@ -3476,16 +3469,16 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
 // one for each column_desc in the list supplied as input.
 // -----------------------------------------------------------------------
 #pragma nowarn(1506)   // warning elimination
-static NABoolean createNAColumns(desc_struct *column_desc_list	/*IN*/,
-                                 NATable *table		/*IN*/,
-                                 NAColumnArray &colArray	/*OUT*/,
-                                 NAMemory *heap		/*IN*/)
+static NABoolean createNAColumns(TrafDesc *column_desc_list	/*IN*/,
+			  NATable *table		/*IN*/,
+			  NAColumnArray &colArray	/*OUT*/,
+			  NAMemory *heap		/*IN*/)
 {
   NAType *type;
   ColumnClass colClass;
   while (column_desc_list)
     {
-      columns_desc_struct * column_desc = &column_desc_list->body.columns_desc;
+      TrafColumnsDesc * column_desc = column_desc_list->columnsDesc();
       NABoolean isMvSystemAdded = FALSE;
       NABoolean hasSystemColumnAsUserColumn = FALSE;
 
@@ -3544,7 +3537,7 @@ static NABoolean createNAColumns(desc_struct *column_desc_list	/*IN*/,
          NABoolean isSaltColumn = FALSE;
          NABoolean isDivisioningColumn = FALSE;
 
-         if (column_desc->defaultClass == COM_ALWAYS_COMPUTE_COMPUTED_COLUMN_DEFAULT)
+         if (column_desc->defaultClass() == COM_ALWAYS_COMPUTE_COMPUTED_COLUMN_DEFAULT)
            {
              if (column_desc->colFlags & SEABASE_COLUMN_IS_SALT)
                isSaltColumn = TRUE;
@@ -3585,16 +3578,16 @@ static NABoolean createNAColumns(desc_struct *column_desc_list	/*IN*/,
                                heap,
 			       table,
 			       colClass,
-			       column_desc->defaultClass,
+			       column_desc->defaultClass(),
 			       defaultValue,
                                heading,
-			       column_desc->upshift,
+			       column_desc->isUpshifted(),
 			       ((column_desc->colclass == 'A') ||
                                 (column_desc->colclass == 'C')),
                                COM_UNKNOWN_DIRECTION,
                                FALSE,
                                NULL,
-                               column_desc->stored_on_disk,
+                               TRUE, // stored on disk
                                computed_column_text,
                                isSaltColumn,
                                isDivisioningColumn,
@@ -3644,7 +3637,7 @@ static NABoolean createNAColumns(desc_struct *column_desc_list	/*IN*/,
 
       colArray.insert(newColumn);
 
-      column_desc_list = column_desc_list->header.next;
+      column_desc_list = column_desc_list->next;
     } // end while
 
   return FALSE;							// no error
@@ -3867,7 +3860,7 @@ static NABoolean createNAColumns(struct hive_column_desc* hcolumn /*IN*/,
                              COM_NULL_DEFAULT  ,//defaultClass,
                              (char*)"", // defaultValue,
                              (char*)"", // heading,
-                             FALSE, // column_desc->upshift,
+                             FALSE, // column_desc->isUpshifted(),
                              FALSE, // added column
                              COM_UNKNOWN_DIRECTION,
                              FALSE,  // isOptional
@@ -3937,30 +3930,30 @@ static NABoolean createNAColumns(struct hive_column_desc* hcolumn /*IN*/,
 
 
 
-NABoolean createNAKeyColumns(desc_struct *keys_desc_list	/*IN*/,
+NABoolean createNAKeyColumns(TrafDesc *keys_desc_list	/*IN*/,
 			     NAColumnArray &colArray	/*IN*/,
 			     NAColumnArray &keyColArray /*OUT*/,
 			     CollHeap *heap		/*IN*/)
 {
-  const desc_struct *keys_desc = keys_desc_list;
+  const TrafDesc *keys_desc = keys_desc_list;
 
   while (keys_desc)
     {
-      Int32 tablecolnumber = keys_desc->body.keys_desc.tablecolnumber;
+      Int32 tablecolnumber = keys_desc->keysDesc()->tablecolnumber;
 
       NAColumn *indexColumn = colArray.getColumn(tablecolnumber);
 
       SortOrdering order = NOT_ORDERED;
 
       keyColArray.insert(indexColumn);
-      order = keys_desc->body.keys_desc.ordering ? DESCENDING : ASCENDING;
+      order = keys_desc->keysDesc()->isDescending() ? DESCENDING : ASCENDING;
       keyColArray.setAscending(keyColArray.entries()-1, order == ASCENDING);
 
       // Remember that this columns is part of the clustering
       // key and remember its key ordering (asc or desc)
       indexColumn->setClusteringKey(order);
 
-      keys_desc = keys_desc->header.next;
+      keys_desc = keys_desc->next;
     } // end while (keys_desc)
 
   return FALSE;
@@ -4054,7 +4047,7 @@ void processDuplicateNames(NAHashDictionaryIterator<NAString, Int32> &Iter,
 // -----------------------------------------------------------------------
 #pragma nowarn(1506)   // warning elimination
 static
-NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
+NABoolean createNAFileSets(TrafDesc * table_desc       /*IN*/,
                            const NATable * table          /*IN*/,
                            const NAColumnArray & colArray /*IN*/,
                            NAFileSetList & indexes        /*OUT*/,
@@ -4080,17 +4073,16 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
 
   NAList<NAString *> stringList (CmpCommon::statementHeap());
 
-  desc_struct *indexes_desc = table_desc->body.table_desc.indexes_desc;
+  TrafDesc *indexes_desc = table_desc->tableDesc()->indexes_desc;
 
-  while (indexes_desc AND indexes_desc->body.indexes_desc.keytag)
-    indexes_desc = indexes_desc->header.next;
+  while (indexes_desc AND indexes_desc->indexesDesc()->keytag)
+    indexes_desc = indexes_desc->next;
 
   // must have a clustering key if not view
-  CMPASSERT((indexes_desc AND !indexes_desc->body.indexes_desc.keytag) OR
-	    (table_desc->body.table_desc.views_desc));
+  CMPASSERT((indexes_desc AND !indexes_desc->indexesDesc()->keytag) OR
+	    (table_desc->tableDesc()->views_desc));
 
   NABoolean isTheClusteringKey = TRUE;
-  NABoolean isVerticalPartition;
   NABoolean hasRemotePartition = FALSE;
   CollIndex numClusteringKeyColumns = 0;
   NABoolean tableAlignedRowFormat = table->isSQLMXAlignedTable();
@@ -4150,13 +4142,10 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
       NAColumnArray partitioningKeyColumns(CmpCommon::statementHeap());// the partitioning key columns
       NAColumnArray noHiveSortColumns(CmpCommon::statementHeap());// not needed in this method
       PartitioningFunction * partFunc = NULL;
-      // is this an index or is it really a VP?
-      isVerticalPartition = indexes_desc->body.indexes_desc.isVerticalPartition;
-      NABoolean isPacked = indexes_desc->body.indexes_desc.isPacked;
-      NABoolean indexAlignedRowFormat = (indexes_desc->body.indexes_desc.rowFormat == COM_ALIGNED_FORMAT_TYPE);
+      NABoolean isPacked = FALSE;
+      NABoolean indexAlignedRowFormat = (indexes_desc->indexesDesc()->rowFormat() == COM_ALIGNED_FORMAT_TYPE);
 
-      NABoolean isNotAvailable =
-	indexes_desc->body.indexes_desc.notAvailable;
+      NABoolean isNotAvailable = FALSE;
 
       ItemExprList hbaseSaltColumnList(CmpCommon::statementHeap());
       Int64 numOfSaltedPartitions = 0;
@@ -4164,7 +4153,7 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
       // ---------------------------------------------------------------------
       // loop over the clustering key columns of the index
       // ---------------------------------------------------------------------
-      const desc_struct *keys_desc = indexes_desc->body.indexes_desc.keys_desc;
+      const TrafDesc *keys_desc = indexes_desc->indexesDesc()->keys_desc;
       while (keys_desc)
 	{
           // Add an index/VP key column.
@@ -4177,7 +4166,7 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
 	  // key columns used to find the base table record. This is
 	  // true for both SQL/MP and SQL/MX tables at this time.
 	  // To make these assumptions is not optimal, but the
-	  // desc_structs that are used as input are a historical
+	  // TrafDescs that are used as input are a historical
 	  // leftover from SQL/MP and therefore aren't set up very
 	  // well to describe index columns and index keys.  Some day
 	  // we might consider a direct conversion from the MX catalog
@@ -4188,17 +4177,17 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
 	  // of a unique alternate index (which ARE described in the
 	  // keys_desc) get deleted later.
           
-	  Int32 tablecolnumber = keys_desc->body.keys_desc.tablecolnumber;
+	  Int32 tablecolnumber = keys_desc->keysDesc()->tablecolnumber;
           indexColumn = colArray.getColumn(tablecolnumber);
           
           if ((table->isHbaseTable()) &&
-              ((indexes_desc->body.indexes_desc.keytag != 0) || 
+              ((indexes_desc->indexesDesc()->keytag != 0) || 
                 (indexAlignedRowFormat  && indexAlignedRowFormat != tableAlignedRowFormat)))
             {
               newIndexColumn = new(heap) NAColumn(*indexColumn);
-              newIndexColumn->setIndexColName(keys_desc->body.keys_desc.keyname);
-              newIndexColumn->setHbaseColFam(keys_desc->body.keys_desc.hbaseColFam);
-              newIndexColumn->setHbaseColQual(keys_desc->body.keys_desc.hbaseColQual);
+              newIndexColumn->setIndexColName(keys_desc->keysDesc()->keyname);
+              newIndexColumn->setHbaseColFam(keys_desc->keysDesc()->hbaseColFam);
+              newIndexColumn->setHbaseColQual(keys_desc->keysDesc()->hbaseColQual);
               newIndexColumn->resetSerialization(); 
               saveNAColumns.insert(indexColumn);
               newColumns.insert(newIndexColumn);
@@ -4212,7 +4201,7 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
           // assume at first that all columns are key columns
           // and we make adjustments later
           indexKeyColumns.insert(indexColumn);
-          order = keys_desc->body.keys_desc.ordering ?
+          order = keys_desc->keysDesc()->isDescending() ?
             DESCENDING : ASCENDING;
           indexKeyColumns.setAscending(indexKeyColumns.entries() - 1,
                                        order == ASCENDING);
@@ -4271,7 +4260,7 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
 	    allColumns.insert(indexColumn);
 	  }
 
-	  keys_desc = keys_desc->header.next;
+	  keys_desc = keys_desc->next;
 	} // end while (keys_desc)
 
       // ---------------------------------------------------------------------
@@ -4279,32 +4268,32 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
       // These columns get added to the list of all the columns for the index/
       // VP.  Their length also contributes to the total record length.
       // ---------------------------------------------------------------------
-      const desc_struct *non_keys_desc =
-                         indexes_desc->body.indexes_desc.non_keys_desc;
+      const TrafDesc *non_keys_desc =
+                         indexes_desc->indexesDesc()->non_keys_desc;
       while (non_keys_desc)
 	{
-	  Int32 tablecolnumber = non_keys_desc->body.keys_desc.tablecolnumber;
+	  Int32 tablecolnumber = non_keys_desc->keysDesc()->tablecolnumber;
           indexColumn = colArray.getColumn(tablecolnumber);
 
 	  if ((table->isHbaseTable()) &&
-	      ((indexes_desc->body.indexes_desc.keytag != 0) || 
+	      ((indexes_desc->indexesDesc()->keytag != 0) || 
                (indexAlignedRowFormat  && indexAlignedRowFormat != tableAlignedRowFormat)))
 	    {
 	      newIndexColumn = new(heap) NAColumn(*indexColumn);
-	      if (non_keys_desc->body.keys_desc.keyname)
-		newIndexColumn->setIndexColName(non_keys_desc->body.keys_desc.keyname);
-	      newIndexColumn->setHbaseColFam(non_keys_desc->body.keys_desc.hbaseColFam);
-	      newIndexColumn->setHbaseColQual(non_keys_desc->body.keys_desc.hbaseColQual);
+	      if (non_keys_desc->keysDesc()->keyname)
+		newIndexColumn->setIndexColName(non_keys_desc->keysDesc()->keyname);
+	      newIndexColumn->setHbaseColFam(non_keys_desc->keysDesc()->hbaseColFam);
+	      newIndexColumn->setHbaseColQual(non_keys_desc->keysDesc()->hbaseColQual);
               newIndexColumn->resetSerialization(); 
 	      indexColumn = newIndexColumn;
               newColumns.insert(newIndexColumn);
 	    }
 
 	  allColumns.insert(indexColumn);
-	  non_keys_desc = non_keys_desc->header.next;
+	  non_keys_desc = non_keys_desc->next;
 	} // end while (non_keys_desc)
 
-      desc_struct *files_desc;
+      TrafDesc *files_desc;
       NABoolean isSystemTable;
       if (isTheClusteringKey)
 	{
@@ -4323,15 +4312,15 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
 		}
 	    } // end for
 
-	  files_desc = table_desc->body.table_desc.files_desc;
-	  isSystemTable = table_desc->body.table_desc.issystemtablecode;
+	  files_desc = table_desc->tableDesc()->files_desc;
+	  isSystemTable = table_desc->tableDesc()->isSystemTableCode();
 
           // Record length of clustering key is the same as that of the base table record
-          indexes_desc->body.indexes_desc.record_length = table_desc->body.table_desc.record_length;
+          indexes_desc->indexesDesc()->record_length = table_desc->tableDesc()->record_length;
 	} // endif (isTheClusteringKey)
       else
 	{
-	  if (indexes_desc->body.indexes_desc.unique)
+	  if (indexes_desc->indexesDesc()->isUnique())
 	    {
 	      // As mentioned above, if this is a unique index,
 	      // the last numClusteringKeyColumns are actually not
@@ -4349,8 +4338,8 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
 	      //   indexKeyColumns.removeAt(indexKeyColumns.entries() - 1);
 	    }
 
-	  files_desc = indexes_desc->body.indexes_desc.files_desc;
-	  isSystemTable = indexes_desc->body.indexes_desc.issystemtablecode;
+	  files_desc = indexes_desc->indexesDesc()->files_desc;
+	  isSystemTable = indexes_desc->indexesDesc()->isSystemTableCode();
 
 	} // endif (NOT isTheClusteringKey)
 
@@ -4366,9 +4355,10 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
       // We will ASSUME here that NonStop SQL/MP or the simulator will not
       // put anything into partitioning keys desc and only SQL/MX will.  So
       // we don't have to deal with keytag columns here.
+      //
+      // Partitioning Keys Desc is not set and returned for traf tables.
       // -------------------------------------------------------------------
-      const desc_struct *partitioning_keys_desc =
-                         indexes_desc->body.indexes_desc.partitioning_keys_desc;
+      const TrafDesc *partitioning_keys_desc = NULL;
 
       // the key columns that build the salt column for HBase table
       NAColumnArray hbaseSaltOnColumns(CmpCommon::statementHeap());
@@ -4379,16 +4369,16 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
           while (keys_desc)
 	    {
               Int32 tablecolnumber = keys_desc
-                                   ->body.keys_desc.tablecolnumber;
+                                   ->keysDesc()->tablecolnumber;
               indexColumn = colArray.getColumn(tablecolnumber);
               partitioningKeyColumns.insert(indexColumn);
               SortOrdering order = keys_desc
-				     ->body.keys_desc.ordering ?
-				       DESCENDING : ASCENDING;
+                ->keysDesc()->isDescending() ?
+                DESCENDING : ASCENDING;
 	      partitioningKeyColumns.setAscending
                                        (partitioningKeyColumns.entries() - 1,
 				        order == ASCENDING);
-              keys_desc = keys_desc->header.next;
+              keys_desc = keys_desc->next;
             } // end while (keys_desc)
         }
       else {
@@ -4416,29 +4406,26 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
 
       // NB: Just in case, we made a call to setupClusterInfo at the
       // beginning of this function.
-      desc_struct * partns_desc;
+      TrafDesc * partns_desc;
       Int32 indexLevels = 1;
-      Int32 blockSize = indexes_desc->body.indexes_desc.blocksize;
+      Int32 blockSize = indexes_desc->indexesDesc()->blocksize;
       if (files_desc)
       {
 	if( (table->getSpecialType() != ExtendedQualName::VIRTUAL_TABLE AND
-/*
-	     table->getSpecialType() != ExtendedQualName::ISP_TABLE AND
-*/
 	     (NOT table->isHbaseTable()))
-	    OR files_desc->body.files_desc.partns_desc )
+	    OR files_desc->filesDesc()->partns_desc )
 	  {
             nodeMap = new (heap) NodeMap(heap);
-	    createNodeMap(files_desc->body.files_desc.partns_desc,
+	    createNodeMap(files_desc->filesDesc()->partns_desc,
 			  nodeMap,
 			  heap,
-			  table_desc->body.table_desc.tablename,
+			  table_desc->tableDesc()->tablename,
 			  cmpCurrentContext->getTableIdent());
 	    tableIdList.insert(CollIndex(cmpCurrentContext->getTableIdent()));
 	  }
 	// Check whether the index has any remote partitions.
-	if (checkRemote(files_desc->body.files_desc.partns_desc,
-			indexes_desc->body.indexes_desc.indexname))
+	if (checkRemote(files_desc->filesDesc()->partns_desc,
+			indexes_desc->indexesDesc()->indexname))
 	  hasRemotePartition = TRUE;
 	else
 	  hasRemotePartition = FALSE;
@@ -4447,12 +4434,12 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
 	// partitioned same as the indexes, hence we used table partitioning
 	// to create partitionining function. But this is not true. Hence
 	// we now use the indexes partitioning function
-	switch (indexes_desc->body.indexes_desc.partitioningScheme)
+	switch (indexes_desc->indexesDesc()->partitioningScheme())
         {
 	case COM_ROUND_ROBIN_PARTITIONING :
 	  // Round Robin partitioned table
 	  partFunc = createRoundRobinPartitioningFunction(
-	       files_desc->body.files_desc.partns_desc,
+	       files_desc->filesDesc()->partns_desc,
 	       nodeMap,
 	       heap);
 	  break;
@@ -4460,7 +4447,7 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
 	case COM_HASH_V1_PARTITIONING :
 	  // Hash partitioned table
 	  partFunc = createHashDistPartitioningFunction(
-	       files_desc->body.files_desc.partns_desc,
+	       files_desc->filesDesc()->partns_desc,
 	       partitioningKeyColumns,
 	       nodeMap,
 	       heap);
@@ -4469,7 +4456,7 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
 	case COM_HASH_V2_PARTITIONING :
 	  // Hash partitioned table
 	  partFunc = createHash2PartitioningFunction(
-	       files_desc->body.files_desc.partns_desc,
+	       files_desc->filesDesc()->partns_desc,
 	       partitioningKeyColumns,
 	       nodeMap,
 	       heap);
@@ -4487,8 +4474,7 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
 	    // values as MP Stored Text.
 	    //
 
-              desc_struct* hbd = 
-                   ((table_desc_struct*)table_desc)->hbase_regionkey_desc;
+              TrafDesc* hbd = table_desc->tableDesc()->hbase_regionkey_desc;
 
               // splits will be 1 for single partitioned table.
               Int32 splits = findDescEntries(hbd);
@@ -4501,7 +4487,7 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
               if ( hbd )
                 if ( doHash2 ) {
 	           partFunc = createHash2PartitioningFunctionForHBase(
-	    	      ((table_desc_struct*)table_desc)->hbase_regionkey_desc,
+                        table_desc->tableDesc()->hbase_regionkey_desc,
                       table,
                       numOfSaltedPartitions,
                       heap);
@@ -4510,15 +4496,15 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
                 }
                 else
 	           partFunc = createRangePartitioningFunctionForHBase(
-	    	      ((table_desc_struct*)table_desc)->hbase_regionkey_desc,
-                      table,
-	    	      partitioningKeyColumns,
-		      heap);
+                        table_desc->tableDesc()->hbase_regionkey_desc,
+                        table,
+                        partitioningKeyColumns,
+                        heap);
               else {
 
 	        // no region descriptor, range partitioned or single partition table
 	        partFunc = createRangePartitioningFunction(
-	    	   files_desc->body.files_desc.partns_desc,
+	    	   files_desc->filesDesc()->partns_desc,
 	    	   partitioningKeyColumns,
 		   nodeMap,
 		   heap);
@@ -4554,14 +4540,14 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
         // currently we save the indexLevels in the fileset. Since there
         // is a indexLevel for each file that belongs to the fileset,
         // we get the biggest of this indexLevels and save in the fileset.
-        partns_desc = files_desc->body.files_desc.partns_desc;
+        partns_desc = files_desc->filesDesc()->partns_desc;
 	if(partns_desc)
 	  {
 	    while (partns_desc)
 	      {
-		if ( indexLevels < partns_desc->body.partns_desc.indexlevel)
-		  indexLevels = partns_desc->body.partns_desc.indexlevel;
-		partns_desc = partns_desc->header.next;
+		if ( indexLevels < partns_desc->partnsDesc()->indexlevel)
+		  indexLevels = partns_desc->partnsDesc()->indexlevel;
+		partns_desc = partns_desc->next;
 	      }
 
 	  }
@@ -4577,21 +4563,19 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
       // Create fully qualified ANSI name from indexname, the PHYSICAL name.
       // If this descriptor was created for a sql/mp table, then the
       // indexname is a fully qualified NSK name (\sys.$vol.subvol.name).
-      QualifiedName qualIndexName(indexes_desc->body.indexes_desc.indexname,
+      QualifiedName qualIndexName(indexes_desc->indexesDesc()->indexname,
       				  1, heap, bindWA);
 
       // This ext_indexname is expected to be set up correctly as an
       // EXTERNAL-format name (i.e., dquoted if any delimited identifiers)
       // by sqlcat/read*.cpp.  The ...AsAnsiString() is just-in-case (MP?).
       NAString extIndexName(
-	   indexes_desc->body.indexes_desc.ext_indexname ?
-	   (NAString)indexes_desc->body.indexes_desc.ext_indexname :
 	   qualIndexName.getQualifiedNameAsAnsiString(),
 	   CmpCommon::statementHeap());
 
       QualifiedName qualExtIndexName;
 
-      //if (indexes_desc->body.indexes_desc.isVolatile)
+      //if (indexes_desc->indexesDesc()->isVolatile)
       if (table->getSpecialType() != ExtendedQualName::VIRTUAL_TABLE)
 	qualExtIndexName = QualifiedName(extIndexName, 1, heap, bindWA);
       else
@@ -4599,7 +4583,7 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
 
       // for volatile tables, set the object part as the external name.
       // cat/sch parts are internal and should not be shown.
-      if (indexes_desc->body.indexes_desc.isVolatile)
+      if (indexes_desc->indexesDesc()->isVolatile())
 	{
 	  ComObjectName con(extIndexName);
 	  extIndexName = con.getObjectNamePartAsAnsiString();
@@ -4608,12 +4592,12 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
       if (partFunc)
 	numberOfFiles = partFunc->getCountOfPartitions();
 
-      CMPASSERT(indexes_desc->body.indexes_desc.blocksize > 0);
+      CMPASSERT(indexes_desc->indexesDesc()->blocksize > 0);
 
       NAList<HbaseCreateOption*>* hbaseCreateOptions = NULL;
-      if ((indexes_desc->body.indexes_desc.hbaseCreateOptions) &&
+      if ((indexes_desc->indexesDesc()->hbaseCreateOptions) &&
           (CmpSeabaseDDL::genHbaseCreateOptions
-           (indexes_desc->body.indexes_desc.hbaseCreateOptions,
+           (indexes_desc->indexesDesc()->hbaseCreateOptions,
             hbaseCreateOptions,
             heap,
             NULL,
@@ -4628,16 +4612,13 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
       newIndex = new (heap)
 	NAFileSet(
 		  qualIndexName, // QN containing "\NSK.$VOL", FUNNYSV, FUNNYNM
-		  //(indexes_desc->body.indexes_desc.isVolatile ?
 		  qualExtIndexName, // :
-		  //qualIndexName),
 		  extIndexName,	 // string containing Ansi name CAT.SCH."indx"
-		  files_desc ? files_desc->body.files_desc.fileorganization
-		             : KEY_SEQUENCED_FILE,
+		  KEY_SEQUENCED_FILE,
 		  isSystemTable,
 		  numberOfFiles,
-		  MAXOF(table_desc->body.table_desc.rowcount,0),
-                  indexes_desc->body.indexes_desc.record_length,
+		  100,
+                  indexes_desc->indexesDesc()->record_length,
                   blockSize,
 		  indexLevels,
 		  allColumns,
@@ -4645,91 +4626,82 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
 		  partitioningKeyColumns,
                   noHiveSortColumns,
 		  partFunc,
-		  indexes_desc->body.indexes_desc.keytag,
-		  uint32ArrayToInt64(
-		       indexes_desc->body.indexes_desc.redeftime),
-		  files_desc ? files_desc->body.files_desc.audit : 0,
-		  files_desc ? files_desc->body.files_desc.auditcompress : 0,
-		  files_desc ? files_desc->body.files_desc.compressed : 0,
-		  files_desc ? (ComCompressionType)files_desc->body.files_desc.dcompressed : COM_NO_COMPRESSION,
-		  files_desc ? files_desc->body.files_desc.icompressed : 0,
-		  files_desc ? files_desc->body.files_desc.buffered: 0,
-		  files_desc ? files_desc->body.files_desc.clearOnPurge: 0,
-		  isPacked,
+		  indexes_desc->indexesDesc()->keytag,
+                  0, 
+                  files_desc ? files_desc->filesDesc()->isAudited() : 0,
+                  0,
+                  0,
+                  COM_NO_COMPRESSION,
+                  0,
+                  0,
+                  0,
+                  isPacked,
                   hasRemotePartition,
-		  ((indexes_desc->body.indexes_desc.keytag != 0) &&
-		   (indexes_desc->body.indexes_desc.unique != 0)),
-                  files_desc ? files_desc->body.files_desc.decoupledPartitionKeyList: 0,
-                  files_desc ? files_desc->body.files_desc.fileCode : 0,
-		  (indexes_desc->body.indexes_desc.isVolatile != 0),
-		  (indexes_desc->body.indexes_desc.isInMemoryObjectDefn != 0),
-                  indexes_desc->body.indexes_desc.indexUID,
-                  indexes_desc->body.indexes_desc.keys_desc,
+                  ((indexes_desc->indexesDesc()->keytag != 0) &&
+                   (indexes_desc->indexesDesc()->isUnique())),
+                  0,
+                  0,
+                  (indexes_desc->indexesDesc()->isVolatile()),
+                  (indexes_desc->indexesDesc()->isInMemoryObject()),
+                  indexes_desc->indexesDesc()->indexUID,
+                  indexes_desc->indexesDesc()->keys_desc,
                   NULL, // no Hive stats
-                  indexes_desc->body.indexes_desc.numSaltPartns,
-                  indexes_desc->body.indexes_desc.numInitialSaltRegions,
+                  indexes_desc->indexesDesc()->numSaltPartns,
+                  indexes_desc->indexesDesc()->numInitialSaltRegions,
                   hbaseCreateOptions,
                   heap);
-
-      if (isNotAvailable)
-	newIndex->setNotAvailable(TRUE);
-
-      newIndex->setRowFormat(indexes_desc->body.indexes_desc.rowFormat);
-      // Mark each NAColumn in the list
-      indexKeyColumns.setIndexKey();
-      if ((table->isHbaseTable()) && (indexes_desc->body.indexes_desc.keytag != 0))
-        saveNAColumns.setIndexKey();
-
-      if (indexes_desc->body.indexes_desc.isCreatedExplicitly)
-	newIndex->setIsCreatedExplicitly(TRUE);
-
-      //if index is unique and is on one column, then mark column as unique
-      if ((indexes_desc->body.indexes_desc.unique) &&
-	  (indexKeyColumns.entries() == 1))
-        indexKeyColumns[0]->setIsUnique();
       
-      partitioningKeyColumns.setPartitioningKey();
+      if (isNotAvailable)
+         newIndex->setNotAvailable(TRUE);
 
-      // If it is a VP add it to the list of VPs.
-      // Otherwise, add it to the list of indices.
-      if (isVerticalPartition)
-        vertParts.insert(newIndex); // >>>> RETURN VALUE
-      else
-      {
-        indexes.insert(newIndex);
-      }
+       newIndex->setRowFormat(indexes_desc->indexesDesc()->rowFormat());
+       // Mark each NAColumn in the list
+       indexKeyColumns.setIndexKey();
+       if ((table->isHbaseTable()) && (indexes_desc->indexesDesc()->keytag != 0))
+         saveNAColumns.setIndexKey();
 
-      //
-      // advance to the next index
-      //
-      if (isTheClusteringKey)
-	{
-	  clusteringIndex = newIndex; // >>>> RETURN VALUE
-	  // switch to the alternate indexes by starting over again
-	  isTheClusteringKey = FALSE;
-	  indexes_desc = table_desc->body.table_desc.indexes_desc;
-	}
-      else
-	{
-	  // simply advance to the next in the list
-	  indexes_desc = indexes_desc->header.next;
-	}
+       if (indexes_desc->indexesDesc()->isExplicit())
+         newIndex->setIsCreatedExplicitly(TRUE);
 
-      // skip the clustering index, if we encounter it again
-      if (indexes_desc AND !indexes_desc->body.indexes_desc.keytag)
-	indexes_desc = indexes_desc->header.next;
-    } // end while (indexes_desc)
+       //if index is unique and is on one column, then mark column as unique
+       if ((indexes_desc->indexesDesc()->isUnique()) &&
+           (indexKeyColumns.entries() == 1))
+         indexKeyColumns[0]->setIsUnique();
 
-    // logic related to indexes hiding
-  return FALSE;
-} // static createNAFileSets()
-#pragma warn(1506)  // warning elimination
+       partitioningKeyColumns.setPartitioningKey();
 
+       indexes.insert(newIndex);
+
+       //
+       // advance to the next index
+       //
+       if (isTheClusteringKey)
+         {
+           clusteringIndex = newIndex; // >>>> RETURN VALUE
+           // switch to the alternate indexes by starting over again
+           isTheClusteringKey = FALSE;
+           indexes_desc = table_desc->tableDesc()->indexes_desc;
+         }
+       else
+         {
+           // simply advance to the next in the list
+           indexes_desc = indexes_desc->next;
+         }
+
+       // skip the clustering index, if we encounter it again
+       if (indexes_desc AND !indexes_desc->indexesDesc()->keytag)
+         indexes_desc = indexes_desc->next;
+     } // end while (indexes_desc)
+
+     // logic related to indexes hiding
+   return FALSE;
+ } // static createNAFileSets()
+ #pragma warn(1506)  // warning elimination
 
 // for Hive tables
 static
 NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
-                           desc_struct* extTableDesc      /*IN*/,
+                           TrafDesc* extTableDesc         /*IN*/,
                            const NATable * table          /*IN*/,
                            const NAColumnArray & colArray /*IN*/,
                            NAFileSetList & indexes        /*OUT*/,
@@ -5107,208 +5079,211 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
   return FALSE;
 } // static createNAFileSets()
 
-#pragma warn(1506)  // warning elimination
 
-// -----------------------------------------------------------------------
-// Mark columns named in PRIMARY KEY constraint (these will be different
-// from clustering key columns when the PK is droppable), for Binder error 4033.
-// -----------------------------------------------------------------------
-static void markPKCols(const constrnts_desc_struct * constrnt /*IN*/,
-		       const NAColumnArray& columnArray       /*IN*/)
-{
-  desc_struct *keycols_desc = constrnt->constr_key_cols_desc;
-  while (keycols_desc)
-    {
-      constrnt_key_cols_desc_struct *key =
-      				    &keycols_desc->body.constrnt_key_cols_desc;
-      // Lookup by name (not position: key->position is pos *within the PK*)
-      NAColumn *nacol = columnArray.getColumn(key->colname);
-      if(nacol != NULL)
-	nacol->setPrimaryKey();
-      keycols_desc = keycols_desc->header.next;
-    }
-} // static markPKCols
-
-// -----------------------------------------------------------------------
-// Insert MP CHECK CONSTRAINT text into NATable::checkConstraints_.
-// -----------------------------------------------------------------------
-static NABoolean
-createConstraintInfo(const desc_struct * table_desc        /*IN*/,
-                     const QualifiedName& tableQualName    /*IN*/,
-                     const NAColumnArray& columnArray      /*IN*/,
-                     CheckConstraintList& checkConstraints /*OUT*/,
-                     AbstractRIConstraintList& uniqueConstraints,
-                     AbstractRIConstraintList& refConstraints,
-                     NAMemory* heap,
-                     BindWA *bindWA)
-{
-  desc_struct *constrnts_desc = table_desc->body.table_desc.constrnts_desc;
-
-  while (constrnts_desc)
-    {
-      constrnts_desc_struct *constrntHdr = &constrnts_desc->body.constrnts_desc;
-
-      Int32 minNameParts=3;
-
-
-      QualifiedName constrntName(constrntHdr->constrntname, minNameParts, (NAMemory*)0, bindWA);
-
-      if (constrntName.numberExpanded() == 0) {
-        // There was an error parsing the name of the constraint (see
-        // QualifiedName ctor).  Return TRUE indicating an error.
-        //
-        return TRUE;
-      }
-
-      switch (constrntHdr->type)
-	{
-
-	case PRIMARY_KEY_CONSTRAINT:
-	  markPKCols(constrntHdr, columnArray);
-
-	case UNIQUE_CONSTRAINT:	  {
-
-	    UniqueConstraint *uniqueConstraint = new (heap)
-	      UniqueConstraint(constrntName, tableQualName, heap,
-                               (constrntHdr->type == PRIMARY_KEY_CONSTRAINT));
-            uniqueConstraint->setKeyColumns(constrntHdr, heap);
-
-	    uniqueConstraint->setRefConstraintsReferencingMe(constrntHdr, heap, bindWA);
-	    uniqueConstraints.insert(uniqueConstraint);
-	}
-	break;
-	case REF_CONSTRAINT:
-	  {
-	    char *refConstrntName = constrntHdr->referenced_constrnts_desc->
-	      body.ref_constrnts_desc.constrntname;
-	    char *refTableName = constrntHdr->referenced_constrnts_desc->
-	      body.ref_constrnts_desc.tablename;
-
-	    QualifiedName refConstrnt(refConstrntName, 3, (NAMemory*)0, bindWA);
-	    QualifiedName refTable(refTableName, 3, (NAMemory*)0, bindWA);
-
-	    RefConstraint *refConstraint = new (heap)
-	      RefConstraint(constrntName, tableQualName,
-			    refConstrnt, refTable, heap);
-
-	    refConstraint->setKeyColumns(constrntHdr, heap);
-	    refConstraint->setIsEnforced((constrntHdr->isEnforced == 1));
-
-	    refConstraints.insert(refConstraint);
-	  }
-	break;
-	case CHECK_CONSTRAINT:
-	case MP_CHECK_CONSTRAINT:
-	  {
-	    char *constrntText = constrntHdr->check_constrnts_desc->
-		 	         body.check_constrnts_desc.constrnt_text;
-	    checkConstraints.insert(new (heap)
-	      CheckConstraint(constrntName, constrntText, heap));
-	  }
-          break;
-        default:
-          CMPASSERT(FALSE);
-	}
-
-      constrnts_desc = constrnts_desc->header.next;
-    }
-
-  // return FALSE, indicating no error.
-  //
-  return FALSE;
-
-} // static createConstraintInfo()
-
-ULng32 hashColPosList(const CollIndexSet &colSet)
-{
-  return colSet.hash();
-}
-
-
-// ----------------------------------------------------------------------------
-// method: lookupObjectUidByName
-//
-// Calls DDL manager to get the object UID for the specified object
-//
-// params:
-//    qualName - name of object to lookup
-//    objectType - type of object
-//    reportError - whether to set diags area when not found
-//
-// returns:
-//   -1 -> error found trying to read metadata including object not found
-//   UID of found object
-//
-// the diags area contains details of any error detected
-//
-// ----------------------------------------------------------------------------      
-static Int64 lookupObjectUidByName( const QualifiedName& qualName
-                                  , ComObjectType objectType
-                                  , NABoolean reportError
-                                  )
-{
-  ExeCliInterface cliInterface(STMTHEAP);
-  Int64 objectUID = 0;
-
-  CmpSeabaseDDL cmpSBD(STMTHEAP);
-  if (cmpSBD.switchCompiler(CmpContextInfo::CMPCONTEXT_TYPE_META))
-    {
-      if (CmpCommon::diags()->getNumber(DgSqlCode::ERROR_) == 0)
-        *CmpCommon::diags() << DgSqlCode( -4400 );
-
-      return -1;
-    }
-
-  objectUID = cmpSBD.getObjectUID(&cliInterface,
-                                  qualName.getCatalogName().data(),
-                                  qualName.getSchemaName().data(),
-                                  qualName.getObjectName().data(),
-                                  comObjectTypeLit(objectType),
-                                  NULL,
-                                  NULL,
-                                  FALSE,
-                                  reportError);
-
-  cmpSBD.switchBackCompiler();
-
-  return objectUID;
-}
-
-NABoolean NATable::fetchObjectUIDForNativeTable(const CorrName& corrName)
-{
-   NAString adjustedName = ComConvertNativeNameToTrafName
-         (corrName.getQualifiedNameObj().getCatalogName(),
-          corrName.getQualifiedNameObj().getUnqualifiedSchemaNameAsAnsiString(),
-          corrName.getQualifiedNameObj().getUnqualifiedObjectNameAsAnsiString());
-   QualifiedName extObjName (adjustedName, 3, STMTHEAP);
-
-   objectUID_ = lookupObjectUidByName(extObjName, COM_BASE_TABLE_OBJECT, FALSE);
-
-   // If the objectUID is not found, then the table is not externally defined
-   // in Trafodion, set the objectUID to 0
-   // If an unexpected error occurs, then return with the error
-   if (objectUID_ <= 0)
+ // -----------------------------------------------------------------------
+ // Mark columns named in PRIMARY KEY constraint (these will be different
+ // from clustering key columns when the PK is droppable), for Binder error 4033.
+ // -----------------------------------------------------------------------
+ static void markPKCols(const TrafConstrntsDesc * constrnt /*IN*/,
+                        const NAColumnArray& columnArray       /*IN*/)
+ {
+   TrafDesc *keycols_desc = constrnt->constr_key_cols_desc;
+   while (keycols_desc)
      {
-       if (CmpCommon::diags()->mainSQLCODE() < 0)
-         return FALSE;
-       else
-         objectUID_ = 0;
+       TrafConstrntKeyColsDesc *key =
+         keycols_desc->constrntKeyColsDesc();
+       // Lookup by name (not position: key->position is pos *within the PK*)
+       NAColumn *nacol = columnArray.getColumn(key->colname);
+       if(nacol != NULL)
+         nacol->setPrimaryKey();
+       keycols_desc = keycols_desc->next;
+     }
+ } // static markPKCols
+
+ // -----------------------------------------------------------------------
+ // Insert MP CHECK CONSTRAINT text into NATable::checkConstraints_.
+ // -----------------------------------------------------------------------
+ static NABoolean
+ createConstraintInfo(const TrafDesc * table_desc        /*IN*/,
+                      const QualifiedName& tableQualName    /*IN*/,
+                      const NAColumnArray& columnArray      /*IN*/,
+                      CheckConstraintList& checkConstraints /*OUT*/,
+                      AbstractRIConstraintList& uniqueConstraints,
+                      AbstractRIConstraintList& refConstraints,
+                      NAMemory* heap,
+                      BindWA *bindWA)
+ {
+   TrafDesc *constrnts_desc = table_desc->tableDesc()->constrnts_desc;
+
+   while (constrnts_desc)
+     {
+       TrafConstrntsDesc *constrntHdr = constrnts_desc->constrntsDesc();
+
+       Int32 minNameParts=3;
+
+       QualifiedName constrntName(constrntHdr->constrntname, minNameParts, (NAMemory*)0, bindWA);
+
+       if (constrntName.numberExpanded() == 0) {
+         // There was an error parsing the name of the constraint (see
+         // QualifiedName ctor).  Return TRUE indicating an error.
+         //
+         return TRUE;
+       }
+
+       switch (constrntHdr->type)
+         {
+
+         case PRIMARY_KEY_CONSTRAINT:
+           markPKCols(constrntHdr, columnArray);
+
+         case UNIQUE_CONSTRAINT:	  {
+
+             UniqueConstraint *uniqueConstraint = new (heap)
+               UniqueConstraint(constrntName, tableQualName, heap,
+                                (constrntHdr->type == PRIMARY_KEY_CONSTRAINT));
+             uniqueConstraint->setKeyColumns(constrntHdr, heap);
+
+             uniqueConstraint->setRefConstraintsReferencingMe(constrntHdr, heap, bindWA);
+             uniqueConstraints.insert(uniqueConstraint);
+         }
+         break;
+         case REF_CONSTRAINT:
+           {
+             char *refConstrntName = constrntHdr->referenced_constrnts_desc->
+               refConstrntsDesc()->constrntname;
+             char *refTableName = constrntHdr->referenced_constrnts_desc->
+               refConstrntsDesc()->tablename;
+
+             QualifiedName refConstrnt(refConstrntName, 3, (NAMemory*)0, bindWA);
+             QualifiedName refTable(refTableName, 3, (NAMemory*)0, bindWA);
+
+             RefConstraint *refConstraint = new (heap)
+               RefConstraint(constrntName, tableQualName,
+                             refConstrnt, refTable, heap);
+
+             refConstraint->setKeyColumns(constrntHdr, heap);
+             refConstraint->setIsEnforced(constrntHdr->isEnforced());
+
+             refConstraints.insert(refConstraint);
+           }
+         break;
+         case CHECK_CONSTRAINT:
+           {
+             char *constrntText = constrntHdr->check_constrnts_desc->
+                                  checkConstrntsDesc()->constrnt_text;
+             checkConstraints.insert(new (heap)
+               CheckConstraint(constrntName, constrntText, heap));
+           }
+           break;
+         default:
+           CMPASSERT(FALSE);
+         }
+
+       constrnts_desc = constrnts_desc->next;
      }
 
-   return TRUE;
-}
+   // return FALSE, indicating no error.
+   //
+   return FALSE;
+
+ } // static createConstraintInfo()
+
+ ULng32 hashColPosList(const CollIndexSet &colSet)
+ {
+   return colSet.hash();
+ }
+
+
+ // ----------------------------------------------------------------------------
+ // method: lookupObjectUidByName
+ //
+ // Calls DDL manager to get the object UID for the specified object
+ //
+ // params:
+ //    qualName - name of object to lookup
+ //    objectType - type of object
+ //    reportError - whether to set diags area when not found
+ //
+ // returns:
+ //   -1 -> error found trying to read metadata including object not found
+ //   UID of found object
+ //
+ // the diags area contains details of any error detected
+ //
+ // ----------------------------------------------------------------------------      
+ static Int64 lookupObjectUidByName( const QualifiedName& qualName
+                                   , ComObjectType objectType
+                                   , NABoolean reportError
+                                   )
+ {
+   ExeCliInterface cliInterface(STMTHEAP);
+   Int64 objectUID = 0;
+
+   CmpSeabaseDDL cmpSBD(STMTHEAP);
+   if (cmpSBD.switchCompiler(CmpContextInfo::CMPCONTEXT_TYPE_META))
+     {
+       if (CmpCommon::diags()->getNumber(DgSqlCode::ERROR_) == 0)
+         *CmpCommon::diags() << DgSqlCode( -4400 );
+
+       return -1;
+     }
+
+   objectUID = cmpSBD.getObjectUID(&cliInterface,
+                                   qualName.getCatalogName().data(),
+                                   qualName.getSchemaName().data(),
+                                   qualName.getObjectName().data(),
+                                   comObjectTypeLit(objectType),
+                                   NULL,
+                                   NULL,
+                                   FALSE,
+                                   reportError);
+
+   cmpSBD.switchBackCompiler();
+
+   return objectUID;
+ }
+
+ NABoolean NATable::fetchObjectUIDForNativeTable(const CorrName& corrName)
+ {
+    NAString adjustedName = ComConvertNativeNameToTrafName
+          (corrName.getQualifiedNameObj().getCatalogName(),
+           corrName.getQualifiedNameObj().getUnqualifiedSchemaNameAsAnsiString(),
+           corrName.getQualifiedNameObj().getUnqualifiedObjectNameAsAnsiString());
+    QualifiedName extObjName (adjustedName, 3, STMTHEAP);
+
+    objectUID_ = lookupObjectUidByName(extObjName, COM_BASE_TABLE_OBJECT, FALSE);
+
+    // If the objectUID is not found, then the table is not externally defined
+    // in Trafodion, set the objectUID to 0
+    // If an unexpected error occurs, then return with the error
+    if (objectUID_ <= 0)
+      {
+        if (CmpCommon::diags()->mainSQLCODE() < 0)
+          return FALSE;
+        else
+          objectUID_ = 0;
+      }
+
+    return TRUE;
+ }
+
+ // -----------------------------------------------------------------------
+ // NATable::NATable() constructor
+ // -----------------------------------------------------------------------
+
+ const Lng32 initHeapSize = 32 * 1024;		// ## 32K: tune this someday!
 
 // -----------------------------------------------------------------------
 // NATable::NATable() constructor
 // -----------------------------------------------------------------------
 
-const Lng32 initHeapSize = 32 * 1024;		// ## 32K: tune this someday!
+//const Lng32 initHeapSize = 32 * 1024;		// ## 32K: tune this someday!
 
 #pragma nowarn(770)  // warning elimination
 NATable::NATable(BindWA *bindWA,
                  const CorrName& corrName,
 		 NAMemory *heap,
-		 desc_struct* inTableDesc)
+		 TrafDesc* inTableDesc)
   //
   // The NATable heap ( i.e. heap_ ) used to come from ContextHeap
   // (i.e. heap) but it creates high memory usage/leakage in Context
@@ -5434,7 +5409,7 @@ NATable::NATable(BindWA *bindWA,
 
   // Do a readTableDef, if table descriptor has not been passed in
   //
-  desc_struct * table_desc;
+  TrafDesc * table_desc;
   Int32 *maxIndexLevelsPtr = new (STMTHEAP) Int32;
   if (!inTableDesc)
     {
@@ -5448,110 +5423,106 @@ NATable::NATable(BindWA *bindWA,
       // DESCRIBE, RESOURCE_FORK, etc are to be created.
       table_desc = inTableDesc;
 
-      // Need to initialize the maxIndexLevelsPtr field
-      *maxIndexLevelsPtr = 1;
-    }
+       // Need to initialize the maxIndexLevelsPtr field
+       *maxIndexLevelsPtr = 1;
+     }
 
-  if ((corrName.isHbase()) || (corrName.isSeabase()))
-    {
-      setIsHbaseTable(TRUE); 
-      setIsSeabaseTable(corrName.isSeabase());
-      setIsHbaseCellTable(corrName.isHbaseCell());
-      setIsHbaseRowTable(corrName.isHbaseRow());
-      setIsSeabaseMDTable(corrName.isSeabaseMD());
-    }
+   if ((corrName.isHbase()) || (corrName.isSeabase()))
+     {
+       setIsHbaseTable(TRUE); 
+       setIsSeabaseTable(corrName.isSeabase());
+       setIsHbaseCellTable(corrName.isHbaseCell());
+       setIsHbaseRowTable(corrName.isHbaseRow());
+       setIsSeabaseMDTable(corrName.isSeabaseMD());
+     }
 
-  // Check if the synonym name translation to reference object has been done.
-  if (table_desc->body.table_desc.isSynonymNameTranslationDone)
-  {
-    isSynonymTranslationDone_ = TRUE;
-    NAString synonymReferenceName(table_desc->body.table_desc.tablename);
-    synonymReferenceName_ = synonymReferenceName;
-    ComUID uid(table_desc->body.table_desc.objectUID[0]*0x100000000LL +
-               table_desc->body.table_desc.objectUID[1]);
-    synonymReferenceObjectUid_ = uid;
-  }
-  // Check if it is a UMD table, or SMD table or MV related UMD object
-  // and set cll correcsponding flags to indicate this.
-  if (table_desc->body.table_desc.isUMDTable)
-  {
-     isUMDTable_ = TRUE;
-  }
+   // Check if the synonym name translation to reference object has been done.
+   if (table_desc->tableDesc()->isSynonymTranslationDone())
+   {
+     isSynonymTranslationDone_ = TRUE;
+     NAString synonymReferenceName(table_desc->tableDesc()->tablename);
+     synonymReferenceName_ = synonymReferenceName;
+     ComUID uid(table_desc->tableDesc()->objectUID);
+     synonymReferenceObjectUid_ = uid;
+   }
+   // Check if it is a UMD table, or SMD table or MV related UMD object
+   // and set cll correcsponding flags to indicate this.
+   if (table_desc->tableDesc()->isUMDTable())
+   {
+      isUMDTable_ = TRUE;
+   }
 
-  if (table_desc->body.table_desc.issystemtablecode)
-  {
-     isSMDTable_ = TRUE;
-  }
+   if (table_desc->tableDesc()->isSystemTableCode())
+   {
+      isSMDTable_ = TRUE;
+   }
 
-  if (table_desc->body.table_desc.isMVMetaDataObject)
-  {
-     isMVUMDTable_ = TRUE;
-  }
+   if (table_desc->tableDesc()->isMVMetadataObject())
+   {
+      isMVUMDTable_ = TRUE;
+   }
 
-  isTrigTempTable_ = (qualifiedName_.getSpecialType() == ExtendedQualName::TRIGTEMP_TABLE);
+   isTrigTempTable_ = (qualifiedName_.getSpecialType() == ExtendedQualName::TRIGTEMP_TABLE);
 
-  switch(table_desc->body.table_desc.rowFormat)
-    {
-    case COM_PACKED_FORMAT_TYPE:
-      setSQLMXTable(TRUE);
-      break;
-    case COM_ALIGNED_FORMAT_TYPE:
-      setSQLMXAlignedTable(TRUE);
-      break;
-    case COM_HBASE_FORMAT_TYPE:
-    case COM_UNKNOWN_FORMAT_TYPE:
-      break;
-    }
+   switch(table_desc->tableDesc()->rowFormat())
+     {
+     case COM_PACKED_FORMAT_TYPE:
+       setSQLMXTable(TRUE);
+       break;
+     case COM_ALIGNED_FORMAT_TYPE:
+       setSQLMXAlignedTable(TRUE);
+       break;
+     case COM_HBASE_FORMAT_TYPE:
+     case COM_UNKNOWN_FORMAT_TYPE:
+       break;
+     }
 
-  if (table_desc->body.table_desc.isVolatile)
-  {
-    setVolatileTable( TRUE );
-  }
+   if (table_desc->tableDesc()->isVolatileTable())
+   {
+     setVolatileTable( TRUE );
+   }
 
-  if (table_desc->body.table_desc.isInMemoryObjectDefn)
-  {
-    setInMemoryObjectDefn( TRUE );
-  }
+   if (table_desc->tableDesc()->isInMemoryObject())
+   {
+     setInMemoryObjectDefn( TRUE );
+   }
 
-  if (table_desc->body.table_desc.isDroppable)
-  {
-    setDroppableTable( TRUE );
-  }
+   if (table_desc->tableDesc()->isDroppable())
+   {
+     setDroppableTable( TRUE );
+   }  
 
-  if (table_desc->body.table_desc.xn_repl != 0)
-    {
-      if ((ComReplType)table_desc->body.table_desc.xn_repl == COM_REPL_SYNC)
-        setXnRepl(COM_REPL_SYNC);
-      else if ((ComReplType)table_desc->body.table_desc.xn_repl == COM_REPL_ASYNC)
-        setXnRepl(COM_REPL_ASYNC);
-    }
-
-  setStorageType(table_desc->body.table_desc.storageType);
-
-  if (corrName.isExternal())
-  {
-    setIsExternalTable(TRUE);
-  }
- 
+   setStorageType(table_desc->tableDesc()->storageType());
+   
+   if ((ComReplType)table_desc->tableDesc()->isXnReplSync())    
+     setXnRepl(COM_REPL_SYNC);
+   else if ((ComReplType)table_desc->tableDesc()->isXnReplAsync())
+     setXnRepl(COM_REPL_ASYNC);
+   
+   if (corrName.isExternal())
+     {
+       setIsExternalTable(TRUE);
+     }
+   
   if (qualifiedName_.getQualifiedNameObj().isHistograms() || 
       qualifiedName_.getQualifiedNameObj().isHistogramIntervals())
   {
     setIsHistogramTable(TRUE);
   }
  
-  insertMode_ = table_desc->body.table_desc.insertMode;
+  insertMode_ = table_desc->tableDesc()->insertMode();
 
-  setRecordLength(table_desc->body.table_desc.record_length);
+  setRecordLength(table_desc->tableDesc()->record_length);
   //
   // Add timestamp information.
   //
-  createTime_ = uint32ArrayToInt64(table_desc->body.table_desc.createtime);
-  redefTime_  = uint32ArrayToInt64(table_desc->body.table_desc.redeftime);
-  cacheTime_  = uint32ArrayToInt64(table_desc->body.table_desc.cachetime);
+  createTime_ = table_desc->tableDesc()->createTime;
+  redefTime_  = table_desc->tableDesc()->redefTime;
+  cacheTime_  = table_desc->tableDesc()->cacheTime;
 
-  catalogUID_ = uint32ArrayToInt64(table_desc->body.table_desc.catUID);
-  schemaUID_ = uint32ArrayToInt64(table_desc->body.table_desc.schemaUID);
-  objectUID_ = uint32ArrayToInt64(table_desc->body.table_desc.objectUID);
+  catalogUID_ = table_desc->tableDesc()->catUID;
+  schemaUID_ = table_desc->tableDesc()->schemaUID;
+  objectUID_ = table_desc->tableDesc()->objectUID;
 
   // Set the objectUID_ for hbase Cell and Row tables, if the table has
   // been defined in Trafodion use this value, otherwise, set to 0
@@ -5564,63 +5535,52 @@ NATable::NATable(BindWA *bindWA,
         setHasExternalTable(TRUE);
     }
 
-  if (table_desc->body.table_desc.owner)
+  if (table_desc->tableDesc()->owner)
     {
-      Int32 userInfo (table_desc->body.table_desc.owner);
+      Int32 userInfo (table_desc->tableDesc()->owner);
       owner_ = userInfo;
     }
-  if (table_desc->body.table_desc.schemaOwner)
+  if (table_desc->tableDesc()->schemaOwner)
     {
-      Int32 schemaUser(table_desc->body.table_desc.schemaOwner);
+      Int32 schemaUser(table_desc->tableDesc()->schemaOwner);
       schemaOwner_ = schemaUser;
     }
 
-  objectType_ = table_desc->body.table_desc.objectType;
-  partitioningScheme_ = table_desc->body.table_desc.partitioningScheme;
+  objectType_ = table_desc->tableDesc()->objectType();
+  partitioningScheme_ = table_desc->tableDesc()->partitioningScheme();
 
   // Set up privs
   if ((corrName.getSpecialType() == ExtendedQualName::SG_TABLE) ||
       (!(corrName.isSeabaseMD() || corrName.isSpecialTable())))
      setupPrivInfo();
 
-  if ((table_desc->body.table_desc.objectFlags & SEABASE_OBJECT_IS_EXTERNAL_HIVE) != 0 ||
-      (table_desc->body.table_desc.objectFlags & SEABASE_OBJECT_IS_EXTERNAL_HBASE) != 0)
+  if ((table_desc->tableDesc()->objectFlags & SEABASE_OBJECT_IS_EXTERNAL_HIVE) != 0 ||
+      (table_desc->tableDesc()->objectFlags & SEABASE_OBJECT_IS_EXTERNAL_HBASE) != 0)
     setIsExternalTable(TRUE);
 
   if (CmpSeabaseDDL::isMDflagsSet
-      (table_desc->body.table_desc.tablesFlags, MD_TABLES_HIVE_EXT_COL_ATTRS))
+      (table_desc->tableDesc()->tablesFlags, MD_TABLES_HIVE_EXT_COL_ATTRS))
     setHiveExtColAttrs(TRUE);
   if (CmpSeabaseDDL::isMDflagsSet
-      (table_desc->body.table_desc.tablesFlags, MD_TABLES_HIVE_EXT_KEY_ATTRS))
+      (table_desc->tableDesc()->tablesFlags, MD_TABLES_HIVE_EXT_KEY_ATTRS))
     setHiveExtKeyAttrs(TRUE);
 
-  rcb_ = table_desc->body.table_desc.rcb;
-  rcbLen_ = table_desc->body.table_desc.rcbLen;
-  keyLength_ = table_desc->body.table_desc.keyLen;
-
-  if (table_desc->body.table_desc.parentTableName)
-    {
-      parentTableName_ =
-	new(heap_) char[strlen(table_desc->body.table_desc.parentTableName) + 1];
-      strcpy(parentTableName_, table_desc->body.table_desc.parentTableName);
-    }
-
-  if (table_desc->body.table_desc.snapshotName)
+  if (table_desc->tableDesc()->snapshotName)
     {
     snapshotName_ =
-        new(heap_) char[strlen(table_desc->body.table_desc.snapshotName) + 1];
-      strcpy(snapshotName_, table_desc->body.table_desc.snapshotName);
+        new(heap_) char[strlen(table_desc->tableDesc()->snapshotName) + 1];
+      strcpy(snapshotName_, table_desc->tableDesc()->snapshotName);
     }
 
-  if (table_desc->body.table_desc.default_col_fam)
-    defaultColFam_ = table_desc->body.table_desc.default_col_fam;
+  if (table_desc->tableDesc()->default_col_fam)
+    defaultColFam_ = table_desc->tableDesc()->default_col_fam;
 
-  if (table_desc->body.table_desc.all_col_fams)
+  if (table_desc->tableDesc()->all_col_fams)
     {
       // Space delimited col families.
       
       string buf; // Have a buffer string
-      stringstream ss(table_desc->body.table_desc.all_col_fams); // Insert the string into a stream
+      stringstream ss(table_desc->tableDesc()->all_col_fams); // Insert the string into a stream
       
       while (ss >> buf)
         {
@@ -5630,14 +5590,14 @@ NATable::NATable(BindWA *bindWA,
   else
     allColFams_.insert(defaultColFam_);
 
-  desc_struct * files_desc = table_desc->body.table_desc.files_desc;
+  TrafDesc * files_desc = table_desc->tableDesc()->files_desc;
 
   // Some objects don't have a file_desc set up (e.g. views)
   // Therefore, only setup the partnsDesc_ if this is a partitionable object
   if (files_desc)
   {
-     if (files_desc->body.files_desc.partns_desc)
-       partnsDesc_ = files_desc->body.files_desc.partns_desc;
+     if (files_desc->filesDesc()->partns_desc)
+       partnsDesc_ = files_desc->filesDesc()->partns_desc;
   }
   else
      partnsDesc_ = NULL;
@@ -5646,7 +5606,7 @@ NATable::NATable(BindWA *bindWA,
   // Insert a NAColumn in the colArray_ for this NATable for each
   // columns_desc from the ARK SMD. Returns TRUE if error creating NAColumns.
   //
-  if (createNAColumns(table_desc->body.table_desc.columns_desc,
+  if (createNAColumns(table_desc->tableDesc()->columns_desc,
 		      this,
 		      colArray_ /*OUT*/,
 		      heap_))
@@ -5656,24 +5616,24 @@ NATable::NATable(BindWA *bindWA,
   //
   // Add view information, if this is a view
   //
-  desc_struct *view_desc = table_desc->body.table_desc.views_desc;
+  TrafDesc *view_desc = table_desc->tableDesc()->views_desc;
   if (view_desc)
     {
-      viewText_ = new (heap_) char[strlen(view_desc->body.view_desc.viewtext) + 2];
-      strcpy(viewText_, view_desc->body.view_desc.viewtext);
+      viewText_ = new (heap_) char[strlen(view_desc->viewDesc()->viewtext) + 2];
+      strcpy(viewText_, view_desc->viewDesc()->viewtext);
       strcat(viewText_, ";");
 
-      viewTextCharSet_ = (CharInfo::CharSet)view_desc->body.view_desc.viewtextcharset;
+      viewTextCharSet_ = (CharInfo::CharSet)view_desc->viewDesc()->viewtextcharset;
 
       viewCheck_    = NULL; //initialize
-      if(view_desc->body.view_desc.viewchecktext){
-        UInt32 viewCheckLength = str_len(view_desc->body.view_desc.viewchecktext)+1;
+      if(view_desc->viewDesc()->viewchecktext){
+        UInt32 viewCheckLength = str_len(view_desc->viewDesc()->viewchecktext)+1;
         viewCheck_ = new (heap_) char[ viewCheckLength];
-        memcpy(viewCheck_, view_desc->body.view_desc.viewchecktext,
+        memcpy(viewCheck_, view_desc->viewDesc()->viewchecktext,
                viewCheckLength);
       }
-      setUpdatable(view_desc->body.view_desc.updatable);
-      setInsertable(view_desc->body.view_desc.insertable);
+      setUpdatable(view_desc->viewDesc()->isUpdatable());
+      setInsertable(view_desc->viewDesc()->isInsertable());
 
       //
       // The updatable flag is false for an MP view only if it is NOT a
@@ -5682,10 +5642,10 @@ NATable::NATable(BindWA *bindWA,
       //
 
       viewFileName_ = NULL;
-      CMPASSERT(view_desc->body.view_desc.viewfilename);
-      UInt32 viewFileNameLength = str_len(view_desc->body.view_desc.viewfilename) + 1;
+      CMPASSERT(view_desc->viewDesc()->viewfilename);
+      UInt32 viewFileNameLength = str_len(view_desc->viewDesc()->viewfilename) + 1;
       viewFileName_ = new (heap_) char[viewFileNameLength];
-      memcpy(viewFileName_, view_desc->body.view_desc.viewfilename,
+      memcpy(viewFileName_, view_desc->viewDesc()->viewfilename,
 	     viewFileNameLength);
     }
   else
@@ -5751,8 +5711,8 @@ NATable::NATable(BindWA *bindWA,
   // Set colcount_ after all possible errors (Binder uses nonzero colcount
   // as an indicator of valid table definition).
   //
-  CMPASSERT(table_desc->body.table_desc.colcount >= 0);   // CollIndex cast ok?
-  colcount_ = (CollIndex)table_desc->body.table_desc.colcount;
+  CMPASSERT(table_desc->tableDesc()->colcount >= 0);   // CollIndex cast ok?
+  colcount_ = (CollIndex)table_desc->tableDesc()->colcount;
 
   // If there is a host variable associated with this table, store it
   // for use by the generator to generate late-name resolution information.
@@ -5762,22 +5722,22 @@ NATable::NATable(BindWA *bindWA,
 
   // MV
   // Initialize the MV support data members
-  isAnMV_           = table_desc->body.table_desc.isMVtable;
-  isAnMVMetaData_   = table_desc->body.table_desc.isMVMetaDataObject;
-  mvAttributeBitmap_.initBitmap(table_desc->body.table_desc.mvAttributesBitmap);
+  isAnMV_           = table_desc->tableDesc()->isMVTable();
+  isAnMVMetaData_   = table_desc->tableDesc()->isMVMetadataObject();
+  mvAttributeBitmap_.initBitmap(table_desc->tableDesc()->mvAttributesBitmap);
 
-  desc_struct *mvs_desc = table_desc->body.table_desc.using_mvs_desc;
+  TrafDesc *mvs_desc = NULL; // using mvs not set or returned for traf tables
 // Memory Leak
   while (mvs_desc)
   {
-    using_mv_desc_struct *mv = &mvs_desc->body.using_mv_desc;
+    TrafUsingMvDesc* mv = mvs_desc->usingMvDesc();
 
     UsingMvInfo *usingMv = new(heap_)
-        UsingMvInfo(mv->mvName, mv->refreshType, mv->rewriteEnabled,
+      UsingMvInfo(mv->mvName, mv->refreshType(), mv->rewriteEnabled,
                     mv->isInitialized, heap_);
     mvsUsingMe_.insert(usingMv);
 
-    mvs_desc = mvs_desc->header.next;
+    mvs_desc = mvs_desc->next;
   }
 
   // ++MV
@@ -5810,9 +5770,9 @@ NATable::NATable(BindWA *bindWA,
   // --MV
 
   // Initialize the sequence generator fields
-  desc_struct *sequence_desc = table_desc->body.table_desc.sequence_generator_desc;
+  TrafDesc *sequence_desc = table_desc->tableDesc()->sequence_generator_desc;
   if (sequence_desc != NULL) {
-    sequence_generator_desc_struct *sg_desc = &sequence_desc->body.sequence_generator_desc;
+    TrafSequenceGeneratorDesc *sg_desc = sequence_desc->sequenceGeneratorDesc();
     
     if (sg_desc != NULL)
       {
@@ -5822,9 +5782,9 @@ NATable::NATable(BindWA *bindWA,
 						 sg_desc->increment,
 						 sg_desc->maxValue,
 						 sg_desc->minValue,
-						 sg_desc->sgType,
-						 sg_desc->sqlDataType,
-						 sg_desc->fsDataType,
+						 sg_desc->sgType(),
+						 (ComSQLDataType)sg_desc->sqlDataType,
+						 (ComFSDataType)sg_desc->fsDataType,
 						 sg_desc->cycleOption,
                                                  FALSE,
 						 sg_desc->objectUID,
@@ -6056,7 +6016,7 @@ NATable::NATable(BindWA *bindWA,
                  const CorrName& corrName,
 		 NAMemory *heap,
 		 struct hive_tbl_desc* htbl,
-                 desc_struct* extTableDesc)
+                 TrafDesc* extTableDesc)
   //
   // The NATable heap ( i.e. heap_ ) used to come from ContextHeap
   // (i.e. heap) but it creates high memory usage/leakage in Context
@@ -6193,9 +6153,9 @@ NATable::NATable(BindWA *bindWA,
 
   // To get from Hive
 /*
-  createTime_ = longArrayToInt64(table_desc->body.table_desc.createtime);
-  redefTime_  = longArrayToInt64(table_desc->body.table_desc.redeftime);
-  cacheTime_  = longArrayToInt64(table_desc->body.table_desc.cachetime);
+  createTime_ = longArrayToInt64(table_desc->tableDesc()->createtime);
+  redefTime_  = longArrayToInt64(table_desc->tableDesc()->redeftime);
+  cacheTime_  = longArrayToInt64(table_desc->tableDesc()->cachetime);
 */
 
   // NATable has a schemaUID column, probably should propogate it.
@@ -8445,7 +8405,7 @@ NABoolean NATableDB::isSQUmdTable(CorrName& corrName)
 }
   
 NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
-                         desc_struct *inTableDescStruct){
+                         TrafDesc *inTableDescStruct){
 
   //check cache to see if a cached NATable object exists
   NATable *table = get(&corrName.getExtendedQualNameObj(), bindWA);  
@@ -8541,7 +8501,7 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
       // ------------------------------------------------------------------
       // Create an NATable object for a Trafodion/HBase table
       // ------------------------------------------------------------------
-      desc_struct *tableDesc = NULL;
+      TrafDesc *tableDesc = NULL;
 
       NABoolean isSeabase = FALSE;
       NABoolean isSeabaseMD = FALSE;
@@ -8736,7 +8696,7 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
                     corrName.getQualifiedNameObj().getObjectName());
                
                QualifiedName qn(extName, 3);
-               desc_struct *etDesc = cmpSBD.getSeabaseTableDesc(
+               TrafDesc *etDesc = cmpSBD.getSeabaseTableDesc(
                     qn.getCatalogName(),
                     qn.getSchemaName(),
                     qn.getObjectName(),
