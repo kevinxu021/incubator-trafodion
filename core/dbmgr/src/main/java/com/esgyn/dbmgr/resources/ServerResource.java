@@ -449,6 +449,12 @@ public class ServerResource {
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectNode objNode = mapper.createObjectNode();
 		objNode.put("status", "OK");
+
+		String timestamp = null;
+		if (obj.has("timestamp")) {
+			timestamp = String.valueOf(obj.get("timestamp").longValue());
+		}
+
 		File inputFile = null, outputFile = null;
 		long ms = DateTime.now().getMillis();
 		String inFileName = String.format("batch_%1$s.sql", ms);
@@ -468,7 +474,7 @@ public class ServerResource {
 
 		Session soc = SessionModel.getSession(servletRequest, servletResponse);
 		executeSQLUsingTrafCI(inFileName, outFileName, ConfigurationResource.getInstance().getJdbcUrl(),
-				soc.getUsername(), soc.getPassword());
+				soc.getUsername(), soc.getPassword(), timestamp);
 
 		StringBuilder sb = new StringBuilder();
 		try {
@@ -509,22 +515,67 @@ public class ServerResource {
 	}
 
 	private static void executeSQLUsingTrafCI(String inFile, String outFile, String jdbcUrl, String userName,
-			String password) throws EsgynDBMgrException {
+			String password, String timestamp) throws EsgynDBMgrException {
+		ScriptsInterface scriptsInterface = null;
+
 		try {
 			String uriString = jdbcUrl.substring("jdbc:".length());
 			URI uri = new URI(uriString);
 			String host = uri.getHost();
 			int port = uri.getPort();
 
-			ScriptsInterface scriptInterface = new ScriptsInterface();
-			scriptInterface.openConnection(userName, password, "", host, String.valueOf(port), "",
+			scriptsInterface = new ScriptsInterface();
+			scriptsInterface.openConnection(userName, password, "", host, String.valueOf(port), "",
 					SessionDefaults.PRUNI);
-			scriptInterface.executeScript(inFile, outFile);
-			scriptInterface.disconnect();
+
+			_LOG.debug("Adding script interface with key " + userName + timestamp);
+			SessionModel.putScriptsObject(userName + timestamp, scriptsInterface);
+			scriptsInterface.executeScript(inFile, outFile);
+
 		} catch (Exception e) {
 			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to execute batch ", e);
 			_LOG.error(ee.getMessage());
 			throw ee;
+		} finally {
+			_LOG.debug("execute batch completed");
+			if (scriptsInterface != null) {
+				SessionModel.removeScriptsObject(userName + timestamp);
+				try {
+					scriptsInterface.disconnect();
+				} catch (Exception e) {
+				}
+			}
 		}
+	}
+
+	@POST
+	@Path("/cancelbatch/")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public ObjectNode cancelBatchSQL(ObjectNode obj, @Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectNode objNode = mapper.createObjectNode();
+		String timestamp = null;
+		if (obj.has("timestamp")) {
+			timestamp = String.valueOf(obj.get("timestamp").longValue());
+		}
+
+		Session soc = SessionModel.getSession(servletRequest, servletResponse);
+		_LOG.debug("Looking up script interface with key " + soc.getUsername() + timestamp);
+		ScriptsInterface scriptsInterface = SessionModel.getScriptsObject(soc.getUsername() + timestamp);
+		if (scriptsInterface != null) {
+			_LOG.debug("Found script interface in cache");
+			scriptsInterface.interrupt();
+			try {
+				scriptsInterface.disconnect();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				// e.printStackTrace();
+			}
+		}
+		objNode.put("status", "OK");
+		return objNode;
 	}
 }

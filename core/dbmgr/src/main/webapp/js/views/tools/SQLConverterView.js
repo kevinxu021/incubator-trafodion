@@ -24,17 +24,13 @@ define([
 	CLEAR_BTN = '#clearBtn',
 	CONVERT_BTN = '#convertBtn',
 	SAVE_BTN = '#saveBtn',
-	EXEC_BTN = '#executeBtn',
-	EXEC_RESULTS = '#exec-result';
+	EXEC_BTN = '#executeBtn'
 	var resizeTimer = null;			
 
 	var _this = null;
 	var srcQueryTextEditor = null,
 	tgtQueryTextEditor = null,
-	isPaused = false,
-	resultsAfterPause = false,
-	lastExecuteResult = null,
-	lastRawError = null;
+	isPaused = false;
 
 	var SQLConverterView = BaseView.extend({
 
@@ -57,11 +53,9 @@ define([
 			$(CONVERT_BTN).on('click',this.convertSQL);
 			$(SAVE_BTN).on('click', this.saveSQL);
 			$(EXEC_BTN).on('click', this.executeBatchSQL);
-			$('#executingImg').hide();
+
 			serverHandler.on(serverHandler.CONVERT_SQL_SUCCESS, this.displayResults);
 			serverHandler.on(serverHandler.CONVERT_SQL_ERROR, this.showErrorMessage);
-			serverHandler.on(serverHandler.BATCH_SQL_SUCCESS, this.batchExecSuccess);
-			serverHandler.on(serverHandler.BATCH_SQL_FAILURE, this.showErrorMessage);
 			
 			if(CodeMirror.mimeModes["text/x-esgyndb"] == null){
 				common.defineEsgynSQLMime(CodeMirror);
@@ -101,7 +95,7 @@ define([
 					tgtQueryTextEditor.setSize($(this).width(), $(this).height());
 				}
 			});
-			$(tgtQueryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"540px", "font-size":"12px"});
+			$(tgtQueryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"675px", "font-size":"12px"});
 
 			_this.clearAll();
 
@@ -187,16 +181,25 @@ define([
 			$(EXEC_BTN).prop('disabled', false);
 		},
 		saveSQL: function(){
-			var blob = new Blob([tgtQueryTextEditor.getValue()], {type: "text/plain;charset=utf-8"});
-			saveAs(blob, "EsgynDBSQL.sql");
-			var output = $(EXEC_RESULTS).text();
-			if(output.length > 0) {
-				var blob = new Blob([output], {type: "text/plain;charset=utf-8"});
-				saveAs(blob, "EsgynDBSQL.log");
+			var sqlText = tgtQueryTextEditor.getValue();
+			if(sqlText.length > 0){
+				var blob = new Blob([tgtQueryTextEditor.getValue()], {type: "text/plain;charset=utf-8"});
+				saveAs(blob, "EsgynDBSQL.sql");
+				var output = $(EXEC_RESULTS).text();
+				if(output.length > 0) {
+					var blob = new Blob([output], {type: "text/plain;charset=utf-8"});
+					saveAs(blob, "EsgynDBSQL.log");
+				}
 			}
 		},
 		executeBatchSQL: function(){
-			var param = {};
+			var sqlText = tgtQueryTextEditor.getValue();
+			if(sqlText.length > 0){
+				sessionStorage.setItem("executeBatch", sqlText);
+				window.location.hash = '/tools/executescript';
+			}
+			
+			/*var param = {};
 			param.text = tgtQueryTextEditor.getValue();
 			if(param.text != null && param.text.length > 0){
 				$(EXEC_RESULTS).text("Executing SQL ...");
@@ -206,14 +209,14 @@ define([
 				serverHandler.executeBatchSQL(param);
 			}else{
 				alert("EsgynDB SQL text cannot be empty!");
-			}
+			}*/
 		},
-		batchExecSuccess: function(result){
+/*		batchExecSuccess: function(result){
 			$('#executingImg').hide();
 			$(EXEC_RESULTS).text(result.output);
 			$(CONVERT_BTN).prop('disabled', false);
 			$(EXEC_BTN).prop('disabled', false);
-		},
+		},*/
 		showErrorMessage: function (jqXHR) {
 			$(CONVERT_BTN).prop('disabled', false);
 			$(EXEC_BTN).prop('disabled', false);
