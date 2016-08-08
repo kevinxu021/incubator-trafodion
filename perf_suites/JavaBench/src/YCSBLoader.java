@@ -67,6 +67,7 @@ public class YCSBLoader extends Thread {
 	public static volatile boolean option_trace = false;
 	public static volatile boolean option_debug = false;
         public static volatile boolean option_aligned = false;
+        public static volatile boolean option_monarch = false;
 	public static volatile boolean option_responsecurve = false;
 	public static volatile boolean option_perstreamsummary = false;
 
@@ -320,7 +321,13 @@ public class YCSBLoader extends Thread {
 				}
 
                                 if ( option_aligned) {
-                                        sql_statement = sql_statement + " attribute aligned format ";
+					sql_statement = sql_statement + " attribute aligned format ";
+		                      	if ( option_monarch) {
+                                       		sql_statement = sql_statement + " attribute storage monarch ";
+					}
+                                }
+                                if ( option_monarch) {
+                                        sql_statement = sql_statement + " attribute storage monarch ";
                                 }
 
 				if ( option_compression && option_block_encoding ) {
@@ -1334,6 +1341,7 @@ public class YCSBLoader extends Thread {
 				+ "     commitsize <commitsize> : Disable Autocommit and commit every <commitsize> rows_added.\n"
 				+ "     salt <saltsize> : Create the table with salting.\n"
                                 + "     aligned : Create each table with aligned format attribute.\n"
+                                + "     monarch : Create each table with monarch storage attribute.\n"
 				+ "     compression : Create the table with compression.\n"
 				+ "     compressiontype <compressiontype> : Overrides default compression type of SNAPPY"
 				+ "     blockencoding <blockencodingtype> : Create the table with block_encoding.\n"
@@ -1391,6 +1399,7 @@ public class YCSBLoader extends Thread {
 					case "trace": option_trace = true; break;
 					case "debug": option_debug = true; break;
                                         case "aligned": option_aligned = true; break;
+                                        case "monarch": option_monarch = true; break;
 					default: {
 						System.out.println(syntax);
 						throw new Exception("ERROR : Invalid option specified ( option = " + option + " )");
@@ -1464,6 +1473,7 @@ public class YCSBLoader extends Thread {
 			if (option_block_encoding) { System.out.println("   " + String.format("%16s", "BlockEncoding" ) + " : " + block_encoding_type); }
 			if (option_randomload) { System.out.println("   " + String.format("%16s", "RandomLoad" ) + " : " + option_randomload); }
                         if (option_aligned) { System.out.println("   " + String.format("%16s", "Aligned" ) + " : " + option_aligned); }
+                        if (option_monarch) { System.out.println("   " + String.format("%16s", "Monarch" ) + " : " + option_monarch); }
 
 			if ( number_of_intervals != VERY_LONG_TIME ) { System.out.println("   " + String.format("%16s", "Intervals" ) + " : " + number_of_intervals); }
 			System.out.println("   " + String.format("%16s", "IntervalLength" ) + " : " + length_of_interval);
