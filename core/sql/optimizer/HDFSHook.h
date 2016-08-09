@@ -494,6 +494,9 @@ public:
   // return # of buckets if all partns are consistently bucketed, 0 otherwise
   // caller has to check for same bucket cols
   Int32 getNumOfConsistentBuckets() const;
+
+  // return average string length of character columns per row
+  Lng32 getAvgStringLengthPerRow();
   
   // for the NATable cache
   void setupForStatement();

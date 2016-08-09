@@ -584,6 +584,9 @@ ValueId::castToBaseColumn(NABoolean *isaConstant) const
         case ITM_BASECOLUMN:
           return (BaseColumn *)ie;
 
+        case ITM_INDEXCOLUMN:
+          return (BaseColumn *)(((IndexColumn*)ie)->getDefinition().getItemExpr());
+
         case ITM_INSTANTIATE_NULL:
 		case ITM_UNPACKCOL:
 		  ie = (*ie)[0] ;
@@ -620,21 +623,20 @@ ValueId::castToBaseColumn(NABoolean *isaConstant) const
             break;
           }
 
-		default:
-		  if (ie->getArity() > 0)
-		  {
-			ie = (*ie)[0];
-			break;
-		  }
-		  else
-                  {
-                       if (isaConstant)
-                       {
-                         *isaConstant = ie->doesExprEvaluateToConstant
-                           (FALSE,TRUE);
-                       }
-			return NULL;
-                  }
+          default:
+             if (ie->getArity() > 0)
+             {
+		ie = (*ie)[0];
+		break;
+             }
+             else
+             {
+               if (isaConstant)
+               {
+                  *isaConstant = ie->doesExprEvaluateToConstant(FALSE,TRUE);
+               }
+		return NULL;
+             }
         }
     } // end of while
 	return NULL;
@@ -765,6 +767,19 @@ void ValueIdList::insertSet(const ValueIdSet &other)
     insertAt(index++,vid);
 }
 
+Lng32 ValueIdList::getNumOfCharColumns() const
+{
+  Lng32 result = 0;
+
+  for (CollIndex i = 0; i < entries(); i++)
+    {
+      if (at(i).getType().getTypeQualifier() == NA_CHARACTER_TYPE )
+         result ++;
+    }
+
+  return result;
+}
+
 Lng32 ValueIdList::getRowLength() const
 {
   Lng32 result = 0;
@@ -772,6 +787,19 @@ Lng32 ValueIdList::getRowLength() const
   for (CollIndex i = 0; i < entries(); i++)
     {
       result += at(i).getType().getTotalSize();
+    }
+
+  return result;
+}
+
+Lng32 ValueIdList::getRowLengthOfNonCharColumns() const
+{
+  Lng32 result = 0;
+
+  for (CollIndex i = 0; i < entries(); i++)
+    {
+      if (at(i).getType().getTypeQualifier() != NA_CHARACTER_TYPE )
+         result += at(i).getType().getTotalSize();
     }
 
   return result;
@@ -1970,6 +1998,19 @@ NABoolean ValueIdSet::isDensePrefix(const ValueIdList &other) const
   return notContainedInThis.isEmpty();
 }
 
+Lng32 ValueIdSet::getNumOfCharColumns() const
+{
+  Lng32 result = 0;
+
+  for (ValueId x = init(); next(x); advance(x))
+    { 
+      if ( x.getType().getTypeQualifier() == NA_CHARACTER_TYPE )
+         result ++;
+    }
+
+  return result;
+}
+
 Lng32 ValueIdSet::getRowLength() const
 {
   Lng32 result = 0;
@@ -1981,6 +2022,20 @@ Lng32 ValueIdSet::getRowLength() const
 
   return result;
 }
+
+Lng32 ValueIdSet::getRowLengthOfNonCharColumns() const
+{
+  Lng32 result = 0;
+
+  for (ValueId x = init(); next(x); advance(x))
+    {
+      if ( x.getType().getTypeQualifier() != NA_CHARACTER_TYPE )
+        result += x.getType().getTotalSize();
+    }
+
+  return result;
+}
+
 
 Lng32 ValueIdSet::getRowLengthOfNumericCols() const
 {

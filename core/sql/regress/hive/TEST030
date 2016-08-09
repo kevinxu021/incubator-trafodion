@@ -189,6 +189,7 @@ control query shape off;
 cqd HIVE_USE_EXT_TABLE_ATTRS 'off';
 cqd ncm_orc_costing 'on';
 cqd orc_njs 'on';
+cqd parallel_num_esps '4';
 
 prepare s from
 select [last 0] ss_net_profit from
@@ -203,6 +204,7 @@ explain options 'f' s;
 cqd HIVE_USE_EXT_TABLE_ATTRS reset;
 cqd ncm_orc_costing reset;
 cqd orc_njs reset;
+cqd parallel_num_esps reset;
 
 
 -- more external table tests

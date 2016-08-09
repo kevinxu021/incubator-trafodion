@@ -991,9 +991,14 @@ public:
 
   // get the number of rows in partitions surviving the compilation time
   // partition elimination
-  Int64 getRowcountInSelectedPartitions();
-  Int32 getNumOfSelectedPartitions();
-  NABoolean partitionEliminatedCT() { return partitionEliminatedCT_; };
+  Int64 getRowcountInSelectedPartitionsCT();
+
+  // Return TRUE if at least one partitions can be 
+  // eliminated during compilation time and it is not
+  // possible to eliminate partitions during execution time.
+  NABoolean partitionEliminatedCTOnly() const
+   { return partitionEliminatedCT_ && 
+            partAndVirtColPreds_.entries() == 0; };
 
 protected:
   // Return the total bytes read, given a accumulated stats and the selection predicate

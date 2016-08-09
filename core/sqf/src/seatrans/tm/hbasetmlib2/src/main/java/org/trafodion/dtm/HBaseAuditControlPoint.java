@@ -36,9 +36,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HConnectionManager;
+import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Get;
@@ -54,7 +55,6 @@ import org.apache.hadoop.hbase.client.transactional.CommitUnsuccessfulException;
 import org.apache.hadoop.hbase.client.transactional.UnknownTransactionException;
 import org.apache.hadoop.hbase.client.transactional.HBaseBackedTransactionLogger;
 import org.apache.hadoop.hbase.client.transactional.TransactionRegionLocation;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
@@ -78,7 +78,7 @@ public class HBaseAuditControlPoint {
 
     static final Log LOG = LogFactory.getLog(HBaseAuditControlPoint.class);
     private static long currControlPt;
-    private static HBaseAdmin admin;
+    private Connection connection;
     private Configuration config;
     private static String CONTROL_POINT_TABLE_NAME;
     private static final byte[] CONTROL_POINT_FAMILY = Bytes.toBytes("cpf");
@@ -92,9 +92,10 @@ public class HBaseAuditControlPoint {
     private int TlogRetryDelay;
     private int TlogRetryCount;
 
-    public HBaseAuditControlPoint(Configuration config) throws IOException {
+    public HBaseAuditControlPoint(Configuration config, Connection connection) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("Enter HBaseAuditControlPoint constructor()");
       this.config = config;
+      this.connection = connection;
       CONTROL_POINT_TABLE_NAME = config.get("CONTROL_POINT_TABLE_NAME");
       HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(CONTROL_POINT_TABLE_NAME));
       HColumnDescriptor hcol = new HColumnDescriptor(CONTROL_POINT_FAMILY);
@@ -153,7 +154,6 @@ public class HBaseAuditControlPoint {
       hcol.setMaxVersions(versions);
 
       desc.addFamily(hcol);
-      admin = new HBaseAdmin(config);
 
       useAutoFlush = true;
       String autoFlush = System.getenv("TM_TLOG_AUTO_FLUSH");
@@ -162,11 +162,11 @@ public class HBaseAuditControlPoint {
          if (LOG.isDebugEnabled()) LOG.debug("autoFlush != null");
       }
       LOG.info("useAutoFlush is " + useAutoFlush);
-
-      boolean lvControlPointExists = false;
-    	  lvControlPointExists = admin.tableExists(CONTROL_POINT_TABLE_NAME);
+      Admin admin = connection.getAdmin();
+      boolean lvControlPointExists = admin.tableExists(TableName.valueOf(CONTROL_POINT_TABLE_NAME));
       if (LOG.isDebugEnabled()) LOG.debug("HBaseAuditControlPoint lvControlPointExists " + lvControlPointExists);
       currControlPt = -1;
+      admin.close();
       if (lvControlPointExists == false) {
          try {
             if (LOG.isDebugEnabled()) LOG.debug("Creating the table " + CONTROL_POINT_TABLE_NAME);
@@ -323,9 +323,9 @@ public class HBaseAuditControlPoint {
       if (LOG.isTraceEnabled()) LOG.trace("getNextAuditSeqNum for node: " + nid);
 
       // We need to open the appropriate control point table and read the value from it
-      HTableInterface remoteTable;
+      Table remoteTable;
       String lv_tName = new String("TRAFODION._DTM_.TLOG" + String.valueOf(nid) + "_CONTROL_POINT");
-      HConnection remoteConnection = HConnectionManager.createConnection(this.config);
+      Connection remoteConnection = ConnectionFactory.createConnection(this.config);
       remoteTable = remoteConnection.getTable(TableName.valueOf(lv_tName));
 
       long highValue = -1;

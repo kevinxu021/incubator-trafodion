@@ -2625,6 +2625,16 @@ NABoolean JoinToTSJRule::topMatch (RelExpr * expr,
   Lng32 mtd_mdam_uec_threshold = (Lng32)(ActiveSchemaDB()->getDefaults()).
                                      getAsLong(MTD_MDAM_NJ_UEC_THRESHOLD);
 
+  
+  const SET(IndexDesc *) &availIndexes=
+       joinExpr->child(1).getGroupAttr()->getAvailableBtreeIndexes();
+          
+  if ( availIndexes.entries() > 0 && 
+       availIndexes[0]->getPrimaryTableDesc()->getNATable()->isHiveTable() )   {
+     // Do nothing. NJ into Hive tables will not be subjected to keyless
+     // tests below, since the key columns will look like 
+     // (INPUT__RANGE__NUMBER, ROW__NUMBER__IN__RANGE). 
+  } else
   // if no cqs and NJ is not the only explored option and keylessNJ off
   // then avoid keyless nested join
   if (!cqs_skips_keylessNJ_heuristic AND !NJisOnlyOption AND 
