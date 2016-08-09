@@ -79,6 +79,8 @@ namespace EsgynDB.Data
 
             _ccExtention = enc.GetBytes(ccExtention, enc.Transport);
 
+            // need insert a INT here to represent the length of the _ccExtention
+            len += 4;
             if (_ccExtention.Length > 0)
             {
                 len += _ccExtention.Length + 1;
