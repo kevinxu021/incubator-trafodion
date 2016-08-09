@@ -2839,6 +2839,10 @@ short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
      if (purgedataHbase() || upgradeRepos())
         // transaction will be started and commited in called methods.
         xnCanBeStarted = FALSE;
+     
+     if(backup() || restore() || unlockTraf())
+    	 xnCanBeStarted = FALSE;
+     
      if ((ddlNode && ddlNode->castToStmtDDLNode() &&
           ddlNode->castToStmtDDLNode()->ddlXns()) &&
             ((ddlNode->getOperatorType() == DDL_CLEANUP_OBJECTS) ||
