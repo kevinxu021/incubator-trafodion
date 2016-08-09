@@ -531,10 +531,22 @@ public:
 				     GroupAttributes *ga = NULL,
                                      const ValueIdSet *preds = NULL) const;
 
+  
+  // ---------------------------------------------------------------------
+  //  Calculate the number of character columns
+  // ---------------------------------------------------------------------
+  Lng32 getNumOfCharColumns() const;
+
   // ---------------------------------------------------------------------
   // Calculate the length of the row containing all the value ids
   // ---------------------------------------------------------------------
   Lng32 getRowLength() const;
+
+  // ---------------------------------------------------------------------
+  // Calculate the length of the row containing all the value ids
+  // except those of type NA_CHARACTER_TYPE
+  // ---------------------------------------------------------------------
+  Lng32 getRowLengthOfNonCharColumns() const;
 
   // ---------------------------------------------------------------------
   // Calculate the length of numeric type vids in the row containing all 
@@ -786,9 +798,20 @@ public:
   NABoolean coversFirstN(const ValueIdList &other, Int32 N=INT_MAX) const;
 
   // ---------------------------------------------------------------------
+  //  Calculate the number of character columns
+  // ---------------------------------------------------------------------
+  Lng32 getNumOfCharColumns() const;
+
+  // ---------------------------------------------------------------------
   // Calculate the estimated length of the row containing all the value ids
   // ---------------------------------------------------------------------
   Lng32 getRowLength() const;
+
+  // ---------------------------------------------------------------------
+  // Calculate the estimated length of the row containing all the value ids
+  // except those of type NA_CHARACTER_TYPE
+  // ---------------------------------------------------------------------
+  Lng32 getRowLengthOfNonCharColumns() const;
 
   // ---------------------------------------------------------------------
   // Calculate the length of numeric type vids in the row containing all
