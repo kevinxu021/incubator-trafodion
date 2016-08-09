@@ -31,6 +31,9 @@ define([
 	var previousScrollTop = 0;
 	var controlStmts = "";
 	var timeStamps={runTime:null,planTime:null};
+	var cancelMesObj=null;
+	var executionQueryText=null;
+	var explainQueryText=null;
 
 	var CONTROL_DIALOG = '#controlDialog',
 	QCANCEL_MENU = '#cancelAction',
@@ -164,7 +167,6 @@ define([
 			$(EXPLAIN_BTN).on('click', this.explainQuery);
 			$(EXECUTE_BTN).on('click', this.executeQuery);
 			$(CLEAR_BTN).on('click', this.clearAll);
-			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			$(EXPORT_QUERY).on('click',this.exportQuery);
 			$(FILE_SELECT).on('change',this.importQuery);
 
@@ -296,7 +298,6 @@ define([
 			}).css('overflow', 'hidden');
 		},
 		doResume: function(){
-			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			$(EXPORT_QUERY).on('click',this.exportQuery);
 			this.currentURL = window.location.hash;
 			this.redirectFlag=false;
@@ -315,7 +316,6 @@ define([
 			//serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 		},
 		doPause:  function(){
-			$(QCANCEL_MENU).off('click', this.cancelQuery);
 			$(EXPORT_QUERY).off('click',this.exportQuery);
 			this.redirectFlag=true;
 			//this.hideLoading();
@@ -325,20 +325,14 @@ define([
 			//serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 		},
 		handleMessage:function(data){
+			$(EXECUTE_BTN).attr("disabled",false);
+			$(EXECUTE_BTN).attr("data-original-title","Execute");
+			$(EXECUTE_BTN).removeClass("fa-stop").addClass("fa-play");
+			$(EXECUTE_BTN).unbind("click").on("click",_this.executeQuery);
 			if(data==true){
-				var msgObj={msg:'The workbench query was canceled successfully.',tag:"success",url:_this.currentURL,shortMsg:"Workbench query canceled successfully."};
-				if(_this.redirectFlag){
-					common.fire(common.NOFITY_MESSAGE,msgObj);
-				}else{
-					_this.popupNotificationMessage(null,msgObj);
-				}
+				cancelMesObj={msg:'The workbench query was canceled successfully.',tag:"success",url:_this.currentURL,shortMsg:"Workbench query canceled successfully."};
 			}else{
-				var msgObj={msg:'The workbench query was completed, could not be canceled.',tag:"warning",url:_this.currentURL,shortMsg:"Workbench query completed."};
-				if(_this.redirectFlag){
-					common.fire(common.NOFITY_MESSAGE,msgObj);
-				}else{
-					_this.popupNotificationMessage(null,msgObj);
-				}
+				cancelMesObj={msg:'The workbench query was completed, could not be canceled.',tag:"warning",url:_this.currentURL,shortMsg:"Workbench query completed."};
 			}
 		},
 		handleWindowResize: function () {
@@ -347,12 +341,17 @@ define([
 			}
 		},
 		exportQuery:function(){
-			var queryText = $(QUERY_TEXT).val();
-			var planText=$(TEXT_RESULT).text();
-			if(queryTextEditor){
-				queryText = queryTextEditor.getSelection();
-				if(queryText.length == 0){
-					queryText = queryTextEditor.getValue();
+			var queryText;
+			if(executionQueryText!=null){
+				queryText=executionQueryText;
+			}else{
+				if(queryTextEditor){
+					queryText = queryTextEditor.getSelection();
+					if(queryText.length == 0){
+						queryText = queryTextEditor.getValue();
+					}
+				}else{
+					queryText=$(QUERY_TEXT).val();
 				}
 			}
 			var controlStatement=$(CONTROL_STMTS_TEXT).val();
@@ -365,10 +364,14 @@ define([
 			} else {
 				controlStatement = controlStatement.replace(/(\r\n|\n|\r)/gm,"");
 			}
-			/*var isSame=planText.indexOf(queryText);
-			if(isSame==-1){
-				EXPLAIN_JSON_DATA={};
-			}*/
+			if(executionQueryText!=explainQueryText){
+				alert("your execution text is not the same as explain text, we default choose explain text!");
+				queryText=explainQueryText;
+			}
+			if(queryText==""&&controlStatement==""){
+				alert("there is nothing to export!");
+				return
+			}
 			var json={queryText:queryText,EXPLAIN_JSON_DATA:EXPLAIN_JSON_DATA,controlStatement:controlStatement};
 			_this.SaveDatFileBro(json);
 		},
@@ -410,13 +413,16 @@ define([
 		},
 		cancelQuery: function(){
 			var param=null;
-			if($(EXPLAIN_BTN).attr("disabled")=="disabled"){
+			/*if($(EXPLAIN_BTN).attr("disabled")=="disabled"){
 				param={timeStamp:timeStamps.runTime};
 			}else if($(EXECUTE_BTN).attr("disabled")=="disabled"){
 				param={timeStamp:timeStamps.planTime};
 			}else{
 				param={timeStamp:timeStamps.runTime};
-			}
+			}*/
+			$(EXPLAIN_BTN).attr("disabled",true);
+			$(EXECUTE_BTN).attr("disabled",true);
+			param={timeStamp:timeStamps.runTime};
 			serverHandler.cancelQuery(param);
 		},
 		openFilterDialog: function () {
@@ -458,6 +464,8 @@ define([
 			lastExecuteResult = null;
 			lastExplainResult = null;
 			lastRawError = null;	
+			executionQueryText=null;
+			explainQueryText=null;
 			
 			$(EXPLAIN_TREE).hide();
 			$(ERROR_TEXT).hide();
@@ -498,7 +506,7 @@ define([
 					queryText = queryTextEditor.getValue();
 				}
 			}
-
+			explainQueryText=queryText;
 			if(queryText == null || queryText.length == 0){
 				alert('Query text cannot be empty.');
 				return;
@@ -520,6 +528,10 @@ define([
 		},
 
 		executeQuery: function () {
+			EXPLAIN_JSON_DATA={};
+			$(EXECUTE_BTN).attr("data-original-title","Cancel");
+			$(EXECUTE_BTN).removeClass("fa-play").addClass("fa-stop");
+			$(EXECUTE_BTN).unbind("click").on("click",_this.cancelQuery);
 			lastExecuteResult = null;
 			lastExplainResult = null;
 			resultsAfterPause = false;
@@ -533,6 +545,7 @@ define([
 					queryText = queryTextEditor.getValue();
 				}
 			}
+			executionQueryText=queryText;
 
 			if(queryText == null || queryText.length == 0){
 				alert('Query text cannot be empty.');
@@ -558,7 +571,6 @@ define([
 		},
 
 		displayResults: function (result){
-			$(EXPLAIN_BTN).attr("disabled",false);
 			if(_this.redirectFlag){
 				resultsAfterPause = true;
 				lastExecuteResult = result;
@@ -630,6 +642,21 @@ define([
 					});
 				}        		
 			}
+			$(EXECUTE_BTN).attr("data-original-title","Execute");
+			$(EXECUTE_BTN).removeClass("fa-stop").addClass("fa-play");
+			$(EXPLAIN_BTN).attr("disabled",false);
+			$(EXECUTE_BTN).unbind("click").on("click",_this.executeQuery);
+			if(cancelMesObj!=null){
+				if(_this.redirectFlag){
+					common.fire(common.NOFITY_MESSAGE,cancelMesObj);
+				}else{
+					_this.popupNotificationMessage(null,cancelMesObj);
+				}
+				cancelMesObj=null;
+			}
+			if($(EXECUTE_BTN).attr("disabled")==true){
+				$(EXECUTE_BTN).attr("disabled",false);
+			}
 		},
 
 		showErrorMessage: function (jqXHR) {
@@ -657,6 +684,20 @@ define([
 				if(jqXHR.status != null && jqXHR.status == 0) {
 					$(ERROR_TEXT).text("Error : Unable to communicate with the server.");
 				}
+			}
+			$(EXECUTE_BTN).attr("data-original-title","Execute");
+			$(EXECUTE_BTN).removeClass("fa-stop").addClass("fa-play");	
+			$(EXECUTE_BTN).unbind("click").on("click",_this.executeQuery);
+			if(cancelMesObj!=null){
+				if(_this.redirectFlag){
+					common.fire(common.NOFITY_MESSAGE,cancelMesObj);
+				}else{
+					_this.popupNotificationMessage(null,cancelMesObj);
+				}
+				cancelMesObj=null;
+			}
+			if($(EXECUTE_BTN).attr("disabled")==true){
+				$(EXECUTE_BTN).attr("disabled",false);
 			}
 		}        
 	});
