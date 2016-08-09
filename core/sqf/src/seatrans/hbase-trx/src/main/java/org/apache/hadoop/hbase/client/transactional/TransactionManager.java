@@ -2291,7 +2291,7 @@ public class TransactionManager {
                         if (retry) 
                             retrySleep = retry(retrySleep);
                     }
-                } while (retry == true);
+                }  while (retry && retryCount++ <= RETRY_ATTEMPTS);
             }//while
     }
 
@@ -2321,7 +2321,7 @@ public class TransactionManager {
             if (retry) 
                 retrySleep = retry(retrySleep);
         }
-    } while (retry == true);
+    }  while (retry && retryCount++ <= RETRY_ATTEMPTS);
 
     if (LOG.isTraceEnabled()) LOG.trace("doCommitDDL  EXIT [" + transactionState.getTransactionId() + "]");
 }
@@ -2503,7 +2503,7 @@ public class TransactionManager {
                         if (retry) 
                            retrySleep = retry(retrySleep);
                     }
-                } while(retry);
+                } while (retry && retryCount++ <= RETRY_ATTEMPTS);
             }//while
         }
 
@@ -2544,7 +2544,7 @@ public class TransactionManager {
                         if (retry) 
                            retrySleep = retry(retrySleep);
                     }
-                } while(retry);
+                } while (retry && retryCount++ <= RETRY_ATTEMPTS);
             }//while
         }
 
@@ -2614,7 +2614,7 @@ public class TransactionManager {
                 if (retry) 
                    retrySleep = retry(retrySleep);
             }
-        } while(retry);
+        } while (retry && retryCount++ <= RETRY_ATTEMPTS);
     }
 
     public synchronized JtaXAResource getXAResource() {
