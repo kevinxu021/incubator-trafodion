@@ -329,9 +329,9 @@ public class QueryPlanModel {
 				// System.out.println(exQuery);
 				_LOG.debug(exQuery);
 				pStmt = connection.prepareStatement(exQuery);
-				SessionModel.putStatementObject(key, pStmt);
+				/*SessionModel.putStatementObject(key, pStmt);*/
 				rs = pStmt.executeQuery();
-				SessionModel.removeStatementObject(key);
+				/*SessionModel.removeStatementObject(key);*/
 
 				while (rs.next()) {
 					explainSuccess = true;
