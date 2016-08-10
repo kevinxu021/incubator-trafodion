@@ -1,12 +1,11 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2015 Esgyn Corporation
+// (C) Copyright 2015-2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
 package com.esgyn.dbmgr.resources;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -51,7 +50,10 @@ public class QueryResource {
 		if (obj.has("sControlStmts")) {
 			sControlStmts = obj.get("sControlStmts").textValue();
 		}
-		String timeStamp=obj.get("timeStamp").asText();
+		String timeStamp = "";
+		if (obj.has("timeStamp")) {
+			obj.get("timeStamp").asText();
+		}
 		String sessionId = servletRequest.getSession().getId();
 		String key=sessionId+timeStamp;
 		
@@ -99,7 +101,6 @@ public class QueryResource {
 
 	public static TabularResult executeSQLQuery(String user, String password, String queryText, String sControlStmts, String key)
 			throws EsgynDBMgrException {
-		String url = ConfigurationResource.getInstance().getJdbcUrl();
 		Connection connection = null;
 		try {
 			Class.forName(ConfigurationResource.getInstance().getJdbcDriverClass());
@@ -270,7 +271,10 @@ public class QueryResource {
 		if (obj.has("sQueryType")) {
 			sQueryType = obj.get("sQueryType").textValue();
 		}
-		String timeStamp=obj.get("timeStamp").asText();
+		String timeStamp = "";
+		if (obj.has("timeStamp")) {
+			obj.get("timeStamp").asText();
+		}
 		String sessionId = servletRequest.getSession().getId();
 		String key=sessionId+timeStamp;
 

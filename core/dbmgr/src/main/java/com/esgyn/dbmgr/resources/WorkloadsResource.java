@@ -218,7 +218,6 @@ public class WorkloadsResource {
 			Session soc = SessionModel.getSession(servletRequest, servletResponse);
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_REPO_QUERIES),
 					maxRows, predicate);
-			_LOG.debug(queryText);
 
 			TabularResult result = QueryResource.executeSQLQuery(soc.getUsername(), soc.getPassword(), queryText);
 			return result;
