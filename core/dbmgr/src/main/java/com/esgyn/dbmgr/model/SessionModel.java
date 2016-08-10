@@ -131,7 +131,9 @@ public class SessionModel {
 			}
 		}
 	}
-
+	public static void cleanStatementObject(){
+		  activeStatements.clear();
+	  }
 	public static boolean containsKey(String userName, String partKey) {
 		String key = userName.toLowerCase() + ":" + partKey;
 		return activeSessions.containsKey(key);

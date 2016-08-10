@@ -67,6 +67,7 @@ public class EDLoader extends Thread {
 	public static volatile boolean option_responsecurve = false;
 	public static volatile boolean option_perstreamsummary = false;
         public static volatile boolean option_aligned = false;
+        public static volatile boolean option_monarch = false;
 
 	public static volatile int number_of_streams = 1;
 	public static volatile int number_of_intervals = VERY_LONG_TIME;
@@ -541,8 +542,13 @@ public class EDLoader extends Thread {
 
                                  	if ( option_aligned) {
 						sql_statement = sql_statement + " attribute aligned format ";
+						if ( option_monarch) {
+							sql_statement = sql_statement + ", storage monarch ";
+						}
 					}
-
+					if ( option_monarch) {
+						sql_statement = sql_statement + " attribute storage monarch ";
+					}
 				}
 
 				if ( option_trace ) { System.out.println(" " + sql_statement); }
@@ -1743,7 +1749,8 @@ public class EDLoader extends Thread {
 				+ "     commitsize <commitsize> : Disable Autocommit and commit every <commitsize> rows_added.\n"
 				+ "     salt <saltsize> : Create the table with salting.\n"
 				+ "     compression : Create the table with compression.\n"
-                                + "     aligned : Create each table with aligned format attribute.\n"
+				+ "     aligned : Create each table with aligned format attribute.\n"
+                                + "     monarch : Create each table with monarch storage  attribute.\n"
 				+ "     upsert : Use upsert syntax instead of insert syntax.\n"
 				+ "     usingload : Use using load syntax in insert/upsert.\n"
 				+ "     randomload : Will load in a random permutations of key values.\n"
@@ -1797,6 +1804,7 @@ public class EDLoader extends Thread {
 					case "salt": saltsize = Integer.parseInt(args[++indx]); option_salt = true; break;
 					case "compression": option_compression = true; break;
 					case "aligned": option_aligned = true; break;
+					case "monarch": option_monarch = true; break;
 					case "randomload": option_randomload = true; break;
 					case "intervals": number_of_intervals = Integer.parseInt(args[++indx]); break;
 					case "intervallength": length_of_interval = Integer.parseInt(args[++indx]); break;
@@ -1875,6 +1883,7 @@ public class EDLoader extends Thread {
 			if (option_salt) { System.out.println("   " + String.format("%16s", "Salt" ) + " : " + saltsize); }
 			if (option_compression) { System.out.println("   " + String.format("%16s", "Compression" ) + " : " + option_compression); }
 			if (option_aligned) { System.out.println("   " + String.format("%16s", "Aligned" ) + " : " + option_aligned); }
+			if (option_monarch) { System.out.println("   " + String.format("%16s", "Monarch" ) + " : " + option_monarch); }
 			if (option_randomload) { System.out.println("   " + String.format("%16s", "RandomLoad" ) + " : " + option_randomload); }
 
 			if ( number_of_intervals != VERY_LONG_TIME ) { System.out.println("   " + String.format("%16s", "Intervals" ) + " : " + number_of_intervals); }
