@@ -27,7 +27,7 @@
 	"jit": "~2.0.2",
 	"mocha": "~1.17.1",
 	"requirejs": "~2.1.18",
-	"startbootstrap-sb-admin-2": "~1.0.7",
+	"startbootstrap-sb-admin-2": "https://github.com/BlackrockDigital/startbootstrap-sb-admin-2.git",
 	"text": "~2.0.14",
 	"jstree": "~3.1.1",
 	"eonasdan-bootstrap-datetimepicker": "4.17.37",
