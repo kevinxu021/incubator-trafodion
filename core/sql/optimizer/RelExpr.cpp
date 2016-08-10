@@ -14851,11 +14851,10 @@ void Scan::computeMyRequiredResources(RequiredResources & reqResources, EstLogPr
                 computeCpuResourceForIndexJoinScans(tableId);
 
   CostScalar cpuResourcesRequired = cpuCostIndexOnlyScan;
-  if ( getTableDesc()->getNATable()->isHbaseTable()) 
-  {
-     if ( cpuCostIndexJoinScan < cpuResourcesRequired )
-       cpuResourcesRequired = cpuCostIndexJoinScan;
-  } 
+
+
+  if ( cpuCostIndexJoinScan < cpuResourcesRequired )
+    cpuResourcesRequired = cpuCostIndexJoinScan;
 
   CostScalar dataAccessCost = tAnalysis->getFactTableNJAccessCost();
   if(dataAccessCost < 0)
@@ -14871,6 +14870,11 @@ void Scan::computeMyRequiredResources(RequiredResources & reqResources, EstLogPr
       tAnalysis->computeDataAccessCostForTable(numOfProbes, rowsToScan);
   }
 
+  if ( getTableDesc()->getNATable()->isHbaseTable()) 
+    reqResources.increaseNumOfHBaseTables();
+
+  if ( getTableDesc()->getNATable()->isHiveTable()) 
+    reqResources.increaseNumOfHiveTables();
 
   CostScalar myMaxCard = getGroupAttr()->getResultMaxCardinalityForInput(inLP);
   reqResources.accumulate(csZero, cpuResourcesRequired, 
