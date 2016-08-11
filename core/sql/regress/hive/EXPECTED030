@@ -44,7 +44,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Fri Aug  5 12:36:02 2016
+-- Definition current  Mon Aug  8 23:40:18 2016
 
   (
     S_STORE_SK                       INT
@@ -984,7 +984,7 @@ NUM_HITS    NUM_PARAMS
 >>invoke hive.hive.store_sales_orc;
 
 -- Definition of hive table STORE_SALES_ORC
--- Definition current  Fri Aug  5 12:36:24 2016
+-- Definition current  Mon Aug  8 23:40:35 2016
 
   (
     SS_SOLD_DATE_SK                  INT
@@ -1026,7 +1026,7 @@ NUM_HITS    NUM_PARAMS
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212337160584738611
+PLAN_ID .................. 212337459635971642
 ROWS_OUT ............. 1,698
 EST_TOTAL_COST ......... 176.2
 STATEMENT ................ select * from store_sales_orc where ss_item_sk = 1;
@@ -1164,9 +1164,9 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212337160585351626
+PLAN_ID .................. 212337459636599529
 ROWS_OUT ......... 2,880,404
-EST_TOTAL_COST ... 3,545,351
+EST_TOTAL_COST ... 3,545,325.75
 STATEMENT ................ select *
                            from customer_orc, store_sales_orc
                            where store_sales_orc.ss_item_sk =
@@ -1179,7 +1179,7 @@ ROOT ======================================  SEQ_NO 4        ONLY CHILD 3
 REQUESTS_IN .............. 1
 ROWS_OUT ......... 2,880,404
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ... 3,545,351
+EST_TOTAL_COST ... 3,545,325.75
 DESCRIPTION
   max_card_est ........... 2.8804e+06
   fragment_id ............ 0
@@ -1254,7 +1254,7 @@ NESTED_JOIN ===============================  SEQ_NO 3        CHILDREN 1, 2
 REQUESTS_IN .............. 1
 ROWS_OUT ......... 2,880,404
 EST_OPER_COST ............ 0.5
-EST_TOTAL_COST ... 3,545,351
+EST_TOTAL_COST ... 3,545,325.75
 DESCRIPTION
   max_card_est ........... 2.8804e+06
   fragment_id ............ 0
@@ -1297,8 +1297,8 @@ ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.CUSTOMER_ORC
 REQUESTS_IN .............. 1
 ROWS_OUT ........... 100,000
-EST_OPER_COST ........... 31.47
-EST_TOTAL_COST .......... 31.47
+EST_OPER_COST ............ 6.31
+EST_TOTAL_COST ........... 6.31
 DESCRIPTION
   max_card_est ..... 100,000
   fragment_id ............ 0
@@ -1355,11 +1355,12 @@ DESCRIPTION
 LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ---- ---- ---- --------------------  --------  --------------------  ---------
 
-5    .    6    root                                                  1.00E+000
-4    .    5    firstn                                                1.00E+000
-3    .    4    esp_exchange                    1:4(hash2)            2.88E+006
-1    2    3    nested_join                                           2.88E+006
-.    .    2    orc_scan                        STORE_SALES_SORTED_O  1.20E+005
+6    .    7    root                                                  1.00E+000
+5    .    6    firstn                                                1.00E+000
+4    .    5    esp_exchange                    1:4(hash2)            2.88E+006
+2    3    4    nested_join                                           2.88E+006
+.    .    3    orc_scan                        STORE_SALES_SORTED_O  1.20E+005
+1    .    2    esp_exchange                    4(hash2):1            2.40E+001
 .    .    1    orc_scan                        DATE_DIM_ORC          2.40E+001
 
 --- SQL operation complete.
@@ -1409,7 +1410,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Fri Aug  5 12:36:28 2016
+-- Definition current  Mon Aug  8 23:40:39 2016
 
   (
     D_DATE_SK                        INT
@@ -1548,9 +1549,9 @@ CREATE EXTERNAL TABLE DATE_DIM_ORC
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212337160589698063
+PLAN_ID .................. 212337459640920147
 ROWS_OUT ............... 271
-EST_TOTAL_COST ........... 8.5
+EST_TOTAL_COST ........... 0.59
 STATEMENT ................ select *
                            from hive.hive.date_dim_orc
                            where d_date = date '2016-01-27';
@@ -1561,7 +1562,7 @@ ROOT ======================================  SEQ_NO 2        ONLY CHILD 1
 REQUESTS_IN .............. 1
 ROWS_OUT ............... 271
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 8.5
+EST_TOTAL_COST ........... 0.59
 DESCRIPTION
   max_card_est ...... 69,397.5
   fragment_id ............ 0
@@ -1620,8 +1621,8 @@ ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.DATE_DIM_ORC
 REQUESTS_IN .............. 1
 ROWS_OUT ............... 271
-EST_OPER_COST ............ 8.5
-EST_TOTAL_COST ........... 8.5
+EST_OPER_COST ............ 0.59
+EST_TOTAL_COST ........... 0.59
 DESCRIPTION
   max_card_est ...... 69,397.5
   fragment_id ............ 0
@@ -1653,7 +1654,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Fri Aug  5 12:36:32 2016
+-- Definition current  Mon Aug  8 23:40:44 2016
 
   (
     D_DATE_SK                        INT
@@ -1792,9 +1793,9 @@ CREATE EXTERNAL TABLE DATE_DIM_ORC
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212337160594451470
+PLAN_ID .................. 212337459645652443
 ROWS_OUT ............... 271
-EST_TOTAL_COST ........... 2.57
+EST_TOTAL_COST ........... 0.59
 STATEMENT ................ select *
                            from hive.hive.date_dim_orc
                            where d_date = date '2016-01-27';
@@ -1805,7 +1806,7 @@ ROOT ======================================  SEQ_NO 2        ONLY CHILD 1
 REQUESTS_IN .............. 1
 ROWS_OUT ............... 271
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 2.57
+EST_TOTAL_COST ........... 0.59
 DESCRIPTION
   max_card_est ...... 69,397.5
   fragment_id ............ 0
@@ -1864,8 +1865,8 @@ ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.DATE_DIM_ORC
 REQUESTS_IN .............. 1
 ROWS_OUT ............... 271
-EST_OPER_COST ............ 2.57
-EST_TOTAL_COST ........... 2.57
+EST_OPER_COST ............ 0.59
+EST_TOTAL_COST ........... 0.59
 DESCRIPTION
   max_card_est ...... 69,397.5
   fragment_id ............ 0
@@ -2016,7 +2017,7 @@ orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK is null ) 
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-PLAN_ID .................. 212337160611946928
+PLAN_ID .................. 212337459660068412
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 7.06
 STATEMENT ................ select count(*)

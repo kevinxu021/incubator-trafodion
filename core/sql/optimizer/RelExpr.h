@@ -2003,7 +2003,9 @@ public:
                         maxOperMemReq_(0),
                         maxOperCPUReq_(0),
                         maxOperDataAccessCost_(0),
-                        maxMaxCardinality_(0){};
+                        maxMaxCardinality_(0),
+                        numOfHBaseTables_(0),
+                        numOfHiveTables_(0) {};
   void accumulate(CostScalar memRsrcs, CostScalar cpuRsrcs, CostScalar dataAccessCost, CostScalar maxCard = csZero);
   CostScalar getMemoryResources(){ return memoryResources_; };
   CostScalar getCpuResources(){ return cpuResources_; };
@@ -2017,6 +2019,11 @@ public:
   void setCpuResources(CostScalar cpuRes) { cpuResources_ = cpuRes; };
   void setDataAccessCost(CostScalar dataAccessCost) { dataAccessCost_ = dataAccessCost; };
 
+  void increaseNumOfHBaseTables() { numOfHBaseTables_++; };
+  void increaseNumOfHiveTables() { numOfHiveTables_++; };
+
+  Int32 getNumOfHbaseTables() { return numOfHBaseTables_; };
+  Int32 getNumOfHiveTables() { return numOfHiveTables_; };
 private:
   CostScalar memoryResources_;
   CostScalar cpuResources_;
@@ -2025,6 +2032,9 @@ private:
   CostScalar maxOperCPUReq_;
   CostScalar maxOperDataAccessCost_;
   CostScalar maxMaxCardinality_;
+
+  Int32 numOfHBaseTables_; // number of Hbase tables accumulated
+  Int32 numOfHiveTables_;  // number of Hive tables accumulated
 }; // RequiredResources
 
 // *********************************************************************
