@@ -472,6 +472,84 @@ aaaaaaaaaa                                ?
 
 --- 1 row(s) selected.
 >>
+>>control query shape sort_groupby(exchange(cut));
+
+--- SQL operation complete.
+>>cqd hive_min_bytes_per_esp_partition '2000000' ;
+
+--- SQL operation complete.
+>>prepare s2 from select count(*) from hive.hive.t031hive;
+
+--- SQL command prepared.
+>>explain options 'f' s2 ;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+4    .    5    root                                                  1.00E+000
+3    .    4    sort_partial_aggr_ro                                  1.00E+000
+2    .    3    esp_exchange                    1:2(hash2)            1.00E+000
+1    .    2    sort_partial_aggr_le                                  1.00E+000
+.    .    1    hive_scan                       T031HIVE              2.61E+006
+
+--- SQL operation complete.
+>>execute s2 ;
+
+(EXPR)              
+--------------------
+
+                  10
+
+--- 1 row(s) selected.
+>>
+>>cqd hive_min_bytes_per_esp_partition '1000000' ;
+
+--- SQL operation complete.
+>>prepare s2 from select count(*) from hive.hive.t031hive;
+
+--- SQL command prepared.
+>>explain options 'f' s2 ;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+4    .    5    root                                                  1.00E+000
+3    .    4    sort_partial_aggr_ro                                  1.00E+000
+2    .    3    esp_exchange                    1:4(hash2)            1.00E+000
+1    .    2    sort_partial_aggr_le                                  1.00E+000
+.    .    1    hive_scan                       T031HIVE              2.61E+006
+
+--- SQL operation complete.
+>>execute s2 ;
+
+(EXPR)              
+--------------------
+
+                  10
+
+--- 1 row(s) selected.
+>>
+>>-- test error
+>>cqd hdfs_io_buffersize '3' ;
+
+--- SQL operation complete.
+>>prepare s2 from select count(*) from hive.hive.t031hive;
+
+*** ERROR[4226] Table HIVE.HIVE.T031HIVE has a maximum record length of 2004120 which is greater than the HDFS_IO_BUFFERSIZE default. Increase buffer size setting, or reduce the HIVE_MAX_STRING_LENGTH default.
+
+*** ERROR[8822] The statement was not prepared.
+
+>>
+>>control query shape cut ;
+
+--- SQL operation complete.
+>>cqd hdfs_io_buffersize reset ;
+
+--- SQL operation complete.
+>>cqd hive_min_bytes_per_esp_partition reset;
+
+--- SQL operation complete.
+>>
 >>-- default USER
 >>drop table if exists t031t1;
 
@@ -482,7 +560,7 @@ aaaaaaaaaa                                ?
 >>invoke t031t1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T031T1
--- Definition current  Wed Jul 13 23:30:01 2016
+-- Definition current  Fri Aug  5 21:55:49 2016
 
   (
     SYSKEY                           LARGEINT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -513,7 +591,7 @@ A            B
 >>invoke t031t1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T031T1
--- Definition current  Wed Jul 13 23:30:02 2016
+-- Definition current  Fri Aug  5 21:55:57 2016
 
   (
     SYSKEY                           LARGEINT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -547,7 +625,7 @@ A            B                     C
           ?  DB__ROOT              DB__ROOT            
 
 --- 3 row(s) selected.
-
+>>
 >>-- metadata stored descriptor tests
 >>cqd traf_store_object_desc 'OFF';
 

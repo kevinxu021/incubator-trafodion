@@ -193,6 +193,7 @@ public class RMInterface {
           threadPool = Executors.newFixedThreadPool(intThreads);
           compPool = new ExecutorCompletionService<Integer>(threadPool);
         }
+        idServer = new IdTm(false);
         if (LOG.isTraceEnabled()) LOG.trace("RMInterface constructor exit");
     }
 

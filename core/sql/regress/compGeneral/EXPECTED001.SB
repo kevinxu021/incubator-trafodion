@@ -144,15 +144,10 @@ ENO          ENAME                 DNO
 +> intersect  all
 +>select eno, ename, dno from t022;
 
-ENO          ENAME                 DNO
------------  --------------------  -----------
+*** ERROR[3022] The INTERSECT ALL operator is not yet supported.
 
-          2  Jones                          33
-          3  Gray                           44
-          3  Gray                           44
-          6  Miller                          ?
+*** ERROR[8822] The statement was not prepared.
 
---- 4 row(s) selected.
 >>
 >>select eno, ename, dno from t021 where dno >10
 +> intersect
@@ -188,6 +183,16 @@ ENO          ENAME                 DNO
           2  Jones                          33
           3  Gray                           44
           6  Miller                          ?
+
+--- 3 row(s) selected.
+>>select eno, ename, dno from t021 except select * from t022;
+
+ENO          ENAME                 DNO
+-----------  --------------------  -----------
+
+          1  Smith                          33
+          4  Miller                         55
+          5  Miller                          ?
 
 --- 3 row(s) selected.
 >>cqd mode_special_4 reset;

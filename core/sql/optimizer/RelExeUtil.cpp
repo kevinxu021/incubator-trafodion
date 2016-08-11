@@ -3106,6 +3106,7 @@ ExeUtilRegionStats::ExeUtilRegionStats
  NABoolean summaryOnly,
  NABoolean isIndex,
  NABoolean forDisplay,
+ NABoolean clusterView,
  RelExpr * child,
  CollHeap *oHeap)
      : ExeUtilExpr(REGION_STATS_, objectName,
@@ -3113,6 +3114,7 @@ ExeUtilRegionStats::ExeUtilRegionStats
        summaryOnly_(summaryOnly),
        isIndex_(isIndex),
        displayFormat_(forDisplay),
+       clusterView_(clusterView),
        errorInParams_(FALSE),
        inputColList_(NULL)
 {
@@ -3126,6 +3128,7 @@ RelExpr * ExeUtilRegionStats::copyTopNode(RelExpr *derivedNode, CollHeap* outHea
     result = new (outHeap) ExeUtilRegionStats(getTableName(),
                                               summaryOnly_, isIndex_, 
                                               displayFormat_,
+                                              clusterView_,
                                               NULL,
                                               outHeap);
   else
@@ -3154,7 +3157,8 @@ RelExpr * ExeUtilRegionStats::bindNode(BindWA *bindWA)
     return this;
   }
 
-  if (getTableName().getQualifiedNameObj().getObjectName().isNull())
+  if ((NOT clusterView_) &&
+      (getTableName().getQualifiedNameObj().getObjectName().isNull()))
     {
       *CmpCommon::diags() << DgSqlCode(-4218) << DgString0("REGION STATS");
       
@@ -3162,7 +3166,8 @@ RelExpr * ExeUtilRegionStats::bindNode(BindWA *bindWA)
       return this;
     }
 
-  if (! child(0))
+  if ((! child(0)) &&
+      (NOT getTableName().getQualifiedNameObj().getObjectName().isNull()))
     {
       NATable * naTable = bindWA->getNATable(getTableName());
       if ((!naTable) || (bindWA->errStatus()))
@@ -4222,9 +4227,9 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
         }
       else if (getExprNode()->castToStmtDDLNode()->castToStmtDDLAlterTableHDFSCache())
          alterHdfsCache = TRUE;
-      else if (getExprNode()->castToStmtDDLNode()->castToStmtDDLAlterTableStoredDesc())
-        alterStoredDesc = TRUE;
-      else
+       else if (getExprNode()->castToStmtDDLNode()->castToStmtDDLAlterTableStoredDesc())
+         alterStoredDesc = TRUE;
+       else
         otherAlters = TRUE;
 
       qualObjName_ =

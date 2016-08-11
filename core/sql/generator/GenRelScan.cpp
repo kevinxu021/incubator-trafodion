@@ -1569,7 +1569,6 @@ if (hTabStats->isOrcFile())
    {
      hdfsBufSize = (Int64)CmpCommon::getDefaultNumeric(HDFS_IO_BUFFERSIZE);
      hdfsBufSize = hdfsBufSize * 1024; // convert to bytes
-     
      Int64 hdfsBufSizeTesting = (Int64)
        CmpCommon::getDefaultNumeric(HDFS_IO_BUFFERSIZE_BYTES);
      if (hdfsBufSizeTesting)
@@ -1578,6 +1577,18 @@ if (hTabStats->isOrcFile())
 
   UInt32 rangeTailIOSize = (UInt32)
       CmpCommon::getDefaultNumeric(HDFS_IO_RANGE_TAIL);
+  if (rangeTailIOSize == 0) 
+    {
+      rangeTailIOSize = getTableDesc()->getNATable()->getRecordLength() +
+	(getTableDesc()->getNATable()->getClusteringIndex()->
+	 getAllColumns().entries())*2 + 16*1024;
+      // for each range we look ahead in the next range upto the maximum
+      // record length to find the end of record delimiter. The 16KB is 
+      // old default setting which worked fine till we started testing
+      // wide columns. We need to keep the 16 KB as additional fudge factor
+      // as recordlength in compiler is different from what it would be
+      // in a Hive text file
+    }
 
   char * tablename = 
     space->AllocateAndCopyToAlignedSpace(GenGetQualifiedName(getIndexDesc()->getNAFileSet()->getFileSetName()), 0);
@@ -1851,11 +1862,8 @@ void populateRangeDescForBeginKey(char* buf, Int32 len, struct TrafDesc* target,
   target->hbaseRegionDesc()->endKeyLen = 0;   
 }
 
-void populateRegionDescAsRANGE(char* buf, Int32 len, struct desc_struct* target, NAMemory*);
-
 TrafDesc *HbaseAccess::createVirtualTableDesc(const char * name,
-                                              NABoolean isRW, NABoolean isCW,
-                                              NAArray<HbaseStr>* beginKeys)
+						 NABoolean isRW, NABoolean isCW, NAArray<HbaseStr>* beginKeys)
 {
   TrafDesc * table_desc = NULL;
 

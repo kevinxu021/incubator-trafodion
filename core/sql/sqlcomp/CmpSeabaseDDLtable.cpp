@@ -7618,7 +7618,7 @@ void CmpSeabaseDDL::alterSeabaseTableAlterColumnRename(
           NAString renamedQuotedColName = "\"" + renamedColName + "\"";
           saltText = replaceAll(saltText, quotedColName, renamedQuotedColName);
           cliRC = updateTextTable(&cliInterface, objUID, COM_COMPUTED_COL_TEXT,
-                                  saltColPos, saltText, TRUE);
+                                  saltColPos, saltText, NULL, -1, TRUE);
           if (cliRC < 0)
             {
               processReturn();
@@ -8890,14 +8890,16 @@ short CmpSeabaseDDL::getTextFromMD(
                                    Int64 textUID,
                                    ComTextType textType,
                                    Lng32 textSubID,
-                                   NAString &outText)
+                                   NAString &outText,
+                                   NABoolean binaryData)
 {
   short retcode = getTextFromMD(getSystemCatalog(),
                                 cliInterface,
                                 textUID,
                                 textType,
                                 textSubID,
-                                outText);
+                                outText,
+                                binaryData);
 
   if (retcode)
     processReturn();
@@ -8911,7 +8913,8 @@ short CmpSeabaseDDL::getTextFromMD(const char * catalogName,
                                    Int64 textUID,
                                    ComTextType textType,
                                    Lng32 textSubID,
-                                   NAString &outText)
+                                   NAString &outText,
+                                   NABoolean binaryData)
 {
   Lng32 cliRC;
 
@@ -8931,6 +8934,7 @@ short CmpSeabaseDDL::getTextFromMD(const char * catalogName,
     }
   
   // glue text together
+  NAString binaryText;
   for (Lng32 idx = 0; idx < textQueue->numEntries(); idx++)
     {
       OutputInfo * vi = (OutputInfo*)textQueue->getNext(); 
@@ -8939,7 +8943,25 @@ short CmpSeabaseDDL::getTextFromMD(const char * catalogName,
 
       char * text = (char*)vi->get(1);
    
-      outText.append(text, len);
+      if (binaryData)
+        binaryText.append(text, len);
+      else
+        outText.append(text, len);
+    }
+
+  // if binary data, decode it and then return
+  if (binaryData)
+    {
+      Lng32 decodedMaxLen = str_decoded_len(binaryText.length());
+      
+      char * decodedData = new(STMTHEAP) char[decodedMaxLen];
+      Lng32 decodedLen =
+        str_decode(decodedData, decodedMaxLen,
+                   binaryText.data(), binaryText.length());
+      if (decodedLen < 0)
+        return -1;
+
+      outText.append(decodedData, decodedLen);
     }
 
   return 0;
@@ -11686,8 +11708,10 @@ TrafDesc * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
      &packedDescLen,
      TRUE /*user table*/);
   
+  deleteNAArray(heap_, endKeyArray);
+  
   if ( tableDesc ) {
-    // if this is base table or index and hbase object doesn't exist, 
+    // if this is base table or index and hbase object doesn't exist,
     // then this object is corrupted.
     if (!objectFlags & SEABASE_OBJECT_IS_EXTERNAL_HIVE &&
         !objectFlags & SEABASE_OBJECT_IS_EXTERNAL_HBASE)

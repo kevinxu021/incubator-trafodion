@@ -1847,7 +1847,7 @@ TrafDesc* Generator::assembleDescs(
      len = keyArray->at(i).len;
      if ( len > 0 ) { 
        buf = new GENHEAP(space) char[len];
-       memcpy(buf, keyArray->at(i).val, len);
+       memcpy(buf, keyArray->at(i).val, len); 
      } else
        buf = NULL;
      
@@ -2064,7 +2064,6 @@ TrafDesc * Generator::createVirtualTableDesc
 	  prev_desc = curr_constr_desc;
 	} // for
     }
-
 
   TrafDesc * index_desc = TrafAllocateDDLdesc(DESC_INDEXES_TYPE, space);
   index_desc->indexesDesc()->tablename = table_desc->tableDesc()->tablename;
