@@ -14871,10 +14871,10 @@ void Scan::computeMyRequiredResources(RequiredResources & reqResources, EstLogPr
   }
 
   if ( getTableDesc()->getNATable()->isHbaseTable()) 
-    reqResources.increaseNumOfHBaseTables();
+    reqResources.incrementNumOfHBaseTables();
 
   if ( getTableDesc()->getNATable()->isHiveTable()) 
-    reqResources.increaseNumOfHiveTables();
+    reqResources.incrementNumOfHiveTables();
 
   CostScalar myMaxCard = getGroupAttr()->getResultMaxCardinalityForInput(inLP);
   reqResources.accumulate(csZero, cpuResourcesRequired, 

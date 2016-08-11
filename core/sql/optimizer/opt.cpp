@@ -4444,10 +4444,10 @@ OptDefaults::computeRecommendedNumCPUsForMemory(double memoryResourceRequired)
 void OptDefaults::computeNumESPsPerNodePerQuery(const RequiredResources* requiredResources)
 {
   // Set the number of ESPs per node according to the following rules:
-  //  1. if there exists at least one hive table during computeRequiredResources() 
+  //  1. If there exists at least one hive table during computeRequiredResources() 
   //     1.1  if CB_209 if off, use the value of CQD HIVE_NUM_ESPS_PER_DATANODE
   //     1.2  else use the aggressive ESP setting; 
-  //  2. use the value for HBase tables
+  //  2. Else, use the value for HBase tables
   //
   NADefaults &defs = ActiveSchemaDB()->getDefaults();
   if ( requiredResources->getNumOfHiveTables() > 0 ) 
