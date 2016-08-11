@@ -189,7 +189,6 @@ public class DatabaseResource {
 				// SqlRoutineType.PROCEDURE.getRoutineType());
 				break;
 			}
-			_LOG.debug(queryText);
 			// TabularResult result =
 			// QueryResource.executeAdminSQLQuery(queryText);
 			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
@@ -351,7 +350,6 @@ public class DatabaseResource {
 			pstmt.setString(1, catalogName);
 			pstmt.setString(2, Helper.InternalForm(schemaName));
 
-			_LOG.debug(queryText);
 
 			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult("Schema " + schemaName, "", result);
@@ -542,7 +540,6 @@ public class DatabaseResource {
 
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_REGIONS),
 					indexQualifier, ansiObjectName);
-			_LOG.debug(queryText);
 			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
 			return sqlResult;
@@ -627,7 +624,6 @@ public class DatabaseResource {
 			pstmt.setString(1, Helper.InternalForm(schemaName));
 			pstmt.setString(2, Helper.InternalForm(objectName));
 
-			_LOG.debug(queryText);
 			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
 			for (int i = 0; i < sqlResult.columnNames.length; i++) {
