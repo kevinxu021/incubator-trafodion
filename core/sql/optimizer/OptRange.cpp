@@ -2100,6 +2100,14 @@ static Int64 getInt64ValueFromInterval(ConstValue* constVal,
     {
       // No need to check for signed/unsigned before checking for negative;
       // interval type is always signed.
+      case 1:
+        {
+          Int8 valx;
+          memcpy(&valx, val, 1);
+          valWasNegative = (valx < 0);
+          i64val = valx;
+        }
+        break;
       case 2:
         {
           Int16 valx;
@@ -2429,6 +2437,17 @@ double getDoubleValue(ConstValue* val, logLevel level)
 
   switch (valueStorageSize)
     {
+      case 1:
+        {
+          assertLogAndThrow1(CAT_SQL_COMP_RANGE, level,
+                           isExactNumeric, QRDescriptorException,
+                           "const value of size 1 not exact numeric: %d",
+                           constValType->getTypeQualifier());
+          Int8 i8val;
+          memcpy(&i8val, valuePtr, valueStorageSize);
+          return i8val / scaleDivisor;
+        }
+
       case 2:
         {
           assertLogAndThrow1(CAT_SQL_COMP_RANGE, level,
