@@ -325,15 +325,15 @@ define([
 			//serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 		},
 		handleMessage:function(data){
-			$(EXECUTE_BTN).attr("disabled",false);
+/*			$(EXECUTE_BTN).attr("disabled",false);
 			$(EXECUTE_BTN).attr("data-original-title","Execute");
-			$(EXECUTE_BTN).removeClass("fa-stop").addClass("fa-play");
+			$(EXECUTE_BTN).removeClass("btn-danger fa-stop").addClass("btn-primary fa-play");
 			$(EXECUTE_BTN).unbind("click").on("click",_this.executeQuery);
 			if(data==true){
 				cancelMesObj={msg:'The workbench query was canceled successfully.',tag:"success",url:_this.currentURL,shortMsg:"Workbench query canceled successfully."};
 			}else{
 				cancelMesObj={msg:'The workbench query was completed, could not be canceled.',tag:"warning",url:_this.currentURL,shortMsg:"Workbench query completed."};
-			}
+			}*/
 		},
 		handleWindowResize: function () {
 			if(st != null) {
@@ -528,16 +528,6 @@ define([
 		},
 
 		executeQuery: function () {
-			EXPLAIN_JSON_DATA={};
-			$(EXECUTE_BTN).attr("data-original-title","Cancel");
-			$(EXECUTE_BTN).removeClass("fa-play").addClass("fa-stop");
-			$(EXECUTE_BTN).unbind("click").on("click",_this.cancelQuery);
-			lastExecuteResult = null;
-			lastExplainResult = null;
-			resultsAfterPause = false;
-			lastRawError = null;
-			timeStamps.runTime=new Date().getTime();
-			
 			var queryText = $(QUERY_TEXT).val();
 			if(queryTextEditor){
 				queryText = queryTextEditor.getSelection();
@@ -545,12 +535,23 @@ define([
 					queryText = queryTextEditor.getValue();
 				}
 			}
-			executionQueryText=queryText;
-
 			if(queryText == null || queryText.length == 0){
 				alert('Query text cannot be empty.');
 				return;
 			}
+
+			EXPLAIN_JSON_DATA={};
+			$(EXECUTE_BTN).attr("data-original-title","Cancel");
+			$(EXECUTE_BTN).removeClass('btn-primary fa-play').addClass('btn-danger fa-stop');
+			$(EXECUTE_BTN).unbind("click").on("click",_this.cancelQuery);
+			lastExecuteResult = null;
+			lastExplainResult = null;
+			resultsAfterPause = false;
+			lastRawError = null;
+			timeStamps.runTime=new Date().getTime();
+			
+			executionQueryText=queryText;
+
 			_this.parseControlStmts();
 
 			_this.showLoading();
@@ -643,7 +644,7 @@ define([
 				}        		
 			}
 			$(EXECUTE_BTN).attr("data-original-title","Execute");
-			$(EXECUTE_BTN).removeClass("fa-stop").addClass("fa-play");
+			$(EXECUTE_BTN).removeClass("btn-danger fa-stop").addClass("btn-primary fa-play");
 			$(EXPLAIN_BTN).attr("disabled",false);
 			$(EXECUTE_BTN).unbind("click").on("click",_this.executeQuery);
 			if(cancelMesObj!=null){
@@ -686,7 +687,7 @@ define([
 				}
 			}
 			$(EXECUTE_BTN).attr("data-original-title","Execute");
-			$(EXECUTE_BTN).removeClass("fa-stop").addClass("fa-play");	
+			$(EXECUTE_BTN).removeClass("btn-danger fa-stop").addClass("btn-primary fa-play");	
 			$(EXECUTE_BTN).unbind("click").on("click",_this.executeQuery);
 			if(cancelMesObj!=null){
 				if(_this.redirectFlag){

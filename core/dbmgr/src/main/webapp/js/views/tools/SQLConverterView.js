@@ -137,7 +137,7 @@ define([
 			if(tgtQueryTextEditor)
 				tgtQueryTextEditor.setValue("");
 			$(SRC_FILE_NAME).val("");
-			$(EXEC_RESULTS).text("");
+			//$(EXEC_RESULTS).text("");
 		},
 		onFileSelected : function(e) {
 			var files = e.target.files;
@@ -149,7 +149,7 @@ define([
 					var contents = e.target.result;
 					srcQueryTextEditor.setValue(contents);
 					tgtQueryTextEditor.setValue("");
-					$(EXEC_RESULTS).text("");
+					//$(EXEC_RESULTS).text("");
 				}
 				r.readAsText(FILE);
 			} else { 
@@ -185,11 +185,11 @@ define([
 			if(sqlText.length > 0){
 				var blob = new Blob([tgtQueryTextEditor.getValue()], {type: "text/plain;charset=utf-8"});
 				saveAs(blob, "EsgynDBSQL.sql");
-				var output = $(EXEC_RESULTS).text();
+				/*var output = $(EXEC_RESULTS).text();
 				if(output.length > 0) {
 					var blob = new Blob([output], {type: "text/plain;charset=utf-8"});
 					saveAs(blob, "EsgynDBSQL.log");
-				}
+				}*/
 			}
 		},
 		executeBatchSQL: function(){

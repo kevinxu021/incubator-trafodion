@@ -86,6 +86,9 @@ define([
 			$(MAPPING_RESET_BTN).on('click', this.mappingResetBtnClicked);
 
 			$.validator.addMethod("alphanumeric", function(value, element) {
+				if(mappingDialogParams.type && mappingDialogParams.type == 'alter')
+					return true; // For alter we don't allow editing the name,so no check needed
+				
 				return this.optional(element) || /^\w+$/i.test(value);
 			}, "Only alphanumeric characters and underscores are allowed");
 			
