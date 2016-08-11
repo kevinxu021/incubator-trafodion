@@ -419,6 +419,7 @@ void * CNSKListenerSrvr::tcpip_listener(void *arg)
                listener->TRACE_UNKNOWN_INPUT();
                SET_ERROR((long)0, NSK, TCPIP, UNKNOWN_API, E_SERVER,"tcpip_listener", O_SELECT, F_FD_ISSET,SRVR_ERR_UNKNOWN_REQUEST,0);
                listener->TCP_TRACE_OUTPUT_R0();
+               SRVR::exitServerProcess();
             }
 
 	} // numReadyFds > 0

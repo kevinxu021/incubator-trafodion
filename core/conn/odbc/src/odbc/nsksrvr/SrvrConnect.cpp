@@ -130,7 +130,10 @@ extern int myPid;
 extern string myProcName;
 extern bool bPlanEnabled;
 extern bool bPublishStatsToTSDB;
-
+extern int exitSessionsCount;
+extern int exitLiveTime;
+int totalExitSessionsCount = 0;
+time_t startExitLiveTime = 0; // time in minutes
 extern long maxHeapPctExit;
 extern long initSessMemSize ;
 int fd = -1;
@@ -150,7 +153,7 @@ string appName;
 string userName;
 time_t connectedTimestamp; //timestamp when ZK updated server state to CONNECTED
 //===========================profile cqds================================================
-string execProfileCqdList(list<char*> *pList);
+string execProfileCqdList(list<string> *pList);
 string sla;
 string cprofile;
 string dprofile;
@@ -161,16 +164,16 @@ string connectProfile;
 time_t connect_ctime=0;
 time_t connect_mtime=0;
 char* profConnectData=NULL;
-list<char*> connectCqdList;
-list<char*> connectSetList;
+list<string> connectCqdList;
+list<string> connectSetList;
 bool connectProfileSame = false;
 //======================== onDisconnect===================================================
 string disconnectProfile;
 time_t disconnect_ctime=0;
 time_t disconnect_mtime=0;
 char* profDisconnectData=NULL;
-list<char*> disconnectCqdList;
-list<char*> disconnectSetList;
+list<string> disconnectCqdList;
+list<string> disconnectSetList;
 bool disconnectProfileSame = false;
 //============================================================================================
 bool firstTime = true;
@@ -2171,7 +2174,8 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 				odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
 				return;
 			}
-/*========================= get SLA ========================================
+
+/*======================== get SLA ========================================
             timestamp,--------------------------2
             dialogueId,-------------------------3
             serverNodeId,-----------------------4
@@ -2234,6 +2238,7 @@ TNULL:
 			}
 			free(extData);
 			extData = NULL;
+//if 0
 // build sla path from zk node /<user name>/wms/slas/sla
 			char * cstr = new char [dcsRegisteredNode.length()+1];
 			strcpy (cstr, dcsRegisteredNode.c_str() + 1); //skip first "/"
@@ -2251,16 +2256,17 @@ TNULL:
 //SLA
 			definedSla = "/" + user + "/wms/slas/" + sla;
 			rc == zoo_exists(zh, definedSla.c_str(), false, &stat);
-            if (rc == ZOK )
-            {
+                        if (rc == ZOK )
+                        {
 				char* slaData=NULL;
 				int slaDataLen = 0;
-            	slaDataLen = stat.dataLength;
+                                slaDataLen = stat.dataLength;
 				slaData = new char[slaDataLen + 1];
 
 				rc = zoo_get(zh, definedSla.c_str(), false, slaData, &slaDataLen, &stat);
+
 				if( rc == ZOK )
-				{
+				{                                  
 					// isDefault=no:priority=1:limit=:throughput=:onConnectProfile=testProfile:onDisconnectProfile=defaultProfile:lastUpdate=1462326660114
 					slaData[slaDataLen] = 0;
 					char* stringp = slaData;
@@ -2285,167 +2291,186 @@ TNULL:
 					if(curConnectProfile.length()==0)
 						curConnectProfile = string("defaultProfile");
 					if(curDisconnectProfile.length()==0)
-						curDisconnectProfile = string("defaultProfile");
+						curDisconnectProfile = string("defaultProfile");                                       
 				}
 				if(slaData!=NULL)
 					delete[]slaData;
-            }
-		}
+                        }
 //Profiles
-		if( rc == ZOK )
-		{
-			definedProfile = "/" + user + "/wms/profiles/" + curConnectProfile;
-			rc == zoo_exists(zh, definedProfile.c_str(), false, &stat);
-            if (rc == ZOK )
-            {
-                tctime = stat.ctime/1000;
-                tmtime = stat.mtime/1000;
+                        if( rc == ZOK )
+                        {
+//Profile onConnect
+                              definedProfile = "/" + user + "/wms/profiles/" + curConnectProfile;
+                              rc == zoo_exists(zh, definedProfile.c_str(), false, &stat);
+                              if (rc == ZOK )
+                              {
+                                      tctime = stat.ctime/1000;
+                                      tmtime = stat.mtime/1000;
 
-                if(tmtime != connect_mtime)
-                {
-                	connectProfileSame = false;
-                	connectProfile = curConnectProfile;
-                	connect_ctime=tctime;
-                	connect_mtime=tmtime;
-					if(profConnectData != NULL)
-						delete[] profConnectData;
-					cqds = NULL;
-					sets = NULL;
-					profConnectData = NULL;
-					connectCqdList.clear();
-					connectSetList.clear();
+                                      if(tmtime != connect_mtime)
+                                      {
 
-					profConnectDataLen = stat.dataLength;
-					profConnectData = new char[profConnectDataLen + 1];
+                                          connectProfileSame = false;
+                                          connectProfile = curConnectProfile;
+                                          connect_ctime=tctime;
+                                          connect_mtime=tmtime;
+                                          connectCqdList.clear();
+                                          connectSetList.clear();
+                                          if(profConnectData != NULL)
+                                               delete[] profConnectData;
+                                          cqds = NULL;
+                                          sets = NULL;
+                                          profConnectData = NULL;
 
-					rc = zoo_get(zh, definedProfile.c_str(), false, profConnectData, &profConnectDataLen, &stat);
-					if( rc == ZOK )
-					{
-						profConnectData[profConnectDataLen]=0;
-						char* stringp = profConnectData;
-						tkn = strsep(&stringp, "=");
-						while(true)
-						{
-							if(tkn == NULL) break;
-							if(stricmp(tkn, "cqd") == 0)
-							{
-								cqds = strsep(&stringp,":");
-								if(sets!=NULL)
-									break;
-							}
-							else if(stricmp(tkn, "set") == 0)
-							{
-								sets = strsep(&stringp,":");
-								if(cqds!=NULL)
-									break;
-							}
-							else
-								tkn = strsep(&stringp, ":");
-							tkn = strsep(&stringp, "=");
-						}
-						if(cqds != NULL && cqds[0] != 0)
-						{
-							tkn = strsep(&cqds, ";");
-							while(tkn != NULL)
-							{
-								if(tkn[0] != 0)
-									connectCqdList.push_back(tkn);
-								tkn = strsep(&cqds, ";");
-							}
-						}
-						if(sets != NULL && sets[0] != 0)
-						{
-							tkn = strsep(&sets, ";");
-							while(tkn != NULL)
-							{
-								if(tkn[0] != 0)
-									connectSetList.push_back(tkn);
-								tkn = strsep(&sets, ";");
-							}
-						}
-					}
-                }
-                else
-                	connectProfileSame = true;
-            }
-            if (rc == ZOK){
-				definedProfile = "/" + user + "/wms/profiles/" + curDisconnectProfile;
-				rc == zoo_exists(zh, definedProfile.c_str(), false, &stat);
-				if (rc == ZOK )
-				{
-	                tctime = stat.ctime/1000;
-	                tmtime = stat.mtime/1000;
+                                          profConnectDataLen = stat.dataLength + 1;
+                                          profConnectData = new char[profConnectDataLen];
 
-	                if(tmtime != disconnect_mtime)
-	                {
-	                	disconnectProfileSame = false;
-	                	disconnectProfile = curDisconnectProfile;
-	                	disconnect_ctime=tctime;
-	                	disconnect_mtime=tmtime;
-						if(profDisconnectData != NULL)
-							delete[] profDisconnectData;
-						profDisconnectData = NULL;
-						disconnectCqdList.clear();
-						disconnectSetList.clear();
-						cqds = NULL;
-						sets = NULL;
+                                          rc = zoo_get(zh, definedProfile.c_str(), false, profConnectData, &profConnectDataLen, &stat);
+                                          if( rc == ZOK )
+                                          {
+                                                  profConnectData[profConnectDataLen]=0;
+                                                  char* stringp = profConnectData;
+                                                  
+                                                  tkn = strsep(&stringp, "=");
+                                                  while(true)
+                                                  {
+                                                          if(tkn == NULL) break;
+                                                          if(stricmp(tkn, "cqd") == 0)
+                                                          {
+                                                                  cqds = strsep(&stringp,":");
+                                                                  if(sets!=NULL)
+                                                                          break;
+                                                          }
+                                                          else if(stricmp(tkn, "set") == 0)
+                                                          {
+                                                                  sets = strsep(&stringp,":");
+                                                                  if(cqds!=NULL)
+                                                                          break;
+                                                          }
+                                                          else
+                                                                  tkn = strsep(&stringp, ":");
+                                                          tkn = strsep(&stringp, "=");
+                                                  }
 
-						profDisconnectDataLen = stat.dataLength;
-						profDisconnectData = new char[profDisconnectDataLen];
+                                                  if(cqds != NULL && cqds[0] != 0)
+                                                  {
+                                                          tkn = strsep(&cqds, ";");
+                                                          while(tkn != NULL)
+                                                          {
+                                                                 if(tkn[0] != 0)
+                                                                         connectCqdList.push_back(string(tkn));
+                                                                  tkn = strsep(&cqds, ";");
+                                                          }
+                                                         
+                                                  }
 
-						rc = zoo_get(zh, definedProfile.c_str(), false, profDisconnectData, &profDisconnectDataLen, &stat);
-						if( rc == ZOK )
-						{
-							profDisconnectData[profDisconnectDataLen]=0;
-							char* stringp = profDisconnectData;
-							tkn = strsep(&stringp, "=");
-							while(true)
-							{
-								if(tkn == NULL) break;
-								if(stricmp(tkn, "cqd") == 0)
-								{
-									cqds = strsep(&stringp,":");
-									if(sets!=NULL)
-										break;
-								}
-								else if(stricmp(tkn, "set") == 0)
-								{
-									sets = strsep(&stringp,":");
-									if(cqds!=NULL)
-										break;
-								}
-								else
-									tkn = strsep(&stringp, ":");
-								tkn = strsep(&stringp, "=");
-							}
-							if(cqds != NULL && cqds[0] != 0)
-							{
-								tkn = strsep(&cqds, ";");
-								while(tkn != NULL)
-								{
-									if(tkn[0] != 0)
-										disconnectCqdList.push_back(tkn);
-									tkn = strsep(&cqds, ";");
-								}
-							}
-							if(sets != NULL && sets[0] != 0)
-							{
-								tkn = strsep(&sets, ";");
-								while(tkn != NULL)
-								{
-									if(tkn[0] != 0)
-										disconnectSetList.push_back(tkn);
-									tkn = strsep(&sets, ";");
-								}
-							}
-						}
-	                }
-	                else
-	                	disconnectProfileSame = true;
-				}
-            }
+                                                  if(sets != NULL && sets[0] != 0)
+                                                  {
+                                                          tkn = strsep(&sets, ";");
+                                                          while(tkn != NULL)
+                                                          {
+                                                                  if(tkn[0] != 0)
+                                                                        connectSetList.push_back(string(tkn));
+                                                                  tkn = strsep(&sets, ";");
+                                                          }
+                                                  }
+                                          }
+                                      }//if(tmtime != connect_mtime)
+                                      else
+                                              connectProfileSame = true;
+
+                              } //if (rc == ZOK ) zoo_exists                                      
+                        }//if (rc == ZOK )
+                             
+                        if (rc == ZOK)
+                        {
+// Profile onDisconnect                   
+                               definedProfile = "/" + user + "/wms/profiles/" + curDisconnectProfile;
+                               rc == zoo_exists(zh, definedProfile.c_str(), false, &stat);
+                               if (rc == ZOK )
+                               {
+
+                                      tctime = stat.ctime/1000;
+                                      tmtime = stat.mtime/1000;
+
+                                      if(tmtime != disconnect_mtime)
+                                      {
+
+                                              disconnectProfileSame = false;
+                                              disconnectProfile = curDisconnectProfile;
+                                              disconnect_ctime=tctime;
+                                              disconnect_mtime=tmtime;
+                                              disconnectCqdList.clear();
+                                              disconnectSetList.clear();
+                                              if(profDisconnectData != NULL)
+                                                    delete[] profDisconnectData;
+                                              
+                                              profDisconnectData = NULL;
+                                              cqds = NULL;
+                                              sets = NULL;
+
+                                              profDisconnectDataLen = stat.dataLength + 1;
+                                              profDisconnectData = new char[profDisconnectDataLen ];
+
+                                              rc = zoo_get(zh, definedProfile.c_str(), false, profDisconnectData, &profDisconnectDataLen, &stat);
+                                              if( rc == ZOK )
+                                              {
+                                                      profDisconnectData[profDisconnectDataLen]=0;
+                                                      char* stringp = profDisconnectData;
+                                                      tkn = strsep(&stringp, "=");
+                                                      while(true)
+                                                      {
+                                                              if(tkn == NULL) break;
+                                                              if(stricmp(tkn, "cqd") == 0)
+                                                              {
+                                                                      cqds = strsep(&stringp,":");
+                                                                      if(sets!=NULL)
+                                                                              break;
+                                                              }
+                                                              else if(stricmp(tkn, "set") == 0)
+                                                              {
+                                                                      sets = strsep(&stringp,":");
+                                                                      if(cqds!=NULL)
+                                                                              break;
+                                                              }
+                                                              else
+                                                                      tkn = strsep(&stringp, ":");
+                                                              tkn = strsep(&stringp, "=");
+                                                        }
+
+                                                        if(cqds != NULL && cqds[0] != 0)
+                                                        {
+                                                              tkn = strsep(&cqds, ";");
+                                                              while(tkn != NULL)
+                                                              {
+                                                                      if(tkn[0] != 0)
+                                                                              disconnectCqdList.push_back(string(tkn));
+                                                                      tkn = strsep(&cqds, ";");
+                                                              }
+                                                        }
+
+                                                        if(sets != NULL && sets[0] != 0)
+                                                        {
+                                                              tkn = strsep(&sets, ";");
+                                                              while(tkn != NULL)
+                                                              {
+                                                                      if(tkn[0] != 0)
+                                                                              disconnectSetList.push_back(string(tkn));
+                                                                      tkn = strsep(&sets, ";");
+                                                              }
+                                                        }
+                                                }
+
+                                       } //if(tmtime != disconnect_mtime)
+                                       else
+                                           disconnectProfileSame = true;
+                                       
+                               }//if (rc == ZOK ) zoo_exists
+                        }//if (rc == ZOK )
+// end of Profile on disconnect
 		}
-	}
+        }
+        
 	if( rc != ZOK )
 	{
 		sprintf(tmpString, "Error %d getting registered node data from Zookeeper. Server exiting.", rc);
@@ -2454,7 +2479,6 @@ TNULL:
 			1, tmpString);
 		exitServerProcess();
 	}
-
 	sdconn = ((CTCPIPSystemSrvr* )objtag_)->m_nSocketFnum;
 	// If the server state is connecting then Initialize_Dialogue
 	// is called second time with or without changing the password
@@ -4127,8 +4151,12 @@ TNULL:
 	}
 	if( (maxHeapPctExit != 0) &&  (initSessMemSize == 0))
 		initSessMemSize = getMemSize("Initial");
-
+        
 	odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+        
+        if (exitLiveTime > 0 && startExitLiveTime == 0)
+                startExitLiveTime = time(NULL);
+
 	return;
 }
 /*
@@ -4291,11 +4319,21 @@ odbc_SQLSvc_TerminateDialogue_ame_(
 	}
 
 bailout:
-	if (srvrGlobal->traceLogger != NULL)
+        if (srvrGlobal->traceLogger != NULL)
 	{
 		srvrGlobal->traceLogger->TraceDisconnectExit(exception_);
 	}
 	SRVRTRACE_EXIT(FILE_AME+6);
+        
+        if(exitSessionsCount > 0){
+                totalExitSessionsCount++;
+                if (totalExitSessionsCount >= exitSessionsCount){
+                        exitServerProcess();
+                }
+        }
+         if(exitLiveTime > 0 && ((time(NULL) - startExitLiveTime) > exitLiveTime * 60 )) {
+                 exitServerProcess();
+         }
 	return;
 }
 
@@ -9574,7 +9612,8 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 				rc == zoo_exists(zh, dcsRegisteredNode.c_str(), false, &stat);
 	            if (rc == ZOK )
 	            {
-	                connectedTimestamp = stat.mtime/1000;
+	                //connectedTimestamp = stat.mtime/1000;
+                        connectedTimestamp =  time(NULL);
 	            }
 	            else
 	            {
@@ -10044,13 +10083,13 @@ void SyncPublicationThread()
                 } 
 	}
 }
-string execProfileCqdList(list<char*> *pList)
+string execProfileCqdList(list<string> *pList)
 {
-	char* ControlQuery;
+	string ControlQuery;
 	SRVR_STMT_HDL *QryControlSrvrStmt = NULL;
 	SQLRETURN rc = SQL_SUCCESS;
-	string requestError;
-
+	string requestError = "";
+        
 	if ((QryControlSrvrStmt = getSrvrStmt("STMT_QRYRES_ON_1", TRUE)) == NULL)
 	{
 		requestError = "Allocate Statement STMT_QRYRES_ON_1 failed.";
@@ -10059,21 +10098,22 @@ string execProfileCqdList(list<char*> *pList)
 			2, "PROFILE_QUERY", requestError.c_str());
 		goto BAILOUT;
 	}
-
-    for(list<char*>::iterator lti = (*pList).begin(); lti != (*pList).end(); lti++)
-    {
-    	ControlQuery = *lti;
-    	rc = QryControlSrvrStmt->ExecDirect(NULL, ControlQuery, INTERNAL_STMT, TYPE_UNKNOWN, SQL_ASYNC_ENABLE_OFF, 0);
-    	if (rc == SQL_ERROR)
-    	{	
-    		ERROR_DESC_def *p_buffer = QryControlSrvrStmt->sqlError.errorList._buffer;
-    		requestError = "CQD_OR_SET failed :" + string(ControlQuery) + " error :"+ p_buffer->errorText;
-    		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
-    			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-    			2, "PROFILE_QUERY", requestError.c_str());
-    		break;
-    	}
-    }
+	
+        for(list<string>::iterator lti = (*pList).begin(); lti != (*pList).end(); lti++)
+        {
+            ControlQuery = *lti;
+            rc = QryControlSrvrStmt->ExecDirect(NULL, ControlQuery.c_str(), INTERNAL_STMT, TYPE_UNKNOWN, SQL_ASYNC_ENABLE_OFF, 0);
+            if (rc == SQL_ERROR)
+            {	
+                    ERROR_DESC_def *p_buffer = QryControlSrvrStmt->sqlError.errorList._buffer;
+                    requestError = "CQD_OR_SET failed :" + string(ControlQuery) + " error :"+ p_buffer->errorText;
+                    SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
+                            srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+                            2, "PROFILE_QUERY", requestError.c_str());
+                    break;
+            }
+        }
 BAILOUT:
+
 	return requestError;
 }

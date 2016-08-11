@@ -69,6 +69,7 @@ public class ListenerService extends Thread{
     private HashMap<SelectionKey, Long> timeouts = new HashMap<SelectionKey, Long>(); // hash map of timeouts
     private DefinedMapping mapping = null;
     private RegisteredServers registeredServers = null;
+    private boolean userAffinity = true;
     
     private void init(){
         try {
@@ -102,7 +103,8 @@ public class ListenerService extends Thread{
             this.selectorTimeout = conf.getInt(Constants.DCS_MASTER_LISTENER_SELECTOR_TIMEOUT,Constants.DEFAULT_LISTENER_SELECTOR_TIMEOUT);
             this.port = conf.getInt(Constants.DCS_MASTER_PORT,Constants.DEFAULT_DCS_MASTER_PORT);
             this.portRange = conf.getInt(Constants.DCS_MASTER_PORT_RANGE,Constants.DEFAULT_DCS_MASTER_PORT_RANGE);
-            this.parentZnode = conf.get(Constants.ZOOKEEPER_ZNODE_PARENT,Constants.DEFAULT_ZOOKEEPER_ZNODE_PARENT);	   	
+            this.parentZnode = conf.get(Constants.ZOOKEEPER_ZNODE_PARENT,Constants.DEFAULT_ZOOKEEPER_ZNODE_PARENT);
+            this.userAffinity = conf.getBoolean(Constants.DCS_MASTER_USER_SERVER_AFFINITY,Constants.DEFAULT_DCS_MASTER_USER_SERVER_AFFINITY);
             this.metrics = null;
             this.zkc = new ZkClient(3000,0,0);
             zkc.connect();
@@ -120,7 +122,7 @@ public class ListenerService extends Thread{
         }
     }
 
-    public ListenerService(ZkClient zkc,DcsNetworkConfiguration netConf,int port,int portRange,int requestTimeout, int selectorTimeout, Metrics metrics, String parentZnode) {
+    public ListenerService(ZkClient zkc,DcsNetworkConfiguration netConf,int port,int portRange,int requestTimeout, int selectorTimeout, Metrics metrics, String parentZnode, boolean userAffinity) {
         this.zkc = zkc;
         while (zkc.getZk() == null || zkc.getZk().getState() != ZooKeeper.States.CONNECTED) {
             try {
@@ -136,6 +138,7 @@ public class ListenerService extends Thread{
         this.selectorTimeout = selectorTimeout;
         this.metrics = metrics;
         this.parentZnode = parentZnode;
+        this.userAffinity = userAffinity;
         init();
     }
 
@@ -455,7 +458,9 @@ public class ListenerService extends Thread{
     public RegisteredServers getRegisteredServers(){
         return registeredServers;
     }
-
+    public boolean getUserAffinity(){
+        return userAffinity;
+    }
     public static void main(String [] args) {
         ListenerService as = new ListenerService(args);
     }

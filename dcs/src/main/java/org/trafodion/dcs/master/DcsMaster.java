@@ -206,6 +206,7 @@ public class DcsMaster implements Runnable {
             processSLA(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS);
             processProfile(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES);
             processMapping(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS);
+ 
             
         } catch (KeeperException.NodeExistsException e) {
             // do nothing...some other server has created znodes
@@ -248,8 +249,11 @@ public class DcsMaster implements Runnable {
             int selectorTimeout = conf.getInt(
                     Constants.DCS_MASTER_LISTENER_SELECTOR_TIMEOUT,
                     Constants.DEFAULT_LISTENER_SELECTOR_TIMEOUT);
+            boolean userAffinity = conf.getBoolean(
+                    Constants.DCS_MASTER_USER_SERVER_AFFINITY,
+                    Constants.DEFAULT_DCS_MASTER_USER_SERVER_AFFINITY);
             ls = new ListenerService(zkc, netConf, port, portRange,
-                    requestTimeout, selectorTimeout, metrics, parentZnode);
+                    requestTimeout, selectorTimeout, metrics, parentZnode, userAffinity);
             LOG.info("Listening for clients on port [" + port + "]");
             serverName = netConf.getHostName();
 
