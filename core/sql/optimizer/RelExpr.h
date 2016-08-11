@@ -2019,8 +2019,8 @@ public:
   void setCpuResources(CostScalar cpuRes) { cpuResources_ = cpuRes; };
   void setDataAccessCost(CostScalar dataAccessCost) { dataAccessCost_ = dataAccessCost; };
 
-  void increaseNumOfHBaseTables() { numOfHBaseTables_++; };
-  void increaseNumOfHiveTables() { numOfHiveTables_++; };
+  void incrementNumOfHBaseTables() { numOfHBaseTables_++; };
+  void incrementNumOfHiveTables() { numOfHiveTables_++; };
 
   Int32 getNumOfHbaseTables() { return numOfHBaseTables_; };
   Int32 getNumOfHiveTables() { return numOfHiveTables_; };
