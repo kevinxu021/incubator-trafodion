@@ -65,13 +65,15 @@
 	                            </div>
 	                        </div>
                         <div class="form-group col-md-12" style="margin-bottom: 5px;">
-							<label for="mapping_sla" class="control-label">SLA</label> 
+							<label for="mapping_sla" class="control-label">SLA<span
+	                                style="color: red"> *</span></label> 
 							<select class="form-control input-sm" id="mapping_sla" style="width: 300px;">
 
 							</select>
 						</div>	
 						<div class="form-group col-md-6" style="margin-bottom: 5px;">
-							<label for="mapping_state" class="control-label">Is Active</label> 
+							<label for="mapping_state" class="control-label">Is Active<span
+	                                style="color: red"> *</span></label> 
 							<select class="form-control input-sm" id="mapping_state" style="width: 300px;">
 								<option value="yes">Yes</option>
 								<option value="no">No</option>
@@ -136,8 +138,8 @@
 									placeholder="Enter a client host name to match..."
 	                                    name="mapping_client_host" maxlength="125"/>
 	                            </div>
-	                        </div>  
- 						</fieldset>
+	                        </div>
+						</fieldset>
                         <div class="form-group col-md-12">
                         	<label id="add-mapping-error-message" style="font-family:Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px;color:red;"></label>
                         </div>
@@ -146,9 +148,9 @@
 				<div class="modal-footer col-md-12" style="overflow:hidden">
 					<img id="mapping-dialog-spinner" style="padding-right: 5px;" src="img/ajax-loader.gif" />
 					<input id="mappingApplyButton" class="btn btn-primary"
-						type="submit" value="Apply">
+						type="button" value="Apply">
 					<input id="mappingResetButton" class="btn btn-primary"
-						type="submit" value="Reset">
+						type="button" value="Reset">
 					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
 				</div>
 			</div>

@@ -185,9 +185,14 @@ define([
 			if(slaDialogParams != null){
 				if(slaDialogParams.type && slaDialogParams.type == 'add'){
 					$(SLA_NAME).attr('disabled', false);
+					$('#wsla-form input, select').prop('disabled', false);
+					$(SLA_APPLY_BTN).attr('disabled', false);
+					$(SLA_RESET_BTN).attr('disabled', false);
 					$(SLA_DIALOG_TITLE).text('Add SLA');
 					$(SLA_NAME).val("");
 					$(SLA_PRIORITY).val();
+					var priority = slaDialogParams.data["priority"];
+					$(SLA_PRIORITY).val(priority != null ? priority.toLowerCase() : "");
 					$(SLA_LIMIT).val(slaDialogParams.data["limit"]);
 					$(SLA_THROUGHPUT).val(slaDialogParams.data["throughput"]);
 					$(SLA_CONNECT_PROFILE_NAME).val(slaDialogParams.data["onConnectProfile"]);
@@ -205,8 +210,9 @@ define([
 					}
 					$(SLA_DIALOG_TITLE).text('Alter SLA');
 					$(SLA_NAME).attr('disabled', true);
-					$(SLA_NAME).val(slaDialogParams.data["SLA Name"]);
-					$(SLA_PRIORITY).val();
+					$(SLA_NAME).val(slaDialogParams.data["name"]);
+					var priority = slaDialogParams.data["priority"];
+					$(SLA_PRIORITY).val(priority != null ? priority.toLowerCase() : "");
 					$(SLA_LIMIT).val(slaDialogParams.data["limit"]);
 					$(SLA_THROUGHPUT).val(slaDialogParams.data["throughput"]);
 					$(SLA_CONNECT_PROFILE_NAME).val(slaDialogParams.data["onConnectProfile"]);
@@ -236,11 +242,17 @@ define([
 				dataTableColNames = [];
 				var updateTimeColIndex = -1;
 				var isDefColIndex = -1;
+				var priorityColIndex = -1;
+				var onConnProfileIndex = -1;
+				var onDisconProfileIndex = -1;
+				var limitColIndex = -1;
+				var throughputColIndex = -1;
+				
 				// add needed columns
 				$.each(keys, function(k, v) {
 					var obj = new Object();
 					obj.title = common.UpperCaseFirst(v);
-					if(v == 'SLA Name'){
+					if(v == 'name'){
 						slaNameColIndex = k;
 					}
 					if(v == 'lastUpdate'){
@@ -249,6 +261,22 @@ define([
 					if(v == 'isDefault'){
 						isDefColIndex = k;
 					}
+					if(v == 'priority'){
+						priorityColIndex = k;
+					}
+					if(v == 'onConnectProfile'){
+						onConnProfileIndex = k;
+					}
+					if(v == 'onDisconnectProfile'){
+						onDisconProfileIndex = k;
+					}
+					if(v == 'limit'){
+						limitColIndex = k;
+					}
+					if(v == 'throughput'){
+						throughputColIndex = k;
+					}
+					
 					aoColumns.push(obj);
 					dataTableColNames.push(v);
 				});
@@ -278,10 +306,47 @@ define([
 						}
 					});
 				}
+				if(priorityColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ priorityColIndex ],
+						"mData": priorityColIndex,
+						"mRender": function ( data, type, full ) {
+							if(data != null){
+								return common.toProperCase(data);
+							}else 
+								return data;
+						}
+					});
+				}
+				if(onConnProfileIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ onConnProfileIndex ],
+						"mData": onConnProfileIndex,
+						"mRender": function ( data, type, full ) {
+							if(data != null && data != 'null'){
+								return data;
+							}else 
+								return "";
+						}
+					});
+				}
+				if(onDisconProfileIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ onDisconProfileIndex ],
+						"mData": onDisconProfileIndex,
+						"mRender": function ( data, type, full ) {
+							if(data != null && data != 'null'){
+								return data;
+							}else 
+								return "";
+						}
+					});
+				}
 				if(updateTimeColIndex >=0){
 					aoColumnDefs.push({
 						"aTargets": [ updateTimeColIndex ],
 						"mData": updateTimeColIndex,
+						"className" : "dt-body-right",
 						"mRender": function ( data, type, full ) {
 							if(data != null){
 								return common.toServerLocalDateFromMilliSeconds(parseInt(data), 'YYYY-MM-DD HH:mm:ss');
@@ -289,6 +354,32 @@ define([
 								return data;
 						}
 					});
+				}
+				if(limitColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ limitColIndex ],
+						"mData": limitColIndex,
+						"className" : "dt-body-right",
+						"mRender": function ( data, type, full ) {
+							if(data != null && data.length > 0){
+								return common.formatNumberWithCommas(parseInt(data));
+							}else 
+								return data;
+						}
+					});					
+				}
+				if(throughputColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ throughputColIndex ],
+						"mData": throughputColIndex,
+						"className" : "dt-body-right",
+						"mRender": function ( data, type, full ) {
+							if(data != null && data.length > 0){
+								return common.formatNumberWithCommas(parseInt(data));
+							}else 
+								return data;
+						}
+					});					
 				}
 				if(isDefColIndex >=0){
 					aoColumnDefs.push({
@@ -437,6 +528,7 @@ define([
 				return;
 			}
 			var sla = {};
+			sla.action = slaDialogParams.type;
 			sla.name = $(SLA_NAME).val();
 			sla.priority = $(SLA_PRIORITY).val();
 			sla.limit = $(SLA_LIMIT).val();
@@ -451,6 +543,7 @@ define([
 		},
 		slaResetBtnClicked: function(){
 			_this.doReset();
+			slaFormValidator.resetForm();
 		},
 		addAlterSLASuccess: function(data){
 			$(ADD_SLA_ERROR_CONTAINER).text("");
@@ -470,7 +563,7 @@ define([
 
 			var msg = "";
 			if (jqXHR.responseText) {
-				msg =  "Failed to create SLA : " + jqXHR.responseText;
+				msg =  jqXHR.responseText;
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
 					msg = "Error : Unable to communicate with the server.";
@@ -489,7 +582,7 @@ define([
 		deleteSLAError: function(jqXHR){
 			var msg = "";
 			if (jqXHR.responseText) {
-				msg =  "Failed to delete SLA : " + jqXHR.responseText;
+				msg = jqXHR.responseText;
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
 					msg = "Error : Unable to communicate with the server.";
@@ -503,7 +596,7 @@ define([
 			var keys = result.columnNames;
 			var profileNameColIndex = -1;
 			$.each(keys, function(k, v) {
-				if(v == 'Profile Name'){
+				if(v == 'name'){
 					profileNameColIndex = k;
 				}
 			});

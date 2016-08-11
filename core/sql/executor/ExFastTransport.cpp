@@ -1068,7 +1068,9 @@ ExWorkProcRetcode ExHdfsFastExtractTcb::work()
         if (partStringValueFromExprNullInd_ &&
             *partStringValueFromExprNullInd_)
           {
-            // partition string evaluated to NULL, this is TBD later
+            // partition string evaluated to NULL, this should not
+            // happen, as we use COALESCE to map NULL values of individual
+            // partition columns to __HIVE_DEFAULT_PARTITION__
             ex_assert(0, "null partition string");
           }
 

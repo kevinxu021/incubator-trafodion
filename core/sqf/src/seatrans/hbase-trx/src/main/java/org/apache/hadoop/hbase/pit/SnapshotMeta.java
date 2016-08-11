@@ -153,17 +153,11 @@ public class SnapshotMeta {
     * SnapshotMeta
     * @throws Exception
     */
-   public SnapshotMeta () throws Exception  {
+   public SnapshotMeta () throws IOException  {
 
       if (LOG.isTraceEnabled()) LOG.trace("Enter SnapshotMeta constructor");
       this.config = HBaseConfiguration.create();
-      try {
          admin = new HBaseAdmin(config);
-      }
-      catch (Exception e) {
-         if (LOG.isTraceEnabled()) LOG.trace("  Exception creating HBaseAdmin " + e);
-         throw e;
-      }
       disableBlockCache = true;
 
       connection = HConnectionManager.createConnection(config);

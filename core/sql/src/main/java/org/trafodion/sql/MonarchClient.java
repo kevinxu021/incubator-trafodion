@@ -1201,7 +1201,6 @@ public class MonarchClient {
     {
       if (logger.isDebugEnabled()) 
         logger.debug("MonarchClient.getRegionsNodeName(" + tblName + ") called.");
-      try {
 
         MTable table = MClientCacheFactory.getAnyInstance().getTable(tblName);
         java.util.List<MServerLocation> locations = table.getMTableLocationInfo().getAllMTableLocations();
@@ -1213,12 +1212,6 @@ public class MonarchClient {
           nodeNames[regCount] = entry.getHostName() + ':' + entry.getPort();
           regCount++;
         }
-      } catch (Exception ie) {
-        if (logger.isDebugEnabled())
-          logger.debug("getRegionLocations throws exception " + ie.getMessage());
-        return false;
-      }
-
       return true;
     }
 

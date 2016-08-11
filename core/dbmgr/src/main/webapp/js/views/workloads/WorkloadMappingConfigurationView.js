@@ -88,10 +88,15 @@ define([
 			$.validator.addMethod("alphanumeric", function(value, element) {
 				return this.optional(element) || /^\w+$/i.test(value);
 			}, "Only alphanumeric characters and underscores are allowed");
+			
+			$.validator.addMethod("wms_ordernumber", function(value, element) {
+				return value > 0 && value <= 98;
+			}, "Order number has to between 1 and 98");
 
 			mappingFormValidator = $(MAPPING_FORM).validate({
 				rules: {
-					"mapping_name": { required: true, alphanumeric: true}
+					"mapping_name": { required: true, alphanumeric: true},
+					"mapping_seq_no": { required: true, digits: true, wms_ordernumber: true}
 				},
 				highlight: function(element) {
 					$(element).closest('.form-group').addClass('has-error');
@@ -191,8 +196,14 @@ define([
 			if(mappingDialogParams != null){
 				if(mappingDialogParams.type && mappingDialogParams.type == 'add'){
 					$(MAPPING_NAME).attr('disabled', false);
+					$('#mapping-form input, select').prop('disabled', false);
+					$(MAPPING_APPLY_BTN).attr('disabled', false);
+					$(MAPPING_RESET_BTN).attr('disabled', false);
+					
 					$(MAPPING_DIALOG_TITLE).text('Add Mapping');
 					$(MAPPING_NAME).val("");
+					var state = mappingDialogParams.data["isActive"];
+					$(MAPPING_STATE).val(state != null ? state.toLowerCase() : "");
 
 					$(MAPPING_USER).val(mappingDialogParams.data["userName"]);
 					$(MAPPING_APPLICATION).val(mappingDialogParams.data["applicationName"]);
@@ -201,7 +212,7 @@ define([
 					$(MAPPING_CLIENT_IP).val(mappingDialogParams.data["clientIpAddress"]);
 					$(MAPPING_CLIENT_HOST).val(mappingDialogParams.data["clientHostName"]);
 					$(MAPPING_SLA).val(mappingDialogParams.data["sla"]);
-					$(MAPPING_SEQ_NO).val(mappingDialogParams.data["orderNumber"]);					
+					$(MAPPING_SEQ_NO).val("");					
 				}
 				if(mappingDialogParams.type && mappingDialogParams.type == 'alter'){
 					if(mappingDialogParams.data["isDefault"] == 'yes'){
@@ -215,7 +226,9 @@ define([
 					}					
 					$(MAPPING_DIALOG_TITLE).text('Alter Mapping');
 					$(MAPPING_NAME).attr('disabled', true);
-					$(MAPPING_NAME).val(mappingDialogParams.data["Mapping Name"]);
+					$(MAPPING_NAME).val(mappingDialogParams.data["name"]);
+					var state = mappingDialogParams.data["isActive"];
+					$(MAPPING_STATE).val(state != null ? state.toLowerCase() : "");
 
 					$(MAPPING_USER).val(mappingDialogParams.data["userName"]);
 					$(MAPPING_APPLICATION).val(mappingDialogParams.data["applicationName"]);
@@ -251,12 +264,13 @@ define([
 				var updateTimeColIndex = -1;
 				var isDefColIndex = -1;
 				var stateColIndex = -1;
+				var orderNumColIndex = -1;
 				
 				// add needed columns
 				$.each(keys, function(k, v) {
 					var obj = new Object();
 					obj.title = common.UpperCaseFirst(v);
-					if(v == 'Mapping Name'){
+					if(v == 'name'){
 						mappingNameColIndex = k;
 					}
 					if(v == 'lastUpdate'){
@@ -268,6 +282,9 @@ define([
 					}
 					if(v == 'isActive'){
 						stateColIndex = k;
+					}
+					if(v == 'orderNumber'){
+						orderNumColIndex = k;
 					}
 					aoColumns.push(obj);
 					dataTableColNames.push(v);
@@ -298,10 +315,19 @@ define([
 						}
 					});
 				}
+				if(orderNumColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ orderNumColIndex ],
+						"mData": orderNumColIndex,
+						"className" : "dt-body-right"
+					});
+					
+				}
 				if(updateTimeColIndex >=0){
 					aoColumnDefs.push({
 						"aTargets": [ updateTimeColIndex ],
 						"mData": updateTimeColIndex,
+						"className" : "dt-body-right",
 						"mRender": function ( data, type, full ) {
 							if(data != null){
 								return common.toServerLocalDateFromMilliSeconds(parseInt(data), 'YYYY-MM-DD HH:mm:ss');
@@ -467,6 +493,7 @@ define([
 				return;
 			}
 			var mapping = {};
+			mapping.action = mappingDialogParams.type;
 			mapping.name = $(MAPPING_NAME).val();
 			mapping.user = $(MAPPING_USER).val();
 			mapping.application = $(MAPPING_APPLICATION).val();
@@ -500,6 +527,7 @@ define([
 		},
 		mappingResetBtnClicked: function(){
 			_this.doReset();
+			mappingFormValidator.resetForm();
 		},
 		addAlterMappingSuccess: function(data){
 			$(ADD_MAPPING_ERROR_CONTAINER).text("");
@@ -519,7 +547,7 @@ define([
 
 			var msg = "";
 			if (jqXHR.responseText) {
-				msg =  "Failed to create mapping : " + jqXHR.responseText;
+				msg =  jqXHR.responseText;
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
 					msg = "Error : Unable to communicate with the server.";
@@ -538,7 +566,7 @@ define([
 		deleteMappingError: function(jqXHR){
 			var msg = "";
 			if (jqXHR.responseText) {
-				msg =  "Failed to delete mapping : " + jqXHR.responseText;
+				msg =  jqXHR.responseText;
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
 					msg = "Error : Unable to communicate with the server.";
@@ -551,7 +579,7 @@ define([
 			var keys = result.columnNames;
 			var slaNameColIndex = -1;
 			$.each(keys, function(k, v) {
-				if(v == 'SLA Name'){
+				if(v == 'name'){
 					slaNameColIndex = k;
 				}
 			});

@@ -84,6 +84,9 @@ endif
 ci: trafci
 trafci: jdbc_jar
 	cd conn/trafci && $(ANT) dist 2>&1 | sed -e "s/$$/	##(TRAFCI)/" ; exit $${PIPESTATUS[0]}
+	$(MAVEN) install:install-file -Dfile=conn/trafci/lib/trafci.jar \
+	    -DgroupId=org.trafodion.ci -DartifactId=trafci -Dversion="$$TRAFODION_VER" \
+	    -Dpackaging=jar -DgeneratePom=true | sed -e "s/$$/        ##(TRAFCI)/";exit $${PIPESTATUS[0]}
 
 jdbc_type2_jar: verhdr foundation
 	cd conn/jdbc_type2 && $(ANT)  2>&1 | sed -e "s/$$/	##(JDBC_TYPE2)/" ; exit $${PIPESTATUS[0]}
@@ -98,7 +101,7 @@ rest: verhdr jdbc_jar
 odb: ndcs
 	cd conn/odb && $(MAKE) 2>&1 | sed -e "s/$$/	##(ODB)/" ; exit $${PIPESTATUS[0]}
 
-dbmgr: jdbc_jar
+dbmgr: trafci
 	cd dbmgr && $(MAKE) 2>&1 | sed -e "s/$$/	##(DBMGR)/" ; exit $${PIPESTATUS[0]}
 
 cleantests:

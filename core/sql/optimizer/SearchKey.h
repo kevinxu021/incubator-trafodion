@@ -989,6 +989,17 @@ public:
                              const ValueIdSet & inputValues,
                              VEGRewritePairs * lookup = NULL);
 
+  // get the number of rows in partitions surviving the compilation time
+  // partition elimination
+  Int64 getRowcountInSelectedPartitionsCT();
+
+  // Return TRUE if at least one partitions can be 
+  // eliminated during compilation time and it is not
+  // possible to eliminate partitions during execution time.
+  NABoolean partitionEliminatedCTOnly() const
+   { return partitionEliminatedCT_ && 
+            partAndVirtColPreds_.entries() == 0; };
+
 protected:
   // Return the total bytes read, given a accumulated stats and the selection predicate
   // selectionPred_
@@ -1032,6 +1043,8 @@ private:
   // array of binary partition column values in exploded
   // format, for selected partitions
   ARRAY(const char *) binaryPartColValues_;
+
+  NABoolean partitionEliminatedCT_;
 };
 
 // Iterator class to retrieve a list of HDFS files that are

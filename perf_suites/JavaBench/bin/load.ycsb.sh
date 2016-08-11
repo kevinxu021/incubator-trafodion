@@ -5,6 +5,7 @@ USAGE="usage: load.ycsb.sh
     [ -s|--streams|streams <<streams>> ] 
     [ -p|--partitions|partitions <<partitions>> ] 
     [ -a|--aligned|aligned ]
+    [ -m|--monarch|monarch ]
     [ -c|--compress|compress ]
     [ -r|--rangepartition|rangepartition ]
     [ -d|--debug|debug ]
@@ -23,7 +24,7 @@ PARTITIONS=$SYSTEM_DEFAULT_PARTITIONS
 export TESTID=$(date +%y%m%d.%H%M)
 OPTION_COMPRESS=FALSE
 OPTION_ALIGNED=""
-OPTION_RANGEPARTITION=TRUE
+OPTION_RANGEPARTITION=FALSE
 
 while [[ $# > 0 ]] ; do
 key="$1"; shift;
@@ -34,6 +35,7 @@ case ${key,,} in
     -s|--streams|streams)		STREAMS="$1"; shift;;
     -p|--partitions|partitions)		PARTITIONS="$1"; shift;; 
     -a|--aligned|aligned)               OPTION_ALIGNED="aligned"; shift;;
+    -m|--monarch|monarch)               OPTION_MONARCH="monarch"; shift;;
     -c|--compress|compress)		OPTION_COMPRESS="TRUE";;
     -r|--rangepartition|rangepartition)	OPTION_RANGEPARTITION="TRUE";;
     -id|--testid|testid)		export TESTID="$1"; shift;;
@@ -88,9 +90,6 @@ echo "
 ===== Start ${BENCHMARK} Load ( TESTID = ${TESTID} ) =====  [ $(date +"%Y-%m-%d %H:%M:%S") ]
 "
 STARTTIME=$SECONDS
-                
-ROWS_PER_SCALE=1000000
-ROWS=$(( $SCALE * $ROWS_PER_SCALE ))
 
 case ${DATABASE,,} in
 	trafodion)	
@@ -103,8 +102,8 @@ case ${DATABASE,,} in
 		
 		if [[ ${OPTION_RANGEPARTITION} = TRUE ]] ; then
 		
- 			java -Xmx1500m -Ddbconnect.properties=${DATABASE,,}.properties \
- 			   YCSBLoader $SCALE schema $SCHEMA createschema dropcreate ${OPTION_ALIGNED} ${OPTIONS}
+			java -Xmx1500m -Ddbconnect.properties=${DATABASE,,}.properties \
+			   YCSBLoader $SCALE schema $SCHEMA createschema dropcreate ${OPTION_ALIGNED} ${OPTION_MONARCH} ${OPTIONS}
 
 			#split table
 			TABLENAME=${SCHEMA^^}.YCSB_TABLE_${SCALE}
@@ -132,8 +131,8 @@ pdsh -w ${SYSTEM_FIRST_NODE} "cd ${JAVABENCH_TEST_HOME};. profile;java -Xmx1500m
 
 		else  # assume salt partition
 		
- 			java -Xmx1500m -Ddbconnect.properties=${DATABASE,,}.properties \
- 			   YCSBLoader $SCALE schema $SCHEMA createschema dropcreate salt ${PARTITIONS} ${OPTION_ALIGNED} ${OPTIONS}
+			java -Xmx1500m -Ddbconnect.properties=${DATABASE,,}.properties \
+			   YCSBLoader $SCALE schema $SCHEMA createschema dropcreate salt ${PARTITIONS} ${OPTION_ALIGNED} ${OPTION_MONARCH} ${OPTIONS}
 		
 		fi
 		
@@ -141,7 +140,6 @@ pdsh -w ${SYSTEM_FIRST_NODE} "cd ${JAVABENCH_TEST_HOME};. profile;java -Xmx1500m
 		
 		java -Xmx1500m -Ddbconnect.properties=${DATABASE,,}.properties \
 		   YCSBLoader $SCALE schema $SCHEMA load upsert usingload batchsize 1000 streams $STREAMS maintain ${OPTIONS}
-
 
 		;;
 
@@ -151,6 +149,9 @@ pdsh -w ${SYSTEM_FIRST_NODE} "cd ${JAVABENCH_TEST_HOME};. profile;java -Xmx1500m
 		fi
 		
 		TABLENAME=${SCHEMA}.YCSB_TABLE_${SCALE}
+		
+		ROWS_PER_SCALE=1000000
+		ROWS=$(( $SCALE * $ROWS_PER_SCALE ))
 		
 		#create table
 		pdsh -w $SYSTEM_FIRST_NODE "echo \"disable '${TABLENAME}'

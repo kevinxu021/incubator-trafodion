@@ -41,6 +41,10 @@ define(['handlers/EventDispatcher', 'common'],
 				this.WRKBNCH_EXPLAIN_ERROR = 'WRKBNCH_EXPLAIN_ERROR';
 				this.CONVERT_SQL_SUCCESS = "CONVERT_SQL_SUCCESS";
 				this.CONVERT_SQL_ERROR = "CONVERT_SQL_ERROR";
+				this.BATCH_SQL_SUCCESS = "BATCH_SQL_SUCCESS";
+				this.BATCH_SQL_ERROR = "BATCH_SQL_ERROR";
+				this.BATCH_CANCEL_SUCCESS = "BATCH_CANCEL_SUCCESS";
+				this.BATCH_CANCEL_ERROR = "BATCH_CANCEL_ERROR";
 				this.WRKBNCH_CANCEL_SUCCESS = 'WRKBNCH_CANCEL_SUCCESS';
 				this.WRKBNCH_CANCEL_ERROR = 'WRKBNCH_CANCEL_ERROR';
 								
@@ -389,6 +393,54 @@ define(['handlers/EventDispatcher', 'common'],
 						}
 					});
 				};
+				
+				this.executeBatchSQL = function(param){
+					var xhr = xhrs["executeBatchSQL"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["executeBatchSQL"] = $.ajax({
+						url: 'resources/server/executebatch',
+						type:'POST',
+						dataType:"json",
+						data: JSON.stringify(param),						
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success: function(data){
+							dispatcher.fire(_this.BATCH_SQL_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.BATCH_SQL_ERROR, jqXHR, res, error);
+						}
+					});
+				};
+				
+				this.cancelBatch = function(param){
+					var xhr = xhrs["cancelBatch"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["cancelBatch"] = $.ajax({
+						url: 'resources/server/cancelbatch',
+						type:'POST',
+						dataType:"json",
+						data: JSON.stringify(param),						
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success: function(data){
+							dispatcher.fire(_this.BATCH_CANCEL_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.BATCH_CANCEL_ERROR, jqXHR, res, error);
+						}
+					});
+				};				
 				
 				this.init = function() {
 				};

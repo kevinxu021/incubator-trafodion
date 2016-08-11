@@ -41,7 +41,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.transactional.HBaseDCZK;
@@ -88,6 +89,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class HBaseTxClient {
 
    static final Log LOG = LogFactory.getLog(HBaseTxClient.class);
+   private static Connection connection;
    private static TmAuditTlog tLog;
    private static HBaseTmZK tmZK;
    private static RecoveryThread recovThread;
@@ -136,8 +138,10 @@ public class HBaseTxClient {
       setupLog4j();
       if (LOG.isDebugEnabled()) LOG.debug("Enter init, hBasePath:" + hBasePath);
       if (LOG.isTraceEnabled()) LOG.trace("mapTransactionStates " + mapTransactionStates + " entries " + mapTransactionStates.size());
-      config = HBaseConfiguration.create();
-
+      if (config == null) {
+         config = HBaseConfiguration.create();
+         connection = ConnectionFactory.createConnection(config);
+      }
       config.set("hbase.zookeeper.quorum", zkServers);
       config.set("hbase.zookeeper.property.clientPort",zkPort);
       config.set("hbase.rootdir", hBasePath);
@@ -202,10 +206,11 @@ public class HBaseTxClient {
          LOG.error("TM_ENABLE_TLOG_WRITES is not valid in ms.env");
       }
 
+      if (useTlog) {
+            tLog = new TmAuditTlog(config, connection);
+      }
       try {
-            if (useTlog) 
-                tLog = new TmAuditTlog(config);
-            trxManager = TransactionManager.getInstance(config);
+        trxManager = TransactionManager.getInstance(config, connection);
       } catch (IOException e ){
           LOG.error("Initialization failure throwing exception", e);
           throw e;
@@ -229,18 +234,19 @@ public class HBaseTxClient {
    public boolean init(short dtmid) throws IOException {
       setupLog4j();
       if (LOG.isDebugEnabled()) LOG.debug("Enter init(" + dtmid + ")");
-      config = HBaseConfiguration.create();
+      if (config == null) {
+         config = HBaseConfiguration.create();
+         // TODO:: Should it get this connection from pSTRConfig
+         connection = ConnectionFactory.createConnection(config);
+      }
  
       try {
          pSTRConfig = STRConfig.getInstance(config);
       }
       catch (ZooKeeperConnectionException zke) {
          LOG.error("Zookeeper Connection Exception trying to get STRConfig instance: " + zke);
+         throw new IOException(zke);
       }
-      catch (IOException ioe) {
-         LOG.error("IO Exception trying to get STRConfig instance: " + ioe);
-      }
-
       myClusterId = 0;
       if (pSTRConfig != null) {
          LOG.info("Number of Trafodion Nodes: " + pSTRConfig.getTrafodionNodeCount());
@@ -285,8 +291,8 @@ public class HBaseTxClient {
       catch (NumberFormatException e) {
          if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_SYNCHRONOUS_WRITES is not valid in ms.env");
       }
+
       LOG.info("synchronousWrites is " + synchronousWrites);
-      idServer = new IdTm(false);
 
       useForgotten = true;
          String useAuditRecords = System.getenv("TM_ENABLE_FORGOTTEN_RECORDS");
@@ -323,13 +329,14 @@ public class HBaseTxClient {
       catch (NumberFormatException e) {
          LOG.error("TM_ENABLE_TLOG_WRITES is not valid in ms.env");
       }
+      idServer = new IdTm(false);
       if (useTlog) {
-         HConnection lv_connection;
+         Connection lv_connection;
          Configuration lv_config;
          try {
             lv_connection = pSTRConfig.getPeerConnection(0);
             lv_config = pSTRConfig.getPeerConfiguration(0);
-            tLog = new TmAuditTlog(pSTRConfig.getPeerConfiguration(0)); // connection 0 is the local node
+            tLog = new TmAuditTlog(lv_config, lv_connection); // connection 0 is the local node
             if (LOG.isTraceEnabled()) LOG.trace("Created local Tlog with peer 0, connection: "
                + lv_connection.toString() + ", config: " + lv_config.toString());
 //             int i = pSTRConfig.getMyClusterIdInt();
@@ -342,7 +349,7 @@ public class HBaseTxClient {
 
          if (bSynchronized) {
             peer_tLogs = new HashMap<Integer, TmAuditTlog>();
-            for ( Map.Entry<Integer, HConnection> entry : pSTRConfig.getPeerConnections().entrySet()) {
+            for ( Map.Entry<Integer, Connection> entry : pSTRConfig.getPeerConnections().entrySet()) {
                int lv_peerId = entry.getKey();
                if (lv_peerId == 0) continue;
 	       if (! pSTRConfig.getPeerStatus(lv_peerId).contains(PeerInfo.STR_UP)) {
@@ -353,9 +360,9 @@ public class HBaseTxClient {
                try {
                   if (LOG.isTraceEnabled()) LOG.trace("Creating peer Tlog for peer " + lv_peerId +
                                           ", connection: " + lv_connection.toString() + ", config: " + lv_config.toString());
-                  TmAuditTlog lv_Tlog = new TmAuditTlog(lv_config);
+                  TmAuditTlog lv_Tlog = new TmAuditTlog(lv_config, lv_connection);
                   if (LOG.isTraceEnabled()) LOG.trace("Peer Tlog for peer " + lv_peerId + " created");
-                  peer_tLogs.put(lv_peerId, new TmAuditTlog(lv_config));
+                  peer_tLogs.put(lv_peerId, new TmAuditTlog(lv_config, lv_connection));
                   peerId_list.add(lv_peerId);
                   if (LOG.isTraceEnabled()) LOG.trace("Add peer id " + lv_peerId + " into peerId_list at index " + peerId_index);
                   peerId_index = peerId_index + 1;
@@ -382,11 +389,14 @@ public class HBaseTxClient {
       catch (NumberFormatException e) {
          if (LOG.isDebugEnabled()) LOG.debug("TM_ENABLE_DDL_TRANS is not valid in ms.env");
       }
+
       if(useDDLTrans){
-            tmDDL = new TmDDL(config);
+            tmDDL = new TmDDL(config, connection);
       }
 
-      trxManager = TransactionManager.getInstance(config);
+      trxManager = TransactionManager.getInstance(config, connection);
+      tLog = new TmAuditTlog(config, connection);
+
       if(useDDLTrans)
           trxManager.init(tmDDL);
 
@@ -614,13 +624,13 @@ public class HBaseTxClient {
                   while (loopBack);
             }
          }
-      } catch(IOException e) {
-         LOG.error("Returning from HBaseTxClient:abortTransaction, txid: " + transactionID + " tLog.putRecord: EXCEPTION ", e);
-         return TransReturnCode.RET_EXCEPTION.getShort();
       } catch (CommitUnsuccessfulException cue) {
          LOG.error("Returning from HBaseTxClient:abortTransaction, txid: " + transactionID + " tLog.putRecord: EXCEPTION ", cue);
          return TransReturnCode.RET_EXCEPTION.getShort();
-      }
+      } catch(IOException e) {
+         LOG.error("Returning from HBaseTxClient:abortTransaction, txid: " + transactionID + " tLog.putRecord: EXCEPTION ", e);
+         return TransReturnCode.RET_EXCEPTION.getShort();
+      } 
 
 
       if ((stallWhere == 1) || (stallWhere == 3)) {
@@ -638,14 +648,7 @@ public class HBaseTxClient {
 
       try {
          trxManager.abort(ts);
-      } catch(IOException e) {
-          synchronized(mapLock) {
-             mapTransactionStates.remove(transactionID);
-          }
-          LOG.error("Returning from HBaseTxClient:abortTransaction, txid: " + transactionID + " retval: EXCEPTION", e);
-          return TransReturnCode.RET_EXCEPTION.getShort();
-      }
-      catch (UnsuccessfulDDLException ddle) {
+      } catch (UnsuccessfulDDLException ddle) {
           LOG.error("FATAL DDL Exception from HBaseTxClient:abort, WAITING INDEFINETLY !! retval: " + TransReturnCode.RET_EXCEPTION.toString() + " UnsuccessfulDDLException" + " txid: " + transactionID, ddle);
 
           //Reaching here means several attempts to perform the DDL operation has failed in abort phase.
@@ -670,7 +673,15 @@ public class HBaseTxClient {
              } while (loopBack);
           }
           return TransReturnCode.RET_EXCEPTION.getShort();
+      } 
+      catch(IOException e) {
+          synchronized(mapLock) {
+             mapTransactionStates.remove(transactionID);
+          }
+          LOG.error("Returning from HBaseTxClient:abortTransaction, txid: " + transactionID + " retval: EXCEPTION", e);
+          return TransReturnCode.RET_EXCEPTION.getShort();
       }
+
       if (useTlog && useForgotten) {
          tLog.putSingleRecord(transactionID, ts.getStartId(), -1, TransState.STATE_FORGOTTEN_ABORT.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), forceForgotten); // forced flush?
          if (bSynchronized && ts.hasRemotePeers()){
@@ -810,7 +821,7 @@ public class HBaseTxClient {
                  throw new RuntimeException(e);
              }
              if (bSynchronized && ts.hasRemotePeers()){
-                for ( Map.Entry<Integer, HConnection> entry : pSTRConfig.getPeerConnections().entrySet()) {
+                for ( Map.Entry<Integer, Connection> entry : pSTRConfig.getPeerConnections().entrySet()) {
                    int lv_peerId = entry.getKey();
                    if (lv_peerId == 0) // no peer for ourselves
                       continue;
@@ -851,7 +862,7 @@ public class HBaseTxClient {
                       LOG.error("doCommit, lv_tLog " + lv_tLog + " EXCEPTION: " , e);
                       throw new RuntimeException(e);
                    }
-                } // for ( Map.Entry<Integer, HConnection> entry : pSTRConfig.getPeerConnections().entrySet()) 
+                } // for ( Map.Entry<Integer, Connection> entry : pSTRConfig.getPeerConnections().entrySet()) 
              } // if (bSynchronized && ts.hasRemotePeers())
 
              // Write the local Tlog State record
@@ -926,7 +937,7 @@ public class HBaseTxClient {
        if (useTlog && useForgotten) {
           tLog.putSingleRecord(transactionId, ts.getStartId(), commitIdVal, TransState.STATE_FORGOTTEN_COMMIT.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), forceForgotten); // forced flush?
           if (bSynchronized && ts.hasRemotePeers()){
-             for ( Map.Entry<Integer, HConnection> entry : pSTRConfig.getPeerConnections().entrySet()) {
+             for ( Map.Entry<Integer, Connection> entry : pSTRConfig.getPeerConnections().entrySet()) {
                 int lv_peerId = entry.getKey();
                 if (lv_peerId == 0) // no peer for ourselves
                    continue;
@@ -961,7 +972,7 @@ public class HBaseTxClient {
                    LOG.error("doCommit, lv_tLog writing commit forgotten " + lv_tLog + " EXCEPTION: " + e);
                    throw e;
                 }
-             } // for ( Map.Entry<Integer, HConnection> entry : pSTRConfig.getPeerConnections().entrySet()) 
+             } // for ( Map.Entry<Integer, Connection> entry : pSTRConfig.getPeerConnections().entrySet()) 
           } // if (bSynchronized && ts.hasRemotePeers()){
         	  
           if (bSynchronized && ts.hasRemotePeers() && (! synchronousWrites)){
@@ -1238,7 +1249,7 @@ public class HBaseTxClient {
       if (LOG.isTraceEnabled()) LOG.trace("Enter addControlPoint");
       long result = 0L;
       if (bSynchronized){
-         for ( Map.Entry<Integer, HConnection> entry : pSTRConfig.getPeerConnections().entrySet()) {
+         for ( Map.Entry<Integer, Connection> entry : pSTRConfig.getPeerConnections().entrySet()) {
             int lv_peerId = entry.getKey();
             if (lv_peerId == 0) // no peer for ourselves
                continue;
@@ -1959,6 +1970,7 @@ public class HBaseTxClient {
                             }
                             if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD: in-doubt transaction size " + transactionStates.size());
                             for (Map.Entry<Long, TransactionState> tsEntry : transactionStates.entrySet()) {
+                                int isTransactionStillAlive = 0;
                             	TransactionState ts1 = null;
                                 TransactionState ts = tsEntry.getValue();
                                 Long txID = ts.getTransactionId();
@@ -1977,9 +1989,12 @@ public class HBaseTxClient {
 
                                         // info only
                                         if (HBaseTxClient.getMap().get(txID) != null) {
-                                            if (LOG.isDebugEnabled()) LOG.debug("TRAF RCOV PEER THREAD: TID " + txID
+                                            if (HBaseTxClient.getMap().get(txID).getStatus().toString().contains("ACTIVE")) {
+                                                isTransactionStillAlive = 1;
+                                            }
+                                            if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV PEER THREAD: TID " + txID
                                             		+ " still has ts object in DTM memory with state "
-                                            		+ HBaseTxClient.getMap().get(txID).getStatus().toString());
+                                            		+ HBaseTxClient.getMap().get(txID).getStatus().toString() + " transactionAlive " + isTransactionStillAlive);
                                          }
                                         else {
                                             if (LOG.isDebugEnabled()) LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " no ts object in DTM memory ");
@@ -1999,7 +2014,13 @@ public class HBaseTxClient {
                                                                   nextAsn);                                        		
                                         }
                                         audit.getTransactionState(ts, false);
-                                        if (peerid == -1) {
+                                        if (isTransactionStillAlive == 1) {
+                                           commitPath = 6; // transaction is still alive and in memory, defer resolution, prepare time takes too long ...
+                                           if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV PEER THREAD: TID " + txID
+                                            		+ " still has ts object in DTM memory with state "
+                                            		+ HBaseTxClient.getMap().get(txID).getStatus().toString());
+                                        }
+                                        else if (peerid == -1) {
                                             // audit.getTransactionState(ts, true);
                                             if (LOG.isDebugEnabled()) LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " has no peer configured " + peerid
                                             		+ " ,commit authority is handled by local owner " + clusterid
@@ -2225,6 +2246,10 @@ public class HBaseTxClient {
                                                  txnManager.abort(ts);
                                             }
                                         }  // path 2
+                                       else if (commitPath == 6) { // preparing time is longer than normal > 2 min
+                                            LOG.warn("Tansaction " + txID
+                                            		+ " RCOV thread resolution is deferred due to the transaction object is still alive in DTM memory, preparing time takes too long ");
+                                       }
                                        else { // 3 for defer resolution
                                             LOG.warn("Tansaction " + txID
                                             		+ " resolution is deferred due to inaccessibility to peer, check HBase health at cluster id "
