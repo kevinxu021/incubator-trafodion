@@ -82,6 +82,9 @@ define([
 			$(SLA_RESET_BTN).on('click', this.slaResetBtnClicked);
 
 			$.validator.addMethod("alphanumeric", function(value, element) {
+				if(slaDialogParams.type && slaDialogParams.type == 'alter')
+					return true; // For alter we don't allow editing the name,so no check needed
+
 				return this.optional(element) || /^\w+$/i.test(value);
 			}, "Only alphanumeric characters and underscores are allowed");
 

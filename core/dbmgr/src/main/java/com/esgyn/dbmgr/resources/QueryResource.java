@@ -52,7 +52,7 @@ public class QueryResource {
 		}
 		String timeStamp = "";
 		if (obj.has("timeStamp")) {
-			obj.get("timeStamp").asText();
+			timeStamp = String.valueOf(obj.get("timeStamp").longValue());
 		}
 		String sessionId = servletRequest.getSession().getId();
 		String key=sessionId+timeStamp;
@@ -66,33 +66,42 @@ public class QueryResource {
 	@Consumes("application/json")
 	public Boolean cancelQuery(ObjectNode obj,@Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
-		String timeStamp=obj.get("timeStamp").asText();
+		String timeStamp = "";
+		if (obj.has("timeStamp")) {
+			timeStamp = String.valueOf(obj.get("timeStamp").longValue());
+		}
 		String sessionId = servletRequest.getSession().getId();
 		String Key = sessionId+timeStamp;
 		return cancelSQLQuery(servletResponse,Key);
 	}
-	private Boolean cancelSQLQuery(HttpServletResponse servletResponse,String key) {
+
+	private boolean cancelSQLQuery(HttpServletResponse servletResponse, String key) {
 		// TODO Auto-generated method stub
 		Statement stmt=null;
-		while (!((stmt=(Statement)SessionModel.getStatementObject(key))!=null)) {
-			continue;
-		}
-		try {
-			if(stmt.isClosed()){
-				//the query was completed.
+		// while
+		// (!((stmt=(Statement)SessionModel.getStatementObject(key))!=null)) {
+		// continue;
+		// }
+		stmt = (Statement) SessionModel.getStatementObject(key);
+		if (stmt != null) {
+			try {
+				if (stmt.isClosed()) {
+					// the query was completed.
+					return false;
+				} else {
+					// the query was running.
+					stmt.cancel();
+					return true;
+				}
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 				return false;
-			}else{
-				//the query was running.
-				stmt.cancel();
-				return true;
+			} finally {
+				SessionModel.removeStatementObject(key);
 			}
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return false;
-		}finally{
-			SessionModel.cleanStatementObject();
 		}
+		return false;
 	}
 	public static TabularResult executeSQLQuery(String user, String password, String queryText)
 			throws EsgynDBMgrException {

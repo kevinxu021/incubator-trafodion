@@ -28,8 +28,10 @@ define([
 
 	var _this = null;
 	var srcQueryTextEditor = null,
-	isPaused = false;
-	
+	isPaused = false,
+	resultsAfterPause = false,
+	lastExecuteResult = null,
+	lastRawError = null;
 	var mode = '';
 	var execStartTime = null;
 	
@@ -47,7 +49,12 @@ define([
 		doInit: function (args) {
 			_this = this;
 			this.currentURL = window.location.hash;
+			this.redirectFlag=false;
 			this.hideLoading();
+			resultsAfterPause = false;
+			lastExecuteResult = null;
+			lastRawError = null;
+			
 			mode = '';
 			
 			$(SRC_FILE_SELECT).on('change', this.onFileSelected);
@@ -88,6 +95,13 @@ define([
 			this.currentURL = window.location.hash;
 			this.redirectFlag=false;
 			isPaused = false;
+			if(resultsAfterPause == true){
+				if(lastExecuteResult != null){
+					_this.batchExecSuccess(lastExecuteResult);
+				}else if (lastRawError != null){
+					_this.showErrorMessage(lastRawError);
+				}
+			}
 			$(SRC_FILE_SELECT).on('change', this.onFileSelected);
 			$(CLEAR_BTN).on('click',this.clearAll);
 			$(SAVE_BTN).on('click', this.saveSQL);
@@ -97,6 +111,7 @@ define([
 		},
 		doPause:  function(){
 			isPaused = true;
+			this.redirectFlag=true;
 			$(SRC_FILE_SELECT).off('change', this.onFileSelected);
 			$(CLEAR_BTN).off('click',this.clearAll);
 			$(SAVE_BTN).off('click', this.saveSQL);
@@ -163,7 +178,7 @@ define([
 				param.timestamp = moment.utc().valueOf();
 				execStartTime = param.timestamp;
 				
-				if(param.text != null && param.text.length > 0){
+				if(param.text != null && param.text.trim().length > 0){
 					$(EXEC_RESULTS).text("Executing SQL ...");
 					_this.setPageExecuteMode();
 					serverHandler.executeBatchSQL(param);
@@ -183,10 +198,24 @@ define([
 			serverHandler.cancelBatch(param);
 		},
 		batchExecSuccess: function(result){
+			if(_this.redirectFlag){
+				resultsAfterPause = true;
+				lastExecuteResult = result;
+				var msgObj={msg:'The script execution completed successfully.',tag:"success",url:_this.currentURL,shortMsg:"Script execute succeeded.",lastMessageOnly:true};
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+				return;
+			}
 			_this.resePageExecuteMode();
 			$(EXEC_RESULTS).text(result.output);
 		},
 		showErrorMessage: function (jqXHR) {
+			if(_this.redirectFlag){
+				resultsAfterPause = true;
+				lastRawError = jqXHR;
+				var msgObj={msg:'The script execution failed.',tag:"danger",url:_this.currentURL,shortMsg:"Script execute failed.",lastMessageOnly:true};
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+				return;
+			}
 			_this.resePageExecuteMode();
 			if(jqXHR.requestor !=null && jqXHR.requestor != _this) //error message is probably for different page
 				return;
@@ -199,6 +228,7 @@ define([
 			srcQueryTextEditor.setOption("readOnly", true);
 			$(EXEC_BTN).removeClass('btn-primary fa-play').addClass('btn-danger fa-stop');
 			$(EXEC_BTN).text(" Cancel");
+			$(CLEAR_BTN).attr('disabled', true);
 		},
 		resePageExecuteMode: function(){
 			mode = '';
@@ -209,6 +239,7 @@ define([
 			$(SRC_FILE_SELECT).attr('disabled',false);
 			$(EXEC_BTN).removeClass('btn-danger fa-stop').addClass('btn-primary fa-play');
 			$(EXEC_BTN).text(" Execute");
+			$(CLEAR_BTN).attr('disabled', false);
 		}
 	});
 
