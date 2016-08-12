@@ -104,13 +104,13 @@ public final class Constants {
     public static final String  DCS_SERVER_PROGRAM_EXIT_SESSIONS_COMPLETED_COUNT= "dcs.server.program.exit.sessions.completed.count"; 
 
     /** Default value for DCS server program exit sessions completed count */
-    public static final int DEFAULT_DCS_SERVER_PROGRAM_EXIT_SESSIONS_COMPLETED_COUNT = 10;
+    public static final int DEFAULT_DCS_SERVER_PROGRAM_EXIT_SESSIONS_COMPLETED_COUNT = 0;
 
     /** DCS server program exit live time */
     public static final String DCS_SERVER_PROGRAM_EXIT_LIVE_TIME = "dcs.server.program.exit.live.time"; 
 
     /** Default value for DCS server user program exit live time */
-    public static final int DEFAULT_DCS_SERVER_PROGRAM_EXIT_LIVE_TIME = 30;
+    public static final int DEFAULT_DCS_SERVER_PROGRAM_EXIT_LIVE_TIME = 10;
 
     /** Configuration key for DCS server user program connecting timeout */
     public static final String DCS_SERVER_USER_PROGRAM_CONNECTING_TIMEOUT = "dcs.server.user.program.connecting.timeout";

@@ -4180,6 +4180,18 @@ odbc_SQLSvc_TerminateDialogue_ame_(
 	exception_.exception_nr = CEE_SUCCESS;
 
     long exitSesMemSize = 0;
+    bool exitSessions = false;
+    bool exitLTime = false;
+
+    if(exitSessionsCount > 0){
+        totalExitSessionsCount++;
+        if (totalExitSessionsCount >= exitSessionsCount){
+                exitSessions = true;
+        }
+    }
+    if(exitLiveTime > 0 && ((time(NULL) - startExitLiveTime) > exitLiveTime * 60 )) {
+          exitLTime = true;
+    }
 
     char tmpStringEnv[1024];
     sprintf(tmpStringEnv,
@@ -4275,7 +4287,7 @@ odbc_SQLSvc_TerminateDialogue_ame_(
 		heapSizeExit = false;
 
 
-	if( heapSizeExit == false ){
+	if( heapSizeExit == false && exitSessions == false && exitLTime == false ){
 		if( !updateZKState(CONNECTED, AVAILABLE) )
 		{
 			exception_.exception_nr = odbc_SQLSvc_TerminateDialogue_SQLError_exn_;
@@ -4324,16 +4336,25 @@ bailout:
 		srvrGlobal->traceLogger->TraceDisconnectExit(exception_);
 	}
 	SRVRTRACE_EXIT(FILE_AME+6);
-        
-        if(exitSessionsCount > 0){
-                totalExitSessionsCount++;
-                if (totalExitSessionsCount >= exitSessionsCount){
-                        exitServerProcess();
+
+        if(exitSessions == true){
+                odbc_SQLSvc_StopServer_exc_ StopException;
+                StopException.exception_nr=1;
+                if (srvrGlobal->traceLogger != NULL)
+                {
+                        srvrGlobal->traceLogger->TraceStopServerExit(StopException);
                 }
-        }
-         if(exitLiveTime > 0 && ((time(NULL) - startExitLiveTime) > exitLiveTime * 60 )) {
                  exitServerProcess();
-         }
+        }
+        if(exitLTime == true ) {
+                odbc_SQLSvc_StopServer_exc_ StopException;
+                StopException.exception_nr=2;
+                if (srvrGlobal->traceLogger != NULL)
+                {
+                        srvrGlobal->traceLogger->TraceStopServerExit(StopException);
+                }
+                 exitServerProcess();
+        }
 	return;
 }
 

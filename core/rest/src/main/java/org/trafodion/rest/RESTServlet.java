@@ -824,9 +824,10 @@ public class RESTServlet implements RestConstants {
         }
     }
 
-    public synchronized Response.Status postWmsMapping(String name, String sdata) throws Exception {
+    public synchronized String postWmsMapping(String name, String sdata) throws Exception {
         Response.Status status = Response.Status.OK;
         Stat stat = null;
+        String result = "OK";
         byte[] data = null;
         short defaultOrderNumber = Short.valueOf(Constants.DEFAULT_ORDER_NUMBER);
         short currentOrderNumber = 0;
@@ -850,6 +851,9 @@ public class RESTServlet implements RestConstants {
             String[] tokens = sdata.split(delims);
             if((tokens.length % 2) != 0){
                 LOG.error("postWmsMapping [" + name + "] incorrect format :" + sdata);
+                result = "Incorrect mapping format :" + sdata;
+                status = Response.Status.NOT_ACCEPTABLE;
+                throw new ResponseException("406 incorrect format");
             }
             else {
                 for (int i = 0; i < tokens.length; i=i+2){
@@ -859,10 +863,11 @@ public class RESTServlet implements RestConstants {
                         break;
                     case Constants.ORDER_NUMBER:
                         currentOrderNumber = Short.valueOf(tokens[i + 1]);
-                        if (currentOrderNumber < 0 || currentOrderNumber >= defaultOrderNumber){
+                        if (currentOrderNumber <= 0 || currentOrderNumber >= defaultOrderNumber){
 			    //orderNumber out of range
                             if(LOG.isDebugEnabled())
-                               LOG.debug("postWmsMapping [" + name + "] orderNumber out of range :" + currentOrderNumber);
+                               LOG.debug("postWmsMapping [" + name + "] orderNumber out of range :" + currentOrderNumber + ". Allowed range is between 1 and " + (defaultOrderNumber - 1));
+                            result = "Order number " + currentOrderNumber + " out of range. Allowed range is between 1 and " + (defaultOrderNumber - 1);
                             status = Response.Status.NOT_ACCEPTABLE;
                             throw new ResponseException("406 Out of range");
                         }
@@ -876,14 +881,16 @@ public class RESTServlet implements RestConstants {
                 if(orderNumbers.contains(orderNumber)){
 		  //duplicated order number
 		  if(LOG.isDebugEnabled())
-		    LOG.debug("postWmsMapping [" + name + "] orderNumber is duplicated :" + orderNumber);
-                    status = Response.Status.NOT_MODIFIED;
-                    throw new ResponseException("304 duplicated number");
+		    LOG.debug("postWmsMapping [" + name + "] orderNumber is already in use by another mapping :" + orderNumber);
+                  result = "Order number " + orderNumber + " is already in use by another mapping";
+                  status = Response.Status.NOT_MODIFIED;
+                  throw new ResponseException("304 duplicated number");
                 }
                 data = tdata.getBytes();
                 stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name,false);
                 if (stat == null) {
                     status = Response.Status.CREATED;
+                    result = "Mapping created.";
                     zkc.create(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name,
                       data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
                       CreateMode.PERSISTENT);
@@ -894,7 +901,20 @@ public class RESTServlet implements RestConstants {
             }
         } catch (Exception e){}
 
-        return status;
+        result = status.toString() + ": " + result;
+        if (status == Response.Status.OK){
+            result = "200 " + result;
+        }
+        else if (status == Response.Status.CREATED){
+            result = "201 " + result;
+        }
+        else if (status == Response.Status.NOT_MODIFIED){
+             result = "304 " + result;
+        }
+        else if (status == Response.Status.NOT_ACCEPTABLE){
+             result = "406 " + result;
+        }
+        return result;
     }
     public synchronized void deleteWmsSla(String name) throws Exception{
         Stat stat = null;
