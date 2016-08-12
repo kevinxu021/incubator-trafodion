@@ -6806,6 +6806,7 @@ Lng32 HSGlobalsClass::UpdateIUSPersistentSampleTable(Int64 oldSampleSize,
   HSFuncExecQuery("CONTROL QUERY DEFAULT ALLOW_DML_ON_NONAUDITED_TABLE reset");
 
   checkTime("after updating persistent sample table for IUS");
+  return retcode;
 }
 
 // Read in CBFs for groups that are PENDING and delayedRead flag is TRUE 
@@ -10960,7 +10961,7 @@ void HSGlobalsClass::memRecover(HSColGroupStruct* failedGroup,
   if (LM->LogNeeded())
     {
       LM->Log("<<<Recovering from failed memory allocation for internal sort");
-      sprintf(LM->msg, "Memory allocation failed for %s (%d rows)",
+      sprintf(LM->msg, "Memory allocation failed for %s (" PF64 " rows)",
                        failedGroup->colSet[0].colname->data(), rows);
       LM->Log(LM->msg);
     }
@@ -13443,7 +13444,7 @@ Int32 HSGlobalsClass::mergeDatasetsForIUS(T_IUS* ptr, T_IS* dummyPtr,
   if (numNonNullIntervals == 0) {
      smplGroup->nullCount -= delGroup->nullCount;
      smplGroup->nullCount += insGroup->nullCount;
-     buffer = insGroup->data;
+     buffer = (T_IS*)(insGroup->data);
      ct = insrows - insGroup->nullCount;
 
   } else if ( smplGroup->allKeysInsertedIntoCBF == FALSE ) {

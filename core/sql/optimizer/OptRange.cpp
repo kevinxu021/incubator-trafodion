@@ -2429,6 +2429,17 @@ double getDoubleValue(ConstValue* val, logLevel level)
 
   switch (valueStorageSize)
     {
+      case 1:
+        {
+          assertLogAndThrow1(CAT_SQL_COMP_RANGE, level,
+                           isExactNumeric, QRDescriptorException,
+                           "const value of size 1 not exact numeric: %d",
+                           constValType->getTypeQualifier());
+          Int8 i8val;
+          memcpy(&i8val, valuePtr, valueStorageSize);
+          return i8val / scaleDivisor;
+        }
+
       case 2:
         {
           assertLogAndThrow1(CAT_SQL_COMP_RANGE, level,
