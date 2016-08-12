@@ -107,6 +107,11 @@ public class SystemQueryCache {
 	public static final String SPJ_ALTERLIB = "SPJ_ALTERLIB";
 	public static final String CHECK_SCHEMA = "CHECK_SCHEMA";
 	public static final String CHECK_LIBRARY = "CHECK_LIBRARY";
+	
+	public static final String TOP_N_MEM_USED = "TOP_N_MEM_USED";
+	public static final String TOP_N_CPU_TIME = "TOP_N_CPU_TIME";
+	public static final String TOP_N_TOTAL_RUN_TIME = "TOP_N_TOTAL_RUN_TIME";
+	public static final String TOP_N_DISK_IO = "TOP_N_DISK_IO";
 
 	public static void setSystemQueryies(SystemQueries sQueries) {
 		systemQueries = sQueries;

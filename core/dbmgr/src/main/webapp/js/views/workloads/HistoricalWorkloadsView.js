@@ -54,7 +54,51 @@ define([
 	CANCEL_QUERY_ID = '#cancel-query-id',
 	CANCEL_QUERY_YES_BTN = '#cancel-query-yes-btn';
 
-
+	var CHART_CONFIG = {
+			"TopN_Memory_Used":{
+				container:"topN-memory-chart",
+				spinner:"#memory-spinner",
+				error:"#topN-memory-error-text",
+				value:"max_mem_used" //key to get value from return data
+			},
+			"TopN_CPU_Time":{
+				container:"topN-cpu-chart",
+				spinner:"#cpu-spinner",
+				error:"#topN-cpu-error-text",
+				value:"cpu_time"
+			},
+			"TopN_Total_Runtime":{
+				container:"topN-runtime-chart",
+				spinner:"#runtime-spinner",
+				error:"#topN-runtime-error-text",
+				value:"query_elapsed_time"
+			},
+			"TopN_Disk_IO":{
+				container:"topN-diskio-chart",
+				spinner:"#diskio-spinner",
+				error:"#topN-diskio-error-text",
+				value:"disk_ios"
+			},
+	}
+	var FLOT_OPTIONS = {
+			grid :{
+				hoverable: true,
+				borderColor: "#f3f3f3",
+				borderWidth: {top:0, right: 0, bottom: 1, left: 1},
+				tickColor: "#737373"
+				},
+			xaxis : {
+				mode : "time",
+				tickLength:0
+			},
+			yaxis : {
+				tickLength:0,
+				min:1,
+				max:5,
+				tickFormatter: function (val,axis) { return (6-val); },
+			}
+	}
+	
 	var oDataTable = null;
 	var _this = null;
 	var validator = null;
@@ -160,12 +204,17 @@ define([
 			wHandler.on(wHandler.FETCH_REPO_ERROR, this.showErrorMessage);
 			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
 			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
+			wHandler.on(wHandler.FETCH_TOPN_MAX_MEM_USED_SUCCESS, this.displayTopMemUsed);
+			wHandler.on(wHandler.FETCH_TOPN_CPU_TIME_SUCCESS, this.displayTopCPUTime);
+			wHandler.on(wHandler.FETCH_TOPN_Rumtime_SUCCESS, this.displayTopRuntime);
+			wHandler.on(wHandler.FETCH_TOPN_DiskIO_SUCCESS, this.displayTopDiskIO);
 			$(REFRESH_MENU).on('click', this.fetchQueriesInRepository);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			$(CANCEL_QUERY_YES_BTN).on('click', this.cancelQueryConfirmed);
 			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
 			this.fetchQueriesInRepository();
+			_this.fetchTopN();
 		},
 		doResume: function(){
 			this.redirectFlag=false;
@@ -326,6 +375,7 @@ define([
 			}
 			_this.showLoading();
 			wHandler.fetchQueriesInRepository(lastAppliedFilters);
+			_this.fetchTopN();
 		},
 		getFilterParams: function(){
 			var startTime = $(START_TIME_PICKER).data("DateTimePicker").date();
@@ -364,6 +414,46 @@ define([
 			$(ERROR_CONTAINER).hide();
 			_this.updateFilter();
 			_this.filterApplyClicked();
+		},
+		fetchTopN: function(){
+			var timeRange = _this.getTimerange();
+			var startTime = timeRange.startTime.format("YYYY-MM-DD HH:mm:ss");
+			var endTime = timeRange.endTime.format("YYYY-MM-DD HH:mm:ss");
+			$(CHART_CONFIG["TopN_Memory_Used"].spinner).show();
+			$(CHART_CONFIG["TopN_CPU_Time"].spinner).show();
+			$(CHART_CONFIG["TopN_Total_Runtime"].spinner).show();
+			$(CHART_CONFIG["TopN_Disk_IO"].spinner).show();
+			$(CHART_CONFIG["TopN_Memory_Used"].error).hide();
+			$(CHART_CONFIG["TopN_CPU_Time"].error).hide();
+			$(CHART_CONFIG["TopN_Total_Runtime"].error).hide();
+			$(CHART_CONFIG["TopN_Disk_IO"].error).hide();
+			wHandler.fetchTopMemUsed(startTime,endTime);
+			wHandler.fetchTopCPUTime(startTime,endTime);
+			wHandler.fetchTopRuntime(startTime,endTime);
+			wHandler.fetchTopDiskIO(startTime,endTime);
+		},
+		displayTopMemUsed: function(data){
+			var chartConfig = CHART_CONFIG["TopN_Memory_Used"];
+			_this.displayTopCharts(data,chartConfig);
+		},
+		displayTopCPUTime: function(data){
+			var chartConfig = CHART_CONFIG["TopN_CPU_Time"];
+			_this.displayTopCharts(data,chartConfig);
+		},
+		displayTopRuntime: function(data){
+			var chartConfig = CHART_CONFIG["TopN_Total_Runtime"];
+			_this.displayTopCharts(data,chartConfig);
+		},
+		displayTopDiskIO: function(data){
+			var chartConfig = CHART_CONFIG["TopN_Disk_IO"];
+			_this.displayTopCharts(data,chartConfig);
+		},
+		getTimerange: function(){
+			////console.log(startTime.format("YYYY-MM-DD HH:mm:ss"));
+			return {
+				startTime: $(START_TIME_PICKER).data("DateTimePicker").date(),
+				endTime: $(END_TIME_PICKER).data("DateTimePicker").date()
+			}
 		},
 		displayResults: function (result){
 			_this.hideLoading();
@@ -524,6 +614,69 @@ define([
 				}
 			}
 		},
+		UTCstamp2UTCsecond: function(strDate){
+			//convert UTC Date "YYYY:MM::DD HH:MM:SS" to UTC milliseconds
+			//new Date() use local timezone
+			var tDate = new Date(strDate);
+			var utc = tDate.getTime() - tDate.getTimezoneOffset()*60000;
+			return utc;
+		},
+		displayTopCharts: function(data,chartConfig){
+			var data = data;
+			var container = chartConfig.container;
+			var spinner = chartConfig.spinner;
+			var x_start = _this.getTimerange().startTime.unix() * 1000;
+			var x_end = _this.getTimerange().endTime.unix() * 1000;
+			var options = FLOT_OPTIONS;
+			options.xaxis.min = x_start;
+			options.xaxis.max = x_end;
+			var lines = [];
+			var count = 5;
+			for(var i=0;i < data.length;i++){
+				var status = "Complete";
+				var start_time = _this.UTCstamp2UTCsecond(data[i].start_time);
+				var end_time = data[i].end_time;
+				if(end_time == null){
+					end_time = x_end;
+					status = "Executing";
+				}else{
+					end_time = _this.UTCstamp2UTCsecond(end_time);
+				}
+				var y = count;
+				var value = data[i][chartConfig.value];
+				var query_id = data[i].query_id;
+				var line = {
+						"query_id":query_id,
+						"start_time":data[i].start_time,
+						"end_time":data[i].end_time,
+						"value": value,
+						"index":y,
+						"status":status,
+						"data": [[start_time,y],[end_time,y]]
+				}
+				lines.push(line);
+				count--;
+			}
+			$.plot("#"+container ,lines,options);
+			$("#"+container).bind("plothover", function (event, pos, item) {
+				if (item) {
+					$("#"+container + '-tooltip').remove();
+					var query_id = item.series.query_id;
+					var start_time = item.series.start_time;
+					var end_time = item.series.end_time;
+					var index = item.series.index;
+					var value = item.series.value;
+					var status = item.series.status;
+					var content = "Status:" + status + "</br>Value:" + value +"</br>StartTime:"+start_time+"</br>EndTime:"+end_time;
+					common.showTooltip(pos.pageX, pos.pageY, content, container+'-tooltip');
+				} else {
+					$("#"+container + '-tooltip').remove();
+				}
+
+			});
+			$(spinner).hide();
+		},
+		
 		parseInputDate:function(date){
 			return moment.tz(date, DATE_FORMAT_ZONE, common.serverTimeZone);
 		},

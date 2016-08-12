@@ -837,5 +837,33 @@
 			<name>WMS_DELETE_MAPPING</name>
 			<text><![CDATA[{"url":"%1$s/v1/wms/mappings/query?delete=%2$s", "method":"DELETE"}]]></text>
 		</query>
+		<query>
+			<name>TOP_N_MEM_USED</name>
+			<text><![CDATA[select [first 5] query_id,exec_start_utc_ts,exec_end_utc_ts,MAX_MEM_USED FROM "_REPOS_".METRIC_QUERY_TABLE
+			WHERE (exec_start_utc_ts between timestamp '%1$s' and timestamp '%2$s' or exec_end_utc_ts between timestamp '%3$s' and timestamp '%4$s' or exec_end_utc_ts is null) 
+			ORDER BY MAX_MEM_USED desc;
+			]]></text>
+		</query>
+		<query>
+			<name>TOP_N_CPU_TIME</name>
+			<text><![CDATA[select [first 5] query_id,exec_start_utc_ts,exec_end_utc_ts,(MASTER_EXECUTION_TIME+SQL_PROCESS_BUSY_TIME +DISK_PROCESS_BUSY_TIME) as cpu_time from "_REPOS_".METRIC_QUERY_TABLE 
+			WHERE (exec_start_utc_ts between timestamp '%1$s' and timestamp '%2$s' or exec_end_utc_ts between timestamp '%3$s' and timestamp '%4$s' or exec_end_utc_ts is null) 
+			ORDER BY CPU_TIME desc;
+			]]></text>
+		</query>
+		<query>
+			<name>TOP_N_TOTAL_RUN_TIME</name>
+			<text><![CDATA[select [first 5] query_id,exec_start_utc_ts,exec_end_utc_ts,QUERY_ELAPSED_TIME FROM "_REPOS_".METRIC_QUERY_TABLE 
+			WHERE (exec_start_utc_ts between timestamp '%1$s' and timestamp '%2$s' or exec_end_utc_ts between timestamp '%3$s' and timestamp '%4$s' or exec_end_utc_ts is null) 
+			ORDER BY QUERY_ELAPSED_TIME desc;
+			]]></text>
+		</query>
+		<query>
+			<name>TOP_N_DISK_IO</name>
+			<text><![CDATA[select [first 5] query_id,exec_start_utc_ts,exec_end_utc_ts,DISK_IOS FROM "_REPOS_".METRIC_QUERY_TABLE 
+			WHERE (exec_start_utc_ts between timestamp '%1$s' and timestamp '%2$s' or exec_end_utc_ts between timestamp '%3$s' and timestamp '%4$s' or exec_end_utc_ts is null) 
+			ORDER BY DISK_IOS desc;
+			]]></text>
+		</query>
 	</queries>
 </SystemQueries>
