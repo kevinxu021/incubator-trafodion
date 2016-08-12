@@ -24,6 +24,21 @@
 
 obey TEST015(clean_up);
 
+prepare explainIt from
+  select substring(cast(SEQ_NUM+100 as char(3)),2,2) s,
+         substring(operator,1,16) operator,
+         cast(LEFT_CHILD_SEQ_NUM as char(2)) lc,
+         cast(RIGHT_CHILD_SEQ_NUM as char(2)) rc,
+         substring
+         (substring(tname from (1+locate('.',tname))),
+         (1+locate('.',substring(tname from (1+locate('.',tname))))),
+         10
+        ) tab_name,
+        cast(cardinality as char(11)) cardinal
+         from table (explain(NULL,'XX'))
+         order by 1 desc;
+
+
 log LOG015 clear;
 
 obey TEST015(tests);
@@ -285,23 +300,23 @@ insert into t015p4 values ('BBBB ',12,'BBBB',12);
 insert into t015p4 values ('MMMM ',21,'MMMM',21);
 insert into t015p4 values ('XXXXX',22,'XXXX', 22);
 
--- expect to see a parallel plan with scan dop of 20
+-- expect to see a parallel plan
 prepare xx from select * from t015p20 <<+ cardinality 10e8 >>  ;
-explain options 'f' xx;
+execute explainIt;
 
 -- expect to see a serial plan
 prepare xx from select * from t015p20 ;
-explain options 'f' xx;
+execute explainIt;
 
--- expect to see a parallel plan with scan dop of 20 on t015p20
+-- expect to see a parallel plan
 prepare xx from select t015p20.* from
 t015p20 <<+ cardinality 10e8 >>, t015p4
 where t015p20.c = t015p4.c ;
-explain options 'f' xx;
+execute explainIt;
 
 -- expect to see a serial plan
 prepare xx from select t015p20.* from
 t015p20, t015p4
 where t015p20.c = t015p4.c ;
-explain options 'f' xx;
+execute explainIt;
 
