@@ -60,24 +60,17 @@ public class DefinedMapping  {
     class MappingWatcher implements Watcher {
         public void process(WatchedEvent event) {
             if(event.getType() == Event.EventType.NodeChildrenChanged) {
-                if(LOG.isDebugEnabled())
-                    LOG.debug("Mapping children changed [" + event.getPath() + "]");
                 try {
                     Stat stat = null;
                     byte[] data = null;
                     String znode = event.getPath();
-                    Set<String> keyset = new HashSet<>(mappingsMap.keySet());
+                    //Set<String> keyset = new HashSet<>(mappingsMap.keySet());
                         
                     List<String> children = zkc.getChildren(znode,new MappingWatcher());
                     if( ! children.isEmpty()){ 
                         for(String child : children) {
-                            
                             stat = zkc.exists(znode + "/" + child,false);
                             if(stat != null) {
-                                if (keyset.contains(child)){
-                                    keyset.remove(child);
-                                    continue;
-                                }
                                 //add new record
                                 LinkedHashMap<String,String> attributes = new LinkedHashMap<>();
                                 data = zkc.getData(znode + "/" + child, new MappingDataWatcher(), stat);
@@ -86,14 +79,9 @@ public class DefinedMapping  {
                                 for (int i = 0; i < tokens.length; i=i+2){
                                     attributes.put(tokens[i], tokens[i + 1]);
                                 }
-                                synchronized(mappingsMap){
-                                    mappingsMap.put(child, attributes);
-                                }
-                            }
-                        }
-                        for (String child : keyset) {
-                            synchronized(mappingsMap){
-                                mappingsMap.remove(child);
+                                if(LOG.isDebugEnabled())
+                                    LOG.debug("Add Mapping NodeChildrenChanged [" + child + "]");
+                                mappingsMap.put(child, attributes);
                             }
                         }
                     }
@@ -109,8 +97,6 @@ public class DefinedMapping  {
         public void process(WatchedEvent event) {
 
             if(event.getType() == Event.EventType.NodeDataChanged){
-                if(LOG.isDebugEnabled())
-                    LOG.debug("Data Watcher [" + event.getPath() + "]");
                 try {
                     Stat stat = null;
                     byte[] data = null;
@@ -123,18 +109,25 @@ public class DefinedMapping  {
                     for (int i = 0; i < tokens.length; i=i+2){
                         attributes.put(tokens[i], tokens[i + 1]);
                     }
-                    synchronized(mappingsMap){
-                        mappingsMap.put(child,attributes);
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    if(LOG.isErrorEnabled())
-                        LOG.error(e);
+                    if(LOG.isDebugEnabled())
+                       LOG.debug("EventType.NodeDataChanged [" + child + "]");
+                    mappingsMap.put(child,attributes);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        if(LOG.isErrorEnabled())
+                            LOG.error(e);
                 }
             }
-        }
+            else if(event.getType() == Event.EventType.NodeDeleted){
+                String znode = event.getPath();
+                String child = znode.substring(znode.lastIndexOf('/') + 1);
+                if(LOG.isDebugEnabled())
+                       LOG.debug("Data Watcher NodeDdeleted [" + child + "]");
+                mappingsMap.remove(child);
+            }
+       }
     }
-    private synchronized void initZkMappings() throws Exception {
+    private void initZkMappings() throws Exception {
         if(LOG.isDebugEnabled())
             LOG.debug("initZkProfiles " + parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS);
         
@@ -143,49 +136,45 @@ public class DefinedMapping  {
         String znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS;
         List<String> children = null;
         
-        synchronized(mappingsMap){
-            mappingsMap.clear();
-             
-            children = zkc.getChildren(znode,new MappingWatcher());
-            if( ! children.isEmpty()){ 
-                for(String child : children) {
-                    if(LOG.isDebugEnabled())
-                        LOG.debug("child [" + child + "]");
-                    stat = zkc.exists(znode + "/" + child,false);
-                    if(stat != null) {
-                        LinkedHashMap<String,String> attributes = new LinkedHashMap<>();
-                        data = zkc.getData(znode + "/" + child, new MappingDataWatcher(), stat);
-                        String delims = "[=:]";
-                        String[] tokens = (new String(data)).split(delims);
-                        for (int i = 0; i < tokens.length; i=i+2){
-                            attributes.put(tokens[i], tokens[i + 1]);
-                        }
-                        mappingsMap.put(child,attributes);;
+        mappingsMap.clear();
+          
+        children = zkc.getChildren(znode,new MappingWatcher());
+        if( ! children.isEmpty()){ 
+            for(String child : children) {
+                if(LOG.isDebugEnabled())
+                    LOG.debug("child [" + child + "]");
+                stat = zkc.exists(znode + "/" + child,false);
+                if(stat != null) {
+                    LinkedHashMap<String,String> attributes = new LinkedHashMap<>();
+                    data = zkc.getData(znode + "/" + child, new MappingDataWatcher(), stat);
+                    String delims = "[=:]";
+                    String[] tokens = (new String(data)).split(delims);
+                    for (int i = 0; i < tokens.length; i=i+2){
+                        attributes.put(tokens[i], tokens[i + 1]);
                     }
+                    mappingsMap.put(child,attributes);;
                 }
             }
         }
     }
     private static void sortByValues(Map<String, LinkedHashMap<String,String>> map) { 
-        synchronized(map){
-            List<Map.Entry> list = new LinkedList<Map.Entry>(map.entrySet());
-            Collections.sort(list, new Comparator() {
-                public int compare(Object o1, Object o2) {
-                     Map<String,String> m1 = ((LinkedHashMap<String,String>)((Map.Entry)(o1)).getValue());
-                     String orderNumber1 = m1.get(Constants.ORDER_NUMBER);
-                     Map<String,String> m2 = ((LinkedHashMap<String,String>)((Map.Entry)(o2)).getValue());
-                     String orderNumber2 = m2.get(Constants.ORDER_NUMBER);
-                     return Integer.valueOf(orderNumber1) -Integer.valueOf(orderNumber2);
-                 }
-            });
-            map.clear();
-            for (Iterator<Map.Entry> it = list.iterator(); it.hasNext();) {
-                   Map.Entry entry = (Map.Entry)it.next();
-                   map.put((String)entry.getKey(), (LinkedHashMap<String,String>)entry.getValue());
-            } 
-        }
+        List<Map.Entry> list = new LinkedList<Map.Entry>(map.entrySet());
+        Collections.sort(list, new Comparator() {
+            public int compare(Object o1, Object o2) {
+                  Map<String,String> m1 = ((LinkedHashMap<String,String>)((Map.Entry)(o1)).getValue());
+                  String orderNumber1 = m1.get(Constants.ORDER_NUMBER);
+                  Map<String,String> m2 = ((LinkedHashMap<String,String>)((Map.Entry)(o2)).getValue());
+                  String orderNumber2 = m2.get(Constants.ORDER_NUMBER);
+                  return Integer.valueOf(orderNumber1) -Integer.valueOf(orderNumber2);
+              }
+        });
+        map.clear();
+        for (Iterator<Map.Entry> it = list.iterator(); it.hasNext();) {
+                Map.Entry entry = (Map.Entry)it.next();
+                map.put((String)entry.getKey(), (LinkedHashMap<String,String>)entry.getValue());
+        } 
     }
-    public synchronized void findProfile(ConnectionContext cc){
+    public void findProfile(ConnectionContext cc){
         // Mapping
         String sla = "";
         // Sla
