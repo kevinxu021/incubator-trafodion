@@ -95,6 +95,7 @@
 +>     join "_MD_".text x on t.table_uid = x.text_uid
 +>where o.schema_name = 'SCH'
 +>  and o.object_name like 'T015PRESP_'
++>  and x.text_type <> 7
 +>order by 1, 3, 4;
 
 (EXPR)                                    NUM_SALT_PARTNS  TEXT_TYPE    SUB_ID       SEQ_NUM      FLAGS                 (EXPR)
@@ -509,6 +510,7 @@ CREATE INDEX T015SLT4IX1 ON TRAFODION.SCH.T015SLT4
 +>     join "_MD_".text x on t.table_uid = x.text_uid
 +>where o.schema_name = 'SCH'
 +>  and o.object_name like 'T015SLT_'
++>  and x.text_type <> 7
 +>order by 1, 3, 4;
 
 (EXPR)                                    NUM_SALT_PARTNS  TEXT_TYPE    SUB_ID       SEQ_NUM      FLAGS                 (EXPR)
