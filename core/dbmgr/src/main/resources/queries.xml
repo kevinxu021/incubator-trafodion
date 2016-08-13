@@ -293,7 +293,7 @@
 			<!-- Get HBase Region info for a database object -->
 			<name>SELECT_OBJECT_REGIONS</name>
 			<text><![CDATA[select region_num, region_name, num_stores, num_store_files,
-                CAST( CASE WHEN 1 > store_file_uncomp_size THEN 0 ELSE (store_file_uncomp_size/(1024*1024)) END AS DECIMAL(18,2)) AS store_file_uncomp_size , 
+                CAST( CASE WHEN 1 > store_file_uncomp_size THEN 0 ELSE (store_file_uncomp_size/(1024*1024)) END AS DECIMAL(18,2)) AS store_file_uncomp_size_mb , 
                 CAST( CASE WHEN 1 > store_file_size THEN 0 ELSE (store_file_size/(1024*1024)) END AS DECIMAL(18,2)) AS store_file_size_mb , 
                 CAST( CASE WHEN 1 > mem_store_size THEN 0 ELSE (mem_store_size/(1024*1024)) END AS DECIMAL(18,2)) AS mem_store_size_mb , 
 				read_requests_count, write_requests_count

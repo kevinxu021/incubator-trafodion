@@ -1332,6 +1332,54 @@ define([
 				}
 				var aoColumnDefs = [];
 				aoColumnDefs.push({
+					"aTargets": [ 3 ],
+					"mData": 3,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (type == 'display') {
+							return common.formatNumberWithCommas(data);
+						} else {
+							return data;
+						}
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 6 ],
+					"mData": 6,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (type == 'display') {
+							return common.formatNumberWithCommas(data);
+						} else {
+							return data;
+						}
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 7 ],
+					"mData": 7,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (type == 'display') {
+							return common.formatNumberWithCommas(data);
+						} else {
+							return data;
+						}
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 8 ],
+					"mData": 8,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (type == 'display') {
+							return common.formatNumberWithCommas(data);
+						} else {
+							return data;
+						}
+					}
+				});				
+				aoColumnDefs.push({
 					"aTargets": [ 9 ],
 					"mData": 9,
 					"className" : "dt-body-right",

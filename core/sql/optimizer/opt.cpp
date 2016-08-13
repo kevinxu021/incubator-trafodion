@@ -3971,6 +3971,8 @@ OptDefaults::OptDefaults(CollHeap* h) : heap_(h)
    defaultCostWeight_ = NULL;
    defaultPerformanceGoal_ = NULL;
    resourcePerformanceGoal_ = NULL;
+
+   numESPsPerNodePerQuery_ = 0;
 }
 
 OptDefaults::~OptDefaults()
@@ -4377,26 +4379,28 @@ double OptDefaults::computeRecommendedNumCPUs(double cpuResourceRequired)
   Lng32 n =
             (ActiveSchemaDB()->getDefaults()).getAsLong(MDOP_CPUS_SOFT_LIMIT);
 
-  n /= 2; // Reduce <n> by half so that the mDoPc returned is suitable as a
-          // a cap value to compute the final DoP.
+  // mDOPc = ECR / Work_Unit
+  double mDoPc = cpuResourceRequired / workPerCPU;
+   
+  if ( n >= 0 ) {
 
-  double cpuResourceFor_n_CPUs = n * workPerCPU;
-
-
-  double mDoPc = 0;
-
-  if (cpuResourceRequired > cpuResourceFor_n_CPUs)   {
-
-    double penalty =
-            (ActiveSchemaDB()->getDefaults()).getAsDouble(MDOP_CPUS_PENALTY);
-
-    double additionalCPUs = (cpuResourceRequired - cpuResourceFor_n_CPUs) /
-                           (workPerCPU * penalty);
-
-    mDoPc =  n + additionalCPUs;
-  } else
-    // mDOPc = ECR / Work_Unit
-    mDoPc = cpuResourceRequired / workPerCPU;
+     n /= 2; // Reduce <n> by half so that the mDoPc returned is suitable as a
+             // a cap value to compute the final DoP.
+   
+     double cpuResourceFor_n_CPUs = n * workPerCPU;
+   
+   
+     if (cpuResourceRequired > cpuResourceFor_n_CPUs)   {
+   
+       double penalty =
+               (ActiveSchemaDB()->getDefaults()).getAsDouble(MDOP_CPUS_PENALTY);
+   
+       double additionalCPUs = (cpuResourceRequired - cpuResourceFor_n_CPUs) /
+                              (workPerCPU * penalty);
+   
+       mDoPc =  n + additionalCPUs;
+     } 
+  }
 
   return mDoPc;
 }
@@ -4410,27 +4414,65 @@ OptDefaults::computeRecommendedNumCPUsForMemory(double memoryResourceRequired)
   Lng32 n =
             (ActiveSchemaDB()->getDefaults()).getAsLong(MDOP_CPUS_SOFT_LIMIT);
 
-  n /= 2; // Reduce <n> by half so that the mDoPc returned is suitable as a
-          // a cap value to compute the final DoP.
-
-  double totalMemoryFor_N_CPU = n * memoryPerCPU;
-
-
   double mDoPm = 0;
+   
+  mDoPm = memoryResourceRequired / memoryPerCPU;
 
-  if (memoryResourceRequired > totalMemoryFor_N_CPU)   {
+  if ( n >= 0 ) {
 
-    double penalty =
-            (ActiveSchemaDB()->getDefaults()).getAsDouble(MDOP_MEMORY_PENALTY);
-
-    double additionalCPUs = (memoryResourceRequired - totalMemoryFor_N_CPU) /
-                           (memoryPerCPU * penalty);
-
-    mDoPm =  n + additionalCPUs;
-  } else
-    mDoPm = memoryResourceRequired / memoryPerCPU;
+     n /= 2; // Reduce <n> by half so that the mDoPc returned is suitable as a
+             // a cap value to compute the final DoP.
+   
+     double totalMemoryFor_N_CPU = n * memoryPerCPU;
+   
+   
+     if (memoryResourceRequired > totalMemoryFor_N_CPU)   {
+   
+       double penalty =
+               (ActiveSchemaDB()->getDefaults()).getAsDouble(MDOP_MEMORY_PENALTY);
+   
+       double additionalCPUs = (memoryResourceRequired - totalMemoryFor_N_CPU) /
+                              (memoryPerCPU * penalty);
+   
+       mDoPm =  n + additionalCPUs;
+     } 
+  }
 
   return mDoPm;
+}
+
+void OptDefaults::computeNumESPsPerNodePerQuery(const RequiredResources* requiredResources)
+{
+  // Set the number of ESPs per node according to the following rules:
+  //  1. If there exists at least one hive table during computeRequiredResources() 
+  //     1.1  if CB_209 if off, use the value of CQD HIVE_NUM_ESPS_PER_DATANODE
+  //     1.2  else use the aggressive ESP setting; 
+  //  2. Else, use the value for HBase tables
+  //
+  NADefaults &defs = ActiveSchemaDB()->getDefaults();
+  if ( requiredResources->getNumOfHiveTables() > 0 ) 
+  {
+    NABoolean applyAggressiveSetting = 
+             defs.getToken(COMP_BOOL_209) == DF_ON;
+
+    if ( applyAggressiveSetting ) {
+
+       NAClusterInfoLinux* gpLinux = 
+            dynamic_cast<NAClusterInfoLinux*>(gpClusterInfo);
+       assert(gpLinux);
+
+       // cores per node
+       Lng32 coresPerNode = gpClusterInfo->numberOfCpusPerSMP();
+
+       numESPsPerNodePerQuery_ = 
+          defs.computeNumESPsPerCore(TRUE) * coresPerNode;
+    } else
+       numESPsPerNodePerQuery_ = 
+           defs.getAsLong(HIVE_NUM_ESPS_PER_DATANODE);
+  } else {
+     // Use the value for queries involving Hbase tables only
+     numESPsPerNodePerQuery_ = defs.getNumOfESPsPerNode();
+  }
 }
 
 RequiredResources * OptDefaults::estimateRequiredResources(RelExpr* rootExpr)
@@ -4454,6 +4496,8 @@ RequiredResources * OptDefaults::estimateRequiredResources(RelExpr* rootExpr)
     workPerCPU_ = getDefaultAsDouble(WORK_UNIT_ESP)*1000000;
     defaultDegreeOfParallelism_ = getDefaultAsLong
       (DEFAULT_DEGREE_OF_PARALLELISM);
+
+    computeNumESPsPerNodePerQuery(requiredResources);
 
     // take into account the number of ESPs per node. The total number of CPUs set below will be
     // aka virtual # of CPUs_ to use for this query. Do not be confused with the actual # of
@@ -4567,6 +4611,9 @@ RequiredResources * OptDefaults::estimateRequiredResources(RelExpr* rootExpr)
           (CmpCommon::getDefault( NSK_DBG_GENERIC ) == DF_ON )) {
             CURRCONTEXT_OPTDEBUG->stream()
           << endl
+          << "NumOfHiveTables= " << requiredResources->getNumOfHiveTables() << endl
+          << "NumOfHbaseTables= " << requiredResources->getNumOfHbaseTables() << endl
+          << "NumESPsPerNodePerQuery = " << numESPsPerNodePerQuery_ << endl
           << "EMR = " << requiredMemoryResourceEstimate_ << endl
           << "MaxOperMemory = " << maxOperatorMemoryEstimate_ << endl
           << "Memory_Unit = " << memoryPerCPU_ << endl

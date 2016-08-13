@@ -767,7 +767,12 @@ SDDkwd__(CAT_ENABLE_QUERY_INVALIDATION, "ON"),
   DDkwd__(COMP_BOOL_206,		"OFF"), // Internal Usage
   DDkwd__(COMP_BOOL_207,		"OFF"), // Internal Usage
   DDkwd__(COMP_BOOL_208,		"OFF"), // Internal Usage
-  DDkwd__(COMP_BOOL_209,		"OFF"), // Internal Usage
+
+  // Control the number of ESPs per node for hive queries. 
+  //  off: use the value of HIVE_NUM_ESPS_PER_DATANODE 
+  //  on: use the aggregasive ESP allocation per core
+  DDkwd__(COMP_BOOL_209,		"OFF"), 
+  
   DDkwd__(COMP_BOOL_21,			"OFF"),
   DDkwd__(COMP_BOOL_210,		"ON"),
   DDkwd__(COMP_BOOL_211,		"ON"), // controls removing constants from group expression
@@ -1990,7 +1995,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDkwd__(HIVE_METADATA_JAVA_ACCESS,            "ON"),
   DDint__(HIVE_METADATA_REFRESH_INTERVAL,       "0"),
   DDflt0_(HIVE_MIN_BYTES_PER_ESP_PARTITION,     "67108864"),
-  DDui___(HIVE_NUM_ESPS_PER_DATANODE,           "2"),
+  DDui___(HIVE_NUM_ESPS_PER_DATANODE,           "8"),
   DDpct__(HIVE_NUM_ESPS_ROUND_DEVIATION,        "34"),
   DDkwd__(HIVE_PARTITION_ELIMINATION_CT,        "ON"),
   DDkwd__(HIVE_PARTITION_ELIMINATION_MM,        "ON"),
@@ -2235,7 +2240,8 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   DDflt1_(MDOP_CPUS_PENALTY,      "70"),
 
   // specify the limit beyond which the number of CPUs will be limited.
-  DDui1__(MDOP_CPUS_SOFT_LIMIT,   "64"),
+  // A value of -1  means there is no limit.
+  DDint__(MDOP_CPUS_SOFT_LIMIT,   "-1"),
 
   // controls the amount of penalty for CPU resource per memory unit
   // required that is beyond the value specified by MDOP_CPUS_SOFT_LIMIT.
@@ -5113,7 +5119,7 @@ ULng32 NADefaults::getTotalNumOfESPsInCluster(NABoolean& fakeEnv) const
      return getAsLong(PARALLEL_NUM_ESPS);
    }
 
-   float espsPerNode = getNumOfESPsPerNodeInFloat();
+   float espsPerNode = CURRSTMT_OPTDEFAULTS->getNumESPsPerNodePerQuery();
 
    CollIndex numOfNodes = gpClusterInfo->numOfSMPs();
 
@@ -6082,8 +6088,8 @@ enum DefaultConstants NADefaults::validateAndInsert(const char *attrName,
 
 float NADefaults::computeNumESPsPerCore(NABoolean aggressive)
 {
-   #define DEFAULT_ESPS_PER_NODE 2   // for conservation allocation
-   #define DEFAULT_ESPS_PER_CORE 0.5 // for aggressive allocation
+   #define DEFAULT_ESPS_PER_NODE 2    // for conservation allocation
+   #define DEFAULT_ESPS_PER_CORE 0.25 // for aggressive allocation (i.e. 4 core per ESP)
 
      // Make sure the gpClusterInfo points at an NAClusterLinux object.
      // In osim simulation mode, the pointer can point at a NAClusterNSK

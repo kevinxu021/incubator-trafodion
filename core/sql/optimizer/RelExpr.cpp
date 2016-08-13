@@ -14868,11 +14868,10 @@ void Scan::computeMyRequiredResources(RequiredResources & reqResources, EstLogPr
                 computeCpuResourceForIndexJoinScans(tableId);
 
   CostScalar cpuResourcesRequired = cpuCostIndexOnlyScan;
-  if ( getTableDesc()->getNATable()->isHbaseTable()) 
-  {
-     if ( cpuCostIndexJoinScan < cpuResourcesRequired )
-       cpuResourcesRequired = cpuCostIndexJoinScan;
-  } 
+
+
+  if ( cpuCostIndexJoinScan < cpuResourcesRequired )
+    cpuResourcesRequired = cpuCostIndexJoinScan;
 
   CostScalar dataAccessCost = tAnalysis->getFactTableNJAccessCost();
   if(dataAccessCost < 0)
@@ -14888,6 +14887,11 @@ void Scan::computeMyRequiredResources(RequiredResources & reqResources, EstLogPr
       tAnalysis->computeDataAccessCostForTable(numOfProbes, rowsToScan);
   }
 
+  if ( getTableDesc()->getNATable()->isHbaseTable()) 
+    reqResources.incrementNumOfHBaseTables();
+
+  if ( getTableDesc()->getNATable()->isHiveTable()) 
+    reqResources.incrementNumOfHiveTables();
 
   CostScalar myMaxCard = getGroupAttr()->getResultMaxCardinalityForInput(inLP);
   reqResources.accumulate(csZero, cpuResourcesRequired, 
@@ -15047,7 +15051,22 @@ Lng32 FileScan::getTotalColumnWidthForExecPreds() const
   const TableAnalysis* tAnalysis = tdesc->getTableAnalysis();
   const ValueIdSet & usedCols = tAnalysis->getUsedCols() ;
 
-  return usedCols.getRowLength();
+  if ( isHiveOrcTable() ) {
+     Lng32 lengthForNonChars = usedCols.getRowLengthOfNonCharColumns();
+     Lng32 numOfcharCols = usedCols.getNumOfCharColumns();
+
+     const HHDFSTableStats* hdfsStats =
+             getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
+
+     const NAColumnArray &nac = 
+          getIndexDesc()->getNAFileSet()->getAllColumns();
+
+     Lng32 avgLengthPerRow = hdfsStats->getAvgStringLengthPerRow();
+
+     return lengthForNonChars + avgLengthPerRow * (numOfcharCols / nac.entries());
+  }
+  else
+     return usedCols.getRowLength();
 }
 
 // This function checks if the passed RelExpr is a UDF rule created by a CQS

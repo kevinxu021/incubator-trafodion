@@ -4137,6 +4137,18 @@ NestedJoin::getClusteringIndexPartFuncForRightChild() const
   return NULL;
 }
 
+const NATable* NestedJoin::getNATableForRightChild() const
+{
+   const SET(IndexDesc *) &availIndexes=
+        child(1).getGroupAttr()->getAvailableBtreeIndexes();
+
+   if ( availIndexes.entries() == 0 )
+     return NULL;
+   else
+     return availIndexes[0]->getPrimaryTableDesc()->getNATable();
+}
+
+
 NABoolean 
 NestedJoin::checkCompleteSortOrder(const PhysicalProperty* sppForChild0)
 {
@@ -4548,6 +4560,12 @@ Context* NestedJoin::createContextForAChild(Context* myContext,
        (!getReqdOrder().entries() || njPws->getFastLoadIntoTrafodion())  &&
         CURRSTMT_OPTDEFAULTS->orderedWritesForNJ()
      )
+    shutDownPlan0 = TRUE;
+
+  // if it is NJ into a partitioned hive table, shut down plan0
+  const NATable* naTable = getNATableForRightChild();
+  if ( naTable && naTable->isHiveTable() && 
+       naTable->getClusteringIndex()->isPartitioned() )
     shutDownPlan0 = TRUE;
 
   // ---------------------------------------------------------------------
@@ -5004,82 +5022,105 @@ Context* NestedJoin::createContextForAChild(Context* myContext,
       // sort order from the right side to the left).
       if ( OCRJoinIsConsideredInCase2 )
       {
-         PartitioningFunction * innerTablePartFunc = 
-              getClusteringIndexPartFuncForRightChild(); 
-
-         ValueIdMap map(getOriginalEquiJoinExpressions());
-
-         // remap the right part func to the left (up)
-         PartitioningFunction *rightPartFunc = 
-              innerTablePartFunc -> copyAndRemap(map, TRUE);
-  
          Lng32 childNumPartsRequirement = njPws->getChildNumPartsRequirement();
+         PartitioningRequirement* partReqForChild = NULL;
 
-         // Scale down the number of partitions if necessary so that 
-         // childNUmPartsrequirement evenly divides the # of partitions
-         // of the rightPartFunc. We can do so because OCR works with
-         // hash2 partitioned table only and hash2 has the nice 
-         // property: 
-         //
-         // If down-scaling factor is x (x>1), then a row flows from 
-         // the outer table of partition p will land in one of the 
-         // partitions in the inner table ranging from partition  
-         // (p-1)x to partition p x. If rep-n partitioning function is 
-         // choosen for the inner table, the # of partitions that each
-         // outer table partition will drive is x. Since open operations
-         // are on-demand in nature, we will not open all (xp) partitions
-         // for each outer table partition.
+         const NATable* naTable = getNATableForRightChild();
+         if ( naTable && getNATableForRightChild()->isHiveTable() ) {
+
+          // produce a requirement of hash2(rand, childNumPartsRequirement)
+          ItemExpr *randNum = new(CmpCommon::statementHeap()) RandomNum(NULL, TRUE);
+          randNum->synthTypeAndValueId();
+
+          ValueIdSet partKey;
+          partKey.insert(randNum->getValueId());
+
+          ValueIdList partKeyList(partKey);
+
+          Hash2PartitioningFunction* partFunc = new(CmpCommon::statementHeap())
+            Hash2PartitioningFunction(partKey,
+                                    partKeyList,
+                                    childNumPartsRequirement,
+                                    NULL);
+
+           partReqForChild = new(CmpCommon::statementHeap()) RequireHash2(partFunc);
          
-         // Use the original inner table part func if down-scaling fails.
-         if ( rightPartFunc ->
-             scaleNumberOfPartitions(childNumPartsRequirement) == FALSE ) 
-           rightPartFunc = innerTablePartFunc;
-
-         Int32 antiskewSkewEsps =
-            (Int32)CmpCommon::getDefaultNumeric(NESTED_JOINS_ANTISKEW_ESPS);
-
-         if ( antiskewSkewEsps > 0 ) {
-            ValueIdSet joinPreds = getOriginalEquiJoinExpressions().getTopValues();
-
-            double threshold = defs.getAsDouble(SKEW_SENSITIVITY_THRESHOLD) / rppForMe->getCountOfPipelines();
-
-            SkewedValueList* skList = NULL;
-
-            // If the join is on a skewed set of columns from the left child,
-            // then generate the skew data partitioning requirement to deal
-            // with skew.
-
-            // We ignore whether the nested join probe cache is applicable here
-            // because we want to deal with both the ESP and DP2 skew, Probe
-            // cache can deal with DP2 skew, but not the ESP skew.
-            if ( childNodeContainSkew(0, joinPreds, threshold, &skList) )
-            {
-              Lng32 cop = rightPartFunc->getCountOfPartitions();
-
-              antiskewSkewEsps = MINOF(cop, antiskewSkewEsps);
-
-              rightPartFunc = new (CmpCommon::statementHeap())
-                     SkewedDataPartitioningFunction(
-                         rightPartFunc,
-                         skewProperty(skewProperty::UNIFORM_DISTRIBUTE,
-                                      skList, antiskewSkewEsps)
-                                                   );
-            }
-         }
-
-         
-         // Produce the part requirement for the outer child from
-         // the part function of the inner child.
-         PartitioningRequirement* partReqForChild
-             = rightPartFunc->makePartitioningRequirement();
+         } else {
+            PartitioningFunction * innerTablePartFunc = 
+                 getClusteringIndexPartFuncForRightChild(); 
    
+            ValueIdMap map(getOriginalEquiJoinExpressions());
+   
+            // remap the right part func to the left (up)
+            PartitioningFunction *rightPartFunc = 
+                 innerTablePartFunc -> copyAndRemap(map, TRUE);
+     
+   
+            // Scale down the number of partitions if necessary so that 
+            // childNUmPartsrequirement evenly divides the # of partitions
+            // of the rightPartFunc. We can do so because OCR works with
+            // hash2 partitioned table only and hash2 has the nice 
+            // property: 
+            //
+            // If down-scaling factor is x (x>1), then a row flows from 
+            // the outer table of partition p will land in one of the 
+            // partitions in the inner table ranging from partition  
+            // (p-1)x to partition p x. If rep-n partitioning function is 
+            // choosen for the inner table, the # of partitions that each
+            // outer table partition will drive is x. Since open operations
+            // are on-demand in nature, we will not open all (xp) partitions
+            // for each outer table partition.
+            
+            // Use the original inner table part func if down-scaling fails.
+            if ( rightPartFunc ->
+                scaleNumberOfPartitions(childNumPartsRequirement) == FALSE ) 
+              rightPartFunc = innerTablePartFunc;
+   
+            Int32 antiskewSkewEsps =
+               (Int32)CmpCommon::getDefaultNumeric(NESTED_JOINS_ANTISKEW_ESPS);
+   
+            if ( antiskewSkewEsps > 0 ) {
+               ValueIdSet joinPreds = getOriginalEquiJoinExpressions().getTopValues();
+   
+               double threshold = defs.getAsDouble(SKEW_SENSITIVITY_THRESHOLD) / rppForMe->getCountOfPipelines();
+   
+               SkewedValueList* skList = NULL;
+   
+               // If the join is on a skewed set of columns from the left child,
+               // then generate the skew data partitioning requirement to deal
+               // with skew.
+   
+               // We ignore whether the nested join probe cache is applicable here
+               // because we want to deal with both the ESP and DP2 skew, Probe
+               // cache can deal with DP2 skew, but not the ESP skew.
+               if ( childNodeContainSkew(0, joinPreds, threshold, &skList) )
+               {
+                 Lng32 cop = rightPartFunc->getCountOfPartitions();
+   
+                 antiskewSkewEsps = MINOF(cop, antiskewSkewEsps);
+   
+                 rightPartFunc = new (CmpCommon::statementHeap())
+                        SkewedDataPartitioningFunction(
+                            rightPartFunc,
+                            skewProperty(skewProperty::UNIFORM_DISTRIBUTE,
+                                         skList, antiskewSkewEsps)
+                                                      );
+               }
+            }
+   
+            
+            // Produce the part requirement for the outer child from
+            // the part function of the inner child.
+            partReqForChild = rightPartFunc->makePartitioningRequirement();
+         }
+      
          // Now, add in the partitioning requirement for the
          // outer child.
          RequirementGenerator rg(child(0), rppForMe);
          rg.removeAllPartitioningRequirements();
-         rg.addPartRequirement(partReqForChild);
-   
-   
+          rg.addPartRequirement(partReqForChild);
+      
+
          if (rg.checkFeasibility())
          {
            // Produce the required physical properties.
@@ -6124,16 +6165,19 @@ NABoolean NestedJoin::OCBJoinIsFeasible(const Context* myContext) const
 
     PartitioningFunction *rightPartFunc = NULL;
     Lng32 numOfESPs = rppForMe->getCountOfPipelines();
+
+    const NATable* naTable = getNATableForRightChild();
+    // OCB into hive tables is not allowed because NJ into hive is
+    // implmented as plan 0 and 1. It is also incorrect because each
+    // ESP may access all partitions of the hive table.
+    if ( naTable && naTable->isHiveTable() )
+       return FALSE;
+
     const SET(IndexDesc *) &availIndexes=
       child(1).getGroupAttr()->getAvailableBtreeIndexes();
 
     for (CollIndex i = 0; i < availIndexes.entries(); i++)
     {
-      // OCB into hive tables is not allowed because NJ into hive is
-      // implmented as plan 0 and 1. It is also incorrect because each
-      // ESP may access all partitions of the hive table.
-      if ( availIndexes[0]->getPrimaryTableDesc()->getNATable()->isHiveTable() )
-         return FALSE;
 
       rightPartFunc = availIndexes[i]->getPartitioningFunction();
 
@@ -6259,17 +6303,25 @@ NABoolean NestedJoin::OCRJoinIsFeasible(const Context* myContext)  const
   // inner (correctness).
   if ( JoinPredicateCoversChild1PartKey() == FALSE )
      return FALSE;
-
-   PartitioningFunction *rightPartFunc =
+  
+  PartitioningFunction *rightPartFunc =
          getClusteringIndexPartFuncForRightChild();
-
-  // Do not consider OCR if the inner is not hash2 partitioned
-   if ( rightPartFunc->isAHash2PartitioningFunction() == FALSE )
-      return FALSE;
 
   // Do not consider OCR if the inner is single partitioned
   if ( rightPartFunc->getCountOfPartitions() == 1 )
      return FALSE;
+
+  // If NJ into hive tables, allow OCR anyway.
+  const NATable* naTable = getNATableForRightChild();
+
+  if ( naTable && naTable->isHiveTable() )
+     return TRUE;
+
+  // No Hive cases resume here.
+  // Do not consider OCR if the inner is not hash2 partitioned
+  if ( rightPartFunc->isAHash2PartitioningFunction() == FALSE )
+      return FALSE;
+
 
   // IF N2Js, which demand opens, are not to be disabled, make sure 
   // OCR is allowed only if the threshold of #opens is reached.
@@ -14506,6 +14558,7 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   PlanExecutionEnum location = EXECUTE_IN_MASTER_AND_ESP;
   PartitioningFunction * ixDescPartFunc = indexDesc_->getPartitioningFunction();
   Lng32 numESPs = 1;
+
 
   // CQDs related to # of ESPs for a Hive table scan
   double bytesPerESP = getDefaultAsDouble(HIVE_MIN_BYTES_PER_ESP_PARTITION);

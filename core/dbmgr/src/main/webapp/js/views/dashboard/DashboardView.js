@@ -588,7 +588,7 @@ define([
 		},
 		populateServiceStatus: function(containerID, parent, isDrilldown){
 			if(_this.serviceStatusData && _this.serviceStatusData.aaData){
-				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table dt-responsive" style="width:100%;" id="'+containerID +'"></table>';
+				var sb = '<table class="table table-hover dbmgr-table dt-responsive" style="width:100%;" id="'+containerID +'"></table>';
 				$(parent).html( sb );
 
 				var bPaging = _this.serviceStatusData.aaData.length > 10;
@@ -725,7 +725,7 @@ define([
 		},
 		populateNodeStatus: function(containerID, parent, isDrilldown){
 			if(_this.nodeStatusData && _this.nodeStatusData.aaData){
-				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table dt-responsive" style="width:100%;" id="'+containerID +'"></table>';
+				var sb = '<table class="table table-hover dbmgr-table dt-responsive" style="width:100%;" id="'+containerID +'"></table>';
 				$(parent).html( sb );
 
 				var bPaging = _this.nodeStatusData.aaData.length > 10;

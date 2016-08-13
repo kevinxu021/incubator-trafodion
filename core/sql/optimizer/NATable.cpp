@@ -5051,14 +5051,11 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
          // (Typically, we assume VARCHAR(31999), which grossly overestimates.)
          // Instead we use the total storage size for non-string columns, then
          // use the average string length as computed from the ORC file statistics.
-         estimatedRC = hiveHDFSTableStats->getTotalRows();
-         Int64 totalStringLengths = hiveHDFSTableStats->getTotalStringLengths();
-         Int64 nonStringsPart = colArray.getTotalStorageSizeForNonChars();
-         if (estimatedRC > 0)
-           estimatedRecordLength = nonStringsPart + (totalStringLengths / estimatedRC);
-         else
-           // we think the table is empty so there are no strings! avoid divide by zero
-           estimatedRecordLength = nonStringsPart;
+ 
+         estimatedRecordLength = 
+                          colArray.getTotalStorageSizeForNonChars() +
+                          hiveHDFSTableStats->getAvgStringLengthPerRow();
+         
 
          // The block size is purposely set to CQD NCM_SEQ_IO_WEIGHT so that the 
          // seq IO to scan ORC table is the amount of data scanned.

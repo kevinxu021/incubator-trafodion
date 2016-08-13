@@ -198,7 +198,7 @@ public class MappingResource extends ResourceBase {
                 LOG.debug("POST " + data);
             String sdata = "";
             Response.Status status = Response.Status.OK; 
-            String result = "200 OK.";
+            String result = "200: OK.";
 
             JSONTokener jsonParser = new JSONTokener(data);
             JSONObject json = (JSONObject)jsonParser.nextValue();
@@ -230,18 +230,24 @@ public class MappingResource extends ResourceBase {
                     sdata = sdata + ";" + Constants.LAST_UPDATE + "=" + Long.toString(System.currentTimeMillis());
                 if (orderNumber == false)
                     sdata = sdata + ";" + Constants.ORDER_NUMBER + "=" + Constants.DEFAULT_ORDER_NUMBER;
-                status = servlet.postWmsMapping(key, sdata);
+                result = servlet.postWmsMapping(key, sdata);
             }
-            if (status == Response.Status.NOT_ACCEPTABLE)
-                result = "406 Out of range";
-            else if(status == Response.Status.NOT_MODIFIED)
-                result = "304 duplicated number";
-            else if (status == Response.Status.CREATED)
-                result = "201 Created.";
-            return Response.status(status).type(MIMETYPE_TEXT).entity(result).build();
+            if (result.startsWith("200")){
+                status = Response.Status.OK;
+            }
+            else if (result.startsWith("201")){
+                status = Response.Status.CREATED;
+            }
+            else if (result.startsWith("304")){
+                status = Response.Status.NOT_MODIFIED;
+            }
+            else if (result.startsWith("406")){
+                status = Response.Status.NOT_ACCEPTABLE;
+            }
+            
+          return Response.status(status).type(MIMETYPE_TEXT).entity(result).build();
         } catch (Exception e) {
             e.printStackTrace();
-
             return Response.status(Response.Status.SERVICE_UNAVAILABLE)
                     .type(MIMETYPE_TEXT).entity("Unavailable" + CRLF)
                     .build();
