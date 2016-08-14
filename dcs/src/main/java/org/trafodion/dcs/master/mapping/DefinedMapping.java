@@ -190,9 +190,12 @@ public class DefinedMapping  {
         String attribute;
         String znode = "";
        
-        HashMap<String, String> attributes = cc.getAttributes();
+        HashMap<String, String> cc_attributes = cc.getAttributes();
+        LinkedHashMap<String,String> map_attributes = null;
+        String cc_value = "";
+        String map_value = "";
 
-        if (attributes.isEmpty()){
+        if (cc_attributes.isEmpty()){
             sla = Constants.DEFAULT_WMS_SLA_NAME;
             priority = "";
             limit = "";
@@ -201,58 +204,82 @@ public class DefinedMapping  {
             dprofile = Constants.DEFAULT_WMS_PROFILE_NAME;
             lastUpdate = "1";
             hostList = "";
-        }
+            LOG.info("Conection attributes are empty : sla :" + sla + " cprofile :" + cprofile + " dprofile :" + dprofile);
+       }
         else {
+              LOG.info("Conection cc_attributes :" + cc_attributes);
+
               if( ! mappingsMap.isEmpty())
                   sortByValues(mappingsMap);
               
-              Set<String> mappingsKeys = mappingsMap.keySet();
+              Set<String> maps = mappingsMap.keySet();
               
               boolean bFound = false;
               boolean bNotEqual = false;
-              for(String mappingsKey : mappingsKeys){
-                  if(LOG.isDebugEnabled())
-                      LOG.debug("mappingsKey :" + mappingsKey);
+              for(String map : maps){
                   bNotEqual = false;
-                  LinkedHashMap<String,String> mapp = mappingsMap.get(mappingsKey);
-                  Set<String> mappKeys = mapp.keySet();
-                  for(String mappKey : mappKeys){
-                      String value = mapp.get(mappKey);
+                  if(LOG.isDebugEnabled())
+                      LOG.debug("Checking Mapp [" + map + "]");
 
-                      if (value == null || value.length()==0)continue;
-                      if (mappKey.equals(Constants.IS_ACTIVE) && value.equals("no")){
-                          bNotEqual = true;
-                          break;
+                  map_attributes = mappingsMap.get(map);
+                  map_value = map_attributes.get(Constants.IS_ACTIVE);
+                  map_value = map_value == null || map_value.length() == 0 || map_value.equals("no") ? "no" : "yes";
+
+                  if (map_value.equals("no")){
+                      if(LOG.isDebugEnabled())
+                         LOG.debug("Map [" + map + "] is not active and we go to next map");
+                      continue;
+                  }
+                  if(LOG.isDebugEnabled())
+                      LOG.debug("Map [" + map + "] is active. OrderNumber=" + map_attributes.get(Constants.ORDER_NUMBER));
+
+                  Set<String> keys = map_attributes.keySet();
+                  for(String key :keys){
+                      cc_value = cc_attributes.get(key);
+                      map_value = map_attributes.get(key);
+
+                      if (cc_value == null || cc_value.length()==0){
+                          if(LOG.isDebugEnabled())
+                              LOG.debug("No cc_value for key=|" + key + "| any value is accepted - we go to next key");
+                          continue;
                       }
-                      attribute = "";
+                      if (map_value == null || map_value.length()==0){
+                          if(LOG.isDebugEnabled())
+                              LOG.debug("Mapp [" + map + "]. No map_value for key=|" + key + "| any value is accepted - we go to next key");
+                          continue;
+                      }
                       bNotEqual = false;
-                      switch(mappKey){
+                      switch(key){
                           case Constants.USER_NAME:
                           case Constants.APPLICATION_NAME:
                           case Constants.SESSION_NAME:
                           case Constants.ROLE_NAME:
                           case Constants.CLIENT_IP_ADDRESS:
                           case Constants.CLIENT_HOST_NAME:
-                              attribute = attributes.get(mappKey);
-                              if(LOG.isDebugEnabled())
-                                  LOG.debug("mappKey :" + mappKey + " attribute :" + attribute + " value :" + value);
-                              if (attribute == null || attribute.length()==0)break;
-                              if (!attribute.equals(value))
+                              if (!map_value.equalsIgnoreCase(cc_value)){
                                   bNotEqual = true;
+                                  if(LOG.isDebugEnabled())
+                                      LOG.debug("Mapp [" + map + "] key=|" + key + "| map_value=|" + map_value + "| not equal cc_value =|" + cc_value + "|");
+                              }
+                              else {
+                                  if(LOG.isDebugEnabled())
+                                      LOG.debug("Mapp [" + map + "] key=|" + key + "| map_value=|" + map_value + "| equals cc_value =|" + cc_value + "|");
+                              }
                               break;
                       }
                       if (bNotEqual == true)break;
                   }
                   if (bNotEqual == false){
                       bFound = true;
-                      sla = mapp.get(Constants.SLA);
+                      sla = mappingsMap.get(map).get(Constants.SLA);
+                      LOG.info("Using map [" + map + "] with attributes =|" + mappingsMap.get(map) + "| selected SLA=" + sla);
                       break;
                   }
               }
               if (bFound == false)
                   sla = Constants.DEFAULT_WMS_SLA_NAME;
               if(LOG.isDebugEnabled())
-                  LOG.debug("sla :" + sla);
+                  LOG.debug("select SLA=" + sla);
         
               znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + sla;
               byte data[];
@@ -260,7 +287,6 @@ public class DefinedMapping  {
                   Stat stat = zkc.exists(znode,false);
                   if(stat != null) {
                       data = zkc.getData(znode, false, stat);
-                      attributes = new LinkedHashMap<>();
                       String delims = "[=:]";
                       String[] tokens = (new String(data)).split(delims);
                       for (int i = 0; i < tokens.length; i=i+2){
@@ -298,7 +324,7 @@ public class DefinedMapping  {
                   Stat stat = zkc.exists(znode,false);
                   if(stat != null) {
                       data = zkc.getData(znode, false, stat);
-                      attributes = new LinkedHashMap<>();
+                      HashMap<String, String> attributes = new LinkedHashMap<>();
                       String tkn = "";
                       String delims = "[=:]";
                       String[] tokens = (new String(data)).split(delims);
