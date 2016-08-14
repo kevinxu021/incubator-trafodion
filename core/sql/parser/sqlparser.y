@@ -2513,10 +2513,12 @@ static void enableMakeQuotedStringISO88591Mechanism()
 
 %type <pStmtDDL>		alter_audit_config_statement
 %type <pStmtDDL>		alter_catalog_statement
+%type <pStmtDDL>		alter_schema_statement
 %type <pElemDDL>  		alter_table_move_clause
 %type <pStmtDDL>  		alter_table_rename_clause
-%type <pStmtDDL>           alter_table_enable_index_clause
-%type <pStmtDDL>           alter_table_disable_index_clause
+%type <pStmtDDL>                alter_table_enable_index_clause
+%type <pStmtDDL>                alter_table_disable_index_clause
+%type <uint>  		        alter_stored_descriptor_option
 %type <boolean>   		optional_cascade
 %type <pStmtDDL>  		alter_table_add_column_clause
 %type <pStmtDDL>  		alter_table_drop_column_clause
@@ -2533,7 +2535,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <pStmtDDL>  		alter_table_action
 %type <pStmtDDL>  		alter_table_statement
 %type <pStmtDDL>                alter_database_statement
-%type <pStmtDDL>              alter_schema_statement
+%type <pStmtDDL>              alter_schema_hdfs_statement
 %type <boolean>                 optional_ghost
 %type <pStmtDDL>  		revoke_schema_statement
 %type <pStmtDDL>                revoke_component_privilege_stmt
@@ -6069,21 +6071,26 @@ TOK_TABLE '(' TOK_INTERNALSP '(' character_string_literal ')' ')'
 
     $$ = lle;
   }
+| TOK_TABLE '(' TOK_CLUSTER stats_or_statistics '(' ')' ')'
+  {
+    $$ = new (PARSERHEAP()) 
+      ExeUtilRegionStats(CorrName(""), FALSE, FALSE, FALSE, TRUE, NULL, PARSERHEAP());
+  }
 | TOK_TABLE '(' TOK_REGION stats_or_statistics '(' ')' ')'
   {
     $$ = new (PARSERHEAP()) 
-      ExeUtilRegionStats(CorrName(""), FALSE, FALSE, FALSE, NULL, PARSERHEAP());
+      ExeUtilRegionStats(CorrName(""), FALSE, FALSE, FALSE, FALSE, NULL, PARSERHEAP());
   }
 | TOK_TABLE '(' TOK_REGION stats_or_statistics '(' table_name ')' ')'
   {
     $$ = new (PARSERHEAP()) 
-      ExeUtilRegionStats(*$6, FALSE, FALSE, FALSE, NULL, PARSERHEAP());
+      ExeUtilRegionStats(*$6, FALSE, FALSE, FALSE, FALSE, NULL, PARSERHEAP());
   }
 | TOK_TABLE '(' TOK_REGION stats_or_statistics '(' TOK_INDEX table_name ')' ')'
   {
     $7->setSpecialType(ExtendedQualName::INDEX_TABLE);
     $$ = new (PARSERHEAP()) 
-      ExeUtilRegionStats(*$7, FALSE, TRUE, FALSE, NULL, PARSERHEAP());
+      ExeUtilRegionStats(*$7, FALSE, TRUE, FALSE, FALSE, NULL, PARSERHEAP());
   }
 | TOK_TABLE '(' TOK_LOB stats_or_statistics '(' ')' ')'
   {
@@ -6098,7 +6105,7 @@ TOK_TABLE '(' TOK_INTERNALSP '(' character_string_literal ')' ')'
 | TOK_TABLE '(' TOK_REGION stats_or_statistics '(' TOK_USING rel_subquery ')' ')'
   {
     $$ = new (PARSERHEAP()) 
-      ExeUtilRegionStats(CorrName("DUMMY"), FALSE, FALSE, FALSE, $7, PARSERHEAP());
+      ExeUtilRegionStats(CorrName("DUMMY"), FALSE, FALSE, FALSE, FALSE, $7, PARSERHEAP());
   }
 
 hivemd_identifier : 
@@ -14466,6 +14473,10 @@ sql_schema_manipulation_statement :
 				{
 				}
 
+	      | alter_schema_statement
+				{
+				}
+
               | alter_index_statement
 				{
 				}
@@ -14503,7 +14514,7 @@ sql_schema_manipulation_statement :
               | alter_view_statement
 				{
 				}
-              |alter_schema_statement
+              |alter_schema_hdfs_statement
                                 {
                                 }
               | alter_database_statement
@@ -16742,38 +16753,38 @@ unlock_trafodion : TOK_UNLOCK TOK_TRAFODION
 exe_util_get_region_access_stats : TOK_GET TOK_REGION stats_or_statistics TOK_FOR TOK_TABLE table_name
                {
                  $$ = new (PARSERHEAP()) 
-                   ExeUtilRegionStats(*$6, FALSE, FALSE, TRUE, NULL, PARSERHEAP());
+                   ExeUtilRegionStats(*$6, FALSE, FALSE, TRUE, FALSE, NULL, PARSERHEAP());
 	       } 
              | TOK_GET TOK_REGION stats_or_statistics TOK_FOR TOK_INDEX table_name
                {
                  $6->setSpecialType(ExtendedQualName::INDEX_TABLE);
 
                  $$ = new (PARSERHEAP()) 
-                   ExeUtilRegionStats(*$6, FALSE, TRUE, TRUE, NULL, PARSERHEAP());
+                   ExeUtilRegionStats(*$6, FALSE, TRUE, TRUE, FALSE, NULL, PARSERHEAP());
 	       } 
              | TOK_GET TOK_REGION stats_or_statistics TOK_FOR rel_subquery 
                {
                  $$ = new (PARSERHEAP()) 
                    ExeUtilRegionStats(
-                        CorrName("DUMMY"), FALSE, TRUE, TRUE, $5, PARSERHEAP());
+                        CorrName("DUMMY"), FALSE, TRUE, TRUE, FALSE, $5, PARSERHEAP());
 	       } 
              | TOK_GET TOK_REGION stats_or_statistics TOK_FOR TOK_TABLE table_name ',' TOK_SUMMARY
                {
                  $$ = new (PARSERHEAP()) 
-                   ExeUtilRegionStats(*$6, TRUE, FALSE, TRUE, NULL, PARSERHEAP());
+                   ExeUtilRegionStats(*$6, TRUE, FALSE, TRUE, FALSE, NULL, PARSERHEAP());
 	       } 
              | TOK_GET TOK_REGION stats_or_statistics TOK_FOR TOK_INDEX table_name ',' TOK_SUMMARY
                {
                  $6->setSpecialType(ExtendedQualName::INDEX_TABLE);
 
                  $$ = new (PARSERHEAP()) 
-                   ExeUtilRegionStats(*$6, TRUE, TRUE, TRUE, NULL, PARSERHEAP());
+                   ExeUtilRegionStats(*$6, TRUE, TRUE, TRUE, FALSE, NULL, PARSERHEAP());
 	       } 
              | TOK_GET TOK_REGION stats_or_statistics TOK_FOR rel_subquery ',' TOK_SUMMARY
                {
                  $$ = new (PARSERHEAP()) 
                    ExeUtilRegionStats(
-                        CorrName("DUMMY"), TRUE, TRUE, TRUE, $5, PARSERHEAP());
+                        CorrName("DUMMY"), TRUE, TRUE, TRUE, FALSE, $5, PARSERHEAP());
 	       } 
 
 stats_or_statistics : TOK_STATS
@@ -18671,27 +18682,34 @@ non_join_query_expression : non_join_query_term
 
 	      | query_expression TOK_EXCEPT query_term
 		{
-		  // EXCEPT is not yet supported
-		  *SqlParser_Diags << DgSqlCode(-3022) << DgString0("EXCEPT");
-		  YYERROR;
+  	            $$ = new (PARSERHEAP())
+  	                     RelRoot(new (PARSERHEAP())
+  				  GroupByAgg(
+  					     new (PARSERHEAP())
+  					     Except($1,$3),
+  					     REL_GROUPBY,
+  					     new (PARSERHEAP())
+  					     ColReference(new (PARSERHEAP())
+  					       ColRefName(TRUE, PARSERHEAP())
+  					     )));
 		}
   
 	      | query_expression TOK_EXCEPT TOK_ALL query_term
 		{
 		  // EXCEPT is not yet supported
-		  *SqlParser_Diags << DgSqlCode(-3022) << DgString0("EXCEPT");
+		  *SqlParser_Diags << DgSqlCode(-3022) << DgString0("EXCEPT ALL");
 		  YYERROR;
 		}
 
 /* type relx */
 non_join_query_term : non_join_query_primary
-  		    | query_term TOK_INTERSECT query_primary
+  		    | query_term TOK_INTERSECT distinct_sugar query_primary
   		      {
   			$$ = new (PARSERHEAP())
   			  RelRoot(new (PARSERHEAP())
   				  GroupByAgg(
   					     new (PARSERHEAP())
-  					     Intersect($1,$3),
+  					     Intersect($1,$4),
   					     REL_GROUPBY,
   					     new (PARSERHEAP())
   					     ColReference(new (PARSERHEAP())
@@ -18700,11 +18718,12 @@ non_join_query_term : non_join_query_primary
   		      }
   		    | query_term TOK_INTERSECT TOK_ALL query_primary
   				      {
-  					$$ = new (PARSERHEAP())
-  					  RelRoot(new (PARSERHEAP())
-  						  Intersect($1, $4));
+					*SqlParser_Diags << DgSqlCode(-3022) << DgString0("INTERSECT ALL");
+					YYERROR;
   				      }
 
+distinct_sugar: TOK_DISTINCT
+| 
 /* type relx */
 non_join_query_primary : simple_table
 	      | rel_subquery				// ## this line ...
@@ -31517,6 +31536,47 @@ alter_catalog_statement: TOK_ALTER TOK_CATALOG sql_mx_catalog_name enable_status
                                        TRUE,    //disable/enable_create
 				       *$8);
                                 }
+
+/* type pStmtDDL */
+alter_schema_statement: TOK_ALTER TOK_SCHEMA schema_name_clause alter_stored_descriptor_option
+			{
+                          $$ = new (PARSERHEAP()) 
+                            StmtDDLAlterSchema
+                            (*$3,
+                             (StmtDDLAlterTableStoredDesc::AlterStoredDescType)$4);
+
+                        }
+                     |  TOK_ALTER TOK_SCHEMA schema_name_clause TOK_DROP TOK_ALL TOK_TABLES
+			{
+                          NAString extSchName($3->getSchemaName().getSchemaNameAsAnsiString());
+                          if (! validateVolatileSchemaName(extSchName))
+                            {
+                              YYERROR;
+                            }
+                          
+                          $$ = new (PARSERHEAP())
+                            StmtDDLDropSchema(
+                                 *$3 /*schema_name_clause*/,
+                                 COM_CASCADE_DROP_BEHAVIOR,
+                                 FALSE /*optional_cleanup*/,
+                                 TRUE);
+                          delete $3 /*schema_name*/;
+                        }
+                     |  TOK_ALTER TOK_SCHEMA schema_name_clause TOK_RENAME TOK_TO identifier
+			{
+                          NAString extSchName($3->getSchemaName().getSchemaNameAsAnsiString());
+                          if (! validateVolatileSchemaName(extSchName))
+                            {
+                              YYERROR;
+                            }
+                          
+                          $$ = new (PARSERHEAP())
+                            StmtDDLAlterSchema(
+                                 *$3 /*schema_name_clause*/,
+                                 *$6);
+                          delete $3 /*schema_name*/;
+                          delete $6; // renamed schema
+                        }
                                 
 /* type pStmtDDL */
 alter_library_statement : TOK_ALTER TOK_LIBRARY ddl_qualified_name 
@@ -31943,6 +32003,7 @@ alter_table_action : add_table_constraint_definition
                                 $$ = new (PARSERHEAP())
 				  StmtDDLAlterTableHBaseOptions($2->castToElemDDLHbaseOptions());
                         }
+
                       | alter_table_hdfs_cache
                         {
                                $$ = $1;
@@ -31961,6 +32022,13 @@ alter_table_hdfs_cache : TOK_CACHE TOK_IN regular_identifier
                                       StmtDDLAlterTableHDFSCache(*$3, FALSE, PARSERHEAP());
                              delete $3;
                         }
+			
+                      | alter_stored_descriptor_option
+                        {
+                          $$ = new (PARSERHEAP()) StmtDDLAlterTableStoredDesc
+                            ((StmtDDLAlterTableStoredDesc::AlterStoredDescType)$1);
+                        }
+
 
 /* type pStmtDDL */
 alter_synonym_statement : TOK_ALTER TOK_SYNONYM ddl_qualified_name 
@@ -32356,6 +32424,29 @@ alter_table_drop_column_clause : TOK_DROP optional_col_keyword TOK_IF TOK_EXISTS
 				   pNode->setDropIfExists(TRUE);
                                    $$ = pNode;
                                   }
+
+/* type uint */
+alter_stored_descriptor_option : TOK_GENERATE TOK_STORED TOK_DESCRIPTOR
+              {
+                $$ = (Int32)StmtDDLAlterTableStoredDesc::GENERATE;
+              }
+              | TOK_CHECK TOK_STORED TOK_DESCRIPTOR
+              {
+                $$ = (Int32)StmtDDLAlterTableStoredDesc::CHECK;
+              }
+              | TOK_DELETE TOK_STORED TOK_DESCRIPTOR
+              {
+                $$ = (Int32)StmtDDLAlterTableStoredDesc::DELETE;
+              }
+              | TOK_ENABLE TOK_STORED TOK_DESCRIPTOR
+              {
+                $$ = (Int32)StmtDDLAlterTableStoredDesc::ENABLE;
+              }
+              | TOK_DISABLE TOK_STORED TOK_DESCRIPTOR
+              {
+                $$ = (Int32)StmtDDLAlterTableStoredDesc::DISABLE;
+              }
+
 
 /* type pStmtDDL */
 
@@ -33090,7 +33181,7 @@ alter_database_statement: TOK_ALTER TOK_DATABASE enable_status TOK_AUTHORIZATION
                  }
 
 /* type pStmtDDL : ALTER SCHEMA */
-alter_schema_statement: 
+alter_schema_hdfs_statement: 
                   TOK_ALTER TOK_SCHEMA schema_name TOK_CACHE TOK_IN regular_identifier 
                   {
                         NAString tmpSchema($3->getSchemaNameAsAnsiString());

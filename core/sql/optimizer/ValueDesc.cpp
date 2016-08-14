@@ -60,6 +60,7 @@
 #include "NATable.h"
 #include "EncodedKeyValue.h"
 #include "GenExpGenerator.h"
+#include "TrafDDLdesc.h"
 
 #include "SqlParserGlobals.h"		// must be last #include
 
@@ -6713,9 +6714,9 @@ ValueIdList::computeEncodedKey(const TableDesc* tDesc, NABoolean isMaxKey,
    }
 
    const NAFileSet * naf = naTable->getClusteringIndex();
-   const desc_struct * tableDesc = naTable->getTableDesc();
-   desc_struct * colDescs = tableDesc->body.table_desc.columns_desc;
-   desc_struct * keyDescs = (desc_struct*)naf->getKeysDesc();
+   const TrafDesc * tableDesc = naTable->getTableDesc();
+   TrafDesc * colDescs = tableDesc->tableDesc()->columns_desc;
+   TrafDesc * keyDescs = (TrafDesc*)naf->getKeysDesc();
 
    // cast away const since the method may compute and store the length
    keyBufLen = ((NAFileSet*)naf)->getEncodedKeyLength(); 
