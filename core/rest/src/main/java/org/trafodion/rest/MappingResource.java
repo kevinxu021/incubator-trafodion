@@ -198,7 +198,7 @@ public class MappingResource extends ResourceBase {
                 LOG.debug("POST " + data);
             String sdata = "";
             Response.Status status = Response.Status.OK; 
-            String result = "200: OK.";
+            String result = "200 OK.";
 
             JSONTokener jsonParser = new JSONTokener(data);
             JSONObject json = (JSONObject)jsonParser.nextValue();
@@ -232,6 +232,7 @@ public class MappingResource extends ResourceBase {
                     sdata = sdata + ";" + Constants.ORDER_NUMBER + "=" + Constants.DEFAULT_ORDER_NUMBER;
                 result = servlet.postWmsMapping(key, sdata);
             }
+
             if (result.startsWith("200")){
                 status = Response.Status.OK;
             }
@@ -244,8 +245,11 @@ public class MappingResource extends ResourceBase {
             else if (result.startsWith("406")){
                 status = Response.Status.NOT_ACCEPTABLE;
             }
-            
-          return Response.status(status).type(MIMETYPE_TEXT).entity(result).build();
+            result = result.substring(4);
+            if (status != Response.Status.OK && status != Response.Status.CREATED)
+              return Response.serverError().entity(result).build();
+
+            return Response.status(status).type(MIMETYPE_TEXT).entity(result).build();
         } catch (Exception e) {
             e.printStackTrace();
             return Response.status(Response.Status.SERVICE_UNAVAILABLE)

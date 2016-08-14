@@ -914,6 +914,7 @@ public class RESTServlet implements RestConstants {
         else if (status == Response.Status.NOT_ACCEPTABLE){
              result = "406 " + result;
         }
+
         return result;
     }
     public synchronized void deleteWmsSla(String name) throws Exception{
