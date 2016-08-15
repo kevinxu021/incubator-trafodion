@@ -38,7 +38,6 @@ import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.client.Admin;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.Get;
@@ -944,6 +943,7 @@ public class TmAuditTlog {
    }
 
    public TmAuditTlog (Configuration config, Connection connection) throws IOException, RuntimeException {
+
       this.config = config;
       this.connection = connection;
       this.dtmid = Integer.parseInt(config.get("dtmid"));
@@ -1719,7 +1719,6 @@ public class TmAuditTlog {
 
    public boolean deleteAgedEntries(final long lvAsn) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("deleteAgedEntries start:  Entries older than " + lvAsn + " will be removed");
-
       Table deleteTable;
       for (int i = 0; i < tlogNumLogs; i++) {
          String lv_tLogName = new String(TLOG_TABLE_NAME + "_LOG_" + Integer.toHexString(i));

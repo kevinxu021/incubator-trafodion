@@ -49,10 +49,10 @@ else
 
     # Do init_trafodion if specified
     if [ "$INIT_TRAFODION" == "Y" ]; then
-       echo 
+       echo
        echo
        echo "***INFO: Trafodion is initializing...this will take a few minutes."
-       echo 
+       echo
        echo
        ssh $STARTING_NODE "cd $SQ_ROOT/sql/scripts;  echo \"initialize Trafodion;\" | sqlci" | tee -a $SQ_ROOT/initializeErrors.txt
         error1392=$(grep "1392" $SQ_ROOT/initializeErrors.txt | wc -l)

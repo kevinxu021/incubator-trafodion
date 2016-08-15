@@ -287,7 +287,7 @@ For ComTdbOrcScan :
 tableName_ = HIVE.STORE_ORC
 hostName_ = localhost, port_ = 49000
 recordDelimiter_ = 10, columnDelimiter_ = 1
-hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 8
+hdfsBufSize_ = 2030, rangeTailIOSize_ = 20970, hdfsSqlMaxRecLen_ = 8
 tuppIndex_ = 2, workAtpIndex_ = 3
 asciiTuppIndex_ = 4, asciiRowLen_ = 8
 moveExprColsTuppIndex_ = 2, moveExprColsRowLength_ = 16
@@ -422,7 +422,7 @@ For ComTdbOrcScan :
 tableName_ = HIVE.STORE_ORC
 hostName_ = localhost, port_ = 49000
 recordDelimiter_ = 10, columnDelimiter_ = 1
-hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 8
+hdfsBufSize_ = 2030, rangeTailIOSize_ = 20970, hdfsSqlMaxRecLen_ = 8
 tuppIndex_ = 2, workAtpIndex_ = 3
 asciiTuppIndex_ = 4, asciiRowLen_ = 8
 moveExprColsTuppIndex_ = 2, moveExprColsRowLength_ = 16
@@ -575,7 +575,7 @@ For ComTdbOrcScan :
 tableName_ = HIVE.STORE_ORC
 hostName_ = localhost, port_ = 49000
 recordDelimiter_ = 10, columnDelimiter_ = 1
-hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 16
+hdfsBufSize_ = 2030, rangeTailIOSize_ = 20970, hdfsSqlMaxRecLen_ = 16
 tuppIndex_ = 3, workAtpIndex_ = 3
 asciiTuppIndex_ = 4, asciiRowLen_ = 8
 moveExprColsTuppIndex_ = 2, moveExprColsRowLength_ = 8
@@ -708,7 +708,7 @@ For ComTdbOrcScan :
 tableName_ = HIVE.STORE_ORC
 hostName_ = localhost, port_ = 49000
 recordDelimiter_ = 10, columnDelimiter_ = 1
-hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 16
+hdfsBufSize_ = 2030, rangeTailIOSize_ = 20970, hdfsSqlMaxRecLen_ = 16
 tuppIndex_ = 3, workAtpIndex_ = 3
 asciiTuppIndex_ = 4, asciiRowLen_ = 8
 moveExprColsTuppIndex_ = 2, moveExprColsRowLength_ = 8

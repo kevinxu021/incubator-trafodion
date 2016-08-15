@@ -2858,7 +2858,7 @@ Ex_Lob_Error ExLobGlobals::performRequest(ExLobHdfsRequest *request)
 	  traceMessage("allocating new buffer", buf->data_,__LINE__, cursor->bufMaxSize_);
           lobPtr->stats_.buffersUsed++;
         }
-        size = min(cursor->bufMaxSize_, (cursor->maxBytes_ - cursor->bytesRead_ + (16 * 1024)));
+        size = min(cursor->bufMaxSize_, (cursor->maxBytes_ - cursor->bytesRead_));
         if (buf->data_) {
           // caller must make all the buffers the same size so they can be reused
           assert(buf->size_ >= size);

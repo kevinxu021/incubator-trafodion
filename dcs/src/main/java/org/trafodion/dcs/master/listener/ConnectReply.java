@@ -26,8 +26,15 @@ import java.io.*;
 import java.nio.*;
 import java.net.*;
 import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.KeeperException;
 
 import org.trafodion.dcs.util.*;
@@ -56,16 +63,17 @@ class ConnectReply {
     private Long timestamp=0L;
     private String clusterName = "";
     private ListenerService listener = null;
-    
-    private  Random random = null;
+    private boolean userAffinity = true;
+    private Random random = null;
     
     ConnectReply(ListenerService listener){
         this.listener = listener;
-        zkc=listener.getZkc();
-        parentZnode=listener.getParentZnode();
+        zkc = listener.getZkc();
+        parentZnode = listener.getParentZnode();
+        userAffinity = listener.getUserAffinity();
+        random = new Random();
         exception = new GetObjRefException();
         versionList = new VersionList();
-        random = new Random();
     }
     // ----------------------------------------------------------
     void insertIntoByteBuffer(ByteBuffer buf)  throws java.io.UnsupportedEncodingException {
@@ -108,44 +116,111 @@ class ConnectReply {
         exception.ErrorText=null;
     
         byte[] data = null;
+        String sdata = null;
+        Stat stat = null;
         boolean exceptionThrown = false;
         
         String server = "";
-        LinkedHashMap<String,Object> attributes;
+        HashMap<String,Object> attributes = null;
+
+        if(LOG.isDebugEnabled())
+            LOG.debug("ConnectedReply entry " );
          
         listener.getMapping().findProfile( cc);
-        listener.getRegisteredServers().getServers(cc);
+        if(LOG.isDebugEnabled())
+            LOG.debug("ConnectedReply after getMapping().findProfile " );
+         listener.getRegisteredServers().getServers(cc);
+
+        if(LOG.isDebugEnabled())
+            LOG.debug("ConnectedReply after getRegisteredServers().getServers " );
         
         try {
 
             String nodeRegisteredPath = "";
-            
-            if (!cc.isAvailable()){
-                throw new IOException("No Available Servers - idle and reused size is 0");
+
+            HashMap<String, HashMap<String,Object>> reusedSlaServers = cc.getReusedSlaServers();
+            HashMap<String, HashMap<String,Object>> reusedOtherServers = cc.getReusedOtherServers();
+            HashMap<String, HashMap<String,Object>> idleServers = cc.getIdleServers();
+
+            if (userAffinity == false){
+                if(idleServers.size() > 0){
+                    reusedSlaServers.putAll(idleServers);
+                } else if(reusedOtherServers.size() > 0){
+                    reusedSlaServers.putAll(reusedOtherServers);
+                }
+                idleServers.clear();
+                reusedOtherServers.clear();
+             }
+            if(LOG.isDebugEnabled()){
+                LOG.debug("ConnectedReply userAffinity :" + userAffinity );
+                LOG.debug("ConnectedReply reusedSlaServers.size() :" + reusedSlaServers.size() );
+                LOG.debug("ConnectedReply idleServers.size() :" + idleServers.size() );
+                LOG.debug("ConnectedReply reusedOtherServers.size() " + reusedOtherServers.size() );
             }
-            if (cc.isLimit()){
-                throw new IOException("Reached Max Limit of Connected Servers - SLA :" + cc.getSla() + " Limit :" + cc.getLimit() + " Current Limit :" + cc.getCurrentLimit());
-            }
-            if (cc.isThroughput()){
-                throw new IOException("Reached Max Throughput of Connected Servers - SLA :" + cc.getSla() + " Throughput :" + cc.getThroughput() + " Current Throughput :" + cc.getCurrentThroughput());
-            }
-            
-            LinkedHashMap<String, LinkedHashMap<String,Object>> reusedSlaServers = cc.getReusedSlaServers();
-            LinkedHashMap<String, LinkedHashMap<String,Object>> reusedOtherServers = cc.getReusedOtherServers();
-            LinkedHashMap<String, LinkedHashMap<String,Object>> idleServers = cc.getIdleServers();
-            if(reusedSlaServers.size() > 0){
-                server = reusedSlaServers.keySet().iterator().next();
-                attributes = reusedSlaServers.get(server);
-            } else if(idleServers.size() > 0){
-                server = idleServers.keySet().iterator().next();
-                attributes = idleServers.get(server);
-            } else if(reusedOtherServers.size() > 0){
-                server = reusedOtherServers.keySet().iterator().next();
-                attributes = reusedOtherServers.get(server);
-            } else {
-                throw new IOException("No Available Servers - idle and reused size is 0");
-            }
-            
+
+            while (true) {
+                if(reusedSlaServers.size() > 0){
+                  server = randEntryKey(reusedSlaServers);
+                  attributes = reusedSlaServers.get(server);
+                  reusedSlaServers.remove(server);
+                  if(LOG.isDebugEnabled())
+                        LOG.debug("reusedSlaServers server: " + server );
+                } else if(idleServers.size() > 0){
+                  server = randEntryKey(idleServers);
+                  attributes = idleServers.get(server);
+                  idleServers.remove(server);
+                  if(LOG.isDebugEnabled())
+                        LOG.debug("idleServers server: " + server );
+                } else if(reusedOtherServers.size() > 0){
+                  server = randEntryKey(reusedOtherServers);
+                  attributes = reusedOtherServers.get(server);
+                  reusedOtherServers.remove(server);
+                  if(LOG.isDebugEnabled())
+                        LOG.debug("reusedOtherServers server: " + server );
+                } else {
+                  server = "";
+                  if(LOG.isDebugEnabled())
+                      LOG.debug("There are no servers in HashTables - start looking directly in zk " );
+                  String znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED;
+                  zkc.sync(znode,null,null);
+                  List<String> children = zkc.getChildren(znode,null);
+                  if( ! children.isEmpty()){ 
+                      for(String child : children) {
+                          if(LOG.isDebugEnabled())
+                                LOG.debug("Checking directly zk server path [" + znode + "/" + child + "]" );
+                          stat = zkc.exists(znode + "/" + child, false);
+                          if(stat != null) {
+                              data = zkc.getData(znode + "/" + child, null, stat);
+                              sdata = new String(data);
+                              if (sdata.startsWith(Constants.AVAILABLE) || sdata.startsWith(Constants.STARTING)){
+                                  if(LOG.isDebugEnabled())
+                                      LOG.debug("Found Available zk server " + child );
+                                  server = child;
+                                  break;
+                              }
+                        }
+                    }
+                  }
+                  if (server.length()==0)
+                      throw new IOException("No Available Servers ");
+                  else
+                      break;
+              }
+              nodeRegisteredPath = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED + "/" + server;
+              if(LOG.isDebugEnabled())
+                  LOG.debug("Checking server path [" + nodeRegisteredPath + "]" );
+              zkc.sync(nodeRegisteredPath,null,null);
+              stat = zkc.exists(nodeRegisteredPath, false);
+              if(stat != null) {
+                  data = zkc.getData(nodeRegisteredPath, null, stat);
+                  sdata = new String(data);
+                  if(LOG.isDebugEnabled())
+                      LOG.debug("Checking server [" + server + "] data [" + sdata + "]" );
+                  if (sdata.startsWith(Constants.AVAILABLE) || sdata.startsWith(Constants.STARTING))
+                      break;
+               }
+             }
+          
             serverHostName=(String)attributes.get(Constants.HOST_NAME);
             serverInstance=(Integer)attributes.get(Constants.INSTANCE);
             
@@ -193,20 +268,28 @@ class ConnectReply {
                 LOG.debug("nodeRegisteredPath :" + nodeRegisteredPath);
                 LOG.debug("data :" + new String(data));
             }
+            while(true){
+                data = zkc.getData(nodeRegisteredPath, null, stat);
+                sdata = new String(data);
+                if(sdata.startsWith(Constants.CONNECTING))
+                    break;
+                Thread.sleep(100);;
+            }
+
          } catch (KeeperException.NodeExistsException e) {
             LOG.error(clientSocketAddress + ": " + "do nothing...some other server has created znodes: " + e.getMessage());
             exceptionThrown = true;
-        } catch (KeeperException e) {
+         } catch (KeeperException e) {
             LOG.error(clientSocketAddress + ": " + "KeeperException: " + e.getMessage());
             exceptionThrown = true;
-        } catch (InterruptedException e) {
+         } catch (InterruptedException e) {
             LOG.error(clientSocketAddress + ": " + "InterruptedException: " + e.getMessage());
             exceptionThrown = true;
-        } catch (IOException ie){
+         } catch (IOException ie){
             LOG.error(clientSocketAddress + ": " + ie.getMessage());
             exceptionThrown = true;
-        }
-        if (exceptionThrown == true){
+         }
+         if (exceptionThrown == true){
             exception.exception_nr = ListenerConstants.DcsMasterNoSrvrHdl_exn; //no available servers
             replyException = true;
             if (cc.isAvailable()|| cc.isLimit()|| cc.isThroughput())
@@ -241,4 +324,32 @@ class ConnectReply {
         }
     return replyException;
     }
+
+    static <K, V> Entry<K, V> randEntry(Iterator<Entry<K, V>> it, int count) {
+        int index = (int) (Math.random() * count);
+
+        while (index > 0 && it.hasNext()) {
+            it.next();
+            index--;
+        }
+
+        return it.next();
+    }
+
+    static <K, V> Entry<K, V> randEntry(Set<Entry<K, V>> entries) {
+        return randEntry(entries.iterator(), entries.size());
+    }
+
+    static <K, V> Entry<K, V> randEntry(Map<K, V> map) {
+        return randEntry(map.entrySet());
+    }
+
+    static <K, V> K randEntryKey(Map<K, V> map) {
+        return randEntry(map).getKey();
+    }
+
+    static <K, V> V randEntryValue(Map<K, V> map) {
+        return randEntry(map).getValue();
+    }
+
 }

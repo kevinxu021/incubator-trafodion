@@ -293,6 +293,7 @@ Lng32 MCWrapper::setupMCColumnIterator (HSColGroupStruct *group, MCIterator** it
         iter[currentLoc] = new (STMTHEAP) MCNonCharIterator<char>((char *)group->mcis_data);
         break;
 
+      case REC_BOOLEAN:
       case REC_BIN8_UNSIGNED:
         iter[currentLoc] = new (STMTHEAP) MCNonCharIterator<unsigned char>((unsigned char *)group->mcis_data);
         break;
@@ -4969,6 +4970,7 @@ void HSGlobalsClass::getMemoryRequirementsForOneGroup(HSColGroupStruct* group, I
   
       switch (group->ISdatatype)
         {
+          case REC_BOOLEAN:
           case REC_BIN8_SIGNED:
           case REC_BIN8_UNSIGNED:
             elementSize = 1;
@@ -7354,6 +7356,7 @@ Int32 HSGlobalsClass::processIUSColumn(HSColGroupStruct* smplGroup,
       case REC_BIN8_SIGNED:
         return processIUSColumn((Int8*)smplGroup->data, L"%hd", smplGroup, delGroup, insGroup);
         break;
+      case REC_BOOLEAN:
       case REC_BIN8_UNSIGNED:
         return processIUSColumn((UInt8*)smplGroup->data, L"%hu", smplGroup, delGroup, insGroup);
         break;
@@ -10387,6 +10390,7 @@ Lng32 HSGlobalsClass::processInternalSortNulls(Lng32 rowsRead, HSColGroupStruct 
             processNullsForColumn(group, rowsRead, (Int8*)NULL);
             break;
 
+          case REC_BOOLEAN:
           case REC_BIN8_UNSIGNED:
             processNullsForColumn(group, rowsRead, (UInt8*)NULL);
             break;
@@ -10558,6 +10562,7 @@ bool isInternalSortType(HSColumnStruct &col)
 
   switch (col.datatype)
     {
+      case REC_BOOLEAN:
       case REC_BIN8_SIGNED:
       case REC_BIN8_UNSIGNED:
       case REC_BIN16_SIGNED:
@@ -11403,6 +11408,7 @@ Lng32 doSort(HSColGroupStruct *group)
                   (Int8*)group->nextData - (Int8*)group->data - 1);
         break;
 
+      case REC_BOOLEAN:
       case REC_BIN8_UNSIGNED:
         quicksort((UInt8*)group->data, 0,
                   (UInt8*)group->nextData - (UInt8*)group->data - 1);
@@ -11923,6 +11929,7 @@ Lng32 HSGlobalsClass::createStatsForColumn(HSColGroupStruct *group, Int64 rowsAl
         createHistogram(group, intCount, sampleRowCount, samplingUsed, (Int8*)NULL);
         break;
 
+      case REC_BOOLEAN:
       case REC_BIN8_UNSIGNED:
         createHistogram(group, intCount, sampleRowCount, samplingUsed, (UInt8*)NULL);
         break;
@@ -13323,6 +13330,7 @@ Lng32 HSGlobalsClass::mergeDatasetsForIUS(
         return mergeDatasetsForIUS((Int8*)smplGroup->data, (Int8*)NULL,
                                    smplGroup, smplrows, delGroup, delrows, insGroup, insrows);
         break;
+      case REC_BOOLEAN:
       case REC_BIN8_UNSIGNED:
         return mergeDatasetsForIUS((UInt8*)smplGroup->data, (UInt8*)NULL,
                                    smplGroup, smplrows, delGroup, delrows, insGroup, insrows);
@@ -13988,6 +13996,15 @@ Int32 copyValue(Int64 value, char *valueBuff, const HSColumnStruct &colDesc, sho
                     (Int32)(value % 60));             // seconds
           break;
 
+        case REC_BOOLEAN:
+          {
+            if (value)
+              strcpy(valueBuff,"TRUE");
+            else
+              strcpy(valueBuff,"FALSE");
+          }
+          break;
+
 #pragma warning(default:4146)
 
         // LCOV_EXCL_START :rfi
@@ -14295,6 +14312,7 @@ Lng32 setBufferValue(MCWrapper& value,
              case REC_BIN8_SIGNED:
                 retcode = copyValue(*((MCNonCharIterator<Int8>*)(value.allCols_[i]))->getContent(value.index_), valueBuff, mgroup->colSet[i], len);
                 break;
+             case REC_BOOLEAN:
              case REC_BIN8_UNSIGNED:
                 retcode = copyValue(*((MCNonCharIterator<UInt8>*)(value.allCols_[i]))->getContent(value.index_), valueBuff, mgroup->colSet[i], len);
                 break;
@@ -15694,6 +15712,19 @@ NAString HSColGroupStruct::generateTextForColumnCast()
       if(isMCGroup)
         textForColumnCast.append(replaceFuncLastPart);
     }
+  else if (colSet[i].datatype == REC_BOOLEAN)
+    {
+      // CAST of boolean to VARCHAR UCS2 isn't supported in the 
+      // engine yet (you get error 8414 at run-time if you try it),
+      // so work around this by CASTing to ISO88591 then CASTing
+      // to UCS2. Once the engine supports this cast we can
+      // delete this code and just use the "else" case below.
+      textForColumnCast.append("TRIM(TRAILING FROM CAST (CAST (");
+      textForColumnCast.append(columnName.data());
+      textForColumnCast.append(" AS CHAR(10)) AS VARCHAR(");
+      textForColumnCast.append(LongToNAString(maxCharBoundaryLen));
+      textForColumnCast.append(") CHARACTER SET UCS2))");
+    }
   else
     {
       //CAST ALL OTHER DATATYPES TO UNICODE
@@ -16138,6 +16169,7 @@ Lng32 HSGlobalsClass::processFastStatsBatch(CollIndex numCols, HSColGroupStruct*
           group->fastStatsHist = new(STMTHEAP) FastStatsHist<Int8>(group, cbf);
           break;
 
+        case REC_BOOLEAN:
         case REC_BIN8_UNSIGNED:
           group->fastStatsHist = new(STMTHEAP) FastStatsHist<UInt8>(group, cbf);
           break;

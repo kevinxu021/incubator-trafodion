@@ -2401,6 +2401,27 @@ NAArray<HbaseStr> * ExpHbaseInterface_JNI::getRegionStats(const HbaseStr& tblNam
   
   regionStats = client_->getRegionStats((NAHeap *)heap_, tblName.val);
   }  
+
+  Int32 numEntries = client_->getRegionStatsEntries();
+
+  return regionStats;
+}
+
+NAArray<HbaseStr> * ExpHbaseInterface_JNI::getClusterStats(Int32 &numEntries)
+{
+  if (client_ == NULL)
+    {
+      if (init(hbs_) != HBASE_ACCESS_SUCCESS)
+        return NULL;
+    }
+  
+  NAArray<HbaseStr>* regionStats = 
+    client_->getRegionStats((NAHeap *)heap_, NULL);
+  if (regionStats == NULL)
+    return NULL;
+  
+  numEntries = client_->getRegionStatsEntries();
+
   return regionStats;
 }
 
