@@ -3613,7 +3613,7 @@ Int64 HivePartitionAndBucketKey::getRowcountInSelectedPartitionsCT()
   return rc;
 }
 
-void HivePartitionAndBucketKey::computeAvgAccessMetrics()
+void HivePartitionAndBucketKey::computeAvgAccessMetrics(FileScan* fileScan)
 {
   const SUBARRAY(HHDFSListPartitionStats *)& selPartitions = getMask();
   Int32 numSelectedParts = selPartitions.entries();
@@ -3621,6 +3621,16 @@ void HivePartitionAndBucketKey::computeAvgAccessMetrics()
   const HHDFSTableStats * hdfsStats = getHDFSTableStats();
   avgRCInOnePartnSelected_ = hdfsStats->getTotalRows() / numSelectedParts;
   avgFileSizeInOnePartnSelected_ = hdfsStats->getTotalSize() / numSelectedParts;
+
+  NABoolean displayCostInfo = (CmpCommon::getDefault(NCM_ORC_COSTING_DEBUG) == DF_ON);
+  if ( displayCostInfo ) {
+    NAString tname((fileScan->getIndexDesc()->getPrimaryTableDesc()->
+                    getNATable()->getTableName()).getQualifiedNameAsAnsiString());
+    printf("\ncomputeAvgAccessMetrics() for %s:\n", tname.data());
+    printf("numSelectedParts= %d:\n", numSelectedParts);
+    printf("avgRCInOnePartnSelected= %ld:\n", avgRCInOnePartnSelected_);
+    printf("avgFileSizeInOnePartnSelected_= %ld:\n", avgFileSizeInOnePartnSelected_);
+  }
 }
 
 
@@ -3634,7 +3644,7 @@ void HivePartitionAndBucketKey::estimateAccessMetrics(FileScan* fileScan)
   if ( displayCostInfo ) {
     NAString tname((fileScan->getIndexDesc()->getPrimaryTableDesc()->
                     getNATable()->getTableName()).getQualifiedNameAsAnsiString());
-    printf("computeAccessMetricsForHive() for %s:\n", tname.data());
+    printf("\nestimateAccessMetrics() for %s:\n", tname.data());
     printf("Initial total file size selected = %ld:\n", estFileSizeInPartnsSelected_);
   }
 
@@ -3643,9 +3653,9 @@ void HivePartitionAndBucketKey::estimateAccessMetrics(FileScan* fileScan)
     // we can do, return the tuple processed value for PE(CT). 
      estRCInPartnsSelected_ = getRowcountInSelectedPartitionsCT();
      if ( displayCostInfo ) {
-       printf("PE(CT) only\n");
-       printf("RC selected = %ld:\n", estRCInPartnsSelected_);
-       printf("total file size selected = %ld:\n", estFileSizeInPartnsSelected_);
+       printf("In PE(CT) selected partitions, final values\n");
+       printf("RC= %ld:\n", estRCInPartnsSelected_);
+       printf("File size= %ld:\n", estFileSizeInPartnsSelected_);
      }
 
      return;
@@ -3743,8 +3753,9 @@ void HivePartitionAndBucketKey::estimateAccessMetrics(FileScan* fileScan)
 
 
   if ( displayCostInfo ) {
-     printf("PE(RT): reduce through stats\n");
-     printf("total file size reduced (to be used) = %ld:\n", estFileSizeInPartnsSelected_);
+     printf("In PE(RT) selected partitions, final values\n");
+     printf("RC= %ld:\n", estRCInPartnsSelected_);
+     printf("File size= %ld:\n", estFileSizeInPartnsSelected_);
   }
 
 }

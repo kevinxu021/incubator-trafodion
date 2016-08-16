@@ -144,8 +144,6 @@ SimpleFileScanOptimizer::SimpleFileScanOptimizer(
   dataRows_(0),
   effectiveTotalRowCount_(0),
   totalRowCount_(0)
-  //totalFileSizeInPartnsSelected_(-1),
-  //rcInPartnsSelected_(-1)
 {
 }
 

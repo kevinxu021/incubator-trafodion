@@ -1046,7 +1046,7 @@ void createAndInsertDP2Scan( const IndexDesc * idesc,
                  fileScan->selectionPred());
 
             hpk->estimateAccessMetrics(fileScan);
-            hpk->computeAvgAccessMetrics();
+            hpk->computeAvgAccessMetrics(fileScan);
 
             if (hpk->computeActivePartitions() < 0)
               return; // error encountered, diags are set

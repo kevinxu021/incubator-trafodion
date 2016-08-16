@@ -976,7 +976,7 @@ public:
   // compute the following two data members:
   //   1. avgRCInOnePartnSelected_
   //   2. avgFileSizeInOnePartnSelected_
-  void computeAvgAccessMetrics();
+  void computeAvgAccessMetrics(FileScan* fileScan);
 
   // add more runtime partition elimination predicates, those
   // must be validated by the caller

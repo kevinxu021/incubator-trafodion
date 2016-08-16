@@ -86,7 +86,6 @@ public:
   //
   Cost* scmComputeCostForSingleSubset();
 
-  //Int64 getRowcountInSelectedPartitions();
   NABoolean canEliminatePartitionsForHive();
 
 private:
