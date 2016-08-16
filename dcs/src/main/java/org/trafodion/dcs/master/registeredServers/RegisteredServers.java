@@ -43,7 +43,8 @@ import org.trafodion.dcs.master.listener.ListenerService;
 
 public class RegisteredServers  {
     private static  final Log LOG = LogFactory.getLog(RegisteredServers.class);
-    private final Map<String, String> servers = Collections.synchronizedMap(new LinkedHashMap<String, String>());
+    //private final Map<String, String> servers = Collections.synchronizedMap(new LinkedHashMap<String, String>());
+    private static final Map<String, String> servers = new ConcurrentHashMap<String, String>();
      
     private ZkClient zkc = null;
     private String parentZnode = "";
@@ -59,35 +60,28 @@ public class RegisteredServers  {
         public void process(WatchedEvent event) {
             if(event.getType() == Event.EventType.NodeChildrenChanged) {
                 
-                if(LOG.isDebugEnabled())
-                    LOG.debug("ChildrenWatcher changed [" + event.getPath() + "]");
                 try {
                     Stat stat = null;
                     byte[] data = null;
                     String znode = event.getPath();
                     
-                    Set<String> keyset = new HashSet<>(servers.keySet());
+                    //Set<String> keyset = new HashSet<>(servers.keySet());
                     List<String> children = zkc.getChildren(znode,new ChildrenWatcher());
                     if( ! children.isEmpty()){ 
                         for(String child : children) {
-                            stat = zkc.exists(znode + "/" + child,false);
-                            if(stat != null) {
-                                if (keyset.contains(child)){
-                                    keyset.remove(child);
-                                    continue;
-                                }
-                                //add new record
-                                data = zkc.getData(znode + "/" + child, new DataWatcher(), stat);
-                                synchronized (servers){
-                                    servers.put(child, new String(data));
-                                }
+                           if (!servers.containsKey(child)){
+                              stat = zkc.exists(znode + "/" + child,false);
+                              if(stat != null) {
+                                  //add new record
+                                  data = zkc.getData(znode + "/" + child, new DataWatcher(), stat);
+                                  //synchronized (servers){
+                                  if(LOG.isDebugEnabled())
+                                          LOG.debug("ChildrenWatcher NodeChildrenChanged Add child [" + child + "] data [" + new String(data) + "]");
+                                  servers.put(child, new String(data));
+                                  //}
+                              }
                             }
-                        }
-                        for (String child : keyset) {
-                            synchronized (servers){
-                                servers.remove(child);
-                            }
-                        }
+                          }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -95,32 +89,50 @@ public class RegisteredServers  {
                         LOG.error(e);
                 }
             }
+            else {
+               if(LOG.isDebugEnabled())
+                    LOG.debug("ChildrenWatcher NodeChildrenChanged unknown type [" + event.getType() + "] path [" + event.getPath() + "]");
+            }
         }
     }
     class DataWatcher implements Watcher {
-        public void process(WatchedEvent event) {
-            if(event.getType() == Event.EventType.NodeDataChanged){
 
-                if(LOG.isDebugEnabled())
-                    LOG.debug("Data Watcher [" + event.getPath() + "]");
-                try {
+        public void process(WatchedEvent event) {
+
+            if(event.getType() == Event.EventType.NodeDataChanged){
+                 try {
                     Stat stat = null;
                     byte[] data = null;
                     String znode = event.getPath();
                     String child = znode.substring(znode.lastIndexOf('/') + 1);
                     data = zkc.getData(znode, new DataWatcher(), stat);
-                    synchronized(servers){
-                        servers.put(child,new String(data));
-                    }
+                    //synchronized(servers){
+                        if(LOG.isDebugEnabled())
+                            LOG.debug("Data Watcher NodeDataChnaged child [" + child + "] data [" + new String(data) + "]");
+                       servers.put(child,new String(data));
+                    //}
                 } catch (Exception e) {
                     e.printStackTrace();
                     if(LOG.isErrorEnabled())
                         LOG.error(e);
                 }
+           }
+            else if(event.getType() == Event.EventType.NodeDeleted){
+                 String znode = event.getPath();
+                 String child = znode.substring(znode.lastIndexOf('/') + 1);
+                 //synchronized(servers){
+                    if(LOG.isDebugEnabled())
+                       LOG.debug("Data Watcher NodeDdeleted [" + child + "]");
+                    servers.remove(child);
+                 //}
             }
+            else {
+                if(LOG.isDebugEnabled())
+                    LOG.debug("Data Watcher unknowntype [" + event.getType() + "] path [" + event.getPath() + "]");
+              }
         }
     }
-    private synchronized void initZkServers() throws Exception {
+    private void initZkServers() throws Exception {
         if(LOG.isDebugEnabled())
             LOG.debug("initZkServers " + parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED);
         Stat stat = null;
@@ -128,34 +140,38 @@ public class RegisteredServers  {
         
         String znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED;
         List<String> children = null;
-        synchronized(servers){
-            servers.clear();
-        }
+        servers.clear();
         children = zkc.getChildren(znode,new ChildrenWatcher());
         if( ! children.isEmpty()){ 
             for(String child : children) {
                 stat = zkc.exists(znode + "/" + child,false);
                 if(stat != null) {
                     data = zkc.getData(znode + "/" + child, new DataWatcher(), stat);
-                    synchronized(servers){
-                        servers.put(child,new String(data));
-                    }
+                    if(LOG.isDebugEnabled())
+                          LOG.debug("initZkServers Add child [" + child + "] data [" + new String(data) + "]");
+                    servers.put(child,new String(data));
                 }
             }
         }
     }
-    public synchronized void getServers(ConnectionContext cc){
-        HashMap<String, String>availableServers = new HashMap<>(servers);
-        HashMap<String, String>connectedServers = new HashMap<>(servers);
-        synchronized(servers){
-            Set<String> keys = new HashSet<>(servers.keySet());
-            for(String key : keys) {
-                if(!servers.get(key).startsWith(Constants.AVAILABLE)){
-                    availableServers.remove(key);
-                }
-                if(!servers.get(key).startsWith(Constants.CONNECTED)){
-                    connectedServers.remove(key);
-                }
+    public void getServers(ConnectionContext cc){
+        if(LOG.isDebugEnabled())
+            LOG.debug("getServers entry" );
+
+        HashMap<String, String>availableServers = new HashMap<String, String>();
+        HashMap<String, String>connectedServers = new HashMap<String, String>();
+        Set<String> keys = new HashSet<>(servers.keySet());
+        if(LOG.isDebugEnabled())
+            LOG.debug("getServers keys" );
+        for(String key : keys) {
+            String value = servers.get(key);
+            if(LOG.isDebugEnabled())
+                  LOG.debug("getServers key :[" + key + "] value :[" + value + "]" );
+            if(value.startsWith(Constants.AVAILABLE) || value.startsWith(Constants.STARTING)){
+                availableServers.put(key, value);
+            }
+            if(value.startsWith(Constants.CONNECTED)){
+                connectedServers.put(key, value);
             }
         }
         cc.setAvailableServers(availableServers);

@@ -24,7 +24,7 @@
 
 log LOG002 clear;
 obey TEST002(setup);
-cqd HDFS_IO_BUFFERSIZE '3';
+cqd HDFS_IO_BUFFERSIZE '5';
 obey TEST002(tests);
 cqd HDFS_IO_BUFFERSIZE '32';
 obey TEST002(tests);

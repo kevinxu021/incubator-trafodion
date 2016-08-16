@@ -82,9 +82,9 @@ public class ConnectionContext {
     String client;
     String ccExtention;
 	
-    private final LinkedHashMap<String, LinkedHashMap<String,Object>> idleServers = new LinkedHashMap<String, LinkedHashMap<String,Object>>();
-    private final LinkedHashMap<String, LinkedHashMap<String,Object>> reusedSlaServers = new LinkedHashMap<String, LinkedHashMap<String,Object>>();
-    private final LinkedHashMap<String, LinkedHashMap<String,Object>> reusedOtherServers = new LinkedHashMap<String, LinkedHashMap<String,Object>>();
+    private final HashMap<String, HashMap<String,Object>> idleServers = new HashMap<String, HashMap<String,Object>>();
+    private final HashMap<String, HashMap<String,Object>> reusedSlaServers = new HashMap<String, HashMap<String,Object>>();
+    private final HashMap<String, HashMap<String,Object>> reusedOtherServers = new HashMap<String, HashMap<String,Object>>();
     
     HashMap<String, HashMap<String,String>> closedServers;
 	
@@ -237,7 +237,10 @@ public class ConnectionContext {
 	        if (hostList.contains(hostName)){
 		  LOG.debug("hostList contains hostName :" + hostName);
 		}
-		else {
+		else if (hostList.isEmpty()){
+                  LOG.debug("hostList is empty");
+                } 
+                else {
 		  LOG.debug("hostList does not contain hostName :" + hostName);
 		}
 	    }
@@ -253,7 +256,7 @@ public class ConnectionContext {
                         i++;
                     }
                 }
-                LinkedHashMap<String,Object> attr = new LinkedHashMap<String,Object>();
+                HashMap<String,Object> attr = new HashMap<String,Object>();
                 attr.put(Constants.HOST_NAME, hostName);
                 attr.put(Constants.INSTANCE, instance);
                 attr.put(Constants.TIMESTAMP, Long.parseLong(sValue[1]));
@@ -262,34 +265,42 @@ public class ConnectionContext {
                 attr.put(Constants.PROCESS_NAME, sValue[5]);
                 attr.put(Constants.IP_ADDRESS, sValue[6]);
                 attr.put(Constants.PORT, Integer.parseInt(sValue[7]));
+                if(LOG.isDebugEnabled())
+                      LOG.debug("attr.put sValue.length :" + sValue.length);
                 if(sValue.length == 8){
+                    if(LOG.isDebugEnabled())
+                          LOG.debug("before attr.put idleServers");
                     idleServers.put(key, attr);
+                    if(LOG.isDebugEnabled())
+                          LOG.debug("after attr.put idleServers");
                 }
                 else if(sValue.length == 17) {
-                    attr.put(Constants.COMPUTER_NAME, sValue[8]);
-                    attr.put(Constants.CLIENT_SOCKET, sValue[9]);
-                    attr.put(Constants.CLIENT_PORT, sValue[10]);
-                    attr.put(Constants.WINDOW_TEXT, sValue[11]);
-                    attr.put(Constants.MAPPED_SLA, sValue[12]);
-                    attr.put(Constants.MAPPED_CONNECT_PROFILE, sValue[13]);
-                    attr.put(Constants.MAPPED_DISCONNECT_PROFILE, sValue[14]);
-                    attr.put(Constants.MAPPED_PROFILE_TIMESTAMP, Long.parseLong(sValue[15]));
-                    attr.put (Constants.USER_NAME, sValue[16]);
-                    if(sValue[12].equals(sla) && sValue[16].equals(user.userName)){
+                   attr.put(Constants.COMPUTER_NAME, sValue[8]);
+                   attr.put(Constants.CLIENT_SOCKET, sValue[9]);
+                   attr.put(Constants.CLIENT_PORT, sValue[10]);
+                   attr.put(Constants.WINDOW_TEXT, sValue[11]);
+                   attr.put(Constants.MAPPED_SLA, sValue[12]);
+                   attr.put(Constants.MAPPED_CONNECT_PROFILE, sValue[13]);
+                   attr.put(Constants.MAPPED_DISCONNECT_PROFILE, sValue[14]);
+                   attr.put(Constants.MAPPED_PROFILE_TIMESTAMP, (sValue[15].equals(""))? Long.parseLong("0") : Long.parseLong(sValue[15]));
+                   attr.put (Constants.USER_NAME, sValue[16]);
+                   if(sValue[12].equals(sla) && sValue[16].equals(user.userName)){
                         reusedSlaServers.put(key, attr);
-                    }
-                    else {
+                   }
+                   else {
                         reusedOtherServers.put(key, attr);
-                    }
-                }
+                   }
+               }
             }
         }
+/*
         if( ! reusedSlaServers.isEmpty())
             sortByTimestamp(reusedSlaServers);
         if( ! reusedOtherServers.isEmpty())
             sortByTimestamp(reusedOtherServers);
         if( !idleServers.isEmpty())
             sortByTimestamp(idleServers);
+*/
    }
     private static void sortByTimestamp(Map<String, LinkedHashMap<String,Object>> map) { 
         List<Set<Map.Entry<String,Object>>> list = new LinkedList(map.entrySet());
@@ -336,7 +347,7 @@ public class ConnectionContext {
         if (s == null || s.length()== 0) s = "0";
         lastUpdate = new Long(s);
     }
-   public void setSla(String sla){
+    public void setSla(String sla){
         this.sla = sla;
     }
     public void setPriority(String s){
@@ -385,13 +396,13 @@ public class ConnectionContext {
         if(limit == 0)return false;
         return curLimit > limit;
     }
-    public LinkedHashMap<String, LinkedHashMap<String,Object>> getReusedSlaServers(){
+    public HashMap<String, HashMap<String,Object>> getReusedSlaServers(){
         return reusedSlaServers;
     }
-    public LinkedHashMap<String, LinkedHashMap<String,Object>> getReusedOtherServers(){
+    public HashMap<String, HashMap<String,Object>> getReusedOtherServers(){
         return reusedOtherServers;
     }
-    public LinkedHashMap<String, LinkedHashMap<String,Object>> getIdleServers(){
+    public HashMap<String, HashMap<String,Object>> getIdleServers(){
         return idleServers;
     }
     public HashMap<String, String> getAttributes(){

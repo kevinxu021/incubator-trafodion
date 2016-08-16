@@ -98,6 +98,7 @@
 #include "ExExeUtilCli.h"
 #include "HBaseClient_JNI.h"
 #include "ExpHbaseInterface.h"
+#include "TrafDDLdesc.h"
 
 #define CM_SIM_NAME_LEN 32
 
@@ -253,8 +254,8 @@ short cmpDisplayPrimaryKey(const NAColumnArray & naColArr,
 
 // ## This only applies to CatSim; remove it!
 #define CONSTRAINT_IS_NAMED(constrdesc) \
-          (constrdesc->body.constrnts_desc.constrntname && \
-          *constrdesc->body.constrnts_desc.constrntname)
+          (constrdesc->constrnts_desc.constrntname && \
+          *constrdesc->constrnts_desc.constrntname)
 
 // Define a shorter synonym.
 #define SpacePrefix     CmpDescribeSpaceCountPrefix
@@ -905,7 +906,7 @@ short CmpDescribe(const char *query, const RelExpr *queryExpr,
       return CmpDescribeTableHDFSCache(d->getDescribedTableName(), outbuf, outbuflen, heap);
   }
 
-  desc_struct *tabledesc = NULL;
+  TrafDesc *tabledesc = NULL;
   if ( ExtendedQualName::isDescribableTableType(tType) )
   {
     *CmpCommon::diags() << DgSqlCode(-4222)
@@ -942,7 +943,7 @@ short CmpDescribe(const char *query, const RelExpr *queryExpr,
       goto finally;
     }
 
-  NAString tableName(tabledesc->body.table_desc.tablename) ;
+  NAString tableName(tabledesc->tableDesc()->tablename) ;
   
   NABoolean external = d->getIsExternal();
   //strip catalog off of table name
@@ -975,7 +976,7 @@ short CmpDescribe(const char *query, const RelExpr *queryExpr,
   buf = new (CmpCommon::statementHeap()) char[LOCAL_BIGBUF_SIZE];
   CMPASSERT(buf);
 
-  desc_struct *viewdesc = tabledesc->body.table_desc.views_desc;
+  TrafDesc *viewdesc = tabledesc->tableDesc()->views_desc;
 
   if (d->getFormat() == Describe::INVOKE_)
     {
@@ -1043,7 +1044,6 @@ short CmpDescribe(const char *query, const RelExpr *queryExpr,
       space.makeContiguous(outbuf, outbuflen);
 
       NADELETEBASIC(buf, CmpCommon::statementHeap());
-      CmpCommon::context()->readTableDef_->deleteTree(tabledesc);
       goto finally;  // we are done and rc is already 0
     }
 
@@ -1093,7 +1093,6 @@ short CmpDescribe(const char *query, const RelExpr *queryExpr,
   Reset_SqlParser_Flags(ALLOW_VOLATILE_SCHEMA_IN_TABLE_NAME);
 
   NADELETEBASIC(buf, CmpCommon::statementHeap());
-  CmpCommon::context()->readTableDef_->deleteTree(tabledesc);
 
  }  // end of try block
 
@@ -3905,7 +3904,7 @@ bool CmpDescribeLibrary(
   ExeCliInterface cliInterface(heap);
         
 
-  desc_struct *tDesc = cmpSBD.getSeabaseLibraryDesc(libCatNamePart, 
+  TrafDesc *tDesc = cmpSBD.getSeabaseLibraryDesc(libCatNamePart, 
                                                     libSchNamePart, 
                                                     libObjNamePart);
   if (tDesc == NULL)
@@ -3916,7 +3915,7 @@ bool CmpDescribeLibrary(
   }
 
 
-  Int64 libraryUID = tDesc->body.library_desc.libraryUID;
+  Int64 libraryUID = tDesc->libraryDesc()->libraryUID;
 
    if (libraryUID <= 0) // does not exist
    {
@@ -3961,7 +3960,7 @@ Space * space = &localSpace;
 char buf[1000];
 
    sprintf(buf,"CREATE LIBRARY %s FILE '%s'",
-           extLibraryName.data(), tDesc->body.library_desc.libraryFilename);
+           extLibraryName.data(), tDesc->libraryDesc()->libraryFilename);
            
    outputShortLine(*space,buf);
    outputShortLine(*space,";");
@@ -3987,8 +3986,8 @@ char buf[1000];
       std::string privilegeText;
       PrivMgrObjectInfo objectInfo (
         libraryUID, extLibraryName.data(),
-        tDesc->body.library_desc.libraryOwnerID,
-        tDesc->body.library_desc.librarySchemaOwnerID,
+        tDesc->libraryDesc()->libraryOwnerID,
+        tDesc->libraryDesc()->librarySchemaOwnerID,
         COM_LIBRARY_OBJECT );
       if (cmpSBD.switchCompiler())
         {

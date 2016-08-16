@@ -54,7 +54,7 @@ class NAFileSetList;
 // -----------------------------------------------------------------------
 class PartitioningFunction;
 class RangePartitioningFunction;
-struct desc_struct;
+class TrafDesc;
 class HHDFSTableStats;
 class HbaseCreateOption;
 
@@ -119,7 +119,7 @@ public:
 	    NABoolean isVolatile,
 	    NABoolean inMemObjectDefn,
             Int64 indexUID,
-            desc_struct *keysDesc,
+            TrafDesc *keysDesc,
             HHDFSTableStats *hHDFSTableStats,
             Lng32 numSaltPartns,
             Lng32 numInitialSaltRegions,
@@ -156,8 +156,8 @@ public:
   const NAColumnArray & getIndexKeyColumns() const
                                               { return indexKeyColumns_; }
 
-  const desc_struct * getKeysDesc() const { return keysDesc_; }
-  desc_struct * getKeysDesc() { return keysDesc_; }
+  const TrafDesc * getKeysDesc() const { return keysDesc_; }
+  TrafDesc * getKeysDesc() { return keysDesc_; }
 
   Lng32 getCountOfFiles() const                  { return countOfFiles_; }
 
@@ -405,7 +405,7 @@ private:
   // uid for index
   Int64 indexUID_;
 
-  desc_struct *keysDesc_;  // needed for parallel label operations.
+  TrafDesc *keysDesc_;  // needed for parallel label operations.
 
   // ---------------------------------------------------------------------
   // Horizontal partitioning:

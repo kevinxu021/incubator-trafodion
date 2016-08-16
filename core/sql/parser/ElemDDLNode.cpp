@@ -1298,6 +1298,12 @@ ElemDDLNode::castToStmtDDLAlterCatalog()
   return NULL;
 }
 
+StmtDDLAlterSchema *
+ElemDDLNode::castToStmtDDLAlterSchema()
+{
+  return NULL;
+}
+
 StmtDDLAlterSynonym *
 ElemDDLNode::castToStmtDDLAlterSynonym()
 {
@@ -1398,6 +1404,12 @@ ElemDDLNode::castToStmtDDLAlterTablePartition()
 
 StmtDDLAlterTableRename *
 ElemDDLNode::castToStmtDDLAlterTableRename()
+{
+  return NULL;
+}
+
+StmtDDLAlterTableStoredDesc *
+ElemDDLNode::castToStmtDDLAlterTableStoredDesc()
 {
   return NULL;
 }

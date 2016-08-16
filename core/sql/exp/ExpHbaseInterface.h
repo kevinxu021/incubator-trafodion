@@ -415,6 +415,8 @@ class ExpHbaseInterface : public NABasicObject
   // get regions and size
   virtual NAArray<HbaseStr> *getRegionStats(const HbaseStr& tblName) = 0;
 
+  virtual NAArray<HbaseStr> *getClusterStats(Int32 &numEntries) = 0;
+
 protected:
   enum 
     {
@@ -762,6 +764,7 @@ virtual Lng32 initHFileParams(HbaseStr &tblName,
   virtual Lng32 addTablesToHDFSCache(const std::vector<Text> & tables, const char* poolName);
   virtual Lng32 removeTablesFromHDFSCache(const std::vector<Text> & tables, const char* poolName);
   virtual NAArray<HbaseStr>* getRegionStats(const HbaseStr& tblName);
+  virtual NAArray<HbaseStr>* getClusterStats(Int32 &numEntries);
 
   
 private:

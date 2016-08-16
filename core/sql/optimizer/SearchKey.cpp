@@ -2969,7 +2969,7 @@ void HivePartitionAndBucketKey::reportError(int part,
                                             const char *partColVals,
                                             const char *details)
 {
-  *CmpCommon::diags() << DgSqlCode(-4226)
+  *CmpCommon::diags() << DgSqlCode(-4227)
                       << DgTableName(naTable->getTableName().getQualifiedNameAsAnsiString())
                       << DgInt0(part)
                       << DgInt1(col)

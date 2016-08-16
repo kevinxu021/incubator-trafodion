@@ -63,6 +63,7 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.client.Durability;
@@ -150,7 +151,6 @@ public class TransactionManager {
   private TmDDL tmDDL;
   private boolean batchRSMetricsFlag = false;
   private boolean recoveryToPitMode = false;
-  Configuration     config;
 
   public static final int HBASE_NAME = 0;
   public static final int HBASE_MAX_VERSIONS = 1;
@@ -1612,6 +1612,7 @@ public class TransactionManager {
      * @param conf
      * @throws ZooKeeperConnectionException
      */
+
     protected TransactionManager(final TransactionLogger transactionLogger, final Configuration conf, Connection conn)
             throws ZooKeeperConnectionException, IOException {
         this.transactionLogger = transactionLogger;
