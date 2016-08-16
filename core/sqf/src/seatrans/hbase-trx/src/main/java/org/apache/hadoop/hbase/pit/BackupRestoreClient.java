@@ -28,7 +28,10 @@ import org.apache.hadoop.hbase.regionserver.transactional.IdTmId;
 import org.apache.hadoop.hbase.client.transactional.RMInterface;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
@@ -38,10 +41,16 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
+import org.trafodion.pit.RecoveryRecord;
+import org.trafodion.pit.MutationMeta;
+import org.trafodion.pit.MutationMetaRecord;
 import org.trafodion.pit.SnapshotMeta;
 import org.trafodion.pit.SnapshotMetaRecord;
 import org.trafodion.pit.SnapshotMetaStartRecord;
+import org.trafodion.pit.TableRecoveryGroup;
 
 public class BackupRestoreClient
 {
@@ -176,6 +185,96 @@ public class BackupRestoreClient
         logger.debug("BackupRestoreClient restoreToTimeStamp idtmid :" + idtmid.val + " Timestamp : " + timestamp );
       //System.out.println("idtmid :" + idtmid.val + " Timestamp : " + timestamp );
       RMInterface.replayEngineStart(idtmid.val);
+    }
+
+    public void deleteBackup(String timestamp) throws Exception {
+      //System.out.println("deleteBackup :" + timestamp );
+      if (logger.isDebugEnabled())
+         logger.debug("BackupRestoreClient deleteBackup Timestamp:" + timestamp);
+      FileSystem fs = FileSystem.get(config);
+      HBaseAdmin admin = new HBaseAdmin(config);
+      MutationMeta mm = new MutationMeta();
+      int timeout = 1000;
+      boolean cb = false;
+      IdTm cli = new IdTm(cb);
+      IdTmId idtmid = new IdTmId();
+      cli.strToId(timeout, idtmid, timestamp);
+      if (logger.isDebugEnabled())
+        logger.debug("BackupRestoreClient deleteBackup idtmid :" + idtmid.val + " Timestamp : " + timestamp );
+      //System.out.println("idtmid :" + idtmid.val + " Timestamp : " + timestamp );
+      try {
+          RecoveryRecord rr = new RecoveryRecord(idtmid.val);
+      
+          Map<String, TableRecoveryGroup> recoveryTableMap = rr.getRecoveryTableMap();
+
+          for (Map.Entry<String, TableRecoveryGroup> tableEntry :  recoveryTableMap.entrySet())
+          {            
+              String tableName = tableEntry.getKey();
+              if (logger.isDebugEnabled())
+                  logger.debug("deleteBackup working on table " + tableName);
+              System.out.println("deleteBackup working on table " + tableName);
+
+              TableRecoveryGroup tableRecoveryGroup = tableEntry.getValue();
+
+              if (logger.isDebugEnabled())
+                  logger.debug("deleteBackup got TableRecoveryGroup");
+              System.out.println("deleteBackup got TableRecoveryGroup");
+
+              // Now go through mutations files one by one for now
+              List<MutationMetaRecord> mutationList = tableRecoveryGroup.getMutationList();
+
+              if (logger.isDebugEnabled())
+                  logger.debug("deleteBackup : " + mutationList.size() + " mutation files for " + tableName);
+              System.out.println("deleteBackup : " + mutationList.size() + " mutation files for " + tableName);
+
+              for (int i = 0; i < mutationList.size(); i++) {
+	    	    MutationMetaRecord mutationRecord = mutationList.get(i);
+                  String mutationPathString = mutationRecord.getMutationPath();
+                  Path mutationPath = new Path (mutationPathString);
+
+                  // Delete mutation file
+                  if (logger.isDebugEnabled())
+                      logger.debug("deleteBackup deleting mutation file at " + mutationPath);
+                  System.out.println("deleteBackup deleting mutation file at " + mutationPath);
+                  fs.delete(mutationPath, false);
+                  
+                  // Delete mutation record
+                  if (logger.isDebugEnabled())
+                      logger.debug("deleteBackup deleting mutationMetaRecord " + mutationRecord);
+                  System.out.println("deleteBackup deleting mutationMetaRecord " + mutationRecord);
+                  mm.deleteMutationRecord(mutationRecord.getKey());
+
+              }
+
+              SnapshotMetaRecord tableMeta = tableRecoveryGroup.getSnapshotRecord();
+              if (logger.isDebugEnabled())
+                  logger.debug("deleteBackup got SnapshotMetaRecord");
+              System.out.println("deleteBackup got SnapshotMetaRecord");
+              String snapshotPath = tableMeta.getSnapshotPath();
+              if (logger.isDebugEnabled())
+                  logger.debug("deleteBackup got path " + snapshotPath);
+              System.out.println("deleteBackup got path " + snapshotPath);
+  
+              admin.deleteSnapshot(snapshotPath);
+              if (logger.isDebugEnabled())
+                  logger.debug("deleteBackup snapshot deleted");
+              System.out.println("deleteBackup snapshot deleted");
+
+              if (logger.isDebugEnabled())
+                  logger.debug("deleteBackup deleting snapshotRecord");
+              System.out.println("deleteBackup deleting snapshotRecord");
+              sm.deleteRecord(tableMeta.getKey());
+        
+          }
+      }
+      catch (Exception e) {
+    	  if (logger.isDebugEnabled())
+              logger.debug("ReplayEngine Exception occurred during Replay " + e);
+          System.out.println("ReplayEngine Exception occurred during Replay " + e);
+          e.printStackTrace();
+          throw e;
+     }
+
     }
 
     static public long getIdTmVal() throws Exception {
