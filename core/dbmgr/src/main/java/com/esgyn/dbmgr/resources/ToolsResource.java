@@ -43,7 +43,6 @@ public class ToolsResource {
 			@Context HttpServletRequest servletRequest, @Context HttpServletResponse servletResponse)
 					throws EsgynDBMgrException {
 		Session soc = SessionModel.getSession(servletRequest, servletResponse);
-		String url = ConfigurationResource.getInstance().getJdbcUrl();
 		Connection adminConnection = null;
 		Connection connection = null;
 		CallableStatement pc = null;

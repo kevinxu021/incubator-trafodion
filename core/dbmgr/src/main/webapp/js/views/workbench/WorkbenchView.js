@@ -168,6 +168,7 @@ define([
 			$(EXECUTE_BTN).on('click', this.executeQuery);
 			$(CLEAR_BTN).on('click', this.clearAll);
 			$(EXPORT_QUERY).on('click',this.exportQuery);
+			$(FILE_SELECT).on('click',this.importBtnClicked);
 			$(FILE_SELECT).on('change',this.importQuery);
 
 			$(CONTROL_APPLY_BUTTON).on('click', this.controlApplyClicked);
@@ -367,6 +368,9 @@ define([
 			$('<a id="downloadJson" href="data:' + data + '" download="export.wbj" style="display:none">download JSON</a>').appendTo('body');
 			$("#downloadJson")[0].click();
 			$("#downloadJson").remove();
+		},
+		importBtnClicked: function(){
+			this.value = null;
 		},
 		importQuery:function(event)
 		{
