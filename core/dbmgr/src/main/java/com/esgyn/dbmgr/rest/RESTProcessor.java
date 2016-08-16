@@ -122,8 +122,9 @@ public class RESTProcessor {
 						return true; // temporarily disable this check..
 					}
 				});
-			} else
+			} else {
 				conn = (HttpURLConnection) url.openConnection();
+			}
 			conn.setReadTimeout(180000); // 3 minutes
 			conn.setRequestProperty("Accept", "application/json, application/text, text/plain");
 			if (a.contentType != null && a.contentType.length() > 0) {
