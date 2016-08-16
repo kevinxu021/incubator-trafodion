@@ -818,6 +818,7 @@ typedef enum {
 	,BRC_ERROR_INIT_PARAM
 	,BRC_ERROR_CREATE_SNAPSHOT_EXCEPTION
 	,BRC_ERROR_RESTORE_SNAPSHOT_EXCEPTION
+	,BRC_ERROR_DELETE_BACKUP_EXCEPTION
 	,BRC_ERROR_INIT_BRC_EXCEPTION
 	,BRC_LAST
 } BRC_RetCode;
@@ -840,6 +841,7 @@ public:
 	BRC_RetCode init();
 	BRC_RetCode createSnapshot(const TextVec& tables, const char* backuptag);
 	BRC_RetCode restoreSnapshots(const char* backuptag, NABoolean timestamp = FALSE);
+	BRC_RetCode deleteBackup(const char* backuptag, NABoolean timestamp = FALSE);
 	NAArray<HbaseStr>* listAllBackups(NAHeap *heap);
 	virtual char* getErrorText(BRC_RetCode errEnum);
 
@@ -853,6 +855,7 @@ private:
 		,JM_CREATE_SNAPSHOT
 		,JM_RESTORE_SNAPSHOTS
 		,JM_LIST_ALL_BACKUPS
+		,JM_DELETE_BACKUP
 		,JM_GET_ERROR
 		,JM_LAST
 	};

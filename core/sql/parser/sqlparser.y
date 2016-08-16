@@ -1164,6 +1164,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_UPSERT
 %token <tokval> TOK_UPPERCASE           /* TD extension that HP maps to UPSHIFT */
 %token <tokval> TOK_UPSHIFT             /* Tandem extension */
+%token <tokval> TOK_UPTO
 %token <tokval> TOK_USA                 /* Tandem extension non-reserved word */
 %token <tokval> TOK_USAGE
 %token <tokval> TOK_USE					// MV _REFRESH
@@ -2845,6 +2846,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <relx>                    exe_util_init_hbase
 %type <relx>                    backup_statement
 %type <relx>                    restore_statement
+%type <relx>                    delete_backup_statement
 %type <relx>                    unlock_trafodion     
 %type <hBaseBulkLoadOptionsList> optional_hbbload_options
 %type <hBaseBulkLoadOptionsList> hbbload_option_list
@@ -14894,6 +14896,10 @@ interactive_query_expression:
         {
           $$ = finalize($1);
         }
+        | delete_backup_statement
+        {
+          $$ = finalize($1);
+        }
            | exe_util_get_region_access_stats
                                 {
 				  $$ = finalize($1);
@@ -16714,6 +16720,41 @@ restore_statement : TOK_RESTORE TOK_TRAFODION QUOTED_STRING
                   stmtCharSet,
                   PARSERHEAP());
       de->setRestore(TRUE);
+      de->setBackupTag((char*)$4->data());
+      de->setBackupTagTimeStamp(TRUE);
+      
+      $$ = de;
+       }
+
+delete_backup_statement : TOK_DELETE TOK_BACKUP QUOTED_STRING
+    {
+     CharInfo::CharSet stmtCharSet = CharInfo::UnknownCharSet;
+     NAString * stmt = getSqlStmtStr ( stmtCharSet, PARSERHEAP());
+
+     DDLExpr * de = new(PARSERHEAP()) DDLExpr(FALSE, FALSE, FALSE, FALSE,
+                                                          FALSE, FALSE,
+                FALSE, FALSE, FALSE, FALSE,
+                (char*)stmt->data(),
+                stmtCharSet,
+                PARSERHEAP());
+    de->setDeleteBackup(TRUE);
+    de->setBackupTag((char*)$3->data());
+    
+    $$ = de;
+       }
+       
+       | TOK_DELETE TOK_BACKUP TOK_UPTO QUOTED_STRING
+     {
+       CharInfo::CharSet stmtCharSet = CharInfo::UnknownCharSet;
+       NAString * stmt = getSqlStmtStr ( stmtCharSet, PARSERHEAP());
+  
+       DDLExpr * de = new(PARSERHEAP()) DDLExpr(FALSE, FALSE, FALSE, FALSE,
+                                                            FALSE, FALSE,
+                  FALSE, FALSE, FALSE, FALSE,
+                  (char*)stmt->data(),
+                  stmtCharSet,
+                  PARSERHEAP());
+      de->setDeleteBackup(TRUE);
       de->setBackupTag((char*)$4->data());
       de->setBackupTagTimeStamp(TRUE);
       

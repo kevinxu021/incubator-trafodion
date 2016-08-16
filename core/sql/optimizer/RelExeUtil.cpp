@@ -4009,6 +4009,17 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
      }
      isHbase_ = TRUE;
   }
+  else if(deleteBackup())
+  {
+    if ((NOT IsAdvancedLevel()))
+     {
+       *CmpCommon::diags() << DgSqlCode(-4222)
+                           << DgString0("deleteBackup");
+       bindWA->setErrStatus();
+       return this;
+     }
+     isHbase_ = TRUE;
+  }
   else if (purgedataHbase_)
   {
     isHbase_ = TRUE;
