@@ -1741,7 +1741,7 @@ Int32 HHDFSORCFileStats::getHDFSBlockNumForSplitUnit(
   //
   //                                   n-1        n        n+1
   // HDFS blocks:                  +---------+---------+---------+
-  // a) stripe contains block:             |<-------------->|
+  // a) stripe contains block(s):          |<-------------->|
   // b) block contains stripe                  |<--->|
   // c) stripe straddles 2 blocks:       |<----->|
 

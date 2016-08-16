@@ -2187,7 +2187,7 @@ NABoolean NodeMap::printMsgToLog(const char* indent, const char* msg) const
 // HIVE_HDFS_STATS_LOG_FILE:    Set this to a file name and it will
 //                              dump HDFS statistics and some diagnostics. 
 // HIVE_SORT_HDFS_HOSTS:        ON:  Make assignments of scan ranges to ESPs
-//                                   more deterministic, but undoing the
+//                                   more deterministic, by undoing the
 //                                   randomization HDFS adds when it returns
 //                                   the hosts for HDFS blocks
 //                              OFF: Keep HDFS hosts for blocks randomized
