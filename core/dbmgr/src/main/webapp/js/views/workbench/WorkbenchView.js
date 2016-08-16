@@ -31,7 +31,7 @@ define([
 	var previousScrollTop = 0;
 	var controlStmts = "";
 	var timeStamps={runTime:null,planTime:null};
-	var cancelMesObj=null;
+	var isCancelClicked=false;
 	var executionQueryText=null;
 	var explainQueryText=null;
 
@@ -289,8 +289,6 @@ define([
 			serverHandler.on(serverHandler.WRKBNCH_EXECUTE_ERROR, this.showErrorMessage);
 			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
 			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
-			serverHandler.on(serverHandler.WRKBNCH_CANCEL_SUCCESS, this.handleMessage);
-			serverHandler.on(serverHandler.WRKBNCH_CANCEL_ERROR, this.handleMessage);
 			$('[data-toggle="tooltip"]').tooltip({
 				trigger : 'hover',
 				container : "body",
@@ -323,17 +321,6 @@ define([
 			//serverHandler.off(serverHandler.WRKBNCH_EXECUTE_ERROR, this.showErrorMessage);
 			//serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
 			//serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
-		},
-		handleMessage:function(data){
-/*			$(EXECUTE_BTN).attr("disabled",false);
-			$(EXECUTE_BTN).attr("data-original-title","Execute");
-			$(EXECUTE_BTN).removeClass("btn-danger fa-stop").addClass("btn-primary fa-play");
-			$(EXECUTE_BTN).unbind("click").on("click",_this.executeQuery);
-			if(data==true){
-				cancelMesObj={msg:'The workbench query was canceled successfully.',tag:"success",url:_this.currentURL,shortMsg:"Workbench query canceled successfully."};
-			}else{
-				cancelMesObj={msg:'The workbench query was completed, could not be canceled.',tag:"warning",url:_this.currentURL,shortMsg:"Workbench query completed."};
-			}*/
 		},
 		handleWindowResize: function () {
 			if(st != null) {
@@ -377,7 +364,7 @@ define([
 		},
 		SaveDatFileBro:function(json) {
 			var data = "text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(json));
-			$('<a id="downloadJson" href="data:' + data + '" download="export.json" style="display:none">download JSON</a>').appendTo('body');
+			$('<a id="downloadJson" href="data:' + data + '" download="export.wbj" style="display:none">download JSON</a>').appendTo('body');
 			$("#downloadJson")[0].click();
 			$("#downloadJson").remove();
 		},
@@ -385,42 +372,56 @@ define([
 		{
 			var files = event.target.files;
 			var __this = _this;
-			var json = files[0];
+			var file = files[0];
 				if (window.File && window.FileReader && window.FileList && window.Blob) {
 				  /*console.log("Great success! All the File APIs are supported.");*/
 				} else {
 				  console.log('The File APIs are not fully supported in this browser.');
 				}
 			var reader = new FileReader();
-			var resultJson=null;
-			reader.onload=function(progressEvent){
-				resultJson=JSON.parse(this.result);
-				queryTextEditor.setValue(resultJson.queryText);
-				if(jQuery.isEmptyObject(resultJson.EXPLAIN_JSON_DATA)!=true){
-					__this.drawExplain(resultJson.EXPLAIN_JSON_DATA,"import");
-					$(EXPLAIN_TREE).show();
-					$(TEXT_RESULT_CONTAINER).show();
-				}else{
-					$(EXPLAIN_TREE).hide();
-					$(TEXT_RESULT_CONTAINER).hide();
-				}
-				controlStmtEditor.setValue(resultJson.controlStatement);
-				if(resultJson.controlStatement!=""){
-					_this.controlApplyClicked();
-				}
-			};
-			reader.readAsText(json);
+			var result=null;
+			reader.onload=(function(file){
+				return function(e){
+				var extension=file.name.substr(-3);
+				switch (extension) {
+					case 'sql':
+					case 'txt':
+					case 'ddl':{
+						result=e.target.result;
+						queryTextEditor.setValue(result);
+						$(OPTIONS_BTN).text(" ");
+						$(EXPLAIN_TREE).hide();
+						$(TEXT_RESULT_CONTAINER).hide();
+						break;
+					};
+					case 'wbj':{
+						result=JSON.parse(e.target.result);
+						queryTextEditor.setValue(result.queryText);
+						if(jQuery.isEmptyObject(result.EXPLAIN_JSON_DATA)!=true){
+							__this.drawExplain(result.EXPLAIN_JSON_DATA,"import");
+							$(EXPLAIN_TREE).show();
+							$(TEXT_RESULT_CONTAINER).show();
+						}else{
+							$(EXPLAIN_TREE).hide();
+							$(TEXT_RESULT_CONTAINER).hide();
+						}
+						controlStmtEditor.setValue(result.controlStatement);
+						if(result.controlStatement!=""){
+							_this.controlApplyClicked();
+						}else if(result.controlStatement==""){
+							$(OPTIONS_BTN).text(" ");
+						}
+						break;
+					}
+					
+				}};
+			})(file);
+			reader.readAsText(file);
 		},
 		cancelQuery: function(){
+			isCancelClicked=true;
 			var param=null;
-			/*if($(EXPLAIN_BTN).attr("disabled")=="disabled"){
-				param={timeStamp:timeStamps.runTime};
-			}else if($(EXECUTE_BTN).attr("disabled")=="disabled"){
-				param={timeStamp:timeStamps.planTime};
-			}else{
-				param={timeStamp:timeStamps.runTime};
-			}*/
-			$(EXPLAIN_BTN).attr("disabled",true);
+			$(EXECUTE_BTN).trigger("mouseleave");
 			$(EXECUTE_BTN).attr("disabled",true);
 			param={timeStamp:timeStamps.runTime};
 			serverHandler.cancelQuery(param);
@@ -538,16 +539,18 @@ define([
 			if(queryText == null || queryText.length == 0){
 				alert('Query text cannot be empty.');
 				return;
+			}else{
+				EXPLAIN_JSON_DATA={};
+				$(EXECUTE_BTN).attr("data-original-title","Cancel");
+				$(EXECUTE_BTN).removeClass('btn-primary fa-play').addClass('btn-danger fa-stop');
+				$(EXECUTE_BTN).unbind("click").on("click",_this.cancelQuery);
 			}
 
-			EXPLAIN_JSON_DATA={};
-			$(EXECUTE_BTN).attr("data-original-title","Cancel");
-			$(EXECUTE_BTN).removeClass('btn-primary fa-play').addClass('btn-danger fa-stop');
-			$(EXECUTE_BTN).unbind("click").on("click",_this.cancelQuery);
 			lastExecuteResult = null;
 			lastExplainResult = null;
 			resultsAfterPause = false;
 			lastRawError = null;
+			isCancelClicked=false;
 			timeStamps.runTime=new Date().getTime();
 			
 			executionQueryText=queryText;
@@ -643,19 +646,20 @@ define([
 					});
 				}        		
 			}
+			$(EXECUTE_BTN).trigger("mouseleave");
 			$(EXECUTE_BTN).attr("data-original-title","Execute");
 			$(EXECUTE_BTN).removeClass("btn-danger fa-stop").addClass("btn-primary fa-play");
 			$(EXPLAIN_BTN).attr("disabled",false);
 			$(EXECUTE_BTN).unbind("click").on("click",_this.executeQuery);
-			if(cancelMesObj!=null){
+			if(isCancelClicked==true){
+				var cancelMesObj={msg:'The workbench query was completed, could not be canceled.',tag:"warning",url:_this.currentURL,shortMsg:"Workbench query could not be canceled."};
 				if(_this.redirectFlag){
 					common.fire(common.NOFITY_MESSAGE,cancelMesObj);
 				}else{
 					_this.popupNotificationMessage(null,cancelMesObj);
 				}
-				cancelMesObj=null;
 			}
-			if($(EXECUTE_BTN).attr("disabled")==true){
+			if($(EXECUTE_BTN).attr("disabled")=="disabled"){
 				$(EXECUTE_BTN).attr("disabled",false);
 			}
 		},
@@ -686,18 +690,24 @@ define([
 					$(ERROR_TEXT).text("Error : Unable to communicate with the server.");
 				}
 			}
+			$(EXECUTE_BTN).trigger("mouseleave");
 			$(EXECUTE_BTN).attr("data-original-title","Execute");
 			$(EXECUTE_BTN).removeClass("btn-danger fa-stop").addClass("btn-primary fa-play");	
 			$(EXECUTE_BTN).unbind("click").on("click",_this.executeQuery);
-			if(cancelMesObj!=null){
+			if(isCancelClicked==true){
+				var cancelMesObj=null;
+				if (jqXHR.responseText.indexOf("ERROR[8007] The operation has been canceled")>-1) {
+					cancelMesObj={msg:'Cancel request has been submitted.',tag:"success",url:_this.currentURL,shortMsg:"Cancel request has been submitted."};
+				}else{
+					cancelMesObj={msg:'there is no query to cancel, maybe errors occurs during execution.',tag:"warning",url:_this.currentURL,shortMsg:"Workbench Query could not be canceled."};
+				}
 				if(_this.redirectFlag){
 					common.fire(common.NOFITY_MESSAGE,cancelMesObj);
 				}else{
 					_this.popupNotificationMessage(null,cancelMesObj);
 				}
-				cancelMesObj=null;
 			}
-			if($(EXECUTE_BTN).attr("disabled")==true){
+			if($(EXECUTE_BTN).attr("disabled")=="disabled"){
 				$(EXECUTE_BTN).attr("disabled",false);
 			}
 		}        

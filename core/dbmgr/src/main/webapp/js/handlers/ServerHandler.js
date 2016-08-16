@@ -268,10 +268,8 @@ define(['handlers/EventDispatcher', 'common'],
 							403 : _this.sessionTimeout
 						},
 						success:  function(data){
-							dispatcher.fire(_this.WRKBNCH_CANCEL_SUCCESS, data);
 						},
 		        	    error:function(jqXHR, res, error){
-		        	    	dispatcher.fire(_this.WRKBNCH_CANCEL_ERROR, jqXHR, res, error);
 		        	    }
 		        	});	
 				};
