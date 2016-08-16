@@ -922,12 +922,13 @@ public:
   const HHDFSTableStats * getHDFSTableStats() const { return hdfsTableStats_; }
   const ValueIdList &getPartCols() const           { return hivePartColList_; }
   const ValueIdList &getBucketCols() const       { return hiveBucketColList_; }
+  const ValueIdList &getVirtFileCols() const   { return hiveVirtFileColList_; }
+  const ValueIdList &getVirtRowCols() const     { return hiveVirtRowColList_; }
   const ValueIdSet &getCompileTimePartColPreds() const
                                            { return compileTimePartColPreds_; }
   const ValueIdSet &getPartAndVirtColPreds() const // run time part elim preds
                                                { return partAndVirtColPreds_; }
   const ValueIdSet &getBucketColPreds() const       { return bucketColPreds_; }
-
   // compute statistics for selected partitions and buckets
   void accumulateSelectedStats(HHDFSStatsBase &result);
 
@@ -963,7 +964,7 @@ public:
 
   // compute Hive partition/scan range predicates, remove
   // those from selectionPredicates
-  NABoolean computePartitionPredicates(
+  NABoolean computePartAndVirtColPredicates(
        const GroupAttributes *ga,
        ValueIdSet &selectionPredicates);
 
@@ -987,6 +988,17 @@ public:
   void replaceVEGExpressions(const ValueIdSet & availableValues,
                              const ValueIdSet & inputValues,
                              VEGRewritePairs * lookup = NULL);
+
+  // get the number of rows in partitions surviving the compilation time
+  // partition elimination
+  Int64 getRowcountInSelectedPartitionsCT();
+
+  // Return TRUE if at least one partitions can be 
+  // eliminated during compilation time and it is not
+  // possible to eliminate partitions during execution time.
+  NABoolean partitionEliminatedCTOnly() const
+   { return partitionEliminatedCT_ && 
+            partAndVirtColPreds_.entries() == 0; };
 
 protected:
   // Return the total bytes read, given a accumulated stats and the selection predicate
@@ -1031,6 +1043,8 @@ private:
   // array of binary partition column values in exploded
   // format, for selected partitions
   ARRAY(const char *) binaryPartColValues_;
+
+  NABoolean partitionEliminatedCT_;
 };
 
 // Iterator class to retrieve a list of HDFS files that are

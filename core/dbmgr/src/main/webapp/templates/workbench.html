@@ -1,14 +1,30 @@
 <div id="page-wrapper">
 	<div class="row">
 		<div class="col-lg-12">
+			<!-- <div class="pull-right">
+				<div class="btn-toolbar">
+					<div class="btn-group"
+						style="margin-bottom: 10px; margin-top: 10px;">
+						<button type="button"
+							class="btn btn-primary btn-xs dropdown-toggle"
+							data-toggle="dropdown" style="height: 30px;">
+							Actions <span class="caret"></span>
+						</button>
+						<ul class="dropdown-menu pull-right" role="menu">
+							<li><a id="cancelAction">Cancel</a></li>
+						</ul>
+					</div>
+				</div>
+			</div> -->
 			<h3 class="page-header">Query WorkBench</h3>
 		</div>
 	</div>
 	<div class="row">
 		<div class="col-lg-12">
 			<div class="panel panel-default">
-				<div class="panel-heading">Query
-					<span class="pull-right dbmgr-collapsible"><i class="fa fa-sort-up"></i></span>
+				<div class="panel-heading">
+					Query <span class="pull-right dbmgr-collapsible"><i
+						class="fa fa-sort-up"></i></span>
 				</div>
 				<div class="panel-body">
 					<div id="workbench-query">
@@ -17,39 +33,62 @@
 							placeholder="Enter a SQL query..." rows="3" class="textarea"
 							style="width: 95%; margin-bottom: 10px"></textarea>
 						<br>
-						<button id="executeQuery" class="btn btn-primary dbmgr-button fa fa-play"
-							style="font-family: FontAwesome;"> Execute</button>
-						<button id="explainQuery" class="btn btn-success dbmgr-button fa fa-sitemap"
-							style="font-family: FontAwesome;"> Explain</button>
-						<button id="clearAction" class="btn btn-default dbmgr-button fa fa-eraser"
-							style="font-family: FontAwesome;"> Clear</button>
-						<button id="setControlStmts" class="btn btn-info dbmgr-button fa fa-gear"
-							style="font-family: FontAwesome;"> Options</button>
+						<button id="executeQuery"
+							class="btn btn-primary dbmgr-button fa fa-play"
+							data-toggle="tooltip" data-placement="bottom" title="Execute"></button>
+						<button id="explainQuery"
+							class="btn btn-success dbmgr-button fa fa-sitemap"
+							style="font-family: FontAwesome;" data-toggle="tooltip"
+							data-placement="bottom" title="Explain"></button>
+						<button id="clearAction"
+							class="btn btn-default dbmgr-button fa fa-eraser"
+							style="font-family: FontAwesome;" data-toggle="tooltip"
+							data-placement="bottom" title="Clear"></button>
+
+						<button id="exportQuery"
+							class="btn btn-info dbmgr-button fa-save"
+							style="font-family: FontAwesome; height: 33px"
+							data-toggle="tooltip" data-placement="bottom" title="Save"></button>
+						<button id="importQuery" type="file"
+							class="btn btn-info dbmgr-button fa-folder-open glyphicon"
+							style="font-family: FontAwesome; height: 33px"
+							data-toggle="tooltip" data-placement="bottom" title="Open">
+							<input id="jsonFile" type="file" tabindex="-1"
+								style="width: 82px; height: 35px; position: absolute; z-index: 2; top: 0; left: 0; opacity: 0; background-color: transparent; color: transparent;"
+								name="file_source">
+						</button>
+						<button id="setControlStmts"
+							class="btn btn-info dbmgr-button fa fa-gear"
+							style="font-family: FontAwesome;" data-toggle="tooltip"
+							data-placement="bottom" title="Options"></button>
 					</div>
 				</div>
 			</div>
 			<br />
 			<div class="panel panel-default">
-				<div id="result-panel-title" class="panel-heading">Result
-					<span class="pull-right dbmgr-collapsible"><i class="fa fa-sort-up"></i></span>
+				<div id="result-panel-title" class="panel-heading">
+					Result <span class="pull-right dbmgr-collapsible"><i
+						class="fa fa-sort-up"></i></span>
 				</div>
-				
+
 				<div id="primary-result-container" class="panel-body">
 					<img id="loadingImg" src="img/ajax-loader.gif" />
 					<div id="query-result-container" class="table-responsive"></div>
 					<div id="scalar-result-container">
-					<textarea id="scalar-result"
-						style="width: 100%; height: 400px; font-family: Courier New, Courier, monospace; font-weight: 600"
-						readonly></textarea></div>
-				<!-- <label id="scalar-result-container" 
+						<textarea id="scalar-result"
+							style="width: 100%; height: 400px; font-family: Courier New, Courier, monospace; font-weight: 600"
+							readonly></textarea>
+					</div>
+					<!-- <label id="scalar-result-container" 
 					style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: normal;color: black;"></label> -->
 					<div id="infovis" style="overflow: auto;"></div>
 					<label id="query-error-text" class="dbmgr-error-text"></label>
 				</div>
 			</div>
 			<div id="text-result-container" class="panel panel-default">
-				<div class="panel-heading">Text Plan
-					<span class="pull-right dbmgr-collapsible"><i class="fa fa-sort-up"></i></span>
+				<div class="panel-heading">
+					Text Plan <span class="pull-right dbmgr-collapsible"><i
+						class="fa fa-sort-up"></i></span>
 				</div>
 				<div class="panel-body">
 					<textarea id="text-result"
@@ -60,8 +99,9 @@
 		</div>
 	</div>
 	<div class="modal fade" id="controlDialog" tabindex="-1" role="dialog"
-		aria-labelledby="controlDialogLabel" data-backdrop="static" data-keyboard="false">
-		<div class="modal-dialog" role="document" style="width:800px">
+		aria-labelledby="controlDialogLabel" data-backdrop="static"
+		data-keyboard="false">
+		<div class="modal-dialog" role="document" style="width: 800px">
 			<div class="modal-content">
 				<div class="modal-header">
 					<button type="button" class="close" data-dismiss="modal"
@@ -76,7 +116,8 @@
 						<div class="form-group">
 							<label for="query-control-stmts" class="control-label">Control
 								Statements: </label><br>
-							<textarea id="query-control-stmts" rows="9" cols="500" spellcheck="false"
+							<textarea id="query-control-stmts" rows="9" cols="500"
+								spellcheck="false"
 								placeholder="Enter control statements separated by semi-colon..."
 								class="textarea" style="width: 500px"></textarea>
 						</div>
@@ -92,27 +133,28 @@
 	</div>
 	<div class="modal fade" id="tooltipDialog" tabindex="-1" role="dialog"
 		aria-labelledby="tooltipDialogLabel">
-		<div class="modal-dialog" role="document" style="width:700px">
+		<div class="modal-dialog" role="document" style="width: 700px">
 			<div class="modal-content">
 				<div class="modal-header">
 					<button type="button" class="close" data-dismiss="modal"
 						aria-label="Close">
 						<span aria-hidden="true">&times;</span>
 					</button>
-					<h4 class="modal-title" id="toolTipDialogLabel">Operator Details</h4>
+					<h4 class="modal-title" id="toolTipDialogLabel">Operator
+						Details</h4>
 				</div>
 				<div class="modal-body">
 					<form>
 						<div class="form-group">
 							<textarea id="tooltipContainer" rows="25" cols="500"
-								class="textarea" style="width:600px" readonly> </textarea>
+								class="textarea" style="width: 600px" readonly> </textarea>
 						</div>
 					</form>
 				</div>
 				<div class="modal-footer">
 					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-				</div>				
+				</div>
 			</div>
 		</div>
-	</div>	
+	</div>
 </div>

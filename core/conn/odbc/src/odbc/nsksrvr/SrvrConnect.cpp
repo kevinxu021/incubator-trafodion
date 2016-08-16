@@ -130,7 +130,10 @@ extern int myPid;
 extern string myProcName;
 extern bool bPlanEnabled;
 extern bool bPublishStatsToTSDB;
-
+extern int exitSessionsCount;
+extern int exitLiveTime;
+int totalExitSessionsCount = 0;
+time_t startExitLiveTime = 0; // time in minutes
 extern long maxHeapPctExit;
 extern long initSessMemSize ;
 int fd = -1;
@@ -139,6 +142,7 @@ int interval_count=0;
 int interval_max=1;
 int limit_count=0;
 int limit_max=-1;
+long long lastUpdatedTime = 0;
 
 char *extData = NULL;
 string serverProcessId;
@@ -149,7 +153,7 @@ string appName;
 string userName;
 time_t connectedTimestamp; //timestamp when ZK updated server state to CONNECTED
 //===========================profile cqds================================================
-string execProfileCqdList(list<char*> *pList);
+string execProfileCqdList(list<string> *pList);
 string sla;
 string cprofile;
 string dprofile;
@@ -160,16 +164,16 @@ string connectProfile;
 time_t connect_ctime=0;
 time_t connect_mtime=0;
 char* profConnectData=NULL;
-list<char*> connectCqdList;
-list<char*> connectSetList;
+list<string> connectCqdList;
+list<string> connectSetList;
 bool connectProfileSame = false;
 //======================== onDisconnect===================================================
 string disconnectProfile;
 time_t disconnect_ctime=0;
 time_t disconnect_mtime=0;
 char* profDisconnectData=NULL;
-list<char*> disconnectCqdList;
-list<char*> disconnectSetList;
+list<string> disconnectCqdList;
+list<string> disconnectSetList;
 bool disconnectProfileSame = false;
 //============================================================================================
 bool firstTime = true;
@@ -224,14 +228,14 @@ extern char zkHost[256];
 extern void initialize_curl();
 extern void cleanup_curl();
 extern void sendAggrStats(pub_struct_type pub_type, std::tr1::shared_ptr<SESSION_AGGREGATION> pAggr_info);
-extern void sendSessionEnd(std::tr1::shared_ptr<SESSION_END> pSession_info);
+extern void sendSessionStats(std::tr1::shared_ptr<SESSION_INFO> pSession_info);
 extern void sendQueryStats(pub_struct_type pub_type, std::tr1::shared_ptr<STATEMENT_QUERYEXECUTION> pQuery_info);
 CEE_handle_def StatisticsTimerHandle;
 SRVR_STMT_HDL * pQueryStmt = NULL;
 
 typedef struct _REPOS_STATS
 {
-	std::tr1::shared_ptr<SESSION_END> m_pSessionStats;
+	std::tr1::shared_ptr<SESSION_INFO> m_pSessionStats;
 	std::tr1::shared_ptr<STATEMENT_QUERYEXECUTION> m_pQuery_stats;
 	std::tr1::shared_ptr<SESSION_AGGREGATION> m_pAggr_stats;
 	pub_struct_type m_pub_type;
@@ -561,10 +565,10 @@ static void* SessionWatchDog(void* arg)
 			ss.str("");
 			ss.clear();
 
-			if (repos_stats.m_pub_type == PUB_TYPE_SESSION_END)
+			if (repos_stats.m_pub_type == PUB_TYPE_SESSION_START || repos_stats.m_pub_type == PUB_TYPE_SESSION_END)
 			{
-				std::tr1::shared_ptr<SESSION_END> pSessionEnd = repos_stats.m_pSessionStats;
-				if(NULL == pSessionEnd)
+				std::tr1::shared_ptr<SESSION_INFO> pSessionInfo = repos_stats.m_pSessionStats;
+				if(NULL == pSessionInfo)
 				{
 					SendEventMsg(MSG_ODBC_NSK_ERROR, EVENTLOG_ERROR_TYPE,
 							0, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
@@ -572,49 +576,54 @@ static void* SessionWatchDog(void* arg)
 					break;
 				}
 
-				ss << "insert into Trafodion.\"_REPOS_\".metric_session_table values(";
-				ss << pSessionEnd->m_instance_id << ",";
-				ss << pSessionEnd->m_tenant_id << ",";
-				ss << pSessionEnd->m_component_id << ",";
-				ss << pSessionEnd->m_process_id << ",";
-				ss << pSessionEnd->m_thread_id << ",";
-				ss << pSessionEnd->m_node_id << ",";
-				ss << pSessionEnd->m_pnid_id << ",";
-				ss << pSessionEnd->m_host_id << ",'";
-				ss << pSessionEnd->m_ip_address_id.c_str() << "',";
-				ss << pSessionEnd->m_sequence_number << ",'";
-				ss << pSessionEnd->m_process_name.c_str() << "','";
-				ss << pSessionEnd->m_sessionId.c_str() << "','";
-				ss << pSessionEnd->m_session_status.c_str() << "',CONVERTTIMESTAMP(";
-				ss << pSessionEnd->m_session_start_utc_ts << "),CONVERTTIMESTAMP(";
-				ss << pSessionEnd->m_session_end_utc_ts << "),";
-				ss << pSessionEnd->m_user_id << ",'";
-				ss << pSessionEnd->m_user_name.c_str() << "','";
-				ss << pSessionEnd->m_role_name.c_str() << "','";
-				ss << pSessionEnd->m_client_name.c_str() << "','";
-				ss << pSessionEnd->m_client_user_name.c_str() << "','";
-				ss << pSessionEnd->m_application_name.c_str() << "',";
-				ss << pSessionEnd->m_total_odbc_exection_time << ",";
-				ss << pSessionEnd->m_total_odbc_elapsed_time << ",";
-				ss << pSessionEnd->m_total_insert_stmts_executed << ",";
-				ss << pSessionEnd->m_total_delete_stmts_executed << ",";
-				ss << pSessionEnd->m_total_update_stmts_executed << ",";
-				ss << pSessionEnd->m_total_select_stmts_executed << ",";
-				ss << pSessionEnd->m_total_catalog_stmts << ",";
-				ss << pSessionEnd->m_total_prepares << ",";
-				ss << pSessionEnd->m_total_executes << ",";
-				ss << pSessionEnd->m_total_fetches << ",";
-				ss << pSessionEnd->m_total_closes << ",";
-				ss << pSessionEnd->m_total_execdirects << ",";
-				ss << pSessionEnd->m_total_errors << ",";
-				ss << pSessionEnd->m_total_warnings << ",";
-				ss << pSessionEnd->m_total_login_elapsed_time_mcsec << ",";
-				ss << pSessionEnd->m_ldap_login_elapsed_time_mcsec << ",";
-				ss << pSessionEnd->m_sql_user_elapsed_time_mcsec << ",";
-				ss << pSessionEnd->m_search_connection_elapsed_time_mcsec << ",";
-				ss << pSessionEnd->m_search_elapsed_time_mcsec << ",";
-				ss << pSessionEnd->m_authentication_connection_elapsed_time_mcsec << ",";
-				ss << pSessionEnd->m_authentication_elapsed_time_mcsec << ")";
+				ss << "upsert into Trafodion.\"_REPOS_\".metric_session_table values(";
+				ss << pSessionInfo->m_instance_id << ",";
+				ss << pSessionInfo->m_tenant_id << ",";
+				ss << pSessionInfo->m_component_id << ",";
+				ss << pSessionInfo->m_process_id << ",";
+				ss << pSessionInfo->m_thread_id << ",";
+				ss << pSessionInfo->m_node_id << ",";
+				ss << pSessionInfo->m_pnid_id << ",";
+				ss << pSessionInfo->m_host_id << ",'";
+				ss << pSessionInfo->m_ip_address_id.c_str() << "',";
+				ss << pSessionInfo->m_sequence_number << ",'";
+				ss << pSessionInfo->m_process_name.c_str() << "','";
+				ss << pSessionInfo->m_sessionId.c_str() << "','";
+				ss << pSessionInfo->m_session_status.c_str() << "',CONVERTTIMESTAMP(";
+				ss << pSessionInfo->m_session_start_utc_ts << "),";
+                                if (pSessionInfo->m_session_end_utc_ts > 0)
+                                        ss << "CONVERTTIMESTAMP(" << pSessionInfo->m_session_end_utc_ts << "),";
+                                else
+                                        ss << "NULL,";
+				ss << pSessionInfo->m_user_id << ",'";
+				ss << pSessionInfo->m_user_name.c_str() << "','";
+				ss << pSessionInfo->m_role_name.c_str() << "','";
+				ss << pSessionInfo->m_client_name.c_str() << "','";
+				ss << pSessionInfo->m_client_user_name.c_str() << "','";
+				ss << pSessionInfo->m_application_name.c_str() << "','";
+ 				ss << pSessionInfo->m_profile_name.c_str() << "','";
+                                ss << pSessionInfo->m_sla_name.c_str() << "',";
+				ss << pSessionInfo->m_total_odbc_exection_time << ",";
+				ss << pSessionInfo->m_total_odbc_elapsed_time << ",";
+				ss << pSessionInfo->m_total_insert_stmts_executed << ",";
+				ss << pSessionInfo->m_total_delete_stmts_executed << ",";
+				ss << pSessionInfo->m_total_update_stmts_executed << ",";
+				ss << pSessionInfo->m_total_select_stmts_executed << ",";
+				ss << pSessionInfo->m_total_catalog_stmts << ",";
+				ss << pSessionInfo->m_total_prepares << ",";
+				ss << pSessionInfo->m_total_executes << ",";
+				ss << pSessionInfo->m_total_fetches << ",";
+				ss << pSessionInfo->m_total_closes << ",";
+				ss << pSessionInfo->m_total_execdirects << ",";
+				ss << pSessionInfo->m_total_errors << ",";
+				ss << pSessionInfo->m_total_warnings << ",";
+				ss << pSessionInfo->m_total_login_elapsed_time_mcsec << ",";
+				ss << pSessionInfo->m_ldap_login_elapsed_time_mcsec << ",";
+				ss << pSessionInfo->m_sql_user_elapsed_time_mcsec << ",";
+				ss << pSessionInfo->m_search_connection_elapsed_time_mcsec << ",";
+				ss << pSessionInfo->m_search_elapsed_time_mcsec << ",";
+				ss << pSessionInfo->m_authentication_connection_elapsed_time_mcsec << ",";
+				ss << pSessionInfo->m_authentication_elapsed_time_mcsec << ")";
 
 			}
 			else if (repos_stats.m_pub_type == PUB_TYPE_STATEMENT_NEW_QUERYEXECUTION)
@@ -627,6 +636,7 @@ static void* SessionWatchDog(void* arg)
                                                         1, "Invalid data pointer founded in SessionWatchDog()");
 					break;
 				}
+                                lastUpdatedTime = JULIANTIMESTAMP();
 
 				ss << "insert into Trafodion.\"_REPOS_\".metric_query_table values(";
 				ss << pQueryAdd->m_instance_id << ",";
@@ -642,6 +652,7 @@ static void* SessionWatchDog(void* arg)
 				ss << pQueryAdd->m_process_name.c_str() << "',CONVERTTIMESTAMP(";
 				ss << pQueryAdd->m_exec_start_utc_ts << "),'";
 				ss << pQueryAdd->m_query_id.c_str() << "','";
+				ss << pQueryAdd->m_query_signature_id.c_str() << "','";
 				ss << pQueryAdd->m_user_name.c_str() << "','";
 				ss << pQueryAdd->m_role_name.c_str() << "',";
 				ss << pQueryAdd->m_start_priority << ",'";
@@ -768,7 +779,14 @@ static void* SessionWatchDog(void* arg)
 				ss << pQueryAdd->m_ovf_buffer_bytes_read << ",";
 				ss << pQueryAdd->m_num_nodes << ",";
 				ss << pQueryAdd->m_udr_process_busy_time << ",";
-				ss << pQueryAdd->m_pertable_stats << ")";
+				ss << pQueryAdd->m_pertable_stats << ",";
+				if ( lastUpdatedTime > 0)
+                                        ss << "CONVERTTIMESTAMP(" << lastUpdatedTime << ")";
+                                else
+                                        ss << "NULL";
+
+                                ss <<")";
+
 			}
 			else if (repos_stats.m_pub_type == PUB_TYPE_STATEMENT_UPDATE_QUERYEXECUTION)
 			{
@@ -781,6 +799,7 @@ static void* SessionWatchDog(void* arg)
 					break;
 				}
 
+                                lastUpdatedTime = JULIANTIMESTAMP();
 				ss << "update Trafodion.\"_REPOS_\".metric_query_table ";
 				ss << "set STATEMENT_TYPE= '" << pQueryUpdate->m_statement_type.c_str() << "',";
 				ss << "STATEMENT_SUBTYPE= '" << pQueryUpdate->m_statement_subtype.c_str() << "',";
@@ -836,7 +855,8 @@ static void* SessionWatchDog(void* arg)
 				ss << "OVF_BUFFER_BYTES_READ= " << pQueryUpdate->m_ovf_buffer_bytes_read << ",";
 				ss << "NUM_NODES= " << pQueryUpdate->m_num_nodes << ",";
 				ss << "UDR_PROCESS_BUSY_TIME= " << pQueryUpdate->m_udr_process_busy_time << ",";
-				ss << "PERTABLE_STATS= " << pQueryUpdate->m_pertable_stats;
+				ss << "PERTABLE_STATS= " << pQueryUpdate->m_pertable_stats << ",";
+                                ss << "LAST_UPDATED_TIME= CONVERTTIMESTAMP(" << lastUpdatedTime << ")";
 				ss << " where QUERY_ID = '" << pQueryUpdate->m_query_id.c_str() << "'";
 				ss << " and EXEC_START_UTC_TS = CONVERTTIMESTAMP(" << pQueryUpdate->m_exec_start_utc_ts << ")";
 			}
@@ -913,7 +933,9 @@ static void* SessionWatchDog(void* arg)
 				ss << pAggrStat->m_delta_ddl_errors << ",";
 				ss << pAggrStat->m_delta_util_errors << ",";
 				ss << pAggrStat->m_delta_catalog_errors << ",";
-				ss << pAggrStat->m_delta_other_errors << ")";
+				ss << pAggrStat->m_delta_other_errors << ",";
+				ss << pAggrStat->m_average_response_time << ",";
+				ss << pAggrStat->m_throughput_per_sec << ")";
 			}
 			else if (repos_stats.m_pub_type == PUB_TYPE_SESSION_UPDATE_AGGREGATION || repos_stats.m_pub_type == PUB_TYPE_SESSION_END_AGGREGATION)
 			{
@@ -970,7 +992,9 @@ static void* SessionWatchDog(void* arg)
 				ss << "DELTA_DDL_ERRORS = " << pAggrStat->m_delta_ddl_errors << ",";
 				ss << "DELTA_UTIL_ERRORS = " << pAggrStat->m_delta_util_errors << ",";
 				ss << "DELTA_CATALOG_ERRORS = " << pAggrStat->m_delta_catalog_errors << ",";
-				ss << "DELTA_OTHER_ERRORS = " << pAggrStat->m_delta_other_errors;
+				ss << "DELTA_OTHER_ERRORS = " << pAggrStat->m_delta_other_errors << ",";
+				ss << "AVERAGE_RESPONSE_TIME = " << pAggrStat->m_average_response_time << ",";
+				ss << "THROUGHPUT_PER_SECOND = " << pAggrStat->m_throughput_per_sec;
 				ss << " where SESSION_START_UTC_TS = CONVERTTIMESTAMP(" << pAggrStat->m_session_start_utc_ts << ")";
 				ss << " and SESSION_ID = '" << pAggrStat->m_sessionId.c_str() << "'";
 
@@ -1891,6 +1915,8 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 	bzero(srvrGlobal->QSUserName, sizeof(srvrGlobal->QSUserName));
 	bzero(srvrGlobal->QSDBUserName, sizeof(srvrGlobal->QSDBUserName));
 	bzero(srvrGlobal->ApplicationName, sizeof(srvrGlobal->ApplicationName));
+        bzero(srvrGlobal->mappedProfileName, sizeof(srvrGlobal->mappedProfileName));
+        bzero(srvrGlobal->mappedSLAName, sizeof(srvrGlobal->mappedSLAName));
 	bzero(&outContext, sizeof(outContext));
 	srvrGlobal->bSpjEnableProxy = FALSE;
 	srvrGlobal->bspjTxnJoined = FALSE;
@@ -2046,6 +2072,8 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 	int profDisconnectDataLen = 0;
 	time_t tctime=0;
 	time_t tmtime=0;
+	char* tcprofile=NULL;
+	char* tdprofile=NULL;
 	char* cqds=NULL;
 	char* sets=NULL;
 
@@ -2146,7 +2174,8 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 				odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
 				return;
 			}
-/*========================= get SLA ========================================
+
+/*======================== get SLA ========================================
             timestamp,--------------------------2
             dialogueId,-------------------------3
             serverNodeId,-----------------------4
@@ -2209,6 +2238,7 @@ TNULL:
 			}
 			free(extData);
 			extData = NULL;
+//if 0
 // build sla path from zk node /<user name>/wms/slas/sla
 			char * cstr = new char [dcsRegisteredNode.length()+1];
 			strcpy (cstr, dcsRegisteredNode.c_str() + 1); //skip first "/"
@@ -2226,17 +2256,19 @@ TNULL:
 //SLA
 			definedSla = "/" + user + "/wms/slas/" + sla;
 			rc == zoo_exists(zh, definedSla.c_str(), false, &stat);
-            if (rc == ZOK )
-            {
+                        if (rc == ZOK )
+                        {
 				char* slaData=NULL;
 				int slaDataLen = 0;
-            	slaDataLen = stat.dataLength;
+                                slaDataLen = stat.dataLength;
 				slaData = new char[slaDataLen + 1];
 
 				rc = zoo_get(zh, definedSla.c_str(), false, slaData, &slaDataLen, &stat);
+
 				if( rc == ZOK )
-				{
+				{                                  
 					// isDefault=no:priority=1:limit=:throughput=:onConnectProfile=testProfile:onDisconnectProfile=defaultProfile:lastUpdate=1462326660114
+					slaData[slaDataLen] = 0;
 					char* stringp = slaData;
 					tkn = strsep(&stringp, "=");
 					while(true)
@@ -2244,178 +2276,201 @@ TNULL:
 						if(tkn == NULL) break;
 						if(strcmp(tkn, "onConnectProfile") == 0)
 						{
-							cqds = strsep(&stringp,":");
-							curConnectProfile = string(tkn);
+							tcprofile = strsep(&stringp,":");
+							curConnectProfile = string(tcprofile);
 						}
-						else if(strcmp(tkn, "onConnectProfile") == 0)
+						else if(strcmp(tkn, "onDisconnectProfile") == 0)
 						{
-							tkn = strtok(NULL,":");
-							curDisconnectProfile = string(tkn);
+							tdprofile = strsep(&stringp,":");
+							curDisconnectProfile = string(tdprofile);
 						}
 						else
-							tkn = strtok(NULL, ":");
-						tkn = strtok(NULL, "=");
+							tkn = strsep(&stringp,":");
+						tkn = strsep(&stringp,"=");
 					}
 					if(curConnectProfile.length()==0)
 						curConnectProfile = string("defaultProfile");
 					if(curDisconnectProfile.length()==0)
-						curDisconnectProfile = string("defaultProfile");
+						curDisconnectProfile = string("defaultProfile");                                       
 				}
 				if(slaData!=NULL)
 					delete[]slaData;
-            }
-		}
+                        }
 //Profiles
-		if( rc == ZOK )
-		{
-			definedProfile = "/" + user + "/wms/profiles/" + curConnectProfile;
-			rc == zoo_exists(zh, definedProfile.c_str(), false, &stat);
-            if (rc == ZOK )
-            {
-                tctime = stat.ctime/1000;
-                tmtime = stat.mtime/1000;
+                        if( rc == ZOK )
+                        {
+//Profile onConnect
+                              definedProfile = "/" + user + "/wms/profiles/" + curConnectProfile;
+                              rc == zoo_exists(zh, definedProfile.c_str(), false, &stat);
+                              if (rc == ZOK )
+                              {
+                                      tctime = stat.ctime/1000;
+                                      tmtime = stat.mtime/1000;
 
-                if(tmtime != connect_mtime)
-                {
-                	connectProfileSame = false;
-                	connectProfile = curConnectProfile;
-                	connect_ctime=tctime;
-                	connect_mtime=tmtime;
-					if(profConnectData != NULL)
-						delete[] profConnectData;
-					cqds = NULL;
-					sets = NULL;
-					profConnectData = NULL;
-					connectCqdList.clear();
-					connectSetList.clear();
+                                      if(tmtime != connect_mtime)
+                                      {
 
-					profConnectDataLen = stat.dataLength;
-					profConnectData = new char[profConnectDataLen + 1];
+                                          connectProfileSame = false;
+                                          connectProfile = curConnectProfile;
+                                          connect_ctime=tctime;
+                                          connect_mtime=tmtime;
+                                          connectCqdList.clear();
+                                          connectSetList.clear();
+                                          if(profConnectData != NULL)
+                                               delete[] profConnectData;
+                                          cqds = NULL;
+                                          sets = NULL;
+                                          profConnectData = NULL;
 
-					rc = zoo_get(zh, definedProfile.c_str(), false, profConnectData, &profConnectDataLen, &stat);
-					if( rc == ZOK )
-					{
-						profConnectData[profConnectDataLen]=0;
-						char* stringp = profConnectData;
-						tkn = strsep(&stringp, "=");
-						while(true)
-						{
-							if(tkn == NULL) break;
-							if(stricmp(tkn, "cqd") == 0)
-							{
-								cqds = strsep(&stringp,":");
-								if(sets!=NULL)
-									break;
-							}
-							else if(stricmp(tkn, "set") == 0)
-							{
-								sets = strsep(&stringp,":");
-								if(cqds!=NULL)
-									break;
-							}
-							else
-								tkn = strsep(&stringp, ":");
-							tkn = strsep(&stringp, "=");
-						}
-						if(cqds != NULL && cqds[0] != 0)
-						{
-							tkn = strsep(&cqds, ";");
-							while(tkn != NULL)
-							{
-								connectCqdList.push_back(tkn);
-								tkn = strsep(&cqds, ";");
-							}
-						}
-						if(sets != NULL && sets[0] != 0)
-						{
-							tkn = strsep(&sets, ";");
-							while(tkn != NULL)
-							{
-								connectSetList.push_back(tkn);
-								tkn = strsep(&sets, ";");
-							}
-						}
-					}
-                }
-                else
-                	connectProfileSame = true;
-            }
-            if (rc == ZOK){
-				definedProfile = "/" + user + "/wms/profiles/" + curDisconnectProfile;
-				rc == zoo_exists(zh, definedProfile.c_str(), false, &stat);
-				if (rc == ZOK )
-				{
-	                tctime = stat.ctime/1000;
-	                tmtime = stat.mtime/1000;
+                                          profConnectDataLen = stat.dataLength + 1;
+                                          profConnectData = new char[profConnectDataLen];
 
-	                if(tmtime != disconnect_mtime)
-	                {
-	                	disconnectProfileSame = false;
-	                	disconnectProfile = curDisconnectProfile;
-	                	disconnect_ctime=tctime;
-	                	disconnect_mtime=tmtime;
-						if(profDisconnectData != NULL)
-							delete[] profDisconnectData;
-						profDisconnectData = NULL;
-						disconnectCqdList.clear();
-						disconnectSetList.clear();
-						cqds = NULL;
-						sets = NULL;
+                                          rc = zoo_get(zh, definedProfile.c_str(), false, profConnectData, &profConnectDataLen, &stat);
+                                          if( rc == ZOK )
+                                          {
+                                                  profConnectData[profConnectDataLen]=0;
+                                                  char* stringp = profConnectData;
+                                                  
+                                                  tkn = strsep(&stringp, "=");
+                                                  while(true)
+                                                  {
+                                                          if(tkn == NULL) break;
+                                                          if(stricmp(tkn, "cqd") == 0)
+                                                          {
+                                                                  cqds = strsep(&stringp,":");
+                                                                  if(sets!=NULL)
+                                                                          break;
+                                                          }
+                                                          else if(stricmp(tkn, "set") == 0)
+                                                          {
+                                                                  sets = strsep(&stringp,":");
+                                                                  if(cqds!=NULL)
+                                                                          break;
+                                                          }
+                                                          else
+                                                                  tkn = strsep(&stringp, ":");
+                                                          tkn = strsep(&stringp, "=");
+                                                  }
 
-						profDisconnectDataLen = stat.dataLength;
-						profDisconnectData = new char[profDisconnectDataLen];
+                                                  if(cqds != NULL && cqds[0] != 0)
+                                                  {
+                                                          tkn = strsep(&cqds, ";");
+                                                          while(tkn != NULL)
+                                                          {
+                                                                 if(tkn[0] != 0)
+                                                                         connectCqdList.push_back(string(tkn));
+                                                                  tkn = strsep(&cqds, ";");
+                                                          }
+                                                         
+                                                  }
 
-						rc = zoo_get(zh, definedProfile.c_str(), false, profDisconnectData, &profDisconnectDataLen, &stat);
-						if( rc == ZOK )
-						{
-							profDisconnectData[profDisconnectDataLen]=0;
-							char* stringp = profDisconnectData;
-							tkn = strsep(&stringp, "=");
-							while(true)
-							{
-								if(tkn == NULL) break;
-								if(stricmp(tkn, "cqd") == 0)
-								{
-									cqds = strsep(&stringp,":");
-									if(sets!=NULL)
-										break;
-								}
-								else if(stricmp(tkn, "set") == 0)
-								{
-									sets = strsep(&stringp,":");
-									if(cqds!=NULL)
-										break;
-								}
-								else
-									tkn = strsep(&stringp, ":");
-								tkn = strsep(&stringp, "=");
-							}
-							if(cqds != NULL && cqds[0] != 0)
-							{
-								tkn = strsep(&cqds, ";");
-								while(tkn != NULL)
-								{
-									disconnectCqdList.push_back(tkn);
-									tkn = strsep(&cqds, ";");
-								}
-							}
-							if(sets != NULL && sets[0] != 0)
-							{
-								tkn = strsep(&sets, ";");
-								while(tkn != NULL)
-								{
-									disconnectSetList.push_back(tkn);
-									tkn = strsep(&sets, ";");
-								}
-							}
-						}
-	                }
-	                else
-	                	disconnectProfileSame = true;
-				}
-            }
+                                                  if(sets != NULL && sets[0] != 0)
+                                                  {
+                                                          tkn = strsep(&sets, ";");
+                                                          while(tkn != NULL)
+                                                          {
+                                                                  if(tkn[0] != 0)
+                                                                        connectSetList.push_back(string(tkn));
+                                                                  tkn = strsep(&sets, ";");
+                                                          }
+                                                  }
+                                          }
+                                      }//if(tmtime != connect_mtime)
+                                      else
+                                              connectProfileSame = true;
+
+                              } //if (rc == ZOK ) zoo_exists                                      
+                        }//if (rc == ZOK )
+                             
+                        if (rc == ZOK)
+                        {
+// Profile onDisconnect                   
+                               definedProfile = "/" + user + "/wms/profiles/" + curDisconnectProfile;
+                               rc == zoo_exists(zh, definedProfile.c_str(), false, &stat);
+                               if (rc == ZOK )
+                               {
+
+                                      tctime = stat.ctime/1000;
+                                      tmtime = stat.mtime/1000;
+
+                                      if(tmtime != disconnect_mtime)
+                                      {
+
+                                              disconnectProfileSame = false;
+                                              disconnectProfile = curDisconnectProfile;
+                                              disconnect_ctime=tctime;
+                                              disconnect_mtime=tmtime;
+                                              disconnectCqdList.clear();
+                                              disconnectSetList.clear();
+                                              if(profDisconnectData != NULL)
+                                                    delete[] profDisconnectData;
+                                              
+                                              profDisconnectData = NULL;
+                                              cqds = NULL;
+                                              sets = NULL;
+
+                                              profDisconnectDataLen = stat.dataLength + 1;
+                                              profDisconnectData = new char[profDisconnectDataLen ];
+
+                                              rc = zoo_get(zh, definedProfile.c_str(), false, profDisconnectData, &profDisconnectDataLen, &stat);
+                                              if( rc == ZOK )
+                                              {
+                                                      profDisconnectData[profDisconnectDataLen]=0;
+                                                      char* stringp = profDisconnectData;
+                                                      tkn = strsep(&stringp, "=");
+                                                      while(true)
+                                                      {
+                                                              if(tkn == NULL) break;
+                                                              if(stricmp(tkn, "cqd") == 0)
+                                                              {
+                                                                      cqds = strsep(&stringp,":");
+                                                                      if(sets!=NULL)
+                                                                              break;
+                                                              }
+                                                              else if(stricmp(tkn, "set") == 0)
+                                                              {
+                                                                      sets = strsep(&stringp,":");
+                                                                      if(cqds!=NULL)
+                                                                              break;
+                                                              }
+                                                              else
+                                                                      tkn = strsep(&stringp, ":");
+                                                              tkn = strsep(&stringp, "=");
+                                                        }
+
+                                                        if(cqds != NULL && cqds[0] != 0)
+                                                        {
+                                                              tkn = strsep(&cqds, ";");
+                                                              while(tkn != NULL)
+                                                              {
+                                                                      if(tkn[0] != 0)
+                                                                              disconnectCqdList.push_back(string(tkn));
+                                                                      tkn = strsep(&cqds, ";");
+                                                              }
+                                                        }
+
+                                                        if(sets != NULL && sets[0] != 0)
+                                                        {
+                                                              tkn = strsep(&sets, ";");
+                                                              while(tkn != NULL)
+                                                              {
+                                                                      if(tkn[0] != 0)
+                                                                              disconnectSetList.push_back(string(tkn));
+                                                                      tkn = strsep(&sets, ";");
+                                                              }
+                                                        }
+                                                }
+
+                                       } //if(tmtime != disconnect_mtime)
+                                       else
+                                           disconnectProfileSame = true;
+                                       
+                               }//if (rc == ZOK ) zoo_exists
+                        }//if (rc == ZOK )
+// end of Profile on disconnect
 		}
-	}
+        }
+        
 	if( rc != ZOK )
 	{
 		sprintf(tmpString, "Error %d getting registered node data from Zookeeper. Server exiting.", rc);
@@ -2424,7 +2479,6 @@ TNULL:
 			1, tmpString);
 		exitServerProcess();
 	}
-
 	sdconn = ((CTCPIPSystemSrvr* )objtag_)->m_nSocketFnum;
 	// If the server state is connecting then Initialize_Dialogue
 	// is called second time with or without changing the password
@@ -2806,33 +2860,6 @@ TNULL:
 			return;
 		}
 	}
-//============================== Execute all CQDs and Sets from the Profile ======================================
-	sqlError = execProfileCqdList(&connectCqdList);
-	if (sqlError.length() == 0)
-		sqlError = execProfileCqdList(&connectSetList);
-	if (sqlError.length() != 0)
-	{
-		connectProfile = "";
-		connect_ctime=0;
-		connect_mtime=0;
-		if(profConnectData!=NULL)
-			delete[] profConnectData;
-		profConnectData=NULL;
-		connectSetList.clear();
-		connectCqdList.clear();
-		connectProfileSame = false;
-
-		exception_.exception_detail = -1;
-		exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
-		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
-			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-			2, "EXECUTE CQD or SET failed :", sqlError.c_str());
-		SETSRVRERROR(SQLERRWARN, -1, "HY000", (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
-		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
-		updateSrvrState(SRVR_CONNECT_REJECTED);
-		return;
-	}
-//==========================================================================================
 	/*
 	 We should get rid of this, but we cant right now
 	 - if we remove it, because of a bug in SQL that does not reset transactions, an MXOSRVR could get into an unusable state
@@ -3898,6 +3925,33 @@ TNULL:
 		updateSrvrState(SRVR_CONNECT_REJECTED);
 		return;
 	}
+//============================== Execute all CQDs and Sets from the Profile ======================================
+	sqlError = execProfileCqdList(&connectCqdList);
+	if (sqlError.length() == 0)
+		sqlError = execProfileCqdList(&connectSetList);
+	if (sqlError.length() != 0)
+	{
+		connectProfile = "";
+		connect_ctime=0;
+		connect_mtime=0;
+		if(profConnectData!=NULL)
+			delete[] profConnectData;
+		profConnectData=NULL;
+		connectSetList.clear();
+		connectCqdList.clear();
+		connectProfileSame = false;
+
+		exception_.exception_detail = -1;
+		exception_.exception_nr = odbc_SQLSvc_InitializeDialogue_SQLError_exn_;
+		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
+			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+			2, "EXECUTE CQD or SET failed :", sqlError.c_str());
+		SETSRVRERROR(SQLERRWARN, -1, "HY000", (char*)sqlError.c_str(), &exception_.u.SQLError.errorList);
+		odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+		updateSrvrState(SRVR_CONNECT_REJECTED);
+		return;
+	}
+//==========================================================================================
 	srvrGlobal->javaConnIdleTimeout = JDBC_DATASOURCE_CONN_IDLE_TIMEOUT;
 	if ((srvrGlobal->drvrVersion.componentId == JDBC_DRVR_COMPONENT) && ((long) (inContext->idleTimeoutSec) > JDBC_DATASOURCE_CONN_IDLE_TIMEOUT))
 		srvrGlobal->javaConnIdleTimeout = inContext->idleTimeoutSec;
@@ -4097,8 +4151,12 @@ TNULL:
 	}
 	if( (maxHeapPctExit != 0) &&  (initSessMemSize == 0))
 		initSessMemSize = getMemSize("Initial");
-
+        
 	odbc_SQLSvc_InitializeDialogue_ts_res_(objtag_, call_id_, &exception_, &outContext);
+        
+        if (exitLiveTime > 0 && startExitLiveTime == 0)
+                startExitLiveTime = time(NULL);
+
 	return;
 }
 /*
@@ -4122,6 +4180,18 @@ odbc_SQLSvc_TerminateDialogue_ame_(
 	exception_.exception_nr = CEE_SUCCESS;
 
     long exitSesMemSize = 0;
+    bool exitSessions = false;
+    bool exitLTime = false;
+
+    if(exitSessionsCount > 0){
+        totalExitSessionsCount++;
+        if (totalExitSessionsCount >= exitSessionsCount){
+                exitSessions = true;
+        }
+    }
+    if(exitLiveTime > 0 && ((time(NULL) - startExitLiveTime) > exitLiveTime * 60 )) {
+          exitLTime = true;
+    }
 
     char tmpStringEnv[1024];
     sprintf(tmpStringEnv,
@@ -4217,7 +4287,7 @@ odbc_SQLSvc_TerminateDialogue_ame_(
 		heapSizeExit = false;
 
 
-	if( heapSizeExit == false ){
+	if( heapSizeExit == false && exitSessions == false && exitLTime == false ){
 		if( !updateZKState(CONNECTED, AVAILABLE) )
 		{
 			exception_.exception_nr = odbc_SQLSvc_TerminateDialogue_SQLError_exn_;
@@ -4261,11 +4331,30 @@ odbc_SQLSvc_TerminateDialogue_ame_(
 	}
 
 bailout:
-	if (srvrGlobal->traceLogger != NULL)
+        if (srvrGlobal->traceLogger != NULL)
 	{
 		srvrGlobal->traceLogger->TraceDisconnectExit(exception_);
 	}
 	SRVRTRACE_EXIT(FILE_AME+6);
+
+        if(exitSessions == true){
+                odbc_SQLSvc_StopServer_exc_ StopException;
+                StopException.exception_nr=1;
+                if (srvrGlobal->traceLogger != NULL)
+                {
+                        srvrGlobal->traceLogger->TraceStopServerExit(StopException);
+                }
+                 exitServerProcess();
+        }
+        if(exitLTime == true ) {
+                odbc_SQLSvc_StopServer_exc_ StopException;
+                StopException.exception_nr=2;
+                if (srvrGlobal->traceLogger != NULL)
+                {
+                        srvrGlobal->traceLogger->TraceStopServerExit(StopException);
+                }
+                 exitServerProcess();
+        }
 	return;
 }
 
@@ -7008,7 +7097,7 @@ bool getSQLInfo(E_GetSQLInfoType option, long stmtHandle, char *stmtLabel )
                                     delete explainData;
                                   explainData = 0;
                                 }
-				else if (iqqcode < 0)
+				if (iqqcode < 0)
 				{
 					char errStr[256];
 					sprintf( errStr, "Error retrieving packed explain. SQL_EXEC_GetExplainData() returned: %d", iqqcode );
@@ -9544,7 +9633,8 @@ bool updateZKState(DCS_SERVER_STATE currState, DCS_SERVER_STATE newState)
 				rc == zoo_exists(zh, dcsRegisteredNode.c_str(), false, &stat);
 	            if (rc == ZOK )
 	            {
-	                connectedTimestamp = stat.mtime/1000;
+	                //connectedTimestamp = stat.mtime/1000;
+                        connectedTimestamp =  time(NULL);
 	            }
 	            else
 	            {
@@ -9905,16 +9995,17 @@ short qrysrvc_ExecuteFinished(
 	return 0;
 }
 
-void sendSessionEnd(std::tr1::shared_ptr<SESSION_END> pSession_info)
+void sendSessionStats(std::tr1::shared_ptr<SESSION_INFO> pSession_info)
 {
 	REPOS_STATS session_stats;
 	session_stats.m_pSessionStats = pSession_info;
-	session_stats.m_pub_type = PUB_TYPE_SESSION_END;
-	if (record_session_done)		
-	{		
-		pthread_t thrd;		
-		pthread_create(&thrd, NULL, SessionWatchDog, NULL);		
-	}
+	if (record_session_done)
+	{
+	        session_stats.m_pub_type = PUB_TYPE_SESSION_END;
+		pthread_t thrd;
+		pthread_create(&thrd, NULL, SessionWatchDog, NULL);
+	} else
+                session_stats.m_pub_type = PUB_TYPE_SESSION_START;
 	repos_queue.push_task(session_stats);
 }
 
@@ -9923,10 +10014,10 @@ void sendAggrStats(pub_struct_type pub_type, std::tr1::shared_ptr<SESSION_AGGREG
 	REPOS_STATS aggr_stats;
 	aggr_stats.m_pAggr_stats = pAggr_info;
 	aggr_stats.m_pub_type = pub_type;
-	if (record_session_done)		
-	{		
-		pthread_t thrd;		
-		pthread_create(&thrd, NULL, SessionWatchDog, NULL);		
+	if (record_session_done)
+	{
+		pthread_t thrd;
+		pthread_create(&thrd, NULL, SessionWatchDog, NULL);
 	}
 	repos_queue.push_task(aggr_stats);
 }
@@ -9936,10 +10027,10 @@ void sendQueryStats(pub_struct_type pub_type, std::tr1::shared_ptr<STATEMENT_QUE
 	REPOS_STATS query_stats;
 	query_stats.m_pQuery_stats = pQuery_info;
 	query_stats.m_pub_type = pub_type;
-	if (record_session_done)		
-	{		
-		pthread_t thrd;		
-		pthread_create(&thrd, NULL, SessionWatchDog, NULL);		
+	if (record_session_done)
+	{
+		pthread_t thrd;
+		pthread_create(&thrd, NULL, SessionWatchDog, NULL);
 	}
 	repos_queue.push_task(query_stats);
 }
@@ -10013,13 +10104,13 @@ void SyncPublicationThread()
                 } 
 	}
 }
-string execProfileCqdList(list<char*> *pList)
+string execProfileCqdList(list<string> *pList)
 {
-	char* ControlQuery;
+	string ControlQuery;
 	SRVR_STMT_HDL *QryControlSrvrStmt = NULL;
 	SQLRETURN rc = SQL_SUCCESS;
-	string requestError;
-
+	string requestError = "";
+        
 	if ((QryControlSrvrStmt = getSrvrStmt("STMT_QRYRES_ON_1", TRUE)) == NULL)
 	{
 		requestError = "Allocate Statement STMT_QRYRES_ON_1 failed.";
@@ -10028,21 +10119,22 @@ string execProfileCqdList(list<char*> *pList)
 			2, "PROFILE_QUERY", requestError.c_str());
 		goto BAILOUT;
 	}
-
-    for(list<char*>::iterator lti = (*pList).begin(); lti != (*pList).end(); lti++)
-    {
-    	ControlQuery = *lti;
-    	rc = QryControlSrvrStmt->ExecDirect(NULL, ControlQuery, INTERNAL_STMT, TYPE_UNKNOWN, SQL_ASYNC_ENABLE_OFF, 0);
-    	if (rc == SQL_ERROR)
-    	{
-    		ERROR_DESC_def *p_buffer = QryControlSrvrStmt->sqlError.errorList._buffer;
-    		requestError = "CQD_OR_SET failed :" + string(ControlQuery) + " error :"+ p_buffer->errorText;
-    		SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
-    			srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
-    			2, "PROFILE_QUERY", requestError.c_str());
-    		break;
-    	}
-    }
+	
+        for(list<string>::iterator lti = (*pList).begin(); lti != (*pList).end(); lti++)
+        {
+            ControlQuery = *lti;
+            rc = QryControlSrvrStmt->ExecDirect(NULL, ControlQuery.c_str(), INTERNAL_STMT, TYPE_UNKNOWN, SQL_ASYNC_ENABLE_OFF, 0);
+            if (rc == SQL_ERROR)
+            {	
+                    ERROR_DESC_def *p_buffer = QryControlSrvrStmt->sqlError.errorList._buffer;
+                    requestError = "CQD_OR_SET failed :" + string(ControlQuery) + " error :"+ p_buffer->errorText;
+                    SendEventMsg(MSG_SRVR_POST_CONNECT_ERROR, EVENTLOG_ERROR_TYPE,
+                            srvrGlobal->nskProcessInfo.processId, ODBCMX_SERVER, srvrGlobal->srvrObjRef,
+                            2, "PROFILE_QUERY", requestError.c_str());
+                    break;
+            }
+        }
 BAILOUT:
+
 	return requestError;
 }

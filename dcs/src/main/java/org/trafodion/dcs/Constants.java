@@ -76,6 +76,12 @@ public final class Constants {
     /** Default value for DCS server restart handler retry interval millis */
     public static final int DEFAULT_DCS_MASTER_SERVER_RESTART_HANDLER_RETRY_INTERVAL_MILLIS = 1000;
 
+    /** Configuration key DCS master user server affinity */
+    public static final String DCS_MASTER_USER_SERVER_AFFINITY = "dcs.master.user.server.affinity";
+
+    /** Default value for DCS master user server affinity */
+    public static final boolean DEFAULT_DCS_MASTER_USER_SERVER_AFFINITY = true;
+
     /** User program feature is enabled */
     public static final String DCS_SERVER_USER_PROGRAM = "dcs.server.user.program";
 
@@ -92,7 +98,19 @@ public final class Constants {
     public static final String DCS_SERVER_USER_PROGRAM_COMMAND = "dcs.server.user.program.command";
 
     /** Default value for DCS server user program command */
-    public static final String DEFAULT_DCS_SERVER_USER_PROGRAM_COMMAND = "cd ${dcs.user.program.home};. sqenv.sh;mxosrvr -ZKHOST -RZ -ZKPNODE -CNGTO -ZKSTO -EADSCO -TCPADD -MAXHEAPPCT -STATISTICSINTERVAL -STATISTICSLIMIT -STATISTICSTYPE -STATISTICSENABLE -SQLPLAN -PORTMAPTOSECS -PORTBINDTOSECS -PUBLISHSTATSTOTSDB -OPENTSDURL";
+    public static final String DEFAULT_DCS_SERVER_USER_PROGRAM_COMMAND = "cd ${dcs.user.program.home};. sqenv.sh;mxosrvr -ZKHOST -RZ -ZKPNODE -CNGTO -ZKSTO -EADSCO -TCPADD -MAXHEAPPCT -STATISTICSINTERVAL -STATISTICSLIMIT -STATISTICSTYPE -STATISTICSENABLE -SQLPLAN -PORTMAPTOSECS -PORTBINDTOSECS -PUBLISHSTATSTOTSDB -OPENTSDURL -EXITSESSIONSCOUNT -EXITLIVETIME";
+
+    /** DCS server program exit sessions completed count */
+    public static final String  DCS_SERVER_PROGRAM_EXIT_SESSIONS_COMPLETED_COUNT= "dcs.server.program.exit.sessions.completed.count"; 
+
+    /** Default value for DCS server program exit sessions completed count */
+    public static final int DEFAULT_DCS_SERVER_PROGRAM_EXIT_SESSIONS_COMPLETED_COUNT = 10;
+
+    /** DCS server program exit live time */
+    public static final String DCS_SERVER_PROGRAM_EXIT_LIVE_TIME = "dcs.server.program.exit.live.time"; 
+
+    /** Default value for DCS server user program exit live time */
+    public static final int DEFAULT_DCS_SERVER_PROGRAM_EXIT_LIVE_TIME = 0;
 
     /** Configuration key for DCS server user program connecting timeout */
     public static final String DCS_SERVER_USER_PROGRAM_CONNECTING_TIMEOUT = "dcs.server.user.program.connecting.timeout";
@@ -647,6 +665,8 @@ public static final String DEFAULT_DCS_SERVER_USER_PROGRAM_STATISTICS_OPENTSDB_E
     public static final String DEFAULT_ORDER_NUMBER = "99";
     /** Constant Names for Registered Servers */
     public static final String AVAILABLE = "AVAILABLE:";
+    public static final String STARTING = "STARTING:";
+    public static final String CONNECTING = "CONNECTING:";
     public static final String CONNECTED = "CONNECTED:";
     public static final String TIMESTAMP = "timestamp";
     public static final String HOST_NAME = "hostName";

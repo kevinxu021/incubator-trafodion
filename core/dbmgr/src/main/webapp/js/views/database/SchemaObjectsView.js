@@ -223,16 +223,6 @@ define([
 					var link = result.parentLink != null ? result.parentLink : "";
 	
 					$.each(result.resultArray, function(i, data){
-						//var rowData = {};
-						//$.each(keys, function(k, v) {
-						//	rowData[v] = data[k];
-						//});
-						/*aaData.push(
-								{'Name' : data[0], 
-									'Owner' : data[1],
-									'CreateTime' : data[2],
-									'ModifiedTime': data[3]
-								});*/
 						aaData.push(data);
 					});
 	
@@ -274,7 +264,7 @@ define([
 					aoColumnDefs.push({
 						"aTargets": [ 2 ],
 						"mData": 2,
-						"className" : "dbmgr-nowrap",
+						"className" : "dt-body-right dbmgr-nowrap",
 						"mRender": function ( data, type, full ) {
 							if (type === 'display') {
 								return common.toServerLocalDateFromUtcMilliSeconds(data);  
@@ -285,7 +275,7 @@ define([
 					aoColumnDefs.push({
 						"aTargets": [ 3 ],
 						"mData": 3,
-						"className" : "dbmgr-nowrap",
+						"className" : "dt-body-right dbmgr-nowrap",
 						"mRender": function ( data, type, full ) {
 							if (type === 'display') {
 								return common.toServerLocalDateFromUtcMilliSeconds(data);  
@@ -299,6 +289,105 @@ define([
 						"visible" : false,
 						"searchable" : false
 					});
+					if(routeArgs.type == 'tables'){
+						aoColumnDefs.push({
+							"aTargets": [ 5 ],
+							"mData": 5,
+							"className" : "dt-body-right",
+							"mRender": function ( data, type, full ) {
+								if (type == 'display') {
+									return common.formatNumberWithCommas(data);
+								} else {
+									return data;
+								}
+							}
+						});
+						aoColumnDefs.push({
+							"aTargets": [ 6 ],
+							"mData": 6,
+							"className" : "dt-body-right",
+							"mRender": function ( data, type, full ) {
+								if (type == 'display') {
+									return common.formatNumberWithCommas(data);
+								} else {
+									return data;
+								}
+							}
+						});
+						aoColumnDefs.push({
+							"aTargets": [ 7 ],
+							"mData": 7,
+							"className" : "dt-body-right",
+							"mRender": function ( data, type, full ) {
+								if (type == 'display') {
+									return common.formatNumberWithCommas(data);
+								} else {
+									return data;
+								}
+							}
+						});
+						aoColumnDefs.push({
+							"aTargets": [ 8 ],
+							"mData": 8,
+							"className" : "dt-body-right",
+							"mRender": function ( data, type, full ) {
+								if (type == 'display') {
+									return common.formatNumberWithCommas(data);
+								} else {
+									return data;
+								}
+							}
+						});
+						aoColumnDefs.push({
+							"aTargets": [ 9 ],
+							"mData": 9,
+							"className" : "dt-body-right",
+							"mRender": function ( data, type, full ) {
+								if (data == "0") {
+									return '< 1';
+								} else {
+									return common.formatNumberWithCommas(parseInt(data));
+								}
+							}
+						});
+						aoColumnDefs.push({
+							"aTargets": [ 10 ],
+							"mData": 10,
+							"className" : "dt-body-right",
+							"mRender": function ( data, type, full ) {
+								if (data == "0") {
+									return '< 1';
+								} else {
+									return common.formatNumberWithCommas(parseInt(data));
+								}
+							}
+						});
+						aoColumnDefs.push({
+							"aTargets": [ 11 ],
+							"mData": 11,
+							"className" : "dt-body-right",
+							"mRender": function ( data, type, full ) {
+								if (type == 'display') {
+									return common.formatNumberWithCommas(data);
+								} else {
+									return data;
+								}
+							}
+						});
+						aoColumnDefs.push({
+							"aTargets": [ 12 ],
+							"mData": 12,
+							"className" : "dt-body-right",
+							"mRender": function ( data, type, full ) {
+								if (type == 'display') {
+									return common.formatNumberWithCommas(data);
+								} else {
+									return data;
+								}
+							}
+						});
+						
+					}
 					
 					if(routeArgs.type == 'indexes'){
 						aoColumnDefs.push({

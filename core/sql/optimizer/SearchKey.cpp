@@ -2510,10 +2510,12 @@ HivePartitionAndBucketKey::HivePartitionAndBucketKey(TableDesc *tDesc)
      : hdfsTableStats_(tDesc->getNATable()->getClusteringIndex()->getHHDFSTableStats()),
        selectedPartitions_(&(((HHDFSTableStats *) hdfsTableStats_)->listPartitionStatsList_),
                            (CollHeap *) NULL),
-       partColValuesAsFunc_(tDesc->getNATable()->getClusteringIndex()->getHivePartColValues())
+       partColValuesAsFunc_(tDesc->getNATable()->getClusteringIndex()->getHivePartColValues()),
+       partitionEliminatedCT_(FALSE)
 {
   // mark all buckets as selected
   selectedSingleBucket_ = -1;
+
   // select all partitions by default
   selectedPartitions_.complement();
 
@@ -2701,68 +2703,75 @@ NABoolean HivePartitionAndBucketKey::convertHivePartColValsToSQL(
       // strip leading and trailing blanks
       token = token.strip(NAString::both);
 
-      switch (colType->getTypeQualifier())
+      if (token.compareTo("__HIVE_DEFAULT_PARTITION__") == 0)
         {
-        case NA_CHARACTER_TYPE:
-          if (token.contains("'"))
-                {
-                  reportError(
-                       partNum,
-                       c,
-                       naTable,
-                       hiveVals,
-                       "Partitioning column value containing a quote");
-                  return FALSE;
-                }
-
-          // surround the value with quotes, Hive does not
-          // use quotes for character constants in partitions
-          sqlPartKeyValues.append("'");
-          sqlPartKeyValues.append(token);
-          sqlPartKeyValues.append("'");
-          break;
-
-        case NA_NUMERIC_TYPE:
-          // just copy the value unchanged
-          sqlPartKeyValues.append(token);
-          break;
-
-        case NA_DATETIME_TYPE:
+          sqlPartKeyValues += "cast(NULL as ";
+          sqlPartKeyValues += colType->getTypeSQLname(TRUE);
+          sqlPartKeyValues += ")";
+        }
+      else
+        switch (colType->getTypeQualifier())
           {
-            // surround the value by quotes and prefix it
-            // with date or timestamp (2000-01-01 becomes
-            // date '2000-01-01')
-            const DatetimeType *dtt =
-              static_cast<const DatetimeType *>(colType);
-
-            if (dtt->getSubtype() == DatetimeType::SUBTYPE_SQLDate)
-              sqlPartKeyValues.append("date ");
-            else
+          case NA_CHARACTER_TYPE:
+            if (token.contains("'"))
               {
-                CMPASSERT(dtt->getSubtype() == DatetimeType::SUBTYPE_SQLTimestamp);
-                sqlPartKeyValues.append("timestamp ");
+                reportError(
+                     partNum,
+                     c,
+                     naTable,
+                     hiveVals,
+                     "Partitioning column value containing a quote");
+                return FALSE;
               }
 
+            // surround the value with quotes, Hive does not
+            // use quotes for character constants in partitions
             sqlPartKeyValues.append("'");
             sqlPartKeyValues.append(token);
             sqlPartKeyValues.append("'");
-          }
-          break;
+            break;
 
-        default:
-          // For now we only support characters and strings
-          // as Hive partition columns
-          reportError(partNum, c, naTable, hiveVals,
-                      "Unsupported type for partition column");
-          return FALSE;
-        }
+          case NA_NUMERIC_TYPE:
+            // just copy the value unchanged
+            sqlPartKeyValues.append(token);
+            break;
+
+          case NA_DATETIME_TYPE:
+            {
+              // surround the value by quotes and prefix it
+              // with date or timestamp (2000-01-01 becomes
+              // date '2000-01-01')
+              const DatetimeType *dtt =
+                static_cast<const DatetimeType *>(colType);
+
+              if (dtt->getSubtype() == DatetimeType::SUBTYPE_SQLDate)
+                sqlPartKeyValues.append("date ");
+              else
+                {
+                  CMPASSERT(dtt->getSubtype() == DatetimeType::SUBTYPE_SQLTimestamp);
+                  sqlPartKeyValues.append("timestamp ");
+                }
+
+              sqlPartKeyValues.append("'");
+              sqlPartKeyValues.append(token);
+              sqlPartKeyValues.append("'");
+            }
+            break;
+
+          default:
+            // For now we only support characters and strings
+            // as Hive partition columns
+            reportError(partNum, c, naTable, hiveVals,
+                        "Unsupported type for partition column");
+            return FALSE;
+          }
 
       startPos = endPos+1;
     }
   return TRUE;
 }
 
-NABoolean HivePartitionAndBucketKey::computePartitionPredicates(
+NABoolean HivePartitionAndBucketKey::computePartAndVirtColPredicates(
      const GroupAttributes *ga,
      ValueIdSet &selectionPredicates)
 {
@@ -2776,11 +2785,11 @@ NABoolean HivePartitionAndBucketKey::computePartitionPredicates(
 
       DCMPASSERT(compileTimePartColPreds_.isEmpty());
       DCMPASSERT(partAndVirtColPreds_.isEmpty());
-      compileTimePartColPreds_ = selectionPredicates;
+      partAndVirtColPreds_ = selectionPredicates;
 
-      for (ValueId p=compileTimePartColPreds_.init();
-           compileTimePartColPreds_.next(p);
-           compileTimePartColPreds_.advance(p))
+      for (ValueId p=partAndVirtColPreds_.init();
+           partAndVirtColPreds_.next(p);
+           partAndVirtColPreds_.advance(p))
         {
           if (p.getItemExpr()->getOperatorType() == ITM_VEG_PREDICATE)
             {
@@ -2791,8 +2800,9 @@ NABoolean HivePartitionAndBucketKey::computePartitionPredicates(
               ValueId vegRef= static_cast<VEGPredicate *>(
                    p.getItemExpr())->getVEG()->getVEGReference()->getValueId();
 
-              if (!hivePartColList_.contains(vegRef))
-                compileTimePartColPreds_ -= p;
+              if (!hivePartColList_.contains(vegRef) &&
+                  !hiveVirtFileColList_.contains(vegRef))
+                partAndVirtColPreds_ -= p;
             }
         }
 
@@ -2800,8 +2810,8 @@ NABoolean HivePartitionAndBucketKey::computePartitionPredicates(
       // computed from the partitioning columns at compile time
       // (i.e. without relying on characteristic inputs), save these
       // removed preds for the next step
-      partAndVirtColPreds_ = compileTimePartColPreds_;
-      compileTimePartColPreds_.removeUnCoveredExprs(availableValues);
+      compileTimePartColPreds_ = partAndVirtColPreds_;
+      compileTimePartColPreds_.removeUnCoveredExprs(availableValues/*part cols*/);
 
       // a VEGPred(partcol, <other values>) will still be in
       // compileTimePartColPreds_, but we can only evaluate it at
@@ -2853,12 +2863,11 @@ NABoolean HivePartitionAndBucketKey::computePartitionPredicates(
 
 int HivePartitionAndBucketKey::computeActivePartitions()
 {
-  if (hivePartColList_.isEmpty())
-    return 1;
-  else
+  Int32 originalNumPartns = selectedPartitions_.entries();
+  Int32 result = originalNumPartns;
+  if (!hivePartColList_.isEmpty())
     {
       Parser p(CmpCommon::context());
-      int result = selectedPartitions_.entries();
 
       // loop over selected partitions so far (usually will be all the partitions)
       for (CollIndex p=0;
@@ -2942,8 +2951,10 @@ int HivePartitionAndBucketKey::computeActivePartitions()
             }
         } // loop over list partitions
 
-      return result;
-    } // table is partitioned
+    }
+    partitionEliminatedCT_ = (result < originalNumPartns);
+
+    return result;
 }
 
 void HivePartitionAndBucketKey::reportError(int part,
@@ -2952,7 +2963,7 @@ void HivePartitionAndBucketKey::reportError(int part,
                                             const char *partColVals,
                                             const char *details)
 {
-  *CmpCommon::diags() << DgSqlCode(-4226)
+  *CmpCommon::diags() << DgSqlCode(-4227)
                       << DgTableName(naTable->getTableName().getQualifiedNameAsAnsiString())
                       << DgInt0(part)
                       << DgInt1(col)
@@ -3555,7 +3566,8 @@ void HivePartitionAndBucketKey::replaceVEGExpressions(const ValueIdSet & availab
        availableValues.next(v);
        availableValues.advance(v))
     {
-      if (v.getItemExpr()->getOperatorType() == ITM_INDEXCOLUMN)
+      if (!inputValues.contains(v) &&
+          v.getItemExpr()->getOperatorType() == ITM_INDEXCOLUMN)
         {
           NAColumn *nac =
             static_cast<IndexColumn *>(v.getItemExpr())->getNAColumn();
@@ -3583,3 +3595,15 @@ CompareHiveFileIterator::operator()(HiveFileIterator& t1, HiveFileIterator& t2)
    // return TRUE iff t1's total size is less than t2's. 
    return (t1.getFileStats()->getTotalSize() < t2.getFileStats()->getTotalSize());
 }
+
+Int64 HivePartitionAndBucketKey::getRowcountInSelectedPartitionsCT()
+{
+  Int64 rc = 0.0;
+  for (CollIndex i=0; selectedPartitions_.nextUsed(i); i++)
+  {
+      HHDFSListPartitionStats *lps = selectedPartitions_.element(i);
+      rc += lps->getTotalRows();
+  }
+  return rc;
+}
+

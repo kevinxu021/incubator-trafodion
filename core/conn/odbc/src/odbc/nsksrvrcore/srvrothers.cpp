@@ -4506,24 +4506,21 @@ odbc_SQLSvc_GetSQLCatalogs_sme_(
                        }
                        break;
                 case SQL_API_SQLGETTYPEINFO :
-                case SQL_API_SQLGETTYPEINFO_JDBC :
                      {
-                         SQLSMALLINT SqlTypeCode_Date;
-                         SQLSMALLINT SqlTypeCode_Time;
-                         SQLSMALLINT SqlTypeCode_TimeStamp;
                          char condExpression[20] = {0};
                         
-                         if(APIType == SQL_API_SQLGETTYPEINFO_JDBC)
-                         {
-                             SqlTypeCode_Date = 91;
-                             SqlTypeCode_Time = 92;
-                             SqlTypeCode_TimeStamp = 93;
-                         }
-                         else
-                         {
-                             SqlTypeCode_Date = SQL_DATE;
-                             SqlTypeCode_Time = SQL_TIME;
-                             SqlTypeCode_TimeStamp = SQL_TIMESTAMP;
+                         switch(sqlType) {
+                             case SQL_DATE:
+                                 sqlType == SQL_TYPE_DATE;
+                                 break;
+                             case SQL_TIME:
+                                 sqlType == SQL_TYPE_TIME;
+                                 break;
+                             case SQL_TIMESTAMP:
+                                 sqlType == SQL_TYPE_TIMESTAMP;
+                                 break;
+                             default:
+                                 break;
                          }
 
                          if(sqlType == SQL_ALL_TYPES)
@@ -4559,7 +4556,7 @@ odbc_SQLSvc_GetSQLCatalogs_sme_(
                                  "cast(0 as smallint), cast(0 as smallint), cast(3 as smallint), cast(0 as smallint)),"
                                  "('BIGINT SIGNED', -5, 19, NULL, NULL, NULL, 1, 0, 2, 0, 0, 0, 'LARGEINT', NULL, NULL, 'SIGNED LARGEINT', 10, 19, 20, -402, NULL, NULL, 0, 0, 3, 0),"
                                  "('CHAR', 1, 32000, '''', '''', 'max length', 1, 1, 3, NULL, 0, NULL, 'CHARACTER', NULL, NULL, 'CHARACTER', NULL, -1, -1, 1, NULL, NULL, 0, 0, 3, 0),"
-                                 "('DATE', %d, 10, '{d ''', '''}', NULL, 1, 0, 2, NULL, 0, NULL, 'DATE', NULL, NULL, 'DATE', NULL, 10, 6, 9, 1, NULL, 1, 3, 3, 0),"
+                                 "('DATE', 91, 10, '{d ''', '''}', NULL, 1, 0, 2, NULL, 0, NULL, 'DATE', NULL, NULL, 'DATE', NULL, 10, 6, 9, 1, NULL, 1, 3, 3, 0),"
                                  "('DECIMAL', 3, 18, NULL, NULL, 'precision,scale', 1, 0, 2, 0, 0, 0, 'DECIMAL', 0, 18, 'DECIMAL', 10, -2, -3, 3, NULL, NULL, 0, 0, 3, 0),"
                                  "('DECIMAL SIGNED', 3, 18, NULL, NULL, 'precision,scale', 1, 0, 2, 0, 0, 0, 'DECIMAL', 0, 18, 'SIGNED DECIMAL', 10, -2, -3, 3, NULL, NULL, 0, 0, 3, 0),"
                                  "('DECIMAL UNSIGNED', 3, 18, NULL, NULL, 'precision,scale', 1, 0, 2, 1, 0, 0, 'DECIMAL', 0, 18, 'UNSIGNED DECIMAL', 10, -2, -3, -301, NULL, NULL, 0, 0, 3, 0),"
@@ -4589,16 +4586,16 @@ odbc_SQLSvc_GetSQLCatalogs_sme_(
                                  "('SMALLINT', 5, 5, NULL, NULL, NULL, 1, 0, 2, 0, 0, 0, 'SMALLINT', NULL, NULL, 'SMALLINT', 10, 5, -1, 5, NULL, NULL, 0, 0, 3, 0),"
                                  "('SMALLINT SIGNED', 5, 5, NULL, NULL, NULL, 1, 0, 2, 0, 0, 0, 'SMALLINT', NULL, NULL, 'SIGNED SMALLINT', 10, 5, -1, 5, NULL, NULL, 0, 0, 3, 0),"
                                  "('SMALLINT UNSIGNED', 5, 5, NULL, NULL, NULL, 1, 0, 2, 1, 0, 0, 'SMALLINT', NULL, NULL, 'UNSIGNED SMALLINT', 10, 5, -1, -502, NULL, NULL, 0, 0, 3, 0),"
-                                 "('TIME', %d, 8, '{t ''', '''}', NULL, 1, 0, 2, NULL, 0, NULL, 'TIME', NULL, NULL, 'TIME', NULL, 8, 6, 9, 2, NULL, 4, 6, 3, 0),"
-                                 "('TIMESTAMP', %d, 26, '{ts ''', '''}', NULL, 1, 0, 2, NULL, 0, NULL, 'TIMESTAMP', 0, 6, 'TIMESTAMP', NULL, 19, 16, 9, 3, NULL, 1, 6, 3, 0),"
+                                 "('TIME', 92, 8, '{t ''', '''}', NULL, 1, 0, 2, NULL, 0, NULL, 'TIME', NULL, NULL, 'TIME', NULL, 8, 6, 9, 2, NULL, 4, 6, 3, 0),"
+                                 "('TIMESTAMP', 93, 26, '{ts ''', '''}', NULL, 1, 0, 2, NULL, 0, NULL, 'TIMESTAMP', 0, 6, 'TIMESTAMP', NULL, 19, 16, 9, 3, NULL, 1, 6, 3, 0),"
                                  "('VARCHAR', 12, 32000, '''', '''', 'max length', 1, 1, 3, NULL, 0, NULL, 'VARCHAR', NULL, NULL, 'VARCHAR', NULL, -1, -1, 12, NULL, NULL, 0, 0, 3, 0)"
                                  " ) "
                                  " dt(\"TYPE_NAME\", \"DATA_TYPE\", \"PREC\", \"LITERAL_PREFIX\", \"LITERAL_SUFFIX\", \"CREATE_PARAMS\", \"IS_NULLABLE\", \"CASE_SENSITIVE\", \"SEARCHABLE\","
                                  "\"UNSIGNED_ATTRIBUTE\", \"FIXED_PREC_SCALE\", \"AUTO_UNIQUE_VALUE\", \"LOCAL_TYPE_NAME\", \"MINIMUM_SCALE\", \"MAXIMUM_SCALE\", \"SQL_TYPE_NAME\","
                                  "\"NUM_PREC_RADIX\", \"USEPRECISION\", \"USELENGTH\", \"SQL_DATA_TYPE\", \"SQL_DATETIME_SUB\", \"INTERVAL_PRECISION\", \"DATETIMESTARTFIELD\","
-                               "\"DATETIMEENDFIELD\", \"APPLICATION_VERSION\", \"TRANSLATION_ID\")"
-                               " WHERE %s" 
-                               " ORDER BY 2,1 FOR READ UNCOMMITTED ACCESS ;", SqlTypeCode_Date, SqlTypeCode_Time, SqlTypeCode_TimeStamp, condExpression);
+                                 "\"DATETIMEENDFIELD\", \"APPLICATION_VERSION\", \"TRANSLATION_ID\")"
+                                 " WHERE %s" 
+                                 " ORDER BY 2,1 FOR READ UNCOMMITTED ACCESS ;", condExpression);
                            break;
                      }
 
@@ -5040,7 +5037,7 @@ odbc_SQLSvc_GetSQLCatalogs_sme_(
             convertWildcard(metadataId, TRUE, schemaNm, expSchemaNm);
             convertWildcardNoEsc(metadataId, TRUE, schemaNm, schemaNmNoEsc);
             convertWildcard(metadataId, TRUE, tableNm, expTableNm);
-            convertWildcardNoEsc(metadataId, TRUE, tableNmNoEsc, tableNmNoEsc);
+            convertWildcardNoEsc(metadataId, TRUE, tableNm, tableNmNoEsc);
             inputParam[0] = schemaNmNoEsc;
             inputParam[1] = expSchemaNm;
             inputParam[2] = tableNmNoEsc;
@@ -5051,16 +5048,16 @@ odbc_SQLSvc_GetSQLCatalogs_sme_(
                     "cast('%s' as varchar(128)) TABLE_CAT, "
                     "cast(trim(ob.SCHEMA_NAME) as varchar(128)) TABLE_SCHEM, "
                     "cast(trim(ob.OBJECT_NAME) as varchar(128)) TABLE_NAME, "
-                    "cast(0 as smallint) NON_UNIQUE, " // not support
-                    "cast('' as varchar(128)) INDEX_QUALIFIER, " // not support
-                    "cast('' as varchar(128)) INDEX_NAME, "
-                    "cast(0 as smallint) TYPE, " // not support
-                    "cast(co.column_number as smallint) ORDINAL_POSITION, "
+                    "cast(NULL as smallint) NON_UNIQUE, " // return NULL if TYPE is SQL_TABLE_STAT
+                    "cast(NULL as varchar(128)) INDEX_QUALIFIER, " // return NULL if TYPE is SQL_TABLE_STAT
+                    "cast(NULL as varchar(128)) INDEX_NAME, " // return NULL if TYPE is SQL_TABLE_STAT
+                    "cast(0 as smallint) TYPE, " // TYPE is SQL_TABLE_STAT
+                    "cast(NULL as smallint) ORDINAL_POSITION, " // return NULL if TYPE is SQL_TABLE_STAT
                     "cast(trim(co.COLUMN_NAME) as varchar(128)) COLUMN_NAME, "
-                    "cast('' as char(1)) ASC_OR_DES, "
-                    "cast(sb.rowcount as integer) CARDINALITY, "
-                    "cast(0 as integer) PAGES, " // not support
-                    "cast('' as varchar(128)) FILTER_CONDITION " // not support
+                    "cast(NULL as char(1)) ASC_OR_DESC, " // return NULL if TYPE is SQL_TABLE_STAT
+                    "cast(sb.rowcount as integer) CARDINALITY, " // number of rows
+                    "cast(NULL as integer) PAGES, " // not support
+                    "cast(NULL as varchar(128)) FILTER_CONDITION " // not support
                     "from "
                     "TRAFODION.\"_MD_\".OBJECTS ob, "
                     "TRAFODION.\"_MD_\".COLUMNS co, "
@@ -5073,11 +5070,44 @@ odbc_SQLSvc_GetSQLCatalogs_sme_(
                     "and (ob.SCHEMA_NAME = '%s' or trim(ob.SCHEMA_NAME) LIKE '%s' ESCAPE '\\')  "
                     "and (ob.OBJECT_NAME = '%s' or trim(ob.OBJECT_NAME) LIKE '%s' ESCAPE '\\') "
                     "and (ob.OBJECT_TYPE in ('BT', 'VI')) "
-                    "and (trim(co.COLUMN_CLASS) not in('S', 'M'));",
+                    "and (trim(co.COLUMN_CLASS) not in('S', 'M')) "
+                    "union "
+                    "select "
+                    "cast('%s' as varchar(128)) TABLE_CAT, "
+                    "cast(trim(ob_table.SCHEMA_NAME) as varchar(128)) TABLE_SCHEM, "
+                    "cast(trim(ob_table.OBJECT_NAME) as varchar(128)) TABLE_NAME, "
+                    "cast(idx.is_unique as smallint) NON_UNIQUE, "
+                    "cast(NULL as varchar(128)) INDEX_QUALIFIER, " // not support
+                    "cast(trim(ob.OBJECT_NAME) as varchar(128)) INDEX_NAME, "
+                    "cast(3 as smallint) TYPE, " // SQL_INDEX_OTHER
+                    "cast(0 as smallint) ORDINAL_POSITION, "
+                    "cast('' as varchar(128)) COLUMN_NAME, " // return an empty string if the expression cannot be determined.
+                    "cast(NULL as char(1)) ASC_OR_DESC, " // not subsequent
+                    "cast(NULL as integer) CARDINALITY, "
+                    "cast(NULL as integer) PAGES, "
+                    "cast(NULL as varchar(128)) FILTER_CONDITION "
+                    "from "
+                    "TRAFODION.\"_MD_\".OBJECTS ob, "
+                    "TRAFODION.\"_MD_\".INDEXES idx, "
+                    "TRAFODION.\"_MD_\".OBJECTS ob_table, "
+                    "TRAFODION.\"_MD_\".TABLES tb "
+                    "where "
+                    "idx.BASE_TABLE_UID=tb.TABLE_UID "
+                    "and idx.INDEX_UID=ob.OBJECT_UID "
+                    "and idx.BASE_TABLE_UID=ob_table.OBJECT_UID "
+                    "and (ob_table.SCHEMA_NAME = '%s' or trim(ob_table.SCHEMA_NAME) LIKE '%s' ESCAPE '\\') "
+                    "and (ob_table.OBJECT_NAME = '%s' or trim(ob_table.OBJECT_NAME) LIKE '%s' ESCAPE '\\') "
+                    "and (ob_table.OBJECT_TYPE in ('BT', 'VI')) "
+                    "%s "
+                    "ORDER BY 1, 2, 3, 7, 9, 6 ;",
                     tableParam[0],
                     inputParam[0],
                     inputParam[0], inputParam[1],
-                    inputParam[2], inputParam[3]
+                    inputParam[2], inputParam[3],
+                    tableParam[0],
+                    inputParam[0], inputParam[1],
+                    inputParam[2], inputParam[3],
+                    uniqueness == 1 ? "" : "and idx.is_unique=1"
                     );
 
             break;
@@ -5106,6 +5136,7 @@ odbc_SQLSvc_GetSQLCatalogs_sme_(
            {
               // Temporary solution - bypass checks on metadata tables
               unsigned int savedParserFlags = 0;
+
 
               SQL_EXEC_GetParserFlagsForExSqlComp_Internal(savedParserFlags);
 

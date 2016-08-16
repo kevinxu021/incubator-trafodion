@@ -92,7 +92,7 @@ struct hive_skey_desc
 {
    char* name_;
    Int32 idx_;
-   Int32 orderInt_;
+   Int32 orderInt_; // 1 for ASC, 0 for DESC
 
    struct hive_skey_desc* next_;
 

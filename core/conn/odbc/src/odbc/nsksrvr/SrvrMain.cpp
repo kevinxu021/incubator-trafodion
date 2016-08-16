@@ -89,6 +89,8 @@ int portBindToSecs = -1;
 bool bPlanEnabled = false;
 bool bPublishStatsToTSDB = false;
 char tsdurl[256];
+int exitSessionsCount = -1;
+int exitLiveTime = -1;
 
 void watcher(zhandle_t *zzh, int type, int state, const char *path, void *watcherCtx);
 bool verifyPortAvailable(const char * idForPort, int portNumber);
@@ -285,8 +287,8 @@ catch(SB_Fatal_Excep sbfe)
 //LCOV_EXCL_STOP
 
 	char zkErrStr[2048];
-	stringstream zk_ip_port;
-	if( zkHost[0] == '\x0' && regZnodeName[0] == '\x0' )
+        stringstream zk_ip_port;
+        if( zkHost[0] == '\x0' && regZnodeName[0] == '\x0' )
 	{
 		sprintf(zkErrStr, "***** Cannot get Zookeeper properties or registered znode info from startup params");
 		SendEventMsg(  MSG_SET_SRVR_CONTEXT_FAILED,
@@ -1077,7 +1079,7 @@ BOOL getInitParamSrvr(int argc, char *argv[], SRVR_INIT_PARAM_Def &initParam, ch
 
 	memset(initParam.neoODBC,0,sizeof(initParam.neoODBC));
 
-	while ( count < argc)
+        while ( count < argc)
 	{
 		if( (arg = (char*)realloc( arg, strlen( argv[count]) + 1) ) == NULL)
 		{
@@ -1459,6 +1461,32 @@ BOOL getInitParamSrvr(int argc, char *argv[], SRVR_INIT_PARAM_Def &initParam, ch
 				break;
 			}
 		}
+                else
+                if (strcmp(arg, "-EXITSESSIONSCOUNT") == 0)
+                {
+                        if (++count < argc )
+                        {
+                                exitSessionsCount = atoi(argv[count]);                             
+                        }
+                        else
+                        {
+                                argEmpty = TRUE;
+                                break;
+                        }
+                }
+                else
+                if (strcmp(arg, "-EXITLIVETIME") == 0)
+                {
+                        if (++count < argc )
+                        {
+                                exitLiveTime = atoi(argv[count]);                             
+                        }
+                        else
+                        {
+                                argEmpty = TRUE;
+                                break;
+                        }
+                }
 		count++;
 	}
 

@@ -20,9 +20,7 @@
 // @@@ END COPYRIGHT @@@
 package org.trafodion.ci;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.sql.SQLException;
 
 public class ScriptsInterface
@@ -56,6 +54,17 @@ public class ScriptsInterface
       String portNumber,
       String dsnName) throws IOException, SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException
    {
+      openConnection( userName, password, roleName, serverName, portNumber, dsnName, 0);
+   }
+
+   public void openConnection(String userName,
+      String password,
+      String roleName,
+      String serverName,
+      String portNumber,
+      String dsnName,
+      int caller) throws IOException, SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException
+   {
 
       //System.setOut(new PrintStream(new BufferedOutputStream(new FileOutputStream("c:\\output.dat"))));
       cwObj=new ConsoleWriter();
@@ -86,7 +95,7 @@ public class ScriptsInterface
          serverName,
          portNumber,
          dsnName,
-         0);
+         caller);
   } finally {
 		  cwObj.setConsoleOut(true);
 	  }
@@ -148,6 +157,12 @@ public class ScriptsInterface
    // This will support multiple connections
    //     System.exit(0); 
    }
+
+	public void interrupt() {
+		if (sessObj != null) {
+			sessObj.setQueryInterrupted(true);
+		}
+	}
 
 
 }

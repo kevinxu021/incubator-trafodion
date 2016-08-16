@@ -525,6 +525,14 @@ ExWorkProcRetcode ExOrcScanTcb::work()
 	    if (hdfsStats_)
 	      hdfsStats_->incAccessedRows();
 	    
+            if (virtColData_)
+            {
+              // for ORC, we don't have actual offsets inside the file or
+              // block, just increment the offset by 1 for every row
+              virtColData_->block_offset_inside_file++;
+              virtColData_->row_number_in_range++;
+            }
+
 	    bool rowWillBeSelected = true;
 	    if (selectPred())
 	      {

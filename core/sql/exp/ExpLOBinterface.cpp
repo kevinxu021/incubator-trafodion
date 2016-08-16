@@ -887,7 +887,8 @@ Lng32 ExpLOBInterfaceSelectCursor(void * exLobGlob,
 				  char * lobData,
 				  ExpCompressionWA * compressionWA,
 				  Lng32 oper, // 1: open. 2: fetch. 3: close
-                                  Lng32 openType // 0: not applicable. 1: preOpen. 2: mustOpen.
+                                  Lng32 openType, // 0: not applicable. 1: preOpen. 2: mustOpen.
+                                  Int32 *hdfsDetailError
 				  )
 {
   Ex_Lob_Error err;
@@ -945,7 +946,7 @@ Lng32 ExpLOBInterfaceSelectCursor(void * exLobGlob,
                    waitedOp,
 		   exLobGlob,
 		   0,
-		   NULL, 0,
+		   hdfsDetailError, 0,
 		   compressionWA,
 		   0,0,0,0,0,0,
                    openType

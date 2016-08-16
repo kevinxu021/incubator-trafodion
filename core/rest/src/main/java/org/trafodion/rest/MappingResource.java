@@ -230,14 +230,28 @@ public class MappingResource extends ResourceBase {
                     sdata = sdata + ";" + Constants.LAST_UPDATE + "=" + Long.toString(System.currentTimeMillis());
                 if (orderNumber == false)
                     sdata = sdata + ";" + Constants.ORDER_NUMBER + "=" + Constants.DEFAULT_ORDER_NUMBER;
-                status = servlet.postWmsMapping(key, sdata);
+                result = servlet.postWmsMapping(key, sdata);
             }
-            if (status == Response.Status.CREATED)
-                result = "201 Created.";
+
+            if (result.startsWith("200")){
+                status = Response.Status.OK;
+            }
+            else if (result.startsWith("201")){
+                status = Response.Status.CREATED;
+            }
+            else if (result.startsWith("304")){
+                status = Response.Status.NOT_MODIFIED;
+            }
+            else if (result.startsWith("406")){
+                status = Response.Status.NOT_ACCEPTABLE;
+            }
+            result = result.substring(4);
+            if (status != Response.Status.OK && status != Response.Status.CREATED)
+              return Response.serverError().entity(result).build();
+
             return Response.status(status).type(MIMETYPE_TEXT).entity(result).build();
         } catch (Exception e) {
             e.printStackTrace();
-
             return Response.status(Response.Status.SERVICE_UNAVAILABLE)
                     .type(MIMETYPE_TEXT).entity("Unavailable" + CRLF)
                     .build();

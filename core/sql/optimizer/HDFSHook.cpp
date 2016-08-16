@@ -2000,3 +2000,9 @@ OsimHHDFSStatsBase* HHDFSORCFileStats::osimSnapShot()
     return stats;
 }
 
+Lng32 HHDFSTableStats::getAvgStringLengthPerRow()
+{
+   Int64 estimatedRC = getTotalRows();
+   Int64 totalStringLengths = getTotalStringLengths();
+   return (estimatedRC > 0) ? Lng32(totalStringLengths / estimatedRC) : 0;
+}

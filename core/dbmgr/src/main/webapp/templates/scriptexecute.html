@@ -1,0 +1,68 @@
+<div id="page-wrapper">
+	<div class="row">
+		<div class="col-md-12">
+			<h3 class="page-header">Execute SQL Script</h3>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-md-12">
+			<div class="panel panel-default">
+				<div class="panel-heading">Input Script</div>
+				<div class="panel-body">
+					<div class="form-group">
+						<label class="control-label">SQL Script File </label>
+						<div class="input-group" style="width: 600px;">
+							<input id="source_file_name" name="source_file_name" type="text"
+								class="form-control input-sm"
+								placeholder="Use the browse button and select a SQL source file..."
+								readonly="readonly" style="background-color: white" />
+							<div class="input-group-btn ">
+								<a class='btn btn-primary glyphicon glyphicon-search input-sm'
+									href='javascript:;' style="top: 0; padding-top: 7px;"
+									tabindex="-1"> <input id="src_file" type="file" accept=".sql, .txt, .ddl"
+									tabindex="-1"
+									style="width: 50px; position: absolute; z-index: 2; top: 0; left: 0; opacity: 0; background-color: transparent; color: transparent;"
+									name="file_source">
+								</a>
+							</div>
+						</div>
+					</div>
+					<div id="script-query" class="form-group">
+						<label>SQL Text</label>
+						<textarea id="script-query-text" name="TextMessage"
+							spellcheck="false" placeholder="Enter the source SQL text..."
+							rows="20" class="textarea"
+							style="width: 95%; margin-bottom: 10px"></textarea>
+						<br>
+						<button id="executeBtn"
+							class="btn btn-primary dbmgr-button fa  fa-play"
+							style="font-family: FontAwesome;"> Execute</button>
+						<button id="clearBtn"
+							class="btn btn-default dbmgr-button fa fa-eraser"
+							style="font-family: FontAwesome;"> Clear</button>
+						<img id="loadingImg" src="img/ajax-loader.gif" />
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		<div class="col-md-12">
+			<div class="panel panel-default">
+				<div class="panel-heading">Result</div>
+				<div class="panel-body">
+					<div class="form-group">
+						<div id="exec-result-container">
+							<textarea id="exec-result"
+								style="width: 100%; height: 200px; font-size:12px;font-family: Courier New, Courier, monospace;color:black"
+								readonly></textarea>
+						</div>
+						<br> <br>
+						<button id="saveBtn"
+							class="btn btn-primary dbmgr-button fa fa-save"
+							style="font-family: FontAwesome;"> Save</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

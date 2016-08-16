@@ -58,9 +58,8 @@ import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HConnectionManager;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.client.Durability;
@@ -101,7 +100,7 @@ public class STRConfig {
 
     private static boolean                     sb_replicate = false;
     private static Map<Integer, Configuration> peer_configs;
-    private static Map<Integer, HConnection>   peer_connections;
+    private static Map<Integer, Connection>    peer_connections;
     private static Map<Integer, PeerInfo>      peer_info_list;
     private static HBaseDCZK                   sv_dc_zk;
     private static String                      sv_my_cluster_id;
@@ -120,7 +119,7 @@ public class STRConfig {
 	if (LOG.isTraceEnabled()) LOG.trace("Added config info in the peer_configs map for cluster id: " + pv_peer_num);
 
 	try {
-	    HConnection lv_connection = HConnectionManager.createConnection(pv_config);
+	    Connection lv_connection = ConnectionFactory.createConnection(pv_config);
 	    if (LOG.isTraceEnabled()) LOG.trace("Created connection for peer: " + pv_peer_num
 						+ " connection: " + lv_connection);
 	    peer_connections.put(pv_peer_num, lv_connection);
@@ -169,7 +168,7 @@ public class STRConfig {
 	pv_config.setInt("hbase.client.retries.number", 3);
 
 	peer_configs = new HashMap<Integer, Configuration>();
-	peer_connections = new HashMap<Integer, HConnection>();
+	peer_connections = new HashMap<Integer, Connection>();
 
 	sv_dc_zk = new HBaseDCZK(pv_config);
 	peer_info_list = sv_dc_zk.list_clusters();
@@ -311,12 +310,12 @@ public class STRConfig {
 	return peer_configs;
     }
 
-    public HConnection getPeerConnection(int pv_peer_id) 
+    public Connection getPeerConnection(int pv_peer_id) 
     {
 	return peer_connections.get(pv_peer_id);
     }
 
-    public Map<Integer, HConnection> getPeerConnections() 
+    public Map<Integer, Connection> getPeerConnections() 
     {
 	return peer_connections;
     }

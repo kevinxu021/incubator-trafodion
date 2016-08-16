@@ -450,3 +450,8 @@ NABoolean EstLogProp::operator == (const EstLogProp & other) const
   else
     return FALSE;
 }
+
+void EstLogProp::display() const
+{
+   print();
+}

@@ -188,7 +188,7 @@
 *** ERROR[11246] An error occurred locating function or class 'SESSIONIZE_NON_EXISTENT' in library 'TEST001.dll'.
 
 *** ERROR[11248] A call to dlsym returned errors 0 and 0. Details: 
-/mnt2/ssubbiah/traf-plus/core/sqf/rundir/udr/TEST001.dll: undefined symbol: SESSIONIZE_NON_EXISTENT.
+/mnt2/ansharma/ansharma_bool/incubator-trafodion/core/sqf/rundir/udr/TEST001.dll: undefined symbol: SESSIONIZE_NON_EXISTENT.
 
 --- SQL operation failed with errors.
 >>-- For now this will succeed, since we don't load the library during
@@ -462,6 +462,22 @@ SESSION_ID            SEQUENCE_NO           USERID                            TS
                    1                     1  super-user                          212335466399500000  12.345.567.345 
 
 --- 1 row(s) selected.
+>>
+>>-- will fail until tinyint support is added for spj/procedures
+>>cqd traf_tinyint_spj_support 'ON';
+
+--- SQL operation complete.
+>>select *
++>from UDF(fibonacci(1,10)) XO
++>order by 1;
+
+*** ERROR[11151] Unable to use 'type' 'NUMERIC(1) SIGNED NO NULLS' in a user-defined routine. Details: Tinyint datatype not yet supported.
+
+*** ERROR[8822] The statement was not prepared.
+
+>>cqd traf_tinyint_spj_support reset;
+
+--- SQL operation complete.
 >>
 >>select *
 +>from UDF(fibonacci(1,10)) XO

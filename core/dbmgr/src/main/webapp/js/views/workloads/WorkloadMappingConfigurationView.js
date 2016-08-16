@@ -48,6 +48,7 @@ define([
 	MAPPING_CLIENT_IP = '#mapping_client_ip',
 	MAPPING_CLIENT_HOST = '#mapping_client_host',
 	MAPPING_SLA = '#mapping_sla',
+	MAPPING_STATE = '#mapping_state',
 	MAPPING_SEQ_NO = '#mapping_seq_no',
 	MAPPING_APPLY_BTN = "#mappingApplyButton",
 	MAPPING_RESET_BTN = "#mappingResetButton",
@@ -85,12 +86,20 @@ define([
 			$(MAPPING_RESET_BTN).on('click', this.mappingResetBtnClicked);
 
 			$.validator.addMethod("alphanumeric", function(value, element) {
+				if(mappingDialogParams.type && mappingDialogParams.type == 'alter')
+					return true; // For alter we don't allow editing the name,so no check needed
+				
 				return this.optional(element) || /^\w+$/i.test(value);
 			}, "Only alphanumeric characters and underscores are allowed");
+			
+			$.validator.addMethod("wms_ordernumber", function(value, element) {
+				return value > 0 && value <= 98;
+			}, "Order number has to between 1 and 98");
 
 			mappingFormValidator = $(MAPPING_FORM).validate({
 				rules: {
-					"mapping_name": { required: true, alphanumeric: true}
+					"mapping_name": { required: true, alphanumeric: true},
+					"mapping_seq_no": { required: true, digits: true, wms_ordernumber: true}
 				},
 				highlight: function(element) {
 					$(element).closest('.form-group').addClass('has-error');
@@ -190,8 +199,14 @@ define([
 			if(mappingDialogParams != null){
 				if(mappingDialogParams.type && mappingDialogParams.type == 'add'){
 					$(MAPPING_NAME).attr('disabled', false);
+					$('#mapping-form input, select').prop('disabled', false);
+					$(MAPPING_APPLY_BTN).attr('disabled', false);
+					$(MAPPING_RESET_BTN).attr('disabled', false);
+					
 					$(MAPPING_DIALOG_TITLE).text('Add Mapping');
 					$(MAPPING_NAME).val("");
+					var state = mappingDialogParams.data["isActive"];
+					$(MAPPING_STATE).val(state != null ? state.toLowerCase() : "");
 
 					$(MAPPING_USER).val(mappingDialogParams.data["userName"]);
 					$(MAPPING_APPLICATION).val(mappingDialogParams.data["applicationName"]);
@@ -200,12 +215,23 @@ define([
 					$(MAPPING_CLIENT_IP).val(mappingDialogParams.data["clientIpAddress"]);
 					$(MAPPING_CLIENT_HOST).val(mappingDialogParams.data["clientHostName"]);
 					$(MAPPING_SLA).val(mappingDialogParams.data["sla"]);
-					$(MAPPING_SEQ_NO).val(mappingDialogParams.data["orderNumber"]);					
+					$(MAPPING_SEQ_NO).val("");					
 				}
 				if(mappingDialogParams.type && mappingDialogParams.type == 'alter'){
+					if(mappingDialogParams.data["isDefault"] == 'yes'){
+						$('#mapping-form input, select').prop('disabled', true);
+						$(MAPPING_APPLY_BTN).attr('disabled', true);
+						$(MAPPING_RESET_BTN).attr('disabled', true);
+					}else{
+						$('#mapping-form input, select').prop('disabled', false);
+						$(MAPPING_APPLY_BTN).attr('disabled', false);
+						$(MAPPING_RESET_BTN).attr('disabled', false);
+					}					
 					$(MAPPING_DIALOG_TITLE).text('Alter Mapping');
 					$(MAPPING_NAME).attr('disabled', true);
-					$(MAPPING_NAME).val(mappingDialogParams.data["Mapping Name"]);
+					$(MAPPING_NAME).val(mappingDialogParams.data["name"]);
+					var state = mappingDialogParams.data["isActive"];
+					$(MAPPING_STATE).val(state != null ? state.toLowerCase() : "");
 
 					$(MAPPING_USER).val(mappingDialogParams.data["userName"]);
 					$(MAPPING_APPLICATION).val(mappingDialogParams.data["applicationName"]);
@@ -239,15 +265,29 @@ define([
 
 				dataTableColNames = [];
 				var updateTimeColIndex = -1;
+				var isDefColIndex = -1;
+				var stateColIndex = -1;
+				var orderNumColIndex = -1;
+				
 				// add needed columns
 				$.each(keys, function(k, v) {
 					var obj = new Object();
 					obj.title = common.UpperCaseFirst(v);
-					if(v == 'Mapping Name'){
+					if(v == 'name'){
 						mappingNameColIndex = k;
 					}
 					if(v == 'lastUpdate'){
 						updateTimeColIndex = k;
+						obj.title = 'Last Update Time';
+					}
+					if(v == 'isDefault'){
+						isDefColIndex = k;
+					}
+					if(v == 'isActive'){
+						stateColIndex = k;
+					}
+					if(v == 'orderNumber'){
+						orderNumColIndex = k;
 					}
 					aoColumns.push(obj);
 					dataTableColNames.push(v);
@@ -278,12 +318,21 @@ define([
 						}
 					});
 				}
+				if(orderNumColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ orderNumColIndex ],
+						"mData": orderNumColIndex,
+						"className" : "dt-body-right"
+					});
+					
+				}
 				if(updateTimeColIndex >=0){
 					aoColumnDefs.push({
 						"aTargets": [ updateTimeColIndex ],
 						"mData": updateTimeColIndex,
+						"className" : "dt-body-right",
 						"mRender": function ( data, type, full ) {
-							if(type == 'display'){
+							if(data != null){
 								return common.toServerLocalDateFromMilliSeconds(parseInt(data), 'YYYY-MM-DD HH:mm:ss');
 							}else 
 								return data;
@@ -294,13 +343,46 @@ define([
 					"aTargets": [ deleteMappingIconColIndex ],
 					"mData": deleteMappingIconColIndex,
 					"className": "dt-center",
-					"mRender": function ( data, type, full ) {
-						if ( type === 'display' ) {
-							return '<a class="fa fa-trash-o"></a>';
+					"mRender": function ( data, type, full, meta ) {
+						if(type === 'display'){
+							var aoColumns = meta.settings.aoColumns;
+							var defColIndex = -1;
+							
+							$.each(aoColumns, function(i, v){
+								if(v.title == 'IsDefault'){
+									defColIndex = i;
+									return;
+								}
+							});
+							
+							if(defColIndex >= 0 && full[defColIndex] == 'no'){
+								return '<a class="delete-profile fa fa-trash-o"></a>';
+							}
+							else return "";
+							
 						} else return "";
-
 					}
 				});
+				
+				if(isDefColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [isDefColIndex ],
+						"mData": isDefColIndex,
+						"visible" : false,
+						"searchable" : false
+					});					
+				}
+				
+				if(stateColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ stateColIndex ],
+						"mData": stateColIndex,
+						"mRender": function ( data, type, full ) {
+							return data != null ? common.UpperCaseFirst(data) : '';
+						}
+					});
+				}
+				
 				mappingsDataTable = $('#wc-mappings-list').DataTable({
 					"oLanguage": {
 						"sEmptyTable": "There are no mappings"
@@ -345,8 +427,10 @@ define([
 							}else{
 								if(cell.column == deleteMappingIconColIndex){
 									var data = mappingsDataTable.row(cell.row).data();
-									$(DELETE_MAPPING_NAME).text(data[mappingNameColIndex]);
-									$(MAPPING_DELETE_DIALOG).modal('show');
+									if(data[isDefColIndex] == 'no'){
+										$(DELETE_MAPPING_NAME).text(data[mappingNameColIndex]);
+										$(MAPPING_DELETE_DIALOG).modal('show');
+									}
 								}
 							}
 						}
@@ -412,6 +496,7 @@ define([
 				return;
 			}
 			var mapping = {};
+			mapping.action = mappingDialogParams.type;
 			mapping.name = $(MAPPING_NAME).val();
 			mapping.user = $(MAPPING_USER).val();
 			mapping.application = $(MAPPING_APPLICATION).val();
@@ -421,6 +506,8 @@ define([
 			mapping.clientHost = $(MAPPING_CLIENT_HOST).val();
 			mapping.sla = $(MAPPING_SLA).val();
 			mapping.seqNo = $(MAPPING_SEQ_NO).val();
+			mapping.isActive = $(MAPPING_STATE).val();
+			
 			if(mapping.application.length == 0 &&
 					mapping.user.length == 0 && 
 					mapping.role.length == 0 && 
@@ -443,6 +530,7 @@ define([
 		},
 		mappingResetBtnClicked: function(){
 			_this.doReset();
+			mappingFormValidator.resetForm();
 		},
 		addAlterMappingSuccess: function(data){
 			$(ADD_MAPPING_ERROR_CONTAINER).text("");
@@ -462,7 +550,7 @@ define([
 
 			var msg = "";
 			if (jqXHR.responseText) {
-				msg =  "Failed to create mapping : " + jqXHR.responseText;
+				msg =  jqXHR.responseText;
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
 					msg = "Error : Unable to communicate with the server.";
@@ -481,7 +569,7 @@ define([
 		deleteMappingError: function(jqXHR){
 			var msg = "";
 			if (jqXHR.responseText) {
-				msg =  "Failed to delete mapping : " + jqXHR.responseText;
+				msg =  jqXHR.responseText;
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
 					msg = "Error : Unable to communicate with the server.";
@@ -494,7 +582,7 @@ define([
 			var keys = result.columnNames;
 			var slaNameColIndex = -1;
 			$.each(keys, function(k, v) {
-				if(v == 'SLA Name'){
+				if(v == 'name'){
 					slaNameColIndex = k;
 				}
 			});

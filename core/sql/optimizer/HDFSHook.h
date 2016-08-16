@@ -127,7 +127,7 @@ class HHDFSStatsBase : public NABasicObject
 public:
   HHDFSStatsBase(HHDFSTableStats *table) : numBlocks_(0),
                                            numFiles_(0),
-                                           totalRows_(-1),
+                                           totalRows_(0),
                                            totalStringLengths_(0),
                                            totalSize_(0),
                                            numStripes_(0),
@@ -494,6 +494,9 @@ public:
   // return # of buckets if all partns are consistently bucketed, 0 otherwise
   // caller has to check for same bucket cols
   Int32 getNumOfConsistentBuckets() const;
+
+  // return average string length of character columns per row
+  Lng32 getAvgStringLengthPerRow();
   
   // for the NATable cache
   void setupForStatement();

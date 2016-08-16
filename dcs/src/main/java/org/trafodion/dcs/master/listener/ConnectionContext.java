@@ -40,177 +40,183 @@ import org.trafodion.dcs.util.Bytes;
 import org.codehaus.jettison.json.JSONException;
 
 public class ConnectionContext {
-	private static  final Log LOG = LogFactory.getLog(ConnectionContext.class);
+    private static  final Log LOG = LogFactory.getLog(ConnectionContext.class);
 
-	String datasource = "";
-	String catalog = "";
-	String schema = "";
-	String location = "";
-	String userRole = "";
-	String connectOptions = "";
+    String datasource = "";
+    String catalog = "";
+    String schema = "";
+    String location = "";
+    String userRole = "";
+    String connectOptions = "";
 
-	short accessMode;
-	short autoCommit;
-	int queryTimeoutSec;
-	int idleTimeoutSec;
-	int loginTimeoutSec;
-	short txnIsolationLevel;
-	short rowSetSize;
+    short accessMode;
+    short autoCommit;
+    int queryTimeoutSec;
+    int idleTimeoutSec;
+    int loginTimeoutSec;
+    short txnIsolationLevel;
+    short rowSetSize;
 
-	int diagnosticFlag;
-	int processId;
+    int diagnosticFlag;
+    int processId;
 
-	String computerName = "";
-	String windowText = "";
+    String computerName = "";
+    String windowText = "";
 
-	VersionList clientVersionList = null;
-	UserDesc user = null;
+    VersionList clientVersionList = null;
+    UserDesc user = null;
 
-	int ctxACP;
-	int ctxDataLang;
-	int ctxErrorLang;
-	short ctxCtrlInferNXHAR;
+    int ctxACP;
+    int ctxDataLang;
+    int ctxErrorLang;
+    short ctxCtrlInferNXHAR;
 
-	short cpuToUse;
-	short cpuToUseEnd;
+    short cpuToUse;
+    short cpuToUseEnd;
 
-	int srvrType;
-	short retryCount;
-	int optionFlags1;
-	int optionFlags2;
-	String vproc;
-	String client;
-	String ccExtention;
+    int srvrType;
+    short retryCount;
+    int optionFlags1;
+    int optionFlags2;
+    String vproc;
+    String client;
+    String ccExtention;
 	
-    private final LinkedHashMap<String, LinkedHashMap<String,Object>> idleServers = new LinkedHashMap<String, LinkedHashMap<String,Object>>();
-    private final LinkedHashMap<String, LinkedHashMap<String,Object>> reusedSlaServers = new LinkedHashMap<String, LinkedHashMap<String,Object>>();
-    private final LinkedHashMap<String, LinkedHashMap<String,Object>> reusedOtherServers = new LinkedHashMap<String, LinkedHashMap<String,Object>>();
+    private final HashMap<String, HashMap<String,Object>> idleServers = new HashMap<String, HashMap<String,Object>>();
+    private final HashMap<String, HashMap<String,Object>> reusedSlaServers = new HashMap<String, HashMap<String,Object>>();
+    private final HashMap<String, HashMap<String,Object>> reusedOtherServers = new HashMap<String, HashMap<String,Object>>();
     
     HashMap<String, HashMap<String,String>> closedServers;
 	
-	HashMap<String, String> attributes;
-	String sla;
-	String priority;
-	int limit;
-	int throughput;
+    HashMap<String, String> attributes;
+    String sla;
+    String priority;
+    int limit;
+    int throughput;
     int curLimit;
-	int curThroughput;
-	boolean isLimit=false;
-	boolean isThroughput=false;
+    int curThroughput;
+    boolean isLimit=false;
+    boolean isThroughput=false;
+    boolean bExtention = false;
 /*
 */
-	String connectProfile;
+    String connectProfile;
     String disconnectProfile;
-	long lastUpdate;
-	Set<String> hostList;
+    long lastUpdate;
+    Set<String> hostList;
 /*
 */
 
-	ConnectionContext(){
-		clientVersionList = new VersionList();
-		user = new UserDesc();
-		attributes = new HashMap<String, String>();
-		hostList = new HashSet<String>();
-	}
+  ConnectionContext(){
+          clientVersionList = new VersionList();
+          user = new UserDesc();
+          attributes = new HashMap<String, String>();
+          hostList = new HashSet<String>();
+  }
 
-	void extractFromByteBuffer(ByteBuffer buf) throws java.io.UnsupportedEncodingException {
+  void extractFromByteBuffer(ByteBuffer buf) throws java.io.UnsupportedEncodingException {
 
-		datasource = Util.extractString(buf);
-		catalog= Util.extractString(buf);
-		schema= Util.extractString(buf);
-		location= Util.extractString(buf);
-		userRole= Util.extractString(buf);
+          datasource = Util.extractString(buf);
+          catalog= Util.extractString(buf);
+          schema= Util.extractString(buf);
+          location= Util.extractString(buf);
+          userRole= Util.extractString(buf);
 
-		accessMode=buf.getShort();
-		autoCommit=buf.getShort();
-		queryTimeoutSec=buf.getInt();
-		idleTimeoutSec=buf.getInt();
-		loginTimeoutSec=buf.getInt();
-		txnIsolationLevel=buf.getShort();
-		rowSetSize=buf.getShort();
+          accessMode=buf.getShort();
+          autoCommit=buf.getShort();
+          queryTimeoutSec=buf.getInt();
+          idleTimeoutSec=buf.getInt();
+          loginTimeoutSec=buf.getInt();
+          txnIsolationLevel=buf.getShort();
+          rowSetSize=buf.getShort();
 
-		diagnosticFlag=buf.getInt();
-		processId=buf.getInt();
+          diagnosticFlag=buf.getInt();
+          processId=buf.getInt();
 
-		computerName=Util.extractString(buf);
-		windowText=Util.extractString(buf);
+          computerName=Util.extractString(buf);
+          windowText=Util.extractString(buf);
 
-		ctxACP=buf.getInt();
-		ctxDataLang=buf.getInt();
-		ctxErrorLang=buf.getInt();
-		ctxCtrlInferNXHAR=buf.getShort();
+          ctxACP=buf.getInt();
+          ctxDataLang=buf.getInt();
+          ctxErrorLang=buf.getInt();
+          ctxCtrlInferNXHAR=buf.getShort();
 
-		cpuToUse=buf.getShort();
-		cpuToUseEnd=buf.getShort();
-		connectOptions=Util.extractString(buf);
+          cpuToUse=buf.getShort();
+          cpuToUseEnd=buf.getShort();
+          connectOptions=Util.extractString(buf);
 
-		clientVersionList.extractFromByteBuffer(buf);
+          clientVersionList.extractFromByteBuffer(buf);
 
-		user.extractFromByteBuffer(buf);
+          user.extractFromByteBuffer(buf);
 
-		srvrType = buf.getInt();
-		retryCount = buf.getShort();
-		optionFlags1 = buf.getInt();
-		optionFlags2 = buf.getInt();
-		vproc= Util.extractString(buf);
-		client= Util.extractString(buf);
+          srvrType = buf.getInt();
+          retryCount = buf.getShort();
+          optionFlags1 = buf.getInt();
+          optionFlags2 = buf.getInt();
+          vproc= Util.extractString(buf);
+          client= Util.extractString(buf);
 /*
-        ccExtention = 
-                String sessionName
-                String clientIpAddress 
-                String clientHostName
-                String userName
-                String roleName
-                String applicationName
+  ccExtention = 
+          String sessionName
+          String clientIpAddress 
+          String clientHostName
+          String userName
+          String roleName
+          String applicationName
 */
-		if (buf.limit() > buf.position())
-            ccExtention = Util.extractString(buf);
-        else
-            ccExtention = "{}";
-        if(LOG.isDebugEnabled())
-            LOG.debug("ccExtention :" + ccExtention);
-        attributes.clear();
-		
-		try {
-    		JSONObject jsonObj = new JSONObject(ccExtention);
-    		Iterator<?> it = jsonObj.keys();
-    
-    		while(it.hasNext())
-    		{
-    		    String key = it.next().toString();
-    		    String value = jsonObj.get(key).toString();
-    		    attributes.put(key,  value);
-    	        if(LOG.isDebugEnabled()){
-    	            LOG.debug("cc[attributes] key=value :" + key + "=" + value);
-                    LOG.debug("key=value :" + key + "=" + value);
-    	        }
-    		}
-		} catch(JSONException e){
-            LOG.error("JSONException :" + e);
-		}
-	}
-	/*
-	 * value =  AVAILABLE:      0
-	 *          timestamp       1
-	 *          dialofueId      2       empty place
-	 *          nodeId          3
-	 *          processId       4
-	 *          processName     5
-	 *          ipAddress       6
-	 *          port            7
-	 *          ===================================
-	 *          computerName    8
-	 *          clientSocket    9
-	 *          clientPort      10
-	 *          windowText      11
-	 *          ====================================
-	 *          sla             12
-	 *          profile         13
-	 *          profileTimestamp 14
-	 *          userName        15
-	 *          
-	 *          
-	 */
+          if (buf.limit() > buf.position()){
+              ccExtention = Util.extractString(buf);
+              bExtention = true;
+          }
+          else {
+              ccExtention = "{}";
+              bExtention = false;
+          }
+          if(LOG.isDebugEnabled())
+              LOG.debug("ccExtention :" + ccExtention);
+          attributes.clear();
+          
+          if (bExtention){
+              try {
+                  JSONObject jsonObj = new JSONObject(ccExtention);
+                  Iterator<?> it = jsonObj.keys();
+
+                  while(it.hasNext())
+                  {
+                    String key = it.next().toString();
+                    String value = jsonObj.get(key).toString();
+                    attributes.put(key,  value);
+                    if(LOG.isDebugEnabled()){
+                        LOG.debug("cc[attributes] key=value :" + key + "=" + value);
+                        LOG.debug("key=value :" + key + "=" + value);
+                    }
+                  }
+                } catch(JSONException e){
+                    LOG.error("JSONException :" + e); }
+          }
+    }
+/*
+  * value =  AVAILABLE:      0
+  *          timestamp       1
+  *          dialofueId      2       empty place
+  *          nodeId          3
+  *          processId       4
+  *          processName     5
+  *          ipAddress       6
+  *          port            7
+  *          ===================================
+  *          computerName    8
+  *          clientSocket    9
+  *          clientPort      10
+  *          windowText      11
+  *          ====================================
+  *          sla             12
+  *          profile         13
+  *          profileTimestamp 14
+  *          userName        15
+  *          
+  *          
+  */
 
     public  void setAvailableServers(HashMap<String, String> availableServers){
         reusedSlaServers.clear();
@@ -224,7 +230,20 @@ public class ConnectionContext {
             String[] stNode = key.split(":");
             String hostName=stNode[0];
             int instance=Integer.parseInt(stNode[1]);
-            
+            if(LOG.isDebugEnabled())
+                LOG.debug("Available Server key :" + key + " hostName :" + hostName);
+
+            if(LOG.isDebugEnabled()){
+	        if (hostList.contains(hostName)){
+		  LOG.debug("hostList contains hostName :" + hostName);
+		}
+		else if (hostList.isEmpty()){
+                  LOG.debug("hostList is empty");
+                } 
+                else {
+		  LOG.debug("hostList does not contain hostName :" + hostName);
+		}
+	    }
             if (hostList.isEmpty() || hostList.contains(hostName)){
                 String value = availableServers.get(key);
                 String[] sValue = value.split(":");
@@ -237,7 +256,7 @@ public class ConnectionContext {
                         i++;
                     }
                 }
-                LinkedHashMap<String,Object> attr = new LinkedHashMap<String,Object>();
+                HashMap<String,Object> attr = new HashMap<String,Object>();
                 attr.put(Constants.HOST_NAME, hostName);
                 attr.put(Constants.INSTANCE, instance);
                 attr.put(Constants.TIMESTAMP, Long.parseLong(sValue[1]));
@@ -246,34 +265,42 @@ public class ConnectionContext {
                 attr.put(Constants.PROCESS_NAME, sValue[5]);
                 attr.put(Constants.IP_ADDRESS, sValue[6]);
                 attr.put(Constants.PORT, Integer.parseInt(sValue[7]));
+                if(LOG.isDebugEnabled())
+                      LOG.debug("attr.put sValue.length :" + sValue.length);
                 if(sValue.length == 8){
+                    if(LOG.isDebugEnabled())
+                          LOG.debug("before attr.put idleServers");
                     idleServers.put(key, attr);
+                    if(LOG.isDebugEnabled())
+                          LOG.debug("after attr.put idleServers");
                 }
                 else if(sValue.length == 17) {
-                    attr.put(Constants.COMPUTER_NAME, sValue[8]);
-                    attr.put(Constants.CLIENT_SOCKET, sValue[9]);
-                    attr.put(Constants.CLIENT_PORT, sValue[10]);
-                    attr.put(Constants.WINDOW_TEXT, sValue[11]);
-                    attr.put(Constants.MAPPED_SLA, sValue[12]);
-                    attr.put(Constants.MAPPED_CONNECT_PROFILE, sValue[13]);
-                    attr.put(Constants.MAPPED_DISCONNECT_PROFILE, sValue[14]);
-                    attr.put(Constants.MAPPED_PROFILE_TIMESTAMP, Long.parseLong(sValue[15]));
-                    attr.put (Constants.USER_NAME, sValue[16]);
-                    if(sValue[12].equals(sla) && sValue[16].equals(user.userName)){
+                   attr.put(Constants.COMPUTER_NAME, sValue[8]);
+                   attr.put(Constants.CLIENT_SOCKET, sValue[9]);
+                   attr.put(Constants.CLIENT_PORT, sValue[10]);
+                   attr.put(Constants.WINDOW_TEXT, sValue[11]);
+                   attr.put(Constants.MAPPED_SLA, sValue[12]);
+                   attr.put(Constants.MAPPED_CONNECT_PROFILE, sValue[13]);
+                   attr.put(Constants.MAPPED_DISCONNECT_PROFILE, sValue[14]);
+                   attr.put(Constants.MAPPED_PROFILE_TIMESTAMP, (sValue[15].equals(""))? Long.parseLong("0") : Long.parseLong(sValue[15]));
+                   attr.put (Constants.USER_NAME, sValue[16]);
+                   if(sValue[12].equals(sla) && sValue[16].equals(user.userName)){
                         reusedSlaServers.put(key, attr);
-                    }
-                    else {
+                   }
+                   else {
                         reusedOtherServers.put(key, attr);
-                    }
-                }
+                   }
+               }
             }
         }
+/*
         if( ! reusedSlaServers.isEmpty())
             sortByTimestamp(reusedSlaServers);
         if( ! reusedOtherServers.isEmpty())
             sortByTimestamp(reusedOtherServers);
         if( !idleServers.isEmpty())
             sortByTimestamp(idleServers);
+*/
    }
     private static void sortByTimestamp(Map<String, LinkedHashMap<String,Object>> map) { 
         List<Set<Map.Entry<String,Object>>> list = new LinkedList(map.entrySet());
@@ -307,15 +334,20 @@ public class ConnectionContext {
         hostList.clear();
         String delims = "[,]";
         String[] tokens = s.split(delims);
+        String tkn = "";
         for (int i = 0; i < tokens.length; i++){
-            hostList.add(tokens[i]);
+            tkn = tokens[i].trim();
+            if(LOG.isDebugEnabled())
+                    LOG.debug("setHostList :" + tkn);
+            if(tkn.length() > 0)
+                hostList.add(tkn);
         }
     }
     public void setLastUpdate(String s){
         if (s == null || s.length()== 0) s = "0";
         lastUpdate = new Long(s);
     }
-   public void setSla(String sla){
+    public void setSla(String sla){
         this.sla = sla;
     }
     public void setPriority(String s){
@@ -364,13 +396,13 @@ public class ConnectionContext {
         if(limit == 0)return false;
         return curLimit > limit;
     }
-    public LinkedHashMap<String, LinkedHashMap<String,Object>> getReusedSlaServers(){
+    public HashMap<String, HashMap<String,Object>> getReusedSlaServers(){
         return reusedSlaServers;
     }
-    public LinkedHashMap<String, LinkedHashMap<String,Object>> getReusedOtherServers(){
+    public HashMap<String, HashMap<String,Object>> getReusedOtherServers(){
         return reusedOtherServers;
     }
-    public LinkedHashMap<String, LinkedHashMap<String,Object>> getIdleServers(){
+    public HashMap<String, HashMap<String,Object>> getIdleServers(){
         return idleServers;
     }
     public HashMap<String, String> getAttributes(){

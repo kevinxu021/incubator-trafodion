@@ -84,6 +84,9 @@ endif
 ci: trafci
 trafci: jdbc_jar
 	cd conn/trafci && $(ANT) dist 2>&1 | sed -e "s/$$/	##(TRAFCI)/" ; exit $${PIPESTATUS[0]}
+	$(MAVEN) install:install-file -Dfile=conn/trafci/lib/trafci.jar \
+	    -DgroupId=org.trafodion.ci -DartifactId=trafci -Dversion="$$TRAFODION_VER" \
+	    -Dpackaging=jar -DgeneratePom=true | sed -e "s/$$/        ##(TRAFCI)/";exit $${PIPESTATUS[0]}
 
 jdbc_type2_jar: verhdr foundation
 	cd conn/jdbc_type2 && $(ANT)  2>&1 | sed -e "s/$$/	##(JDBC_TYPE2)/" ; exit $${PIPESTATUS[0]}
@@ -98,7 +101,7 @@ rest: verhdr jdbc_jar
 odb: ndcs
 	cd conn/odb && $(MAKE) 2>&1 | sed -e "s/$$/	##(ODB)/" ; exit $${PIPESTATUS[0]}
 
-dbmgr: jdbc_jar
+dbmgr: trafci
 	cd dbmgr && $(MAKE) 2>&1 | sed -e "s/$$/	##(DBMGR)/" ; exit $${PIPESTATUS[0]}
 
 cleantests:
@@ -187,19 +190,19 @@ check-copyrights:
 # RPM defines
 PKG_PROD=esgynDB_adv
 
+OS_TYPE = RH
+OS_MAJOR ?=  $(shell lsb_release -rs | cut -f1 -d.)
+P_TYPE = $(shell uname -p)
+
 ifeq ($(SQ_BUILD_TYPE),release)
   RELEASE ?= 1
-  SERVERTAR="$(PKG_PROD)_server-$(TRAFODION_VER).tar.gz"
+  SERVERTAR="$(PKG_PROD)_server-$(TRAFODION_VER)-${OS_TYPE}${OS_MAJOR}-${P_TYPE}.tar.gz"
 else
   RELEASE ?= devel
-  SERVERTAR="$(PKG_PROD)_server-$(TRAFODION_VER)-debug.tar.gz"
+  SERVERTAR="$(PKG_PROD)_server-$(TRAFODION_VER)-${OS_TYPE}${OS_MAJOR}-${P_TYPE}-debug.tar.gz"
 endif
 
-ifeq ($(SQ_MTYPE),64)
-  ARCH=$(shell arch)
-else
-  ARCH=i686
-endif
+ARCH=$(P_TYPE)
 
 SPECFILE = trafodion.spec
 
