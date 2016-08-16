@@ -99,7 +99,9 @@ define([
 			mappingFormValidator = $(MAPPING_FORM).validate({
 				rules: {
 					"mapping_name": { required: true, alphanumeric: true},
-					"mapping_seq_no": { required: true, digits: true, wms_ordernumber: true}
+					"mapping_seq_no": { required: true, digits: true, wms_ordernumber: true},
+					"mapping_state": { required: true},
+					"mapping_sla": { required: true}
 				},
 				highlight: function(element) {
 					$(element).closest('.form-group').addClass('has-error');
@@ -378,7 +380,7 @@ define([
 						"aTargets": [ stateColIndex ],
 						"mData": stateColIndex,
 						"mRender": function ( data, type, full ) {
-							return data != null ? common.UpperCaseFirst(data) : '';
+							return data != null && data != 'null' ? common.UpperCaseFirst(data) : '';
 						}
 					});
 				}
