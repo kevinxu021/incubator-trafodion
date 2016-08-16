@@ -1044,6 +1044,10 @@ void createAndInsertDP2Scan( const IndexDesc * idesc,
             hpk->computePartAndVirtColPredicates(
                  bef->getGroupAttr(),
                  fileScan->selectionPred());
+
+            hpk->estimateAccessMetrics(fileScan);
+            hpk->computeAvgAccessMetrics();
+
             if (hpk->computeActivePartitions() < 0)
               return; // error encountered, diags are set
             fileScan->setHiveSearchKey(hpk);

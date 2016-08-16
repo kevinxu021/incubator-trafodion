@@ -57,6 +57,7 @@
 #include "HDFSHook.h"
 #include "CmpStatement.h"
 #include "sqludr.h"
+#include "AppliedStatMan.h"
 #include <math.h>
 
 #ifndef NDEBUG
@@ -704,8 +705,6 @@ SimpleFileScanOptimizer::scmComputeCostVectors()
   if (getIndexDesc()->getPrimaryTableDesc()->getNATable()->isHbaseTable())
     return scmComputeCostVectorsForHbase();
 
-  computeAccessMetricsForHive();
-
   if ( getIndexDesc()->getPrimaryTableDesc()->getNATable()->isORC() &&
        CmpCommon::getDefault(NCM_ORC_COSTING) == DF_ON ) {
      return scmComputeCostVectorsForORC();
@@ -724,7 +723,9 @@ SimpleFileScanOptimizer::scmComputeCostVectors()
 
   if ( canEliminatePartitionsForHive() ) 
   {
-     tuplesProcessed = getRowcountInPartnsSelectedForHive();
+     HivePartitionAndBucketKey* hiveKey = getFileScan().getHiveSearchKey();
+     CMPASSERT(hiveKey);
+     tuplesProcessed = hiveKey->getEstRowcountInPartnsSelected();
   } else {
      tuplesProcessed = getSingleSubsetSize();
   }
@@ -794,13 +795,15 @@ SimpleFileScanOptimizer::scmComputeCostVectorsForORC()
   CostScalar totalFileSizeOriginal;
   CostScalar totalFileSize;
 
+  HivePartitionAndBucketKey* hiveKey = getFileScan().getHiveSearchKey();
+  CMPASSERT(hiveKey);
 
   // Take into consideration the # of rows eliminated due to 
   // compilation time partition elimination.
-  if ( canEliminatePartitionsForHive() ) {
-     tuplesProcessed = getRowcountInPartnsSelectedForHive();
+  if ( hiveKey->canEliminatePartitions() ) {
+     tuplesProcessed = hiveKey->getEstRowcountInPartnsSelected();
 
-     totalFileSizeOriginal = getTotalFileSizeInPartnsSelectedForHive();
+     totalFileSizeOriginal = hiveKey->getEstFileSizeInPartnsSelected();
      totalFileSize = totalFileSizeOriginal;
   } else {
      tuplesProcessed = getSingleSubsetSize();
@@ -939,12 +942,6 @@ SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbes()
        (CmpCommon::getDefault(NCM_HBASE_COSTING) == DF_ON) )
     return scmComputeCostVectorsMultiProbesForHbase();
 
-  computeAccessMetricsForHive();
-
-  if ( getIndexDesc()->getPrimaryTableDesc()->getNATable()->isORC() &&
-       CmpCommon::getDefault(NCM_ORC_COSTING) == DF_ON )
-    return scmComputeCostVectorsMultiProbesForORC();
-  
   CostScalar numOuterProbes = (getContext().getInputLogProp())->getResultCardinality();
   CostScalar numActivePartitions =  getNumActivePartitions();
   CostScalar ioSeq, ioRand, numRandIOs;
@@ -967,6 +964,11 @@ SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbes()
   CostScalar cacheSize = ActiveSchemaDB()->getDefaults().getAsDouble(NCM_CACHE_SIZE_IN_BLOCKS); //getDP2CacheSizeInBlocks(getBlockSizeInKb());
 
   categorizeMultiProbes(&isAnIndexJoin);
+
+  if ( getIndexDesc()->getPrimaryTableDesc()->getNATable()->isORC() &&
+       CmpCommon::getDefault(NCM_ORC_COSTING) == DF_ON )
+    return scmComputeCostVectorsMultiProbesForORC();
+  
 
   CostScalar numProbes = (probes_/numActivePartitions).getCeiling();
   CostScalar numUniqueProbes = (uniqueProbes_/numActivePartitions).getCeiling();
@@ -995,7 +997,9 @@ SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbes()
 
   if ( canEliminatePartitionsForHive() ) 
   {
-     tuplesProcessed = getRowcountInPartnsSelectedForHive();
+     HivePartitionAndBucketKey* hiveKey = getFileScan().getHiveSearchKey();
+     CMPASSERT(hiveKey);
+     tuplesProcessed = hiveKey->getEstRowcountInPartnsSelected();
   }
 
 
@@ -1260,14 +1264,9 @@ SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbes()
  
 } // SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbes(...)
 
+// Assume categorizeMultiProbes() has already been called
 Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
 {
-      
-  estimateEffTotalRowCount(totalRowCount_, effectiveTotalRowCount_);
-  
-  NABoolean isAnIndexJoin = FALSE;
-  categorizeMultiProbes(&isAnIndexJoin);
-
   // define some variables used locally
   CostScalar numUniqueProbes = uniqueProbes_;
   CostScalar numProbes = probes_;
@@ -1304,19 +1303,39 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
 
   CollIndex numActivePartitions = getEstNumActivePartitionsAtRuntime();
 
-  if ( canEliminatePartitionsForHive() ) 
+/*      
+NAString tname((getIndexDesc()->getPrimaryTableDesc()->getNATable()->getTableName()).getQualifiedNameAsAnsiString());
+
+if ( tname == "HIVE.TPCDS.STORE_SALES") {
+ int x = 1;
+ int y = 1;
+}
+*/
+
+  NABoolean partitionsEliminated = canEliminatePartitionsForHive();
+
+  if ( partitionsEliminated )
   {
      // for one probe
      if ( leadingJoinColumnsSorted ) {
         tuplesProcessed = avgRowsPerStripe;
         totalFileSizeOriginal = hdfsStats->getTotalSize() / stripes.getValue();
      } else {
-        tuplesProcessed = getRowcountInPartnsSelectedForHive();
-        totalFileSizeOriginal = getTotalFileSizeInPartnsSelectedForHive();
+        tuplesProcessed = MINOF(
+                   hiveKey->getEstRowcountInPartnsSelected(),
+                   numUniqueSuccessfulProbes.getValue()*(hiveKey->getAvgRowcountInOnePartnSelected())
+                               );
+
+        totalFileSizeOriginal = MINOF(
+                   hiveKey->getEstFileSizeInPartnsSelected(),
+                   numUniqueSuccessfulProbes.getValue()*(hiveKey->getAvgFileSizeInOnePartnSelected())
+                               );
      }
 
-     tuplesProcessed *= numProbes;
-
+     // do not multiply by numProbes for PT(RT) since the stats are estiamted
+     // using the PE predicate.
+     if ( hiveKey->partitionEliminatedCTOnly() )
+        tuplesProcessed *= numProbes;
 
   } else {
      if ( leadingJoinColumnsSorted ) {
@@ -1355,8 +1374,12 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
 
   // factor in the column design in ORC reader in that only the data for the
   // columns needed is scanned.
-  CostScalar totalDataScanned =
-           totalProbes * totalFileSizeNormalized * skipRatio * (involvedColSize/rowSize);
+  CostScalar totalDataScanned = totalFileSizeNormalized * skipRatio * (involvedColSize/rowSize);
+
+  // do not multiply by numProbes for PT(RT) since the total file size is estiamted
+  // using the PE predicate.
+  if ( hiveKey->partitionEliminatedCTOnly() )
+     totalDataScanned *= totalProbes;
 
   CostScalar blockSize = getIndexDesc()->getNAFileSet()->getBlockSize();
 
@@ -1396,6 +1419,7 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
       
       NAString tname((getIndexDesc()->getPrimaryTableDesc()->getNATable()->getTableName()).getQualifiedNameAsAnsiString());
        printf("Multi-set cost for %s:\n", tname.data());
+       printf("Partitions Eliminated=%d \n", partitionsEliminated);
        printf("leading join column sorted=%d \n", leadingJoinColumnsSorted);
        printf("numProbes=%f \n", numProbes.getValue());
        printf("successful probes=%f \n", successfulProbes_.getValue());
@@ -4884,70 +4908,6 @@ CostMethodFastExtract::scmComputeOperatorCostInternal(RelExpr* op,
 
 }
 
-// Compute two numbers for now for all Hive partitions to be scanned,
-// Partitions that are eliminated during compilation time and run-time
-// are not included.
-// 
-// 1) tuple processed, which is the total number of rows scanned;
-// 2) total file size, which is the total bytes scanned.
-// 
-// If we enter this method, canEliminatePartitionsForHive() must have been
-// called, which means PE is feasible.
-void SimpleFileScanOptimizer::computeAccessMetricsForHive()
-{
-  HivePartitionAndBucketKey* hiveKey = getFileScan().getHiveSearchKey();
-
-  if ( !hiveKey ) 
-    return;
-  
-  ValueIdSet combindPreds(hiveKey->getCompileTimePartColPreds());
-
-  totalFileSizeInPartnsSelected_ = hiveKey->getTotalSize();
-
-  if ( hiveKey->partitionEliminatedCTOnly() ) {
-    // If compile-time partition elimination is the best
-    // we can do, return the tuple processed value for PE(CT). 
-     rcInPartnsSelected_ = hiveKey->getRowcountInSelectedPartitionsCT();
-     return;
-  }
-
-  // PE(CT) is not feaible, but PE(RT) is.
-  combindPreds += hiveKey->getPartAndVirtColPreds();
-
-  Histograms scanHist(getIndexDesc()->getPrimaryTableDesc()->getTableColStats());
-
-  // if there is no stats, bail out
-  if ( scanHist.isEmpty() ) 
-    return;
-
-  const SelectivityHint* selHint = getIndexDesc()->getPrimaryTableDesc()->getSelectivityHint();
-  const CardinalityHint* cardHint = getIndexDesc()->getPrimaryTableDesc()->getCardinalityHint();
-
-  // apply the predicate to compute the row count and the UEC
-  scanHist.applyPredicates(combindPreds, getRelExpr(), selHint, cardHint, REL_SCAN);
-
-  rcInPartnsSelected_ = scanHist.getRowCount().getValue();
-
-  // process the UEC, if available
-  ValueIdSet partnsColumns(hiveKey->getPartCols());
-  CostScalar partnsColsUEC = scanHist.getColStatDescList().getAggregateUec(partnsColumns);
-
-  if ( partnsColsUEC > 0.0 ) {
-
-    // adjust total file size in the selected partition if the UEC of the partition columns
-    // is less than the total number of partitions of the table
-     const HHDFSTableStats* hdfsStats =
-             getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
-
-     Int32 partns = hdfsStats->getNumPartitions();
-
-     if ( partnsColsUEC < partns ) {
-        Int64 avgFileSizePerPartition = hdfsStats->getTotalSize() / partns;
-        totalFileSizeInPartnsSelected_ = partnsColsUEC.getValue() * avgFileSizePerPartition;
-     }
-  }
-}
-
 NABoolean SimpleFileScanOptimizer::canEliminatePartitionsForHive()
 {
   if ( !(getIndexDesc()->getPrimaryTableDesc()->getNATable()->isHiveTable()) )
@@ -4957,8 +4917,6 @@ NABoolean SimpleFileScanOptimizer::canEliminatePartitionsForHive()
   if ( !hiveKey )
     return FALSE;
 
-  if ( hiveKey->partitionEliminatedCTOnly() )
-     return TRUE;
-
-  return ( hiveKey->getPartAndVirtColPreds().entries() > 0 );
+  return hiveKey->canEliminatePartitions();
 }
+

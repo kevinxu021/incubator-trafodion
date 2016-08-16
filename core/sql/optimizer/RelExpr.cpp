@@ -15769,3 +15769,4 @@ NABoolean GroupByAgg::decideFeasibleToTransformForAggrPushdown()
 
   return aggrPushdown;
 }
+

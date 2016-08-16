@@ -3061,6 +3061,8 @@ void OsimHHDFSStatsBase::serializeAttrs(XMLString & xml)
     xml.append("numBlocks='").append(std::to_string((long long)(hhstats->numBlocks_)).c_str()).append("' ");
     xml.append("numFiles='").append(std::to_string((long long)(hhstats->numFiles_)).c_str()).append("' ");
     xml.append("totalRows='").append(std::to_string((long long)(hhstats->totalRows_)).c_str()).append("' ");
+    xml.append("numStripes='").append(std::to_string((long long)(hhstats->numStripes_)).c_str()).append("' ");
+    xml.append("totalStringLengths='").append(std::to_string((long long)(hhstats->totalStringLengths_)).c_str()).append("' ");
     xml.append("totalSize='").append(std::to_string((long long)(hhstats->totalSize_)).c_str()).append("' ");
     xml.append("modificationTS='").append(std::to_string((long long)(hhstats->modificationTS_)).c_str()).append("' ");
     xml.append("sampledBytes='").append(std::to_string((long long)(hhstats->sampledBytes_)).c_str()).append("' ");
@@ -3223,6 +3225,10 @@ NABoolean OsimHHDFSStatsBase::setValue(HHDFSStatsBase* hhstats, const char *attr
         hhstats->numFiles_ = std::atol(attrValue);
       else if (!strcmp(attrName, "totalRows"))
         hhstats->totalRows_= std::atol(attrValue);
+      else if (!strcmp(attrName, "numStripes"))
+        hhstats->numStripes_= std::atol(attrValue);
+      else if (!strcmp(attrName, "totalStringLengths"))
+        hhstats->totalStringLengths_= std::atol(attrValue);
       else if (!strcmp(attrName, "totalSize"))
         hhstats->totalSize_= std::atol(attrValue);
       else if (!strcmp(attrName, "modificationTS"))
