@@ -2189,10 +2189,9 @@ NABoolean NodeMap::printMsgToLog(const char* indent, const char* msg) const
 // HIVE_SORT_HDFS_HOSTS:        ON:  Make assignments of scan ranges to ESPs
 //                                   more deterministic, by undoing the
 //                                   randomization HDFS adds when it returns
-//                                   the hosts for HDFS blocks
+//                                   the hosts for HDFS blocks. Use this
+//                                   for debugging.
 //                              OFF: Keep HDFS hosts for blocks randomized
-// HIVE_SPLIT_DELIMITED_FILES:  ON:  Allow delimited files to be split
-//                              OFF: Disallow splits of delimited files
 //
 // ------------------------------------------------------------------------
 void NodeMap::assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey)
