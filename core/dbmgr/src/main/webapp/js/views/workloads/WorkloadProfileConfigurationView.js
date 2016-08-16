@@ -86,7 +86,7 @@ define([
 
 			this.fetchNodes();
 
-			$.validator.addMethod("alphanumeric", function(value, element) {
+			$.validator.addMethod("wmsprofile_alphanumeric", function(value, element) {
 				if(profileDialogParams.type && profileDialogParams.type == 'alter')
 					return true; // For alter we don't allow editing the name,so no check needed
 				
@@ -99,7 +99,7 @@ define([
 
 			profileFormValidator = $(PROFILE_FORM).validate({
 				rules: {
-					"profile_name": { required: true, alphanumeric: true},
+					"profile_name": { required: true, wmsprofile_alphanumeric: true},
 					"profile-cqd-stmts": { cqdssets: true},
 					"profile-set-stmts": { cqdssets: true}
 				},
