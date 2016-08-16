@@ -1215,6 +1215,18 @@ ID           COL2         P1
 
 --- 4 row(s) selected.
 >>
+>>-- test partition elimination for predicates that don't
+>>-- rely on any partition column
+>>select * from hive.hive.hivenonp where 1=0;
+
+--- 0 row(s) selected.
+>>select * from hive.hive.hivepi where 2=3;
+
+--- 0 row(s) selected.
+>>select * from hive.hive.hivepiso where 4=5;
+
+--- 0 row(s) selected.
+>>
 >>update statistics for table hive.hive.hivepi on every column;
 
 --- SQL operation complete.

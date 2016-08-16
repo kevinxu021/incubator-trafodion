@@ -4471,13 +4471,8 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 	  ((NodeMap *) getPartFunc()->getNodeMap()) ->
             assignScanInfosRepN(hiveSearchKey_);
         else {
-          if ( !(hTabStats->isOrcFile()) || 
-               CmpCommon::getDefault(ORC_READ_STRIPE_INFO) == DF_ON)
-            ((NodeMap *) getPartFunc()->getNodeMap()) ->
+          ((NodeMap *) getPartFunc()->getNodeMap()) ->
               assignScanInfos(hiveSearchKey_);
-          else 
-            ((NodeMap*) getPartFunc()->getNodeMap()) -> 
-              assignScanInfosNoSplit(hiveSearchKey_);
         }
       }
 

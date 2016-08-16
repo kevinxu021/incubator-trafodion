@@ -287,7 +287,7 @@ For ComTdbOrcScan :
 tableName_ = HIVE.STORE_ORC
 hostName_ = localhost, port_ = 49000
 recordDelimiter_ = 10, columnDelimiter_ = 1
-hdfsBufSize_ = 2030, rangeTailIOSize_ = 20970, hdfsSqlMaxRecLen_ = 8
+hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 8
 tuppIndex_ = 2, workAtpIndex_ = 3
 asciiTuppIndex_ = 4, asciiRowLen_ = 8
 moveExprColsTuppIndex_ = 2, moveExprColsRowLength_ = 16
@@ -301,11 +301,11 @@ Number of esps to scan:    1
   Esp# Range# StripeOffset       Length      FileName
 ====== ====== ============ ============  ==============================
 
-     0      0            0         4288  store_orc/000000_0
+     0      0            3         2853  store_orc/000000_0
 
-Summary of bytes read per ESP (4288 = 100 percent):
+Summary of bytes read per ESP (2853 = 100 percent):
 
-ESP    0 reads               4288 bytes ( 100 percent of avg)
+ESP    0 reads               2853 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 29
 ColNumber: 1, ColName: S_STORE_SK
@@ -422,7 +422,7 @@ For ComTdbOrcScan :
 tableName_ = HIVE.STORE_ORC
 hostName_ = localhost, port_ = 49000
 recordDelimiter_ = 10, columnDelimiter_ = 1
-hdfsBufSize_ = 2030, rangeTailIOSize_ = 20970, hdfsSqlMaxRecLen_ = 8
+hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 8
 tuppIndex_ = 2, workAtpIndex_ = 3
 asciiTuppIndex_ = 4, asciiRowLen_ = 8
 moveExprColsTuppIndex_ = 2, moveExprColsRowLength_ = 16
@@ -436,11 +436,11 @@ Number of esps to scan:    1
   Esp# Range# StripeOffset       Length      FileName
 ====== ====== ============ ============  ==============================
 
-     0      0            0         4288  store_orc/000000_0
+     0      0            3         2853  store_orc/000000_0
 
-Summary of bytes read per ESP (4288 = 100 percent):
+Summary of bytes read per ESP (2853 = 100 percent):
 
-ESP    0 reads               4288 bytes ( 100 percent of avg)
+ESP    0 reads               2853 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
@@ -575,7 +575,7 @@ For ComTdbOrcScan :
 tableName_ = HIVE.STORE_ORC
 hostName_ = localhost, port_ = 49000
 recordDelimiter_ = 10, columnDelimiter_ = 1
-hdfsBufSize_ = 2030, rangeTailIOSize_ = 20970, hdfsSqlMaxRecLen_ = 16
+hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 16
 tuppIndex_ = 3, workAtpIndex_ = 3
 asciiTuppIndex_ = 4, asciiRowLen_ = 8
 moveExprColsTuppIndex_ = 2, moveExprColsRowLength_ = 8
@@ -589,11 +589,11 @@ Number of esps to scan:    1
   Esp# Range# StripeOffset       Length      FileName
 ====== ====== ============ ============  ==============================
 
-     0      0            0         4288  store_orc/000000_0
+     0      0            3         2853  store_orc/000000_0
 
-Summary of bytes read per ESP (4288 = 100 percent):
+Summary of bytes read per ESP (2853 = 100 percent):
 
-ESP    0 reads               4288 bytes ( 100 percent of avg)
+ESP    0 reads               2853 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
@@ -708,7 +708,7 @@ For ComTdbOrcScan :
 tableName_ = HIVE.STORE_ORC
 hostName_ = localhost, port_ = 49000
 recordDelimiter_ = 10, columnDelimiter_ = 1
-hdfsBufSize_ = 2030, rangeTailIOSize_ = 20970, hdfsSqlMaxRecLen_ = 16
+hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 16
 tuppIndex_ = 3, workAtpIndex_ = 3
 asciiTuppIndex_ = 4, asciiRowLen_ = 8
 moveExprColsTuppIndex_ = 2, moveExprColsRowLength_ = 8
@@ -722,11 +722,11 @@ Number of esps to scan:    1
   Esp# Range# StripeOffset       Length      FileName
 ====== ====== ============ ============  ==============================
 
-     0      0            0         4288  store_orc/000000_0
+     0      0            3         2853  store_orc/000000_0
 
-Summary of bytes read per ESP (4288 = 100 percent):
+Summary of bytes read per ESP (2853 = 100 percent):
 
-ESP    0 reads               4288 bytes ( 100 percent of avg)
+ESP    0 reads               2853 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
@@ -1268,8 +1268,8 @@ ORC_SCAN ==================================  SEQ_NO 2        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.STORE_SALES_ORC
 REQUESTS_IN ........ 100,000
 ROWS/REQUEST ............ 28.8
-EST_OPER_COST .... 3,545,319
-EST_TOTAL_COST ... 3,545,319
+EST_OPER_COST .... 3,545,328.25
+EST_TOTAL_COST ... 3,545,328.25
 DESCRIPTION
   max_card_est ........... 2.8804e+06
   fragment_id ............ 0

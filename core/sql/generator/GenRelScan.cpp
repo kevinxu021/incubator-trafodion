@@ -464,7 +464,7 @@ short FileScan::genForTextAndSeq(Generator * generator,
 	      hfi.entryNum_ = entryNum;
 	      entryNum++;
 
-	      if (scanInfo[j].isLocal_)
+	      if (scanInfo[j].localBlockNum_ >= 0)
 		hfi.setFileIsLocal(TRUE);
 
 	      if (offset > 0)

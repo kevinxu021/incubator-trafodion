@@ -632,16 +632,17 @@ Int32 ExHdfsFastExtractTcb::fixup()
   return 0;
 }
 
-void ExHdfsFastExtractTcb::convertSQRowToString(ULng32 nullLen,
-                                                ULng32 recSepLen,
-                                                ULng32 delimLen,
-                                                tupp_descriptor* dataDesc,
-                                                char* targetData,
-                                                NABoolean orcRow,
-                                                NABoolean & convError) {
+NABoolean ExHdfsFastExtractTcb::convertSQRowToString(ULng32 nullLen,
+                                                     ULng32 recSepLen,
+                                                     ULng32 delimLen,
+                                                     tupp_descriptor* dataDesc,
+                                                     char* targetData,
+                                                     NABoolean orcRow,
+                                                     NABoolean & convError) {
   char* childRow = dataDesc->getTupleAddress();
   ULng32 childRowLen = dataDesc->getAllocatedSize();
   UInt32 vcActualLen = 0;
+  Int32 origNumBytesLeft = currPartn_->currBuffer_->bytesLeft_;
 
   for (UInt32 i = 0; i < myTdb().getChildTuple()->numAttrs(); i++) {
     Attributes * attr = myTdb().getChildTableAttr(i);
@@ -649,6 +650,11 @@ void ExHdfsFastExtractTcb::convertSQRowToString(ULng32 nullLen,
     char *childColData = NULL; //childRow + attr->getOffset();
     UInt32 childColLen = 0;
     UInt32 maxTargetColLen = attr2->getLength();
+
+    if (currPartn_->currBuffer_->bytesLeft_ < maxTargetColLen) {
+      currPartn_->currBuffer_->bytesLeft_ = origNumBytesLeft;
+      return FALSE;
+    }
 
     //source format is aligned format--
     //----------
@@ -779,6 +785,9 @@ void ExHdfsFastExtractTcb::convertSQRowToString(ULng32 nullLen,
   if (orcRow)
     currPartn_->currBuffer_->numRows_++;
 
+  ex_assert(currPartn_->currBuffer_->bytesLeft_ >= 0,
+            "exceeded IO buffer space in FastExtract");
+  return TRUE;
 }
 
 static void replaceInString(NAString &s, const char *pat, const char *subst)
@@ -1534,32 +1543,34 @@ ExWorkProcRetcode ExHdfsFastExtractTcb::work()
         break;
       }
       NABoolean convError = FALSE;
-      convertSQRowToString(nullLen, recSepLen, delimLen, dataDesc,
-                           targetData, isOrcFile(), convError);
 
-      ///////////////////////////////
-      pstate.matchCount_++;
-      qChild_.up->removeHead();
-      if (!convError)
-      {
-        if (feStats)
+      if (convertSQRowToString(nullLen, recSepLen, delimLen, dataDesc,
+                               targetData, isOrcFile(), convError))
         {
-          feStats->incProcessedRowsCount();
+          ///////////////////////////////
+          pstate.matchCount_++;
+          qChild_.up->removeHead();
+          if (!convError)
+            {
+              if (feStats)
+                {
+                  feStats->incProcessedRowsCount();
+                }
+              pstate.successRowCount_ ++;
+            }
+          else
+            {
+              if (feStats)
+                {
+                  feStats->incErrorRowsCount();
+                }
+              pstate.errorRowCount_ ++;
+            }
+          pstate.step_ = EXTRACT_READ_ROWS_FROM_CHILD;
         }
-        pstate.successRowCount_ ++;
-      }
       else
-      {
-        if (feStats)
-        {
-          feStats->incErrorRowsCount();
-        }
-        pstate.errorRowCount_ ++;
-      }
-      if (currPartn_->currBuffer_->bytesLeft_ < (Int32) maxExtractRowLength_)
+        // row did not fit into the current buffer
         pstate.step_ = EXTRACT_DATA_READY_TO_SEND;
-      else
-        pstate.step_ = EXTRACT_READ_ROWS_FROM_CHILD;
     }
     break;
 
@@ -1592,7 +1603,7 @@ ExWorkProcRetcode ExHdfsFastExtractTcb::work()
         if (sendPartition(currPartn_, feStats))
           pstate.step_ = EXTRACT_ERROR;
         else
-          pstate.step_ = EXTRACT_READ_ROWS_FROM_CHILD;
+          pstate.step_ = EXTRACT_CONVERT_DATA;
       }
     }
     break;
