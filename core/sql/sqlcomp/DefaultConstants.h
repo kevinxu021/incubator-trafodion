@@ -3935,6 +3935,7 @@ enum DefaultConstants
 
   // if TRUE, create tinyint literal insteadl of smallint.
   TRAF_CREATE_TINYINT_LITERAL,
+  HIVE_SIMULATE_REAL_NODEMAP,
 
   // if ON, generate object descriptor during DDL and store it in metadata.
   TRAF_STORE_OBJECT_DESC,

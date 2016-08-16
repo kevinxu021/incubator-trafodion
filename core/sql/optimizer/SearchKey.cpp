@@ -2865,20 +2865,25 @@ int HivePartitionAndBucketKey::computeActivePartitions()
 {
   Int32 originalNumPartns = selectedPartitions_.entries();
   Int32 result = originalNumPartns;
-  if (!hivePartColList_.isEmpty())
-    {
-      Parser p(CmpCommon::context());
+  Parser p(CmpCommon::context());
 
-      // loop over selected partitions so far (usually will be all the partitions)
-      for (CollIndex p=0;
-           selectedPartitions_.nextUsed(p);
-           p++)
+  // loop over selected partitions so far (usually will be all the partitions)
+  for (CollIndex p=0;
+       selectedPartitions_.nextUsed(p);
+       p++)
+    {
+      NABoolean partitionIsEliminated = FALSE;
+      ValueIdList colValuesList;
+
+      // note that we can come here for non-partitioned tables as
+      // well, and we may even have compile-time elimination of that
+      // single partition, for example if we have a predicate that is
+      // a tautology, like 1=1 or a contradiction, like 1=0
+      if (!hivePartColList_.isEmpty())
         {
-          NABoolean partitionIsEliminated = FALSE;
           const ItemExprList *colValues =
             partColValuesAsFunc_->getRangePartitionBoundaries()->
             getBoundaryValues(p);
-          ValueIdList colValuesList;
 
           // make a ValueIdList with the start values cast to the
           // correct type
@@ -2891,41 +2896,44 @@ int HivePartitionAndBucketKey::computeActivePartitions()
               castVal->synthTypeAndValueId();
               colValuesList.insert(castVal->getValueId());
             }
+        }
 
-          if (!compileTimePartColPreds_.isEmpty())
+      if (!compileTimePartColPreds_.isEmpty())
+        {
+          // make a map that maps partition columns to the values
+          // of these partition columns for this partition
+          ValueIdMap colsToConsts(hivePartColList_, colValuesList);
+          ComDiagsArea da;
+
+          // evaluate this rewritten predicate at compile time
+          ex_expr::exp_return_type predEvalResult =
+            compileTimePartColPreds_.evalPredsAtCompileTime(
+                 &da,
+                 &colsToConsts,
+                 TRUE);
+
+          if (da.getNumber() == 0 &&
+              (predEvalResult == ex_expr::EXPR_FALSE ||
+               predEvalResult == ex_expr::EXPR_NULL))
             {
-              // make a map that maps partition columns to the values
-              // of these partition columns for this partition
-              ValueIdMap colsToConsts(hivePartColList_, colValuesList);
-              ComDiagsArea da;
-
-              // evaluate this rewritten predicate at compile time
-              ex_expr::exp_return_type predEvalResult =
-                compileTimePartColPreds_.evalPredsAtCompileTime(
-                     &da,
-                     &colsToConsts,
-                     TRUE);
-
-              if (da.getNumber() == 0 &&
-                  (predEvalResult == ex_expr::EXPR_FALSE ||
-                   predEvalResult == ex_expr::EXPR_NULL))
-                {
-                  // no errors or warnings, predicate is FALSE
-                  partitionIsEliminated = TRUE;
-                }
-              else if (da.getNumber() > 0 ||
-                       predEvalResult != ex_expr::EXPR_TRUE)
-                {
-                  // we should not see errors or warnings, but if
-                  // there are some then we assume the partition
-                  // qualifies and also do partition elimination
-                  // at runtime
-                  DCMPASSERT(0);
-                  partAndVirtColPreds_ += compileTimePartColPreds_;
-                }
+              // no errors or warnings, predicate is FALSE
+              partitionIsEliminated = TRUE;
             }
+          else if (da.getNumber() > 0 ||
+                   predEvalResult != ex_expr::EXPR_TRUE)
+            {
+              // we should not see errors or warnings, but if
+              // there are some then we assume the partition
+              // qualifies and also do partition elimination
+              // at runtime
+              DCMPASSERT(0);
+              partAndVirtColPreds_ += compileTimePartColPreds_;
+            }
+        }
 
-          if (!partitionIsEliminated)
+      if (!partitionIsEliminated)
+        {
+          if (!hivePartColList_.isEmpty())
             {
               // get an upper bound for the actual row length, including
               // any needed alignment on up to 8 byte boundaries
@@ -2944,17 +2952,17 @@ int HivePartitionAndBucketKey::computeActivePartitions()
               // those in the code generator
               binaryPartColValues_.insertAt(p, buf);
             }
-          else
-            {
-              selectedPartitions_.remove(p);
-              result--;
-            }
-        } // loop over list partitions
+        }
+      else
+        {
+          selectedPartitions_.remove(p);
+          result--;
+        }
+    } // loop over list partitions
 
-    }
-    partitionEliminatedCT_ = (result < originalNumPartns);
+  partitionEliminatedCT_ = (result < originalNumPartns);
 
-    return result;
+  return result;
 }
 
 void HivePartitionAndBucketKey::reportError(int part,
