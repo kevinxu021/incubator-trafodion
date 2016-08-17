@@ -187,7 +187,90 @@ public class BackupRestoreClient
       RMInterface.replayEngineStart(idtmid.val);
     }
 
-    public void deleteBackup(String timestamp) throws Exception {
+    public void deleteRecoveryRecord(RecoveryRecord rr) throws Exception {
+       if (logger.isDebugEnabled())
+          logger.debug("BackupRestoreClient deleteRecoveryRecord ENTRY : " + rr);
+       FileSystem fs = FileSystem.get(config);
+       HBaseAdmin admin = new HBaseAdmin(config);
+       MutationMeta mm = new MutationMeta();
+       try {
+          Map<String, TableRecoveryGroup> recoveryTableMap = rr.getRecoveryTableMap();
+          if (logger.isDebugEnabled())
+              logger.debug("deleteRecoveryRecord recoveryTableMap size is " + recoveryTableMap.size());
+          System.out.println("deleteRecoveryRecord recoveryTableMap size is " + recoveryTableMap.size());
+
+          for (Map.Entry<String, TableRecoveryGroup> tableEntry :  recoveryTableMap.entrySet())
+          {            
+              String tableName = tableEntry.getKey();
+              if (logger.isDebugEnabled())
+                  logger.debug("deleteRecoveryRecord working on table " + tableName);
+              System.out.println("deleteRecoveryRecord working on table " + tableName);
+
+              TableRecoveryGroup tableRecoveryGroup = tableEntry.getValue();
+
+              if (logger.isDebugEnabled())
+                 logger.debug("deleteRecoveryRecord got TableRecoveryGroup");
+              System.out.println("deleteRecoveryRecord got TableRecoveryGroup");
+
+              // Now go through mutations files one by one for now
+              List<MutationMetaRecord> mutationList = tableRecoveryGroup.getMutationList();
+
+              if (logger.isDebugEnabled())
+                  logger.debug("deleteRecoveryRecord : " + mutationList.size() + " mutation files for " + tableName);
+              System.out.println("deleteRecoveryRecord : " + mutationList.size() + " mutation files for " + tableName);
+              for (int i = 0; i < mutationList.size(); i++) {
+                 MutationMetaRecord mutationRecord = mutationList.get(i);
+                 String mutationPathString = mutationRecord.getMutationPath();
+                 Path mutationPath = new Path (mutationPathString);
+
+                 // Delete mutation file
+                 if (logger.isDebugEnabled())
+                    logger.debug("deleteRecoveryRecord deleting mutation file at " + mutationPath);
+                 System.out.println("deleteRecoveryRecord deleting mutation file at " + mutationPath);
+                 fs.delete(mutationPath, false);
+
+                 // Delete mutation record
+                 if (logger.isDebugEnabled())
+                    logger.debug("deleteRecoveryRecord deleting mutationMetaRecord " + mutationRecord);
+                 System.out.println("deleteRecoveryRecord deleting mutationMetaRecord " + mutationRecord);
+                 mm.deleteMutationRecord(mutationRecord.getKey());
+
+              }
+
+              SnapshotMetaRecord tableMeta = tableRecoveryGroup.getSnapshotRecord();
+              if (logger.isDebugEnabled())
+                 logger.debug("deleteRecoveryRecord got SnapshotMetaRecord");
+              System.out.println("deleteRecoveryRecord got SnapshotMetaRecord");
+              String snapshotPath = tableMeta.getSnapshotPath();
+              if (logger.isDebugEnabled())
+                 logger.debug("deleteRecoveryRecord got path " + snapshotPath);
+              System.out.println("deleteRecoveryRecord got path " + snapshotPath);
+    
+              admin.deleteSnapshot(snapshotPath);
+              if (logger.isDebugEnabled())
+                 logger.debug("deleteRecoveryRecord snapshot deleted");
+              System.out.println("deleteRecoveryRecord snapshot deleted");
+
+              if (logger.isDebugEnabled())
+                 logger.debug("deleteRecoveryRecord deleting snapshotRecord");
+              System.out.println("deleteRecoveryRecord deleting snapshotRecord");
+              sm.deleteRecord(tableMeta.getKey());
+          
+           }
+       }
+       catch (Exception e) {
+         if (logger.isDebugEnabled())
+            logger.debug("deleteRecoveryRecord Exception occurred " ,e);
+         System.out.println("deleteRecoveryRecord Exception occurred " + e);
+         e.printStackTrace();
+         throw e;
+      }
+      finally{
+         admin.close();
+      }
+    }
+
+    public boolean deleteBackup(String timestamp) throws Exception {
       //System.out.println("deleteBackup :" + timestamp );
       if (logger.isDebugEnabled())
          logger.debug("BackupRestoreClient deleteBackup Timestamp:" + timestamp);
@@ -202,79 +285,10 @@ public class BackupRestoreClient
       if (logger.isDebugEnabled())
         logger.debug("BackupRestoreClient deleteBackup idtmid :" + idtmid.val + " Timestamp : " + timestamp );
       //System.out.println("idtmid :" + idtmid.val + " Timestamp : " + timestamp );
-      try {
-          RecoveryRecord rr = new RecoveryRecord(idtmid.val);
-      
-          Map<String, TableRecoveryGroup> recoveryTableMap = rr.getRecoveryTableMap();
-
-          for (Map.Entry<String, TableRecoveryGroup> tableEntry :  recoveryTableMap.entrySet())
-          {            
-              String tableName = tableEntry.getKey();
-              if (logger.isDebugEnabled())
-                  logger.debug("deleteBackup working on table " + tableName);
-              System.out.println("deleteBackup working on table " + tableName);
-
-              TableRecoveryGroup tableRecoveryGroup = tableEntry.getValue();
-
-              if (logger.isDebugEnabled())
-                  logger.debug("deleteBackup got TableRecoveryGroup");
-              System.out.println("deleteBackup got TableRecoveryGroup");
-
-              // Now go through mutations files one by one for now
-              List<MutationMetaRecord> mutationList = tableRecoveryGroup.getMutationList();
-
-              if (logger.isDebugEnabled())
-                  logger.debug("deleteBackup : " + mutationList.size() + " mutation files for " + tableName);
-              System.out.println("deleteBackup : " + mutationList.size() + " mutation files for " + tableName);
-
-              for (int i = 0; i < mutationList.size(); i++) {
-	    	    MutationMetaRecord mutationRecord = mutationList.get(i);
-                  String mutationPathString = mutationRecord.getMutationPath();
-                  Path mutationPath = new Path (mutationPathString);
-
-                  // Delete mutation file
-                  if (logger.isDebugEnabled())
-                      logger.debug("deleteBackup deleting mutation file at " + mutationPath);
-                  System.out.println("deleteBackup deleting mutation file at " + mutationPath);
-                  fs.delete(mutationPath, false);
-                  
-                  // Delete mutation record
-                  if (logger.isDebugEnabled())
-                      logger.debug("deleteBackup deleting mutationMetaRecord " + mutationRecord);
-                  System.out.println("deleteBackup deleting mutationMetaRecord " + mutationRecord);
-                  mm.deleteMutationRecord(mutationRecord.getKey());
-
-              }
-
-              SnapshotMetaRecord tableMeta = tableRecoveryGroup.getSnapshotRecord();
-              if (logger.isDebugEnabled())
-                  logger.debug("deleteBackup got SnapshotMetaRecord");
-              System.out.println("deleteBackup got SnapshotMetaRecord");
-              String snapshotPath = tableMeta.getSnapshotPath();
-              if (logger.isDebugEnabled())
-                  logger.debug("deleteBackup got path " + snapshotPath);
-              System.out.println("deleteBackup got path " + snapshotPath);
-  
-              admin.deleteSnapshot(snapshotPath);
-              if (logger.isDebugEnabled())
-                  logger.debug("deleteBackup snapshot deleted");
-              System.out.println("deleteBackup snapshot deleted");
-
-              if (logger.isDebugEnabled())
-                  logger.debug("deleteBackup deleting snapshotRecord");
-              System.out.println("deleteBackup deleting snapshotRecord");
-              sm.deleteRecord(tableMeta.getKey());
-        
-          }
-      }
-      catch (Exception e) {
-    	  if (logger.isDebugEnabled())
-              logger.debug("ReplayEngine Exception occurred during Replay " + e);
-          System.out.println("ReplayEngine Exception occurred during Replay " + e);
-          e.printStackTrace();
-          throw e;
-     }
-
+      RecoveryRecord rr = new RecoveryRecord(idtmid.val);
+      deleteRecoveryRecord(rr);
+//      sm.deleteSnapshotStartRecord(tag);
+      return true;
     }
 
     public boolean deleteBackup(String backuptag, boolean ts) throws Exception {
@@ -294,22 +308,10 @@ public class BackupRestoreClient
           if (logger.isDebugEnabled())
             logger.debug("BackupRestoreClient deleteBackup User tag :" + backuptag);
           
-          HBaseAdmin admin = new HBaseAdmin(config);
-          ArrayList<SnapshotMetaRecord> snapshotList;
-
-          snapshotList = getBackedupSnapshotList(backuptag);
-        
-          // For each table, in the list delete snapshot
-          for (SnapshotMetaRecord s : snapshotList) {
-            String hbaseTableName = s.getTableName();
-            String snapshotName =  s.getSnapshotPath();
-  
-              logger.info("BackupRestoreClient deleteSnapshot Snapshot Name :"
-                      + snapshotName);
-  
-            admin.deleteSnapshot(snapshotName);
-          }
-          admin.close();
+          RecoveryRecord rr = new RecoveryRecord(backuptag);
+          deleteRecoveryRecord(rr);
+          sm.deleteSnapshotStartRecord(backuptag);
+          
         }
         
     	System.out.println("BackupRestoreClient : deleteBackup :) :) ");
