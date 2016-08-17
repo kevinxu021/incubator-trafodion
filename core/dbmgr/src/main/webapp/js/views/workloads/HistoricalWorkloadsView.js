@@ -87,6 +87,11 @@ define([
 				borderWidth: {top:0, right: 0, bottom: 1, left: 1},
 				tickColor: "#737373"
 				},
+			series: {
+		        points: {
+		            fillColor: 'red'
+		        }
+		    },
 			xaxis : {
 				mode : "time",
 				tickLength:0
