@@ -466,6 +466,7 @@ define([
 					"aoColumnDefs": [{
 						"aTargets": [ 0],
 						"mData": 0,
+						"className": "dt-body-right",
 						"mRender": function ( data, type, full ) {
 							//if (type === 'display') {
 							//if(data != null || data != -1)

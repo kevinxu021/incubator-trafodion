@@ -86,7 +86,10 @@ define([
 
 			this.fetchNodes();
 
-			$.validator.addMethod("alphanumeric", function(value, element) {
+			$.validator.addMethod("wmsprofile_alphanumeric", function(value, element) {
+				if(profileDialogParams.type && profileDialogParams.type == 'alter')
+					return true; // For alter we don't allow editing the name,so no check needed
+				
 				return this.optional(element) || /^\w+$/i.test(value);
 			}, "Only alphanumeric characters and underscores are allowed");
 
@@ -96,7 +99,7 @@ define([
 
 			profileFormValidator = $(PROFILE_FORM).validate({
 				rules: {
-					"profile_name": { required: true, alphanumeric: true},
+					"profile_name": { required: true, wmsprofile_alphanumeric: true},
 					"profile-cqd-stmts": { cqdssets: true},
 					"profile-set-stmts": { cqdssets: true}
 				},
@@ -206,6 +209,11 @@ define([
 			if(profileDialogParams != null){
 				if(profileDialogParams.type && profileDialogParams.type == 'add'){
 					$(PROFILE_NAME).attr('disabled', false);
+
+					$('#wprofile-form input, select, textarea, table').prop('disabled', false);
+					$(PROFILE_APPLY_BTN).attr('disabled', false);
+					$(PROFILE_RESET_BTN).attr('disabled', false);
+					
 					$(PROFILE_DIALOG_TITLE).text('Add Profile');
 					$(PROFILE_NAME).val("");
 					var cqds = profileDialogParams.data["cqd"].replace(/<br>/g,"\n"); 
@@ -216,9 +224,18 @@ define([
 					_this.setNodeSelection();
 				}
 				if(profileDialogParams.type && profileDialogParams.type == 'alter'){
+					if(profileDialogParams.data["isDefault"] == 'yes'){
+						$('#wprofile-form input, select, textarea, table').prop('disabled', true);
+						$(PROFILE_APPLY_BTN).attr('disabled', true);
+						$(PROFILE_RESET_BTN).attr('disabled', true);
+					}else{
+						$('#wprofile-form input, select, textarea, table').prop('disabled', false);
+						$(PROFILE_APPLY_BTN).attr('disabled', false);
+						$(PROFILE_RESET_BTN).attr('disabled', false);
+					}					
 					$(PROFILE_DIALOG_TITLE).text('Alter Profile');
 					$(PROFILE_NAME).attr('disabled', true);
-					$(PROFILE_NAME).val(profileDialogParams.data["Profile Name"]);
+					$(PROFILE_NAME).val(profileDialogParams.data["name"]);
 					var cqds = profileDialogParams.data["cqd"].replace(/<br>/g,"\n"); 
 					$(CQD_CONTAINER).val(cqds);
 					var sets = profileDialogParams.data["set"].replace(/<br>/g,"\n"); 
@@ -240,37 +257,53 @@ define([
 		},
 		setNodeSelection: function(){
 			//_this.nodesList=["node1","node2","node3","node4","node5","node6","node7","node8","node9","node10","node11","node12"]
-			var aoColumns = [{"title":"Select"},{"title":"Node Name"}];
+			var aoColumns = [];// [{"title":"Select"},{"title":"Node Name"}];
 			var aaData = [];
 			var nodes = profileDialogParams.data["hostList"].replace(/\s+/g, "");
 			var nodes = nodes.split(',');
+			if(profileDialogParams.data["isDefault"] == 'no'){
+				aoColumns.push({"title":"Select"});
+			}
+			aoColumns.push({"title":"Node Name"});
+
 			$.each(_this.nodesList, function(i, v){
 				var data = [];
-				if($.inArray(v, nodes) > -1){
-					data.push(1);
+					if(profileDialogParams.data["isDefault"] == 'no'){
+					if($.inArray(v, nodes) > -1){
+						data.push(1);
+					}else{
+						data.push(0);
+					}
+					data.push(v);
 				}else{
-					data.push(0);
-				}
-				data.push(v);
-				aaData.push(data);
-			});
-			var aoColumnDefs = [];
-			aoColumnDefs.push({
-				"aTargets": [ 0 ],
-				"mData": 0,
-				"mRender": function ( data, type, full ) {
-					if(type == 'display') {
-						if (data == "1") {
-							return '<input type=\"checkbox\" checked value="' + data + '">';
-						} else {
-							return '<input type=\"checkbox\" value="' + data + '">';
-						}                       
-					}else { 
-						return data;
+					if($.inArray(v, nodes) > -1){
+						data.push(v);
 					}
 				}
+				if(data.length > 0)
+					aaData.push(data);
 			});
-			var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="p-nodes-list" style="height:300px"></table>';
+			
+			var aoColumnDefs = [];
+			if(profileDialogParams.data["isDefault"] == 'no'){
+				aoColumnDefs.push({
+					"aTargets": [ 0 ],
+					"mData": 0,
+					"mRender": function ( data, type, full ) {
+						if(type == 'display') {
+							if (data == "1") {
+								return '<input type=\"checkbox\" checked value="' + data + '">';
+							} else {
+								return '<input type=\"checkbox\" value="' + data + '">';
+							}                       
+						}else { 
+							return data;
+						}
+					}
+				});
+			}
+			
+			var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="p-nodes-list"></table>';
 			$('#pnode-list-container').html( sb );
 			var bPaging = aaData.length > 10;
 			nodesDataTable = $('#p-nodes-list').DataTable({
@@ -287,11 +320,14 @@ define([
 				"aoColumns" : aoColumns,
 				"aoColumnDefs" : aoColumnDefs,
 				"sScrollY":"200",
+				"scrollCollapse": true,
 				"order": [[ 0, "desc" ]],
 				buttons: []
 			});
-			$('div.select-all-button').html('<button type="button">Select/Unselect All</button>');
-			$('div.select-all-button').on('click', this.selectAll);
+			if(profileDialogParams.data["isDefault"] == 'no'){
+				$('div.select-all-button').html('<button type="button">Select/Unselect All</button>');
+				$('div.select-all-button').on('click', this.selectAll);
+			}
 		},
 		displayProfiles: function (result){
 			$(PROFILES_SPINNER).hide();
@@ -316,21 +352,32 @@ define([
 				var updateTimeColIndex = -1;
 				var cqdColIndex = -1;
 				var setColIndex = -1;
+				var isDefColIndex = -1;
+				
 				// add needed columns
 				$.each(keys, function(k, v) {
 					var obj = new Object();
 					obj.title = common.UpperCaseFirst(v);
-					if(v == 'Profile Name'){
+					if(v == 'name'){
 						profileNameColIndex = k;
 					}
 					if(v == 'lastUpdate'){
 						updateTimeColIndex = k;
+						obj.title = 'Last Update Time';
 					}
 					if(v == 'cqd'){
 						cqdColIndex = k;
+						obj.title = 'CQDs';
 					}
 					if(v == 'set'){
 						setColIndex = k;
+						obj.title = 'SETs';
+					}
+					if(v == 'isDefault'){
+						isDefColIndex = k;
+					}
+					if(v == 'hostList'){
+						obj.title = 'Hosts';
 					}
 					aoColumns.push(obj);
 					dataTableColNames.push(v);
@@ -387,26 +434,52 @@ define([
 						}
 					});					
 				}
+				
 				//profileDialogParams.data["cqd"].replace(/;/g, ";\n")
 				if(updateTimeColIndex >=0){
 					aoColumnDefs.push({
 						"aTargets": [ updateTimeColIndex ],
 						"mData": updateTimeColIndex,
+						"className" : "dt-body-right",
 						"mRender": function ( data, type, full ) {
-							if(type == 'display'){
+							if(data != null){
 								return common.toServerLocalDateFromMilliSeconds(parseInt(data), 'YYYY-MM-DD HH:mm:ss');
 							}else 
 								return data;
 						}
 					});
 				}	
+				
+				if(isDefColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [isDefColIndex ],
+						"mData": isDefColIndex,
+						"visible" : false,
+						"searchable" : false
+					});					
+				}
 				aoColumnDefs.push({
 					"aTargets": [ deleteProfileIconColIndex ],
 					"mData": deleteProfileIconColIndex,
 					"className": "dt-center",
-					"mRender": function ( data, type, full ) {
-						if ( type === 'display' ) {
-							return '<a class="delete-profile fa fa-trash-o"></a>';
+					"mRender": function ( data, type, full, meta ) {
+						if(type === 'display'){
+							
+							var aoColumns = meta.settings.aoColumns;
+							var defColIndex = -1;
+							
+							$.each(aoColumns, function(i, v){
+								if(v.title == 'IsDefault'){
+									defColIndex = i;
+									return;
+								}
+							});
+							
+							if(defColIndex >= 0 && full[defColIndex] == 'no'){
+								return '<a class="delete-profile fa fa-trash-o"></a>';
+							}
+							else return "";
+							
 						} else return "";
 
 					}
@@ -456,8 +529,10 @@ define([
 							}else{
 								if(cell.column == deleteProfileIconColIndex){
 									var data = profilesDataTable.row(cell.row).data();
-									$(DELETE_PROFILE_NAME).text(data[profileNameColIndex]);
-									$(PROFILE_DELETE_DIALOG).modal('show');
+									if(data[isDefColIndex] == 'no'){
+										$(DELETE_PROFILE_NAME).text(data[profileNameColIndex]);
+										$(PROFILE_DELETE_DIALOG).modal('show');
+									}
 								}
 							}
 						}
@@ -509,6 +584,7 @@ define([
 							}
 						});
 					}
+					paramDataRow[dataTableColNames.indexOf("isDefault")] = 'no';
 					var p = {};
 					$.each(dataTableColNames, function(j,k){
 						p[k] = paramDataRow[j];
@@ -523,6 +599,7 @@ define([
 				return;
 			}
 			var profile = {};
+			profile.action = profileDialogParams.type;
 			profile.name = $(PROFILE_NAME).val();
 			profile.cqds = $(CQD_CONTAINER).val();
 			profile.sets = $(SET_CONTAINER).val();
@@ -544,6 +621,7 @@ define([
 		},
 		profileResetBtnClicked: function(){
 			_this.doReset();
+			profileFormValidator.resetForm();
 		},
 		addAlterProfileSuccess: function(data){
 			$(ADD_PROFILE_ERROR_CONTAINER).text("");
@@ -563,7 +641,7 @@ define([
 
 			var msg = "";
 			if (jqXHR.responseText) {
-				msg =  "Failed to create profile : " + jqXHR.responseText;
+				msg =  jqXHR.responseText;
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
 					msg = "Error : Unable to communicate with the server.";
@@ -582,7 +660,7 @@ define([
 		deleteProfileError: function(jqXHR){
 			var msg = "";
 			if (jqXHR.responseText) {
-				msg =  "Failed to delete profile : " + jqXHR.responseText;
+				msg =  jqXHR.responseText;
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
 					msg = "Error : Unable to communicate with the server.";

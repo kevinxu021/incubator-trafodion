@@ -122,8 +122,9 @@ public class RESTProcessor {
 						return true; // temporarily disable this check..
 					}
 				});
-			} else
+			} else {
 				conn = (HttpURLConnection) url.openConnection();
+			}
 			conn.setReadTimeout(180000); // 3 minutes
 			conn.setRequestProperty("Accept", "application/json, application/text, text/plain");
 			if (a.contentType != null && a.contentType.length() > 0) {
@@ -299,7 +300,9 @@ public class RESTProcessor {
 							}
 							String valueString = valNodes.next().toString();
 							if (valueString != null) {
-								valueString = valueString.replaceAll("\"", "");
+								valueString = valueString.replaceAll("\\\\\"", "&quot"); //handle embedded escaped quotes. convert to &quot first
+								valueString = valueString.replaceAll("\"", ""); // remove other quotes
+								valueString = valueString.replaceAll("&quot", "\""); //put back the embedded escaped quotes in the data.
 								valueString = valueString.replaceAll("\\\\n", "<br>");
 							}
 							rowValues.put("col" + i, valueString);
@@ -314,7 +317,9 @@ public class RESTProcessor {
 							}
 							String valueString = value.toString();
 							if (valueString != null) {
-								valueString = valueString.replaceAll("\"", "");
+								valueString = valueString.replaceAll("\\\\\"", "&quot"); //handle embedded escaped quotes. convert to &quot first
+								valueString = valueString.replaceAll("\"", ""); // remove other quotes
+								valueString = valueString.replaceAll("&quot", "\""); //put back the embedded escaped quotes in the data.
 								valueString = valueString.replaceAll("\\\\n", "<br>");
 							}
 							rowValues.put(name, valueString);

@@ -54,7 +54,7 @@ class NAFileSetList;
 // -----------------------------------------------------------------------
 class PartitioningFunction;
 class RangePartitioningFunction;
-struct desc_struct;
+class TrafDesc;
 class HHDFSTableStats;
 class HbaseCreateOption;
 
@@ -100,6 +100,7 @@ public:
 	    const NAColumnArray & allColumns,
 	    const NAColumnArray & indexKeyColumns,
 	    const NAColumnArray & horizontalPartKeyColumns,
+	    const NAColumnArray & hiveSortKeyColumns,
 	    PartitioningFunction * forHorizontalPartitioning,
 	    short keytag,
 	    Int64 redefTime,
@@ -118,7 +119,7 @@ public:
 	    NABoolean isVolatile,
 	    NABoolean inMemObjectDefn,
             Int64 indexUID,
-            desc_struct *keysDesc,
+            TrafDesc *keysDesc,
             HHDFSTableStats *hHDFSTableStats,
             Lng32 numSaltPartns,
             Lng32 numInitialSaltRegions,
@@ -155,8 +156,8 @@ public:
   const NAColumnArray & getIndexKeyColumns() const
                                               { return indexKeyColumns_; }
 
-  const desc_struct * getKeysDesc() const { return keysDesc_; }
-  desc_struct * getKeysDesc() { return keysDesc_; }
+  const TrafDesc * getKeysDesc() const { return keysDesc_; }
+  TrafDesc * getKeysDesc() { return keysDesc_; }
 
   Lng32 getCountOfFiles() const                  { return countOfFiles_; }
 
@@ -251,6 +252,9 @@ public:
                                        { return partitioningKeyColumns_; }
 
   NAString getBestPartitioningKeyColumns(char separator) const;
+
+  const NAColumnArray & getHiveSortKeyColumns() const
+                                           { return hiveSortKeyColumns_; }
 
   PartitioningFunction * getPartitioningFunction() const
                                                      { return partFunc_; }
@@ -401,7 +405,7 @@ private:
   // uid for index
   Int64 indexUID_;
 
-  desc_struct *keysDesc_;  // needed for parallel label operations.
+  TrafDesc *keysDesc_;  // needed for parallel label operations.
 
   // ---------------------------------------------------------------------
   // Horizontal partitioning:
@@ -420,8 +424,13 @@ private:
   // exists, it is implemented by a partitioning function. 
   // 
   // A NAFileSet need not contain a partitioning key.
+  // For Hive tables, the bucketing key columns are stored in the
+  // partitioning key, since this comes closest to the HASH2
+  // partitioning of other (salted) tables. Optional Hive sort
+  // columns are stored in another column array here.
   // --------------------------------------------------------------------
   NAColumnArray partitioningKeyColumns_;
+  NAColumnArray hiveSortKeyColumns_;
   
   PartitioningFunction * partFunc_;
 

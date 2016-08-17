@@ -239,6 +239,7 @@ ExHbaseAccessTcb::ExHbaseAccessTcb(
   , colValVec_(NULL)
   , colValVecSize_(0)
   , colValEntry_(0)
+  , loggingErrorDiags_(NULL)
 {
   Space * space = (glob ? glob->getSpace() : NULL);
   CollHeap * heap = (glob ? glob->getDefaultHeap() : NULL);
@@ -715,7 +716,7 @@ short ExHbaseAccessTcb::setupError(Lng32 retcode, const char * str, const char *
       ComDiagsArea * diagsArea = NULL;
       ExRaiseSqlError(getHeap(), &diagsArea, 
                       (hbaseAccessTdb().getStorageType() == COM_STORAGE_HBASE
-                       ? (ExeErrorCode)(8448) : (ExeErrorCode)(8451)),
+                       ? (ExeErrorCode)(8448) : (ExeErrorCode)(8452)),
                       NULL, &intParam1, 
 		      &cliError, NULL, 
 		      (str ? (char*)str : (char*)" "),
@@ -2989,22 +2990,28 @@ void ExHbaseAccessTcb::handleException(NAHeap *heap,
                                     ComCondition *errorCond,
                                     ExpHbaseInterface * ehi,
                                     NABoolean & LoggingFileCreated,
-                                    char *loggingFileName)
+                                    char *loggingFileName,
+                                    ComDiagsArea **loggingErrorDiags)
 {
   Lng32 errorMsgLen = 0;
   charBuf *cBuf = NULL;
   char *errorMsg;
   Lng32 retcode;
 
+  if (*loggingErrorDiags != NULL)
+     return;
+
   if (!LoggingFileCreated) {
      retcode = ehi->hdfsCreateFile(loggingFileName);
      if (retcode == HBASE_ACCESS_SUCCESS)
         LoggingFileCreated = TRUE;
-     else
-        ex_assert(0, "Error while creating the log file");
+     else 
+        goto logErrorReturn;
   }
+  
   retcode = ehi->hdfsWrite(logErrorRow, logErrorRowLen);
-  ex_assert((retcode == HBASE_ACCESS_SUCCESS), "Error while writing the log file");
+  if (retcode != HBASE_ACCESS_SUCCESS) 
+     goto logErrorReturn;
   if (errorCond != NULL) {
      errorMsgLen = errorCond->getMessageLength();
      const NAWcharBuf wBuf((NAWchar*)errorCond->getMessageText(), errorMsgLen, heap);
@@ -3015,9 +3022,18 @@ void ExHbaseAccessTcb::handleException(NAHeap *heap,
      errorMsgLen++;
   }
   else {
-     errorMsgLen = strlen("[UNKNOWN EXCEPTION]\n");
+     errorMsg = (char *)"[UNKNOWN EXCEPTION]\n";
+     errorMsgLen = strlen(errorMsg);
   }
   retcode = ehi->hdfsWrite(errorMsg, errorMsgLen);
+logErrorReturn:
+  if (retcode != HBASE_ACCESS_SUCCESS) {
+     *loggingErrorDiags = ComDiagsArea::allocate(heap);
+     **loggingErrorDiags << DgSqlCode(EXE_ERROR_WHILE_LOGGING)
+                 << DgString0(loggingFileName)
+                 << DgString1((char *)GetCliGlobals()->currContext()->getJniErrorStr().data());
+  }
+  return;
 }
 
 void ExHbaseAccessTcb::incrErrorCount( ExpHbaseInterface * ehi,Int64 & totalExceptionCount,

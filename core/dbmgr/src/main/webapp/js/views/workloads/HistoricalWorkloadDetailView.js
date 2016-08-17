@@ -234,9 +234,14 @@ define([
 			if(result.endTime != null && result.endTime != -1){
 				endTimeVal = common.toServerLocalDateFromUtcMilliSeconds(result.endTime);
 			}			
-
+			var lastUpdTimeVal = "";
+			if(result.metrics.last_updated_time != null && result.metrics.last_updated_time != -1){
+				lastUpdTimeVal = common.toServerLocalDateFromUtcMilliSeconds(result.metrics.last_updated_time);
+			}
 			$('#query-start-time').val(startTimeVal);
 			$('#query-end-time').val(endTimeVal);
+			$('#last-update-time').val(lastUpdTimeVal);
+			
 			var colNames = [{"title":"Name"}, {"title":"Value"}];
 
 			var connDataSet = [];
@@ -244,6 +249,10 @@ define([
 			connDataSet.push(["Application", result.metrics.application_name]);
 			connDataSet.push(["Client Name", result.metrics.client_name]);
 			connDataSet.push(["Session ID", result.metrics.session_id]);
+			if(common.enableWMS){
+				connDataSet.push(["Profile Name", result.metrics.profile_name]);
+				connDataSet.push(["SLA Name", result.metrics.sla_name]);
+			}
 			connDataSet.push(["Transaction ID", result.metrics.transaction_id]);
 			connDataSet.push(["Statement Type", result.metrics.statement_type]);
 			connDataSet.push(["Statement Sub Type", result.metrics.statement_subtype]);
@@ -275,13 +284,15 @@ define([
 			var runtimeDataSet = [];
 			runtimeDataSet.push(["Query Elapsed Time", common.microsecondsToStringExtend(result.metrics.query_elapsed_time)]);
 			connDataSet.push(["Process Count", result.metrics.processes_created]);
-			runtimeDataSet.push(["Total SQL Process Busy Time", common.microsecondsToStringExtend(result.metrics.sql_process_busy_time)]);
+			runtimeDataSet.push(["Process Create Busy Time", common.microsecondsToStringExtend(result.metrics.process_create_busy_time)]);
+			runtimeDataSet.push(["SQL Process Busy Time", common.microsecondsToStringExtend(result.metrics.sql_process_busy_time)]);
 			runtimeDataSet.push(["Disk Process Busy Time", common.microsecondsToStringExtend(result.metrics.disk_process_busy_time)]);
+			runtimeDataSet.push(["UDR Process Busy Time", common.microsecondsToStringExtend(result.metrics.udr_process_busy_time)]);
 			runtimeDataSet.push(["Master Execution Time", common.microsecondsToStringExtend(result.metrics.master_execution_time)]);
 			runtimeDataSet.push(["Disk IOs", common.formatNumberWithCommas(result.metrics.disk_ios)]);
 			runtimeDataSet.push(["SQL Process Count", result.metrics.num_sql_processes]);
 			runtimeDataSet.push(["Total Memory Allocated", common.bytesToSize(result.metrics.total_mem_alloc*1024)]);
-			runtimeDataSet.push(["Max. Memory Used", common.bytesToSize(result.metrics.max_mem_used*1024)]);
+			//runtimeDataSet.push(["Max. Memory Used", common.bytesToSize(result.metrics.max_mem_used*1024)]);
 			runtimeDataSet.push(["Error Code", result.metrics.error_code]);
 			runtimeDataSet.push(["Stats Error Code", result.metrics.stats_error_code]);
 			runtimeDataSet.push(["SQL Error Code", result.metrics.sql_error_code]);

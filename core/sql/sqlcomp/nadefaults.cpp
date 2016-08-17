@@ -767,7 +767,12 @@ SDDkwd__(CAT_ENABLE_QUERY_INVALIDATION, "ON"),
   DDkwd__(COMP_BOOL_206,		"OFF"), // Internal Usage
   DDkwd__(COMP_BOOL_207,		"OFF"), // Internal Usage
   DDkwd__(COMP_BOOL_208,		"OFF"), // Internal Usage
-  DDkwd__(COMP_BOOL_209,		"OFF"), // Internal Usage
+
+  // Control the number of ESPs per node for hive queries. 
+  //  off: use the value of HIVE_NUM_ESPS_PER_DATANODE 
+  //  on: use the aggregasive ESP allocation per core
+  DDkwd__(COMP_BOOL_209,		"OFF"), 
+  
   DDkwd__(COMP_BOOL_21,			"OFF"),
   DDkwd__(COMP_BOOL_210,		"ON"),
   DDkwd__(COMP_BOOL_211,		"ON"), // controls removing constants from group expression
@@ -1809,7 +1814,8 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
 
   DDui1__(HDFS_IO_BUFFERSIZE,                            "65536"),
   DDui___(HDFS_IO_BUFFERSIZE_BYTES,               "0"),
-  DDui1__(HDFS_IO_RANGE_TAIL,                     "16384"),
+  // The value 0 denotes RangeTail = max record length of table.
+  DDui___(HDFS_IO_RANGE_TAIL,                     "0"),
   DDkwd__(HDFS_PREFETCH,                           "ON"),
   DDkwd__(HDFS_READ_CONTINUE_ON_ERROR,                           "OFF"),
   DDui1__(HDFS_REPLICATION,                            "1"),
@@ -1989,12 +1995,13 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDkwd__(HIVE_METADATA_JAVA_ACCESS,            "ON"),
   DDint__(HIVE_METADATA_REFRESH_INTERVAL,       "0"),
   DDflt0_(HIVE_MIN_BYTES_PER_ESP_PARTITION,     "67108864"),
-  DDui___(HIVE_NUM_ESPS_PER_DATANODE,           "2"),
+  DDui___(HIVE_NUM_ESPS_PER_DATANODE,           "8"),
   DDpct__(HIVE_NUM_ESPS_ROUND_DEVIATION,        "34"),
   DDkwd__(HIVE_PARTITION_ELIMINATION_CT,        "ON"),
   DDkwd__(HIVE_PARTITION_ELIMINATION_MM,        "ON"),
   DDkwd__(HIVE_PARTITION_ELIMINATION_RT,        "ON"),
   DDint__(HIVE_SCAN_SPECIAL_MODE,                "0"),
+  DDkwd__(HIVE_SIMULATE_REAL_NODEMAP,           "OFF"),
   DDkwd__(HIVE_SORT_HDFS_HOSTS,                 "ON"),
   DDkwd__(HIVE_TREAT_EMPTY_STRING_AS_NULL,      "OFF"),
   DDkwd__(HIVE_USE_EXT_TABLE_ATTRS,             "ON"),
@@ -2002,7 +2009,6 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDkwd__(HIVE_USE_FAKE_TABLE_DESC,             "OFF"),
   DDkwd__(HIVE_USE_HASH2_AS_PARTFUNCTION,       "ON"),
   DDkwd__(HIVE_USE_PERSISTENT_KEY,              "OFF"),
-  DDkwd__(HIVE_USE_SORT_COLS_IN_KEY,            "OFF"),
   DDkwd__(HIVE_VIEWS,                           "OFF"),
 
  // -------------------------------------------------------------------------
@@ -2235,7 +2241,8 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   DDflt1_(MDOP_CPUS_PENALTY,      "70"),
 
   // specify the limit beyond which the number of CPUs will be limited.
-  DDui1__(MDOP_CPUS_SOFT_LIMIT,   "64"),
+  // A value of -1  means there is no limit.
+  DDint__(MDOP_CPUS_SOFT_LIMIT,   "-1"),
 
   // controls the amount of penalty for CPU resource per memory unit
   // required that is beyond the value specified by MDOP_CPUS_SOFT_LIMIT.
@@ -3374,6 +3381,8 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
 
   DDkwd__(TRAF_BLOB_AS_VARCHAR,                 "ON"), //set to OFF to enable Lobs support  
 
+  DDkwd__(TRAF_BOOLEAN_IO,                        "OFF"),
+
   DDkwd__(TRAF_BOOTSTRAP_MD_MODE,                            "OFF"),   
 
   DDkwd__(TRAF_CLOB_AS_VARCHAR,                 "ON"), //set to OFF to enable Lobs support  
@@ -3384,9 +3393,11 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
 
   DDansi_(TRAF_CREATE_TABLE_WITH_UID,          ""),
 
- DDkwd__(TRAF_DEFAULT_COL_CHARSET,            (char *)SQLCHARSETSTRING_ISO88591),
+  DDkwd__(TRAF_CREATE_TINYINT_LITERAL,        "ON"),   
+
+  DDkwd__(TRAF_DEFAULT_COL_CHARSET,            (char *)SQLCHARSETSTRING_ISO88591),
  
- DDkwd__(TRAF_ENABLE_ORC_FORMAT,                 "ON"),   
+  DDkwd__(TRAF_ENABLE_ORC_FORMAT,                 "ON"),   
 
   DDkwd__(TRAF_INDEX_ALIGNED_ROW_FORMAT,        "ON"),   
   DDkwd__(TRAF_INDEX_CREATE_OPT,          "OFF"),
@@ -3429,9 +3440,13 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDint__(TRAF_NUM_OF_SALT_PARTNS,                     "-1"),
   DDint__(TRAF_NUM_OF_SALT_REGIONS,                    "-1"),
 
+  DDkwd__(TRAF_READ_OBJECT_DESC,                       "OFF"),   
+
   DDkwd__(TRAF_RELOAD_NATABLE_CACHE,                   "OFF"),
   DD_____(TRAF_SAMPLE_TABLE_LOCATION,                  "/sample/"),
   DDint__(TRAF_SEQUENCE_CACHE_SIZE,        "-1"),
+
+  DDkwd__(TRAF_STORE_OBJECT_DESC,                    "OFF"),   
 
   DDkwd__(TRAF_STRING_AUTO_TRUNCATE,      "OFF"),
   DDkwd__(TRAF_STRING_AUTO_TRUNCATE_WARNING,      "OFF"),
@@ -5105,7 +5120,7 @@ ULng32 NADefaults::getTotalNumOfESPsInCluster(NABoolean& fakeEnv) const
      return getAsLong(PARALLEL_NUM_ESPS);
    }
 
-   float espsPerNode = getNumOfESPsPerNodeInFloat();
+   float espsPerNode = CURRSTMT_OPTDEFAULTS->getNumESPsPerNodePerQuery();
 
    CollIndex numOfNodes = gpClusterInfo->numOfSMPs();
 
@@ -6074,8 +6089,8 @@ enum DefaultConstants NADefaults::validateAndInsert(const char *attrName,
 
 float NADefaults::computeNumESPsPerCore(NABoolean aggressive)
 {
-   #define DEFAULT_ESPS_PER_NODE 2   // for conservation allocation
-   #define DEFAULT_ESPS_PER_CORE 0.5 // for aggressive allocation
+   #define DEFAULT_ESPS_PER_NODE 2    // for conservation allocation
+   #define DEFAULT_ESPS_PER_CORE 0.25 // for aggressive allocation (i.e. 4 core per ESP)
 
      // Make sure the gpClusterInfo points at an NAClusterLinux object.
      // In osim simulation mode, the pointer can point at a NAClusterNSK

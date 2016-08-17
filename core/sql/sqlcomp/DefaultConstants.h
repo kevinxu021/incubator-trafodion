@@ -3841,7 +3841,6 @@ enum DefaultConstants
   FAST_EXTRACT_MAX_PARTITIONS,
 
   HIVE_USE_PERSISTENT_KEY,
-  HIVE_USE_SORT_COLS_IN_KEY,
 
   ORC_READ_STRIPE_INFO,
   //if 0, regular scanner is used. From 0.x to 1.0, percentage of regions that need to be scanned that will be done in parallel.
@@ -3925,9 +3924,24 @@ enum DefaultConstants
   // Otherwise typed as bignum
   TRAF_LARGEINT_UNSIGNED_IO,
 
+  // If ON, boolean is supported as returned datatype for a select
+  // stmt, and for input params.
+  // Otherwise typed as char
+  TRAF_BOOLEAN_IO,
+
   // if TRUE, create signed numeric literal for both +ve and -ve numbers.
   // if FALSE, create unsigned literal for +ve and signed literal for -ve nums.
   TRAF_CREATE_SIGNED_NUMERIC_LITERAL,
+
+  // if TRUE, create tinyint literal insteadl of smallint.
+  TRAF_CREATE_TINYINT_LITERAL,
+  HIVE_SIMULATE_REAL_NODEMAP,
+
+  // if ON, generate object descriptor during DDL and store it in metadata.
+  TRAF_STORE_OBJECT_DESC,
+
+  // if ON, read object descriptor from metadata, if it was stored.
+  TRAF_READ_OBJECT_DESC,
 
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!

@@ -40,8 +40,8 @@ define(['handlers/EventDispatcher'],
 				
 				this.FETCH_MAPPINGS_SUCCESS = 'FETCH_MAPPINGS_SUCCESS';
 				this.FETCH_MAPPINGS_ERROR = 'FETCH_MAPPINGS_ERROR';		
-				this.ADDALTER_MAPPINGS_SUCCESS = 'ADDALTER_MAPPINGS_SUCCESS';
-				this.ADDALTER_MAPPINGS_ERROR = 'ADDALTER_MAPPINGS_ERROR';
+				this.ADDALTER_MAPPING_SUCCESS = 'ADDALTER_MAPPING_SUCCESS';
+				this.ADDALTER_MAPPING_ERROR = 'ADDALTER_MAPPING_ERROR';
 				this.DELETE_MAPPING_SUCCESS = 'DELETE_MAPPING_SUCCESS';
 				this.DELETE_MAPPING_ERROR = 'DELETE_MAPPING_ERROR';
 				
@@ -338,7 +338,7 @@ define(['handlers/EventDispatcher'],
 				this.deleteProfile = function(profile){
 					$.ajax({
 						cache: false,
-						url: 'resources/workloads/profile?profile=' + profile,
+						url: 'resources/workloads/profile?profile=' + encodeURIComponent(profile),
 						type:'DELETE',
 						dataType:"json",
 						contentType: "application/json;",
@@ -411,7 +411,7 @@ define(['handlers/EventDispatcher'],
 
 					$.ajax({
 						cache: false,
-						url: 'resources/workloads/sla?sla=' + sla,
+						url: 'resources/workloads/sla?sla=' + encodeURIComponent(sla),
 						type:'DELETE',
 						dataType:"json",
 						contentType: "application/json;",
@@ -483,7 +483,7 @@ define(['handlers/EventDispatcher'],
 				this.deleteMapping = function(mapping){
 					$.ajax({
 						cache: false,
-						url: 'resources/workloads/mapping?mapping=' + mapping,
+						url: 'resources/workloads/mapping?mapping=' + encodeURIComponent(mapping),
 						type:'DELETE',
 						dataType:"json",
 						contentType: "application/json;",

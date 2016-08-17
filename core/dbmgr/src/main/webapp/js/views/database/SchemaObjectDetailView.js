@@ -9,6 +9,7 @@ define([
         'text!templates/db_schema_object_detail.html',
         'jquery',
         'handlers/DatabaseHandler',
+        'handlers/ToolsHandler',
         'common',
         '../../../bower_components/codemirror/lib/codemirror',
         '../../../bower_components/codemirror/mode/sql/sql',
@@ -16,7 +17,7 @@ define([
         'datatables.net',
         'datatables.net-bs',
         'pdfmake'
-        ], function (BaseView, DatabaseT, $, dbHandler, common, CodeMirror) {
+        ], function (BaseView, DatabaseT, $, dbHandler, tHandler, common, CodeMirror) {
 	'use strict';
 	var ATTRIBUTES_SPINNER = '#attributes-spinner',
 	COLUMNS_SPINNER = '#columns-spinner',
@@ -37,7 +38,7 @@ define([
 	var _this = null;
 	var ddlTextEditor = null;
 	var isAjaxCompleted=true;
-	
+
 	var BREAD_CRUMB = '#database-crumb';
 	var OBJECT_DETAILS_CONTAINER = '#object-details-container',
 	OBJECT_NAME_CONTAINER = '#db-object-name',
@@ -78,6 +79,8 @@ define([
 	UPDATE_LIBRARY_CONTAINER = '#update-library-div',
 	UPDATE_LIBRARY_BUTTON = '#update-library-btn',
 	DROP_LIBRARY_BUTTON = '#drop-library-btn',
+	DOWNLOAD_LIBRARY_BUTTON = '#download-library-btn',
+	DOWNLOAD_LOADING = "#download-loading-spinner",
 	STATISTICS_BTN = '#statistics-btn',
 	REFRESH_ACTION = '#refreshAction';
 
@@ -128,14 +131,14 @@ define([
 					ddlTextEditor.setSize($(this).width(), $(this).height());
 				}
 			});
-			//$(ddlTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
-			$(ddlTextEditor.getWrapperElement()).css({"border" : "1px solid #eee"});
+			$(ddlTextEditor.getWrapperElement()).css({"border" : "1px solid #eee",  "height":"450px", "font-size":"12px"});
 
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			$(UPDATE_LIBRARY_BUTTON).on('click', this.updateLibrary);
 			$(DROP_LIBRARY_BUTTON).on('click',this.dropLibrary);
+			$(DOWNLOAD_LIBRARY_BUTTON).on('click',this.downloadLibrary);
 			common.on(common.LIBRARY_ALTERED_EVENT, this.libraryAlteredEvent);
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
@@ -155,6 +158,8 @@ define([
 			dbHandler.on(dbHandler.FETCH_USAGE_ERROR, this.fetchUsagesError);
 			dbHandler.on(dbHandler.DROP_OBJECT_SUCCESS, this.dropObjectSuccess);
 			dbHandler.on(dbHandler.DROP_OBJECT_ERROR, this.dropObjectError);
+			tHandler.on(tHandler.GET_LIBRARY_SUCCESS, this.getLibrarySuccess);
+			tHandler.on(tHandler.GET_LIBRARY_ERROR, this.getLibraryError);
 			_this.processRequest();
 
 		},
@@ -168,6 +173,7 @@ define([
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			$(UPDATE_LIBRARY_BUTTON).on('click', this.updateLibrary);
 			$(DROP_LIBRARY_BUTTON).on('click',this.dropLibrary);
+			$(DOWNLOAD_LIBRARY_BUTTON).on('click',this.downloadLibrary);
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
@@ -185,6 +191,8 @@ define([
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.fetchIndexesError);
 			dbHandler.on(dbHandler.FETCH_USAGE_SUCCESS, this.displayUsages);
 			dbHandler.on(dbHandler.FETCH_USAGE_ERROR, this.fetchUsagesError);
+			tHandler.on(tHandler.GET_LIBRARY_SUCCESS, this.getLibrarySuccess);
+			tHandler.on(tHandler.GET_LIBRARY_ERROR, this.getLibraryError);
 
 			if(prevRouteArgs.schema != routeArgs.schema || 
 					prevRouteArgs.name != routeArgs.name ||
@@ -212,6 +220,7 @@ define([
 			$(REFRESH_ACTION).off('click', this.doRefresh);
 			$(UPDATE_LIBRARY_BUTTON).off('click', this.updateLibrary);
 			$(DROP_LIBRARY_BUTTON).off('click',this.dropLibrary);
+			$(DOWNLOAD_LIBRARY_BUTTON).off('click',this.downloadLibrary);
 			dbHandler.off(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.off(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
 			dbHandler.off(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
@@ -228,6 +237,8 @@ define([
 			dbHandler.off(dbHandler.FETCH_OBJECT_LIST_ERROR, this.fetchIndexesError);
 			dbHandler.off(dbHandler.FETCH_USAGE_SUCCESS, this.displayUsages);
 			dbHandler.off(dbHandler.FETCH_USAGE_ERROR, this.fetchUsagesError);
+			tHandler.off(tHandler.GET_LIBRARY_SUCCESS, this.getLibrarySuccess);
+			tHandler.off(tHandler.GET_LIBRARY_ERROR, this.getLibraryError);
 			$('a[data-toggle="pill"]').off('shown.bs.tab', this.selectFeature);
 		},
 		doReset: function(){
@@ -297,12 +308,12 @@ define([
 			}			
 		},
 		libraryAlteredEvent: function(args) {
-			 if(routeArgs.type == 'library'){
+			if(routeArgs.type == 'library'){
 				if(common.ExternalDisplayName(args.schemaName) == common.ExternalDisplayName(routeArgs.schema) && 
 						common.ExternalDisplayName(args.libName) == common.ExternalDisplayName(routeArgs.name)){
 					_this.doReset();
 				}				 
-			 }
+			}
 		},
 		getParentObjectName: function(){
 			var parentObjectName = null;
@@ -348,10 +359,35 @@ define([
 		dropLibrary: function(){
 			$(DROP_LIBRARY_SPINNER).css('visibility', 'visible');
 			$(DROP_LIBRARY_BUTTON).prop('disabled',true);
-			
+
 			_this.isAjaxCompleted=false;
 			dbHandler.dropObject(common.ExternalDisplayName(routeArgs.schema), routeArgs.type, common.ExternalDisplayName(routeArgs.name));
 		},
+		
+		downloadLibrary: function(){
+			$(UPDATE_LIBRARY_BUTTON).prop('disabled',true);
+			$(DROP_LIBRARY_BUTTON).prop('disabled',true);
+			$(DOWNLOAD_LIBRARY_BUTTON).prop('disabled',true);
+			$(DOWNLOAD_LOADING).css('visibility', 'visible');
+			tHandler.getLibrary(routeArgs.CodeFileName);
+		},
+		
+		getLibrarySuccess: function(){
+			$(UPDATE_LIBRARY_BUTTON).prop('disabled',false);
+			$(DROP_LIBRARY_BUTTON).prop('disabled',false);
+			$(DOWNLOAD_LIBRARY_BUTTON).prop('disabled',false);
+			$(DOWNLOAD_LOADING).css('visibility', 'hidden');
+			alert("file download success");
+		},
+		
+		getLibraryError: function(){
+			$(UPDATE_LIBRARY_BUTTON).prop('disabled',false);
+			$(DROP_LIBRARY_BUTTON).prop('disabled',false);
+			$(DOWNLOAD_LIBRARY_BUTTON).prop('disabled',false);
+			$(DOWNLOAD_LOADING).css('visibility', 'hidden');
+			alert("file download error");
+		},
+		
 		selectFeature: function(e){
 			$(OBJECT_DETAILS_CONTAINER).show();
 			var selectedFeatureLink = ATTRIBUTES_SELECTOR;
@@ -606,13 +642,13 @@ define([
 					break;							
 				}
 			}
-			
+
 			if(routeArgs.type == 'library'){
 				$(UPDATE_LIBRARY_CONTAINER).show();
 			}else{
 				$(UPDATE_LIBRARY_CONTAINER).hide();
 			}
-			
+
 			var ACTIVE_BTN = $(FEATURE_SELECTOR + ' .active');
 			var activeButton = null;
 			if(ACTIVE_BTN){
@@ -633,6 +669,7 @@ define([
 				$(ATTRIBUTES_SPINNER).show();
 				$(UPDATE_LIBRARY_BUTTON).hide();
 				$(DROP_LIBRARY_BUTTON).hide();
+				$(DOWNLOAD_LIBRARY_BUTTON).hide();
 				dbHandler.fetchAttributes(routeArgs.type, routeArgs.name, routeArgs.schema);
 			}else{
 				_this.displayAttributes();
@@ -695,6 +732,7 @@ define([
 			$(ATTRIBUTES_SPINNER).hide();
 			$(UPDATE_LIBRARY_BUTTON).show();
 			$(DROP_LIBRARY_BUTTON).show();
+			$(DOWNLOAD_LIBRARY_BUTTON).show();
 			if(data != null){
 				objectAttributes = data;
 			}
@@ -706,6 +744,20 @@ define([
 					var value = v[property];
 					if(property == 'CreateTime' || property == 'ModifiedTime'){
 						value = common.toServerLocalDateFromUtcMilliSeconds(value);
+					}
+					if(property == 'Code File Name'){
+						routeArgs.CodeFileName = value.substring(value.lastIndexOf("/")+1);
+					}
+					if(property == 'Store File Size (MB)' || property == 'Mem Store Size (MB)'){
+						if (value == "0") {
+							value = '< 1';
+						} else {
+							value = common.formatNumberWithCommas(parseInt(value));
+						}
+					}
+					if(property == 'Number Salt Partitions' || property == 'Row Total Length' || property == 'Read Requests Count'
+						|| property == 'Write Requests Count' || property == 'Region Count' || property == 'Key Length'){
+						value = common.formatNumberWithCommas(parseInt(value));
 					}
 					if(routeArgs.type == 'index' && property == 'Table Name'){
 						var parentObjectName = _this.getParentObjectName();
@@ -854,6 +906,91 @@ define([
 
 					}
 				}
+				var aoColumnDefs = [];
+				aoColumnDefs.push({
+					"aTargets": [ 2 ],
+					"mData": 2,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (type == 'display') {
+							return common.formatNumberWithCommas(data);
+						} else {
+							return data;
+						}
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 3 ],
+					"mData": 3,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (type == 'display') {
+							return common.formatNumberWithCommas(data);
+						} else {
+							return data;
+						}
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 4 ],
+					"mData": 4,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (data == "0") {
+							return '< 1';
+						} else {
+							return common.formatNumberWithCommas(parseInt(data));
+						}
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 5 ],
+					"mData": 5,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (data == "0") {
+							return '< 1';
+						} else {
+							return common.formatNumberWithCommas(parseInt(data));
+						}
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 6 ],
+					"mData": 6,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (data == "0") {
+							return '< 1';
+						} else {
+							return common.formatNumberWithCommas(parseInt(data));
+						}
+					}
+				});				
+				aoColumnDefs.push({
+					"aTargets": [ 7 ],
+					"mData": 7,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (type == 'display') {
+							return common.formatNumberWithCommas(data);
+						} else {
+							return data;
+						}
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 8 ],
+					"mData": 8,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (type == 'display') {
+							return common.formatNumberWithCommas(data);
+						} else {
+							return data;
+						}
+					}
+				});				
 				regionsDataTable = $('#db-object-regions-list').DataTable({
 					"oLanguage": {
 						"sEmptyTable": "There are no regions"
@@ -867,12 +1004,13 @@ define([
 					"sPaginationType": "full_numbers",
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
+					"aoColumnDefs": aoColumnDefs,
 					"order": [[ 1, "asc" ]],
 					scrollCollapse: true,
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
 					          { extend : 'csv', exportOptions: { columns: ':visible' } },
-					         // { extend : 'excel', exportOptions: { columns: ':visible' } },
+					          // { extend : 'excel', exportOptions: { columns: ':visible' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Regions for "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Regions for "+routeArgs.type + " " + routeArgs.name }
 					          ]
@@ -1122,6 +1260,7 @@ define([
 				aoColumnDefs.push({
 					"aTargets": [ 2 ],
 					"mData": 2,
+					"className" : "dt-body-right",
 					"mRender": function ( data, type, full ) {
 						if (type === 'display') {
 							return common.toServerLocalDateFromUtcMilliSeconds(data);  
@@ -1132,6 +1271,7 @@ define([
 				aoColumnDefs.push({
 					"aTargets": [ 3 ],
 					"mData": 3,
+					"className" : "dt-body-right",
 					"mRender": function ( data, type, full ) {
 						if (type === 'display') {
 							return common.toServerLocalDateFromUtcMilliSeconds(data);  
@@ -1170,7 +1310,7 @@ define([
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
 					          { extend : 'csv', exportOptions: { columns: ':visible' } },
-					         // { extend : 'excel', exportOptions: { columns: ':visible' } },
+					          // { extend : 'excel', exportOptions: { columns: ':visible' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text(), orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text() }
 					          ]
@@ -1234,8 +1374,57 @@ define([
 				}
 				var aoColumnDefs = [];
 				aoColumnDefs.push({
+					"aTargets": [ 3 ],
+					"mData": 3,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (type == 'display') {
+							return common.formatNumberWithCommas(data);
+						} else {
+							return data;
+						}
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 6 ],
+					"mData": 6,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (type == 'display') {
+							return common.formatNumberWithCommas(data);
+						} else {
+							return data;
+						}
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 7 ],
+					"mData": 7,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (type == 'display') {
+							return common.formatNumberWithCommas(data);
+						} else {
+							return data;
+						}
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 8 ],
+					"mData": 8,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (type == 'display') {
+							return common.formatNumberWithCommas(data);
+						} else {
+							return data;
+						}
+					}
+				});				
+				aoColumnDefs.push({
 					"aTargets": [ 9 ],
 					"mData": 9,
+					"className" : "dt-body-right",
 					"mRender": function ( data, type, full ) {
 						if (type === 'display') {
 							return common.toServerLocalDateFromUtcMilliSeconds(data);  

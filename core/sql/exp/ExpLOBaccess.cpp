@@ -561,8 +561,9 @@ Ex_Lob_Error ExLob::statSourceFile(char *srcfile, Int64 &sourceEOF)
    if (srcType == HDFS_FILE)
      {
        hdfsFile sourceFile = hdfsOpenFile(fs_,srcfile,O_RDONLY,0,0,0);   
-       if (!sourceFile)								
-	  return LOB_SOURCE_FILE_OPEN_ERROR;										 
+       if (!sourceFile)	           
+         return LOB_SOURCE_FILE_OPEN_ERROR;
+         										 
        hdfsFileInfo *sourceFileInfo = hdfsGetPathInfo(fs_,srcfile);
        // get EOD from source hdfs file.
        if (sourceFileInfo)
@@ -678,11 +679,9 @@ Ex_Lob_Error ExLob::readHdfsSourceFile(char *srcfile, char *&fileData, Int32 &si
    
      int openFlags = O_RDONLY;
      hdfsFile fdSrcFile = hdfsOpenFile(fs_,srcfile, openFlags,0,0,0);
-     if (fdSrcFile == NULL) {
+     if (fdSrcFile == NULL) 
        return LOB_SOURCE_FILE_OPEN_ERROR;
-     }
-
-     
+         
      fileData = (char *) (getLobGlobalHeap())->allocateMemory(size);
      if (fileData == (char *)-1) {
        return LOB_SOURCE_DATA_ALLOC_ERROR;
@@ -1310,8 +1309,11 @@ Ex_Lob_Error ExLob::openCursor(char *handleIn, Int32 handleInLen,Int64 transId)
     return LOB_OPER_OK;
 }
 
-Ex_Lob_Error ExLob::openDataCursor(char *file, LobsCursorType type, Int64 range, Int64 bufMaxSize, 
-                                   Int64 maxBytes, Int64 waited, ExLobGlobals *lobGlobals)
+Ex_Lob_Error ExLob::openDataCursor(char *file, LobsCursorType type, 
+                                   Int64 range, Int64 bufMaxSize, 
+                                   Int64 maxBytes, Int64 waited, 
+                                   ExLobGlobals *lobGlobals,
+                                   Int32 *hdfsDetailError)
 {
     Ex_Lob_Error err;
     cursor_t cursor;
@@ -1368,22 +1370,21 @@ Ex_Lob_Error ExLob::openDataCursor(char *file, LobsCursorType type, Int64 range,
     it = lobCursors_.find(string(file, strlen(file))); // to get the actual cursor object in the map
 
     if (!fdData_ || (openFlags_ != O_RDONLY)) 
-    {
-      hdfsCloseFile(fs_, fdData_);
-      fdData_ = NULL;
-      openFlags_ = O_RDONLY;
-      fdData_ = hdfsOpenFile(fs_, lobDataFile_, openFlags_, 0, 0, 0);
-      if (!fdData_) {
-        openFlags_ = -1;
-        lobCursorLock_.unlock();
-        return LOB_DATA_FILE_OPEN_ERROR;
+      {
+        hdfsCloseFile(fs_, fdData_);
+        fdData_ = NULL;
+        openFlags_ = O_RDONLY;
+        fdData_ = hdfsOpenFile(fs_, lobDataFile_, openFlags_, 0, 0, 0);
+       
+        if (!fdData_)
+          {
+            openFlags_ = -1;
+            if (hdfsDetailError)
+              *hdfsDetailError = errno;
+            lobCursorLock_.unlock();
+            return LOB_DATA_FILE_OPEN_ERROR;
+          }                
       }
-    }
-
-    if (hdfsSeek(fs_, fdData_, (it->second).descOffset_) == -1) {
-      lobCursorLock_.unlock();
-      return LOB_DATA_FILE_POSITION_ERROR;
-    }
 
     // start reading in a worker thread
     lobGlobals->enqueuePrefetchRequest(this, &(it->second));
@@ -1561,15 +1562,17 @@ Ex_Lob_Error ExLob::compactLobDataFile(ExLobInMemoryDescChunksEntry *dcArray,Int
   
  
   hdfsFile  fdData = hdfsOpenFile(fs, lobDataFile_, O_RDONLY, 0, 0,0);
-  if (!fdData) 
-    {   
+  
+  if (!fdData)
+    {
       str_sprintf(logBuf,"Could not open file:%s",lobDataFile_);
       lobDebugInfo(logBuf,0,__LINE__,lobTrace_);
       hdfsCloseFile(fs,fdData);
       fdData = NULL;
       return LOB_DATA_FILE_OPEN_ERROR;
     }
-  
+                          
+        
   hdfsFile fdTemp = hdfsOpenFile(fs, tmpLobDataFile,O_WRONLY|O_CREAT,0,0,0);
    if (!fdTemp) 
     {
@@ -1777,16 +1780,20 @@ Ex_Lob_Error ExLob::readCursorData(char *tgt, Int64 tgtSize, cursor_t &cursor, I
       // #endif
 
       if (!fdData_ || (openFlags_ != O_RDONLY)) 
-      {
-         hdfsCloseFile(fs_, fdData_);
-	 fdData_=NULL;
-         openFlags_ = O_RDONLY;
-         fdData_ = hdfsOpenFile(fs_, lobDataFile_, openFlags_, 0, 0, 0);
-         if (!fdData_) {
-            openFlags_ = -1;
-            return LOB_DATA_FILE_OPEN_ERROR;
-         }
-      }
+        {
+          hdfsCloseFile(fs_, fdData_);
+          fdData_=NULL;
+          openFlags_ = O_RDONLY;
+          fdData_ = hdfsOpenFile(fs_, lobDataFile_, openFlags_, 0, 0, 0);
+        
+          if (!fdData_)
+            {
+              openFlags_ = -1;
+              return LOB_DATA_FILE_OPEN_ERROR;                 
+            }               
+             
+           
+        }
 
       clock_gettime(CLOCK_MONOTONIC, &startTime);
 
@@ -1853,20 +1860,30 @@ Ex_Lob_Error ExLob::readDataToMem(char *memAddr,
       fdData_=NULL;
       openFlags_ = O_RDONLY;
       fdData_ = hdfsOpenFile(fs_, lobDataFile_, openFlags_, 0, 0, 0);
-      if (!fdData_) {
-	openFlags_ = -1;
-	return LOB_DATA_FILE_OPEN_ERROR;
-      }
+    
+      if (!fdData_)
+        {
+          openFlags_ = -1;
+          return LOB_DATA_FILE_OPEN_ERROR;
+        }
+                                           
+        
     }
   else
     {
       fdData_ = hdfsOpenFile(fs_, lobDataFile_, openFlags_, 0, 0, 0);
-      if (!fdData_) {
-	openFlags_ = -1;
-	return LOB_DATA_FILE_OPEN_ERROR;
-      }
+     
+      if (!fdData_)
+        {
+          openFlags_ = -1;
+          return LOB_DATA_FILE_OPEN_ERROR;
+        }                                
+        
+          
     }
-  
+	
+
+     
   if (!multipleChunks)
     {
       lobDebugInfo("Reading in single chunk",0,__LINE__,lobTrace_);
@@ -2372,7 +2389,7 @@ Ex_Lob_Error ExLobsOper (
       } else if (openType == 2) { // must open
 	sprintf(fn,"%s:%Lx:%s",lobPtr->getDataFileName(), (long long unsigned int)lobName, cursorId);
 	fileName = fn;
-	err = lobPtr->openDataCursor(fileName, Lob_Cursor_Simple, descNumIn, sourceLen, cursorBytes, waited, lobGlobals);
+	err = lobPtr->openDataCursor(fileName, Lob_Cursor_Simple, descNumIn, sourceLen, cursorBytes, waited, lobGlobals, (Int32 *)blackBox);
       } else
 	err = LOB_SUBOPER_ERROR;
       break;
@@ -2835,7 +2852,7 @@ Ex_Lob_Error ExLobGlobals::performRequest(ExLobHdfsRequest *request)
 	  traceMessage("allocating new buffer", buf->data_,__LINE__, cursor->bufMaxSize_);
           lobPtr->stats_.buffersUsed++;
         }
-        size = min(cursor->bufMaxSize_, (cursor->maxBytes_ - cursor->bytesRead_ + (16 * 1024)));
+        size = min(cursor->bufMaxSize_, (cursor->maxBytes_ - cursor->bytesRead_));
         if (buf->data_) {
           // caller must make all the buffers the same size so they can be reused
           assert(buf->size_ >= size);
@@ -2936,8 +2953,7 @@ Ex_Lob_Error ExLob::readCursorDataSimple(char *tgt, Int64 tgtSize, cursor_t &cur
       offset = cursor.descOffset_ + cursor.bytesRead_;
 
       // gets chunks of 64KB. Uses readDirect internally.
-      // bytesRead = hdfsPread(fs_, fdData_, offset, tgt, bytesToCopy);
-      bytesRead = hdfsRead(fs_, fdData_, tgt, bytesToCopy);
+      bytesRead = hdfsPread(fs_, fdData_, offset, tgt, bytesToCopy);
 
       stats_.numHdfsReqs++;
 
@@ -3373,7 +3389,7 @@ Ex_Lob_Error ExLobGlobals::processPreOpens()
         traceMessage("process pre-open", NULL, __LINE__, preOpenObj->maxBytes_);
         lobPtr->openDataCursor(preOpenObj->cursorName_, Lob_Cursor_Simple, preOpenObj->range_, 
                                preOpenObj->bufMaxSize_, preOpenObj->maxBytes_, 
-                               preOpenObj->waited_, this);
+                               preOpenObj->waited_, this,0);
     }
 
     return LOB_OPER_OK;

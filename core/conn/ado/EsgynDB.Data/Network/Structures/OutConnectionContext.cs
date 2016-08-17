@@ -77,6 +77,10 @@ namespace EsgynDB.Data
                 if (opts[i].Length > 0)
                 {
                     index = opts[i].IndexOf('=');
+
+                    // if the string in not the format "key=value", skip it
+                    if (index <= 0) continue;
+
                     token = opts[i].Substring(0, index).ToUpper();
                     value = opts[i].Substring(index + 1);
 

@@ -517,7 +517,7 @@ define([
 					{
 						"aTargets": [ 2],
 						"mData": 2,
-						"className" : "dbmgr-nowrap",
+						"className" : "dt-body-right dbmgr-nowrap",
 						"mRender": function ( data, type, full ) {
 							//if (type === 'display') {
 							if(data != null || data != -1)
@@ -530,7 +530,7 @@ define([
 					{
 						"aTargets": [3 ],
 						"mData": 3,
-						"className" : "dbmgr-nowrap",
+						"className" : "dt-body-right dbmgr-nowrap",
 						"mRender": function ( data, type, full ) {
 							//if (type === 'display') {
 							if(data != null || data != -1)
@@ -553,8 +553,44 @@ define([
 						}
 					},
 					{
-						"aTargets": [8],
-						"mData" : 8,
+						"aTargets": [8 ],
+						"mData": 8,
+						"mRender": function ( data, type, full ) {
+							if (type === 'display') {
+							if(data != null || data != -1)
+								return common.bytesToSize(data*1024);
+							else return "";
+							}
+							else return data;
+						}
+					},
+					{
+						"aTargets": [9 ],
+						"mData": 9,
+						"mRender": function ( data, type, full ) {
+							//if (type === 'display') {
+							if(data != null || data != -1)
+								return common.microsecondsToString(data);
+							else return "";
+							//}
+							//else return data;
+						}
+					},
+					{
+						"aTargets": [10 ],
+						"mData": 10,
+						"mRender": function ( data, type, full ) {
+							//if (type === 'display') {
+							if(data != null || data != -1)
+								return common.formatNumberWithCommas(data);
+							else return "";
+							//}
+							//else return data;
+						}
+					},
+					{
+						"aTargets": [11],
+						"mData" : 11,
 						"mRender": function(data, type, full){
 							if(type == 'display' && data != null){
 								if(data.length > 30){
@@ -585,9 +621,9 @@ define([
 							if(cell.column == 0){
 								var data = oDataTable.row(cell.row).data();
 								if(data && data.length > 0){
-									sessionStorage.setItem(data[0], JSON.stringify({type: 'repo', text: data[8]}));	
+									sessionStorage.setItem(data[0], JSON.stringify({type: 'repo', text: data[11]}));	
 								}
-							}else if(cell.column == 8){
+							}else if(cell.column == 11){
 								if ($(this).find('.dbmgr-text-ellipsis').length > 0)
 									$(this).find('.dbmgr-text-ellipsis').removeClass('dbmgr-text-ellipsis'); 
 								else 

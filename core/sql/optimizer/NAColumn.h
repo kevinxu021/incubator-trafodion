@@ -54,7 +54,7 @@ class CheckConstraint;
 class DomainDesc;
 class NATable;
 class NAType;
-struct columns_desc_struct;
+class TrafColumnsDesc;
 
 enum ColumnClass  { SYSTEM_COLUMN, USER_COLUMN, USER_AND_SYSTEM_COLUMNS };
 enum SortOrdering { NOT_ORDERED = 0, ASCENDING = +1, DESCENDING = -1 };
@@ -337,7 +337,7 @@ public:
   inline NABoolean isMvSystemAddedColumn() const { return mvSystemAddedColumn_; }
   inline void setVirtualColumnType(VirtColType vct) { virtualColumnType_ = vct; }
 
-  static NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
+  static NABoolean createNAType(TrafColumnsDesc *column_desc	/*IN*/,
 				const NATable *table  		/*IN*/,
 				NAType *&type       		/*OUT*/,
 				NAMemory *heap			/*IN*/,
@@ -619,6 +619,11 @@ public:
   // ---------------------------------------------------------------------
   void insertAt(CollIndex index, NAColumn * newColumn);
   void insert(NAColumn * newColumn)	{ insertAt(entries(),newColumn); }
+  void insertArray(const NAColumnArray &src,
+                   Int32 tgtPosition = -1,
+                   Int32 srcStartPosition = 0,
+                   Int32 numEntries = -1);
+  void removeAt(CollIndex start, CollIndex numEntries = 1);
 
   // ---------------------------------------------------------------------
   // check and set whether a column in the column list has ascending or
@@ -649,7 +654,6 @@ public:
   NAColumn * getColumn(Lng32 index) const;	// same as nacolarray[position]
   NAColumn * getColumn(const char* colName) const;
   NAColumn * getColumnByPos(Lng32 position) const;
-  void removeByPosition(Lng32 position);
 
   // return 
   //    i (i>=0) if the column is found in the array via NAColumn::operator==

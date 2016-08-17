@@ -45,14 +45,12 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.KeyValueUtil;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HConnectionManager;
+import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
@@ -104,8 +102,8 @@ import com.google.protobuf.ServiceException;
  */
 public class TransactionalTable extends HTable implements TransactionalTableClient {
     static final Log LOG = LogFactory.getLog(TransactionalTable.class);
-    static private HConnection connection = null;
-    static Configuration       config = HBaseConfiguration.create();
+    static Configuration       config;
+    static private Connection connection = null;
     static ExecutorService     threadPool;
     static int                 retries = 30;
     static int                 delay = 1000;
@@ -126,47 +124,22 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
     // therefore not accessible here. So I keep reference at the TransactionTable level so they
     // can be used to invoke contructor of PatchClientScanner
 
-    static {
-    usePatchScanner = config.getBoolean("hbase.trafodion.patchclientscanner.enabled", false);
-    replicaCallTimeoutMicroSecondScan = config.getInt("hbase.client.replicaCallTimeout.scan", 1000000); // duplicated from TableConfiguration since it cannot be instanciated by lack of public constructor
-    if(usePatchScanner)
-        LOG.info("PatchClientScanner enabled");
-	config.set("hbase.hregion.impl", "org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegion");
-	try {
-	    connection = HConnectionManager.createConnection(config);        
-	}
-	catch (IOException ioe) {
-	    LOG.error("Exception on TransactionTable anonymous static method. IOException while creating HConnection");
-	}
- 	threadPool = Executors.newCachedThreadPool();
-   }
+    private static void setPatchclientscannerAttributes() throws IOException
+    {
+       config = connection.getConfiguration();
+       usePatchScanner = config.getBoolean("hbase.trafodion.patchclientscanner.enabled", false);
+       // duplicated from TableConfiguration since it cannot be instanciated by lack of public constructor
+       replicaCallTimeoutMicroSecondScan = config.getInt("hbase.client.replicaCallTimeout.scan", 1000000); 
+       if (usePatchScanner)
+          threadPool = Executors.newCachedThreadPool();
+    }
     
     /**
      * @param tableName
      * @throws IOException
      */
-    public TransactionalTable(final String tableName) throws IOException {
-        this(Bytes.toBytes(tableName));        
-    }
-
-    /**
-     * @param tableName
-     * @throws IOException
-     */
-    public TransactionalTable(final byte[] tableName) throws IOException {
-       //super(tableName, connection, threadPool); using a different constructor to get access to
-       //the private 3 attribute in HTable that are needed to instantiate the PatchClientScanner
-
-       this(TableName.valueOf(tableName),
-                 (ClusterConnection)connection,
-                 null,// cannot instantiate TableConfiguration because constructor is not public and we are not in same package
-                          //but I verified that HTable constructor will take care of creating one if not passed
-                         ((ClusterConnection)connection).getNewRpcRetryingCallerFactory(config),
-                 RpcControllerFactory.instantiate(config),
-                 threadPool
-                       );
-
-       //super(tableName, connection, threadPool);      
+    public TransactionalTable(final String tableName, Connection conn) throws IOException {
+        this(Bytes.toBytes(tableName), conn);        
     }
 
     //added for pacthClientScanner
@@ -179,10 +152,14 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
        super(tableName, connection, pool);
        this.rpcCallerFactory = rpcCallerFactory;
        this.rpcControllerFactory = rpcControllerFactory;
+       this.connection = connection;
+       setPatchclientscannerAttributes();
     }
 
-    public TransactionalTable(final byte[] tableName, HConnection pv_connection) throws IOException {
-      super(tableName, pv_connection, threadPool);
+    public TransactionalTable(final byte[] tableName, Connection conn) throws IOException {
+       super(tableName, conn, threadPool);     
+       this.connection = conn; 
+       setPatchclientscannerAttributes();
     }
 
     private void addLocation(final TransactionState transactionState, HRegionLocation location) {
@@ -858,9 +835,9 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
         }
     }
 
+    private int maxKeyValueSize;
 
-	private int maxKeyValueSize;
-public HRegionLocation getRegionLocation(byte[] row, boolean f)
+    public HRegionLocation getRegionLocation(byte[] row, boolean f)
                                   throws IOException {
         return super.getRegionLocation(row,f);
     }
@@ -876,10 +853,6 @@ public HRegionLocation getRegionLocation(byte[] row, boolean f)
     public void flushCommits()
                   throws IOException {
          super.flushCommits();
-    }
-    public HConnection getConnection()
-    {
-        return super.getConnection();
     }
     public byte[][] getEndKeys()
                     throws IOException

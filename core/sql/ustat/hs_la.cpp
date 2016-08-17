@@ -889,7 +889,7 @@ NAString HSHiveTableDef::getNodeName() const
     return "";
   }
 
-NAString HSHiveTableDef::getCatalogLoc(formatType format = INTERNAL_FORMAT) const
+NAString HSHiveTableDef::getCatalogLoc(formatType format) const
   {
     HS_ASSERT(FALSE);  // MP only
     return "";
@@ -986,7 +986,7 @@ NAString HSHbaseTableDef::getNodeName() const
     return "";
   }
 
-NAString HSHbaseTableDef::getCatalogLoc(formatType format = INTERNAL_FORMAT) const
+NAString HSHbaseTableDef::getCatalogLoc(formatType format) const
   {
     HS_ASSERT(FALSE);  // MP only
     return "";

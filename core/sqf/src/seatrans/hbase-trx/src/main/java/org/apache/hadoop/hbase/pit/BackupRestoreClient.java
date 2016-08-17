@@ -63,7 +63,7 @@ public class BackupRestoreClient
     {
     }
 
-    public BackupRestoreClient(Configuration conf) throws Exception
+    public BackupRestoreClient(Configuration conf) throws IOException
     {
         if (logger.isDebugEnabled())
             logger.debug("BackupRestoreClient.BackupRestoreClient(...) called.");
@@ -71,7 +71,11 @@ public class BackupRestoreClient
         sm = new SnapshotMeta();
         idServer = new IdTm(false);
         timeId = new IdTmId();
-        idServer.id(ID_TM_SERVER_TIMEOUT, timeId);
+        try {
+          idServer.id(ID_TM_SERVER_TIMEOUT, timeId);
+        } catch (IdTmException ide) {
+            throw new IOException(ide);
+         }
         
         timeIdVal = timeId.val;
     }

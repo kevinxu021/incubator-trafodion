@@ -91,7 +91,7 @@ define([
 					$(USED_TABLES_CONTAINER).css("height",$(this).height());
 				}
 			});
-			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "width": "75%", "height":"150px"});
+			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
 			
 			this.processArgs(args);
 			

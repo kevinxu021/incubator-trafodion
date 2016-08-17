@@ -102,8 +102,9 @@
 			    CAST(O.object_uid  AS CHAR(26)) as "Object ID",
 			    T.KEY_LENGTH AS "Key Length", T.ROW_TOTAL_LENGTH as "Row Total Length", 
                 T.NUM_SALT_PARTNS as "Number Salt Partitions", T2.region_count as "Region Count",
-				T2.store_file_size_mb as "Store File Size (MB)", T2.mem_store_size_mb as" Mem Store Size (MB)", 
-				T2.read_requests_count as "Read Requests Count", T2.write_requests_count as "Write Requests Count"
+                CAST( CASE WHEN 1 > T2.store_file_size_mb THEN 0 ELSE (T2.store_file_size_mb/(1024*1024)) END AS DECIMAL(18,2)) AS "Store File Size (MB)" , 
+                CAST( CASE WHEN 1 > T2.mem_store_size_mb THEN 0 ELSE (T2.mem_store_size_mb/(1024*1024)) END AS DECIMAL(18,2)) AS "Mem Store Size (MB)" , 
+ 				T2.read_requests_count as "Read Requests Count", T2.write_requests_count as "Write Requests Count"
 			    FROM TRAFODION."_MD_".OBJECTS O, TRAFODION."_MD_".TABLES T,
                 (select schema_name, object_name, count(*) as region_count,
                  sum(store_file_size) as store_file_size_mb, sum(mem_store_size) as mem_store_size_mb,
@@ -128,8 +129,9 @@
 			    CAST(O.object_uid  AS CHAR(26)) as "Object ID",
 			    T.KEY_LENGTH AS "Key Length", T.ROW_TOTAL_LENGTH as "Row Total Length", 
                 T.NUM_SALT_PARTNS as "Number Salt Partitions", T2.region_count as "Region Count",
-				T2.store_file_size_mb as "Store File Size (MB)", T2.mem_store_size_mb as" Mem Store Size (MB)", 
-				T2.read_requests_count as "Read Requests Count", T2.write_requests_count as "Write Requests Count"
+                CAST( CASE WHEN 1 > T2.store_file_size_mb THEN 0 ELSE (T2.store_file_size_mb/(1024*1024)) END AS DECIMAL(18,2)) AS "Store File Size (MB)" , 
+                CAST( CASE WHEN 1 > T2.mem_store_size_mb THEN 0 ELSE (T2.mem_store_size_mb/(1024*1024)) END AS DECIMAL(18,2)) AS "Mem Store Size (MB)" , 
+ 				T2.read_requests_count as "Read Requests Count", T2.write_requests_count as "Write Requests Count"
 			    FROM TRAFODION."_MD_".OBJECTS O, TRAFODION."_MD_".TABLES T,
                 (select schema_name, object_name, count(*) as region_count,
                  sum(store_file_size) as store_file_size_mb, sum(mem_store_size) as mem_store_size_mb,
@@ -291,8 +293,10 @@
 			<!-- Get HBase Region info for a database object -->
 			<name>SELECT_OBJECT_REGIONS</name>
 			<text><![CDATA[select region_num, region_name, num_stores, num_store_files,
-				store_file_uncomp_size as store_file_uncomp_size_mb, store_file_size as store_file_size_mb, 
-				mem_store_size as mem_store_size_mb, read_requests_count, write_requests_count
+                CAST( CASE WHEN 1 > store_file_uncomp_size THEN 0 ELSE (store_file_uncomp_size/(1024*1024)) END AS DECIMAL(18,2)) AS store_file_uncomp_size_mb , 
+                CAST( CASE WHEN 1 > store_file_size THEN 0 ELSE (store_file_size/(1024*1024)) END AS DECIMAL(18,2)) AS store_file_size_mb , 
+                CAST( CASE WHEN 1 > mem_store_size THEN 0 ELSE (mem_store_size/(1024*1024)) END AS DECIMAL(18,2)) AS mem_store_size_mb , 
+				read_requests_count, write_requests_count
 				from table(region stats (%1$s %2$s))
 			]]></text>
 		</query>			
@@ -511,11 +515,16 @@
 			<name>SELECT_REPO_QUERIES</name>
 			<text><![CDATA[SELECT [first %1$s] trim(query_id) as "Query ID", query_status AS "Status" ,
 						exec_start_utc_ts as "Start Time", exec_end_utc_ts AS "End Time", 
-						USER_NAME AS "User Name",  APPLICATION_NAME as "Application",
-						CLIENT_NAME as "Client", query_elapsed_time AS "Elapsed Time", 
-						QUERY_TEXT AS "Query Text"
-					FROM "_REPOS_".metric_query_table 
+						q.USER_NAME AS "User Name",  q.APPLICATION_NAME as "Application",
+						q.CLIENT_NAME as "Client", query_elapsed_time AS "Elapsed Time", 
+						(SQL_SPACE_USED +  SQL_HEAP_USED) as "Memory Used", 
+						(process_create_busy_time + sql_process_busy_time + disk_process_busy_time + udr_process_busy_time + master_execution_time) AS "CPU Time",
+						disk_ios as "Disk IOs",
+						QUERY_TEXT AS "Query Text",
+						s.profile_name as "Profile", s.sla_name as "SLA" 
+					FROM "_REPOS_".metric_query_table q , "_REPOS_".metric_session_table s
 					%2$s
+					and q.session_id = s.session_id
 					order by exec_start_utc_ts desc
 					for read uncommitted access;
 				]]></text>
@@ -523,17 +532,16 @@
 		<query>
 			<!-- Fetch query detail from repository -->
 			<name>SELECT_REPO_QUERY_DETAIL</name>
-			<text><![CDATA[select user_name,
-						query_status, 
+			<text><![CDATA[select query_status, 
 						exec_start_utc_ts, 
 						exec_end_utc_ts, 
 						query_sub_status,
 						master_process_id,
-						process_name,
-						session_id,
-						user_name,
-						application_name,
-						client_name,
+						q.process_name,
+						q.session_id,
+						q.user_name,
+						q.application_name,
+						q.client_name,
 						statement_type,
 						statement_subtype,
 						submit_utc_ts,
@@ -580,14 +588,22 @@
 						processes_created,
 						num_nodes,
 						ovf_buffer_bytes_written,
-						ovf_buffer_bytes_read
-						from "_REPOS_".metric_query_table
-				 WHERE query_id = ?]]></text>
+						ovf_buffer_bytes_read,
+						process_create_busy_time,
+						udr_process_busy_time,
+						last_updated_time,
+						profile_name,
+						sla_name
+				 from "_REPOS_".metric_query_table q, "_REPOS_".metric_session_table s
+				 WHERE query_id = ?
+				 and q.session_id = s.session_id
+				 for read uncommitted access; ]]></text>
 		</query>
 		<query>
 			<!-- Fetch list of active queries visible in RMS -->
 			<name>SELECT_ACTIVE_QUERIES</name>
-			<text><![CDATA[select current_timestamp "Time"   -- (1) Now
+			<text><![CDATA[select q.*, s.profile_name, s.sla_name from 
+                      ( select current_timestamp "Time"   -- (1) Now
 				      ,cast(tokenstr('lastActivity:', variable_info)               -- (2) Last Activity
 				            as NUMERIC(18) ) "Last Activity Seconds"
 				      ,cast(tokenstr('Qid:', variable_info)               -- (3) QID
@@ -598,10 +614,12 @@
 				             position('%1$s' in variable_info) + char_length('%1$s')+1,
 				             char_length(variable_info) - 
 				                        ( position('%1$s' in variable_info) + char_length('%1$s')+1 ))
-				            as char(256) CHARACTER SET UTF8) "Query Text"
+				            as char(256) CHARACTER SET UTF8) "Query Text (preview)"
 				      , cast(tokenstr('sqlSrcLen:', variable_info)
 				            as NUMERIC(18) ) "Full Text Length"          
-				from table (statistics(NULL, 'ACTIVE_QUERIES=%2$s')) 
+				from table (statistics(NULL, 'ACTIVE_QUERIES=%2$s'))
+				) q left join "_REPOS_".metric_session_table s
+				on QUERYID_EXTRACT ("Query ID", 'SESSIONID') = s.session_id
 				order by 2 descending;
 				]]></text>
 		</query>
@@ -613,10 +631,16 @@
 		<query>
 			<!-- Fetch active query detail from rms -->
 			<name>SELECT_ACTIVE_QUERY_DETAIL_NEW</name>
-			<text><![CDATA[select lc_tdb_id as "LC", rc_tdb_id as "RC", tdb_id as "TDB_ID",  parent_tdb_id as "Parent_TDB_ID", seq_num as "Explain_TDB_ID", 
+			<text><![CDATA[Select q.*, s.profile_name as "profile", s.sla_name as "sla" from
+				(
+					select lc_tdb_id as "LC", rc_tdb_id as "RC", tdb_id as "TDB_ID",  parent_tdb_id as "Parent_TDB_ID", seq_num as "Explain_TDB_ID", 
 					frag_num as "Frag_Num", trim(tdb_name) as "TDB_Name", est_rows as "Estimated_Rows", act_rows as "Actual_Rows", 
 					val1,  val1_txt, val2, val2_txt, val3, val3_txt, val4, val4_txt, 
-					variable_info from table(statistics(null, 'QID=%1$s')) order by tdb_id desc]]></text>
+					variable_info from table(statistics(null, 'QID=%1$s'))
+				) q left join "_REPOS_".metric_session_table s
+				on QUERYID_EXTRACT ('%1$s', 'SESSIONID') = s.session_id
+				order by tdb_id desc
+			]]></text>
 		</query>
 		<query>
 			<name>CANCEL_QUERY</name>
@@ -794,6 +818,10 @@
 			<text><![CDATA[{call "_LIBMGR_".droplib(?,?)}]]></text>
 		</query>
 		<query>
+			<name>SPJ_GETFILE</name>
+			<text><![CDATA[{call "_LIBMGR_".getfile(?,?,?,?)}]]></text>
+		</query>
+		<query>
 			<name>CHECK_SCHEMA</name>
 			<text><![CDATA[select distinct schema_name from "_MD_".objects where object_name = '__SCHEMA__' and schema_name = '%1$s';]]></text>
 		</query>
@@ -831,7 +859,7 @@
 		</query>		
 		<query>
 			<name>WMS_ADD_ALTER_MAPPING</name>
-			<text><![CDATA[{"url":"%1$s/v1/wms/mappings", "method":"POST", "jsonParameter":{"%2$s":{"userName":"%3$s","applicationName":"%4$s","sessionName":"%5$s","roleName":"%6$s","sla":"%7$s","clientIpAddress":"%8$s","clientHostName":"%9$s","orderNumber":"%10$s", "isDefault":"no","lastUpdate":""}}, "contentType":"application/json"}]]></text>
+			<text><![CDATA[{"url":"%1$s/v1/wms/mappings", "method":"POST", "jsonParameter":{"%2$s":{"userName":"%3$s","applicationName":"%4$s","sessionName":"%5$s","roleName":"%6$s","sla":"%7$s","clientIpAddress":"%8$s","clientHostName":"%9$s","orderNumber":"%10$s", "isActive":"%11$s", "isDefault":"no","lastUpdate":""}}, "contentType":"application/json"}]]></text>
 		</query>
 		<query>
 			<name>WMS_DELETE_MAPPING</name>

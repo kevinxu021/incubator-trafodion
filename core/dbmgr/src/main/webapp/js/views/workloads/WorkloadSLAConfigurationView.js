@@ -81,13 +81,19 @@ define([
 			$(SLA_APPLY_BTN).on('click', this.slaApplyBtnClicked);
 			$(SLA_RESET_BTN).on('click', this.slaResetBtnClicked);
 
-			$.validator.addMethod("alphanumeric", function(value, element) {
+			$.validator.addMethod("wmssla_alphanumeric", function(value, element) {
+				if(slaDialogParams.type && slaDialogParams.type == 'alter')
+					return true; // For alter we don't allow editing the name,so no check needed
+
 				return this.optional(element) || /^\w+$/i.test(value);
 			}, "Only alphanumeric characters and underscores are allowed");
 
 			slaFormValidator = $(SLA_FORM).validate({
 				rules: {
-					"sla_name": { required: true, alphanumeric: true}
+					"sla_name": { required: true, wmssla_alphanumeric: true},
+					"sla_limit": { digits: true},
+					"sla_throughput" : { number: true},
+					"connect_profile_name": {required: true}
 				},
 				highlight: function(element) {
 					$(element).closest('.form-group').addClass('has-error');
@@ -121,12 +127,12 @@ define([
 			});
 
 			$(SLA_DIALOG).on('hide.bs.modal', function (e, v) {
+				slaFormValidator.resetForm();
 				$(SLA_NAME).focus();
 				_this.doReset();
 			});	
 
 			$(SLA_DIALOG).on('hidden.bs.modal', function (e, v) {
-				slaFormValidator.resetForm();
 				$(ADD_SLA_ERROR_CONTAINER).text("");
 				$(ADD_SLA_ERROR_CONTAINER).hide();
 				$(SLA_DIALOG_TITLE).text('Add Profile');
@@ -183,19 +189,34 @@ define([
 			if(slaDialogParams != null){
 				if(slaDialogParams.type && slaDialogParams.type == 'add'){
 					$(SLA_NAME).attr('disabled', false);
+					$('#wsla-form input, select').prop('disabled', false);
+					$(SLA_APPLY_BTN).attr('disabled', false);
+					$(SLA_RESET_BTN).attr('disabled', false);
 					$(SLA_DIALOG_TITLE).text('Add SLA');
 					$(SLA_NAME).val("");
 					$(SLA_PRIORITY).val();
+					var priority = slaDialogParams.data["priority"];
+					$(SLA_PRIORITY).val(priority != null ? priority.toLowerCase() : "");
 					$(SLA_LIMIT).val(slaDialogParams.data["limit"]);
 					$(SLA_THROUGHPUT).val(slaDialogParams.data["throughput"]);
 					$(SLA_CONNECT_PROFILE_NAME).val(slaDialogParams.data["onConnectProfile"]);
 					$(SLA_DISCONNECT_PROFILE_NAME).val(slaDialogParams.data["onDisconnectProfile"]);
 				}
 				if(slaDialogParams.type && slaDialogParams.type == 'alter'){
+					if(slaDialogParams.data["isDefault"] == 'yes'){
+						$('#wsla-form input, select').prop('disabled', true);
+						$(SLA_APPLY_BTN).attr('disabled', true);
+						$(SLA_RESET_BTN).attr('disabled', true);
+					}else{
+						$('#wsla-form input, select').prop('disabled', false);
+						$(SLA_APPLY_BTN).attr('disabled', false);
+						$(SLA_RESET_BTN).attr('disabled', false);
+					}
 					$(SLA_DIALOG_TITLE).text('Alter SLA');
 					$(SLA_NAME).attr('disabled', true);
-					$(SLA_NAME).val(slaDialogParams.data["SLA Name"]);
-					$(SLA_PRIORITY).val();
+					$(SLA_NAME).val(slaDialogParams.data["name"]);
+					var priority = slaDialogParams.data["priority"];
+					$(SLA_PRIORITY).val(priority != null ? priority.toLowerCase() : "");
 					$(SLA_LIMIT).val(slaDialogParams.data["limit"]);
 					$(SLA_THROUGHPUT).val(slaDialogParams.data["throughput"]);
 					$(SLA_CONNECT_PROFILE_NAME).val(slaDialogParams.data["onConnectProfile"]);
@@ -224,16 +245,42 @@ define([
 
 				dataTableColNames = [];
 				var updateTimeColIndex = -1;
+				var isDefColIndex = -1;
+				var priorityColIndex = -1;
+				var onConnProfileIndex = -1;
+				var onDisconProfileIndex = -1;
+				var limitColIndex = -1;
+				var throughputColIndex = -1;
+				
 				// add needed columns
 				$.each(keys, function(k, v) {
 					var obj = new Object();
 					obj.title = common.UpperCaseFirst(v);
-					if(v == 'SLA Name'){
+					if(v == 'name'){
 						slaNameColIndex = k;
 					}
 					if(v == 'lastUpdate'){
 						updateTimeColIndex = k;
 					}
+					if(v == 'isDefault'){
+						isDefColIndex = k;
+					}
+					if(v == 'priority'){
+						priorityColIndex = k;
+					}
+					if(v == 'onConnectProfile'){
+						onConnProfileIndex = k;
+					}
+					if(v == 'onDisconnectProfile'){
+						onDisconProfileIndex = k;
+					}
+					if(v == 'limit'){
+						limitColIndex = k;
+					}
+					if(v == 'throughput'){
+						throughputColIndex = k;
+					}
+					
 					aoColumns.push(obj);
 					dataTableColNames.push(v);
 				});
@@ -263,31 +310,111 @@ define([
 						}
 					});
 				}
+				if(priorityColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ priorityColIndex ],
+						"mData": priorityColIndex,
+						"mRender": function ( data, type, full ) {
+							if(data != null){
+								return common.toProperCase(data);
+							}else 
+								return data;
+						}
+					});
+				}
+				if(onConnProfileIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ onConnProfileIndex ],
+						"mData": onConnProfileIndex,
+						"mRender": function ( data, type, full ) {
+							if(data != null && data != 'null'){
+								return data;
+							}else 
+								return "";
+						}
+					});
+				}
+				if(onDisconProfileIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ onDisconProfileIndex ],
+						"mData": onDisconProfileIndex,
+						"mRender": function ( data, type, full ) {
+							if(data != null && data != 'null'){
+								return data;
+							}else 
+								return "";
+						}
+					});
+				}
 				if(updateTimeColIndex >=0){
 					aoColumnDefs.push({
 						"aTargets": [ updateTimeColIndex ],
 						"mData": updateTimeColIndex,
+						"className" : "dt-body-right",
 						"mRender": function ( data, type, full ) {
-							if(type == 'display'){
+							if(data != null){
 								return common.toServerLocalDateFromMilliSeconds(parseInt(data), 'YYYY-MM-DD HH:mm:ss');
 							}else 
 								return data;
 						}
 					});
 				}
-				aoColumnDefs.push({
-					"aTargets": [ 6 ],
-					"mData": 6,
-					"visible" : false,
-					"searchable" : false
-				});
+				if(limitColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ limitColIndex ],
+						"mData": limitColIndex,
+						"className" : "dt-body-right",
+						"mRender": function ( data, type, full ) {
+							if(data != null && data.length > 0){
+								return common.formatNumberWithCommas(parseInt(data));
+							}else 
+								return data;
+						}
+					});					
+				}
+				if(throughputColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ throughputColIndex ],
+						"mData": throughputColIndex,
+						"className" : "dt-body-right",
+						"mRender": function ( data, type, full ) {
+							if(data != null && data.length > 0){
+								return common.formatNumberWithCommas(parseInt(data));
+							}else 
+								return data;
+						}
+					});					
+				}
+				if(isDefColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [isDefColIndex ],
+						"mData": isDefColIndex,
+						"visible" : false,
+						"searchable" : false
+					});					
+				}
 				aoColumnDefs.push({
 					"aTargets": [ deleteSLAIconColIndex ],
 					"mData": deleteSLAIconColIndex,
 					"className": "dt-center",
-					"mRender": function ( data, type, full ) {
-						if ( type === 'display' ) {
-							return '<a class="fa fa-trash-o"></a>';
+					"mRender": function ( data, type, full, meta ) {
+						if(type === 'display'){
+							
+							var aoColumns = meta.settings.aoColumns;
+							var defColIndex = -1;
+							
+							$.each(aoColumns, function(i, v){
+								if(v.title == 'IsDefault'){
+									defColIndex = i;
+									return;
+								}
+							});
+							
+							if(defColIndex >= 0 && full[defColIndex] == 'no'){
+								return '<a class="delete-profile fa fa-trash-o"></a>';
+							}
+							else return "";
+							
 						} else return "";
 
 					}
@@ -336,8 +463,10 @@ define([
 							}else{
 								if(cell.column == deleteSLAIconColIndex){
 									var data = slasDataTable.row(cell.row).data();
-									$(DELETE_SLA_NAME).text(data[slaNameColIndex]);
-									$(SLA_DELETE_DIALOG).modal('show');
+									if(data[isDefColIndex] == 'no'){
+										$(DELETE_SLA_NAME).text(data[slaNameColIndex]);
+										$(SLA_DELETE_DIALOG).modal('show');
+									}
 								}
 							}
 						}
@@ -403,6 +532,7 @@ define([
 				return;
 			}
 			var sla = {};
+			sla.action = slaDialogParams.type;
 			sla.name = $(SLA_NAME).val();
 			sla.priority = $(SLA_PRIORITY).val();
 			sla.limit = $(SLA_LIMIT).val();
@@ -417,6 +547,7 @@ define([
 		},
 		slaResetBtnClicked: function(){
 			_this.doReset();
+			slaFormValidator.resetForm();
 		},
 		addAlterSLASuccess: function(data){
 			$(ADD_SLA_ERROR_CONTAINER).text("");
@@ -436,7 +567,7 @@ define([
 
 			var msg = "";
 			if (jqXHR.responseText) {
-				msg =  "Failed to create SLA : " + jqXHR.responseText;
+				msg =  jqXHR.responseText;
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
 					msg = "Error : Unable to communicate with the server.";
@@ -455,7 +586,7 @@ define([
 		deleteSLAError: function(jqXHR){
 			var msg = "";
 			if (jqXHR.responseText) {
-				msg =  "Failed to delete SLA : " + jqXHR.responseText;
+				msg = jqXHR.responseText;
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
 					msg = "Error : Unable to communicate with the server.";
@@ -469,7 +600,7 @@ define([
 			var keys = result.columnNames;
 			var profileNameColIndex = -1;
 			$.each(keys, function(k, v) {
-				if(v == 'Profile Name'){
+				if(v == 'name'){
 					profileNameColIndex = k;
 				}
 			});
