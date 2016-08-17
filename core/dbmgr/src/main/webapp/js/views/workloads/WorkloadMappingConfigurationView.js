@@ -85,7 +85,7 @@ define([
 			$(MAPPING_APPLY_BTN).on('click', this.mappingApplyBtnClicked);
 			$(MAPPING_RESET_BTN).on('click', this.mappingResetBtnClicked);
 
-			$.validator.addMethod("alphanumeric", function(value, element) {
+			$.validator.addMethod("wmsmap_alphanumeric", function(value, element) {
 				if(mappingDialogParams.type && mappingDialogParams.type == 'alter')
 					return true; // For alter we don't allow editing the name,so no check needed
 				
@@ -98,7 +98,7 @@ define([
 
 			mappingFormValidator = $(MAPPING_FORM).validate({
 				rules: {
-					"mapping_name": { required: true, alphanumeric: true},
+					"mapping_name": { required: true, wmsmap_alphanumeric: true},
 					"mapping_seq_no": { required: true, digits: true, wms_ordernumber: true},
 					"mapping_state": { required: true},
 					"mapping_sla": { required: true}
@@ -139,6 +139,7 @@ define([
 			});
 
 			$(MAPPING_DIALOG).on('hide.bs.modal', function (e, v) {
+				mappingFormValidator.resetForm();
 				$(MAPPING_NAME).focus();
 				_this.doReset();
 			});	
@@ -270,6 +271,7 @@ define([
 				var isDefColIndex = -1;
 				var stateColIndex = -1;
 				var orderNumColIndex = -1;
+				var slaColIndex = -1;
 				
 				// add needed columns
 				$.each(keys, function(k, v) {
@@ -290,6 +292,9 @@ define([
 					}
 					if(v == 'orderNumber'){
 						orderNumColIndex = k;
+					}
+					if(v == 'sla'){
+						slaColIndex = k;
 					}
 					aoColumns.push(obj);
 					dataTableColNames.push(v);
@@ -317,6 +322,18 @@ define([
 							}else { 
 								return data;
 							}
+						}
+					});
+				}
+				if(slaColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ slaColIndex ],
+						"mData": slaColIndex,
+						"mRender": function ( data, type, full ) {
+							if(data != null && data != 'null'){
+								return data;
+							}else 
+								return "";
 						}
 					});
 				}

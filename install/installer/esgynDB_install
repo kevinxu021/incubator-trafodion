@@ -130,8 +130,14 @@ echo "******************************"
 
 if [[ -f $USER_CONFIG ]]; then
    ./trafodion_install --accept_license --config_file $USER_CONFIG --no_start
+   if [ ${PIPESTATUS[0]} != "0" ]; then
+      exit -1 
+   fi
 else
    ./trafodion_install --no_start
+   if [ ${PIPESTATUS[0]} != "0" ]; then
+      exit -1
+   fi
 fi
 
 if [[ $? -eq 0 ]]; then

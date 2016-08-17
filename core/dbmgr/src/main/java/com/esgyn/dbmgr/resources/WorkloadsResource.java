@@ -6,6 +6,7 @@
 
 package com.esgyn.dbmgr.resources;
 
+import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -768,7 +769,7 @@ public class WorkloadsResource {
 
 			if (trafRestUri != null && trafRestUri.length() > 0) {
 				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_DELETE_PROFILE);
-				uri = String.format(queryText, trafRestUri, profile);
+				uri = String.format(queryText, trafRestUri, URLEncoder.encode(profile, "UTF8"));
 				_LOG.debug(uri);
 				Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
 				workloadProfiles.remove(profile);
@@ -955,7 +956,7 @@ public class WorkloadsResource {
 
 			if (trafRestUri != null && trafRestUri.length() > 0) {
 				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_DELETE_SLA);
-				uri = String.format(queryText, trafRestUri, sla);
+				uri = String.format(queryText, trafRestUri, URLEncoder.encode(sla, "UTF8"));
 				_LOG.debug(uri);
 				Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
 				workloadSLAs.remove(sla);
@@ -1160,7 +1161,7 @@ public class WorkloadsResource {
 
 			if (trafRestUri != null && trafRestUri.length() > 0) {
 				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_DELETE_MAPPING);
-				uri = String.format(queryText, trafRestUri, mapping);
+				uri = String.format(queryText, trafRestUri, URLEncoder.encode(mapping, "UTF8"));
 				_LOG.debug(uri);
 				Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
 				workloadMappings.remove(mapping);

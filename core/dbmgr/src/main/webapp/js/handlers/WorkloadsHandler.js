@@ -233,7 +233,7 @@ define(['handlers/EventDispatcher'],
 				this.deleteProfile = function(profile){
 					$.ajax({
 						cache: false,
-						url: 'resources/workloads/profile?profile=' + profile,
+						url: 'resources/workloads/profile?profile=' + encodeURIComponent(profile),
 						type:'DELETE',
 						dataType:"json",
 						contentType: "application/json;",
@@ -306,7 +306,7 @@ define(['handlers/EventDispatcher'],
 
 					$.ajax({
 						cache: false,
-						url: 'resources/workloads/sla?sla=' + sla,
+						url: 'resources/workloads/sla?sla=' + encodeURIComponent(sla),
 						type:'DELETE',
 						dataType:"json",
 						contentType: "application/json;",
@@ -378,7 +378,7 @@ define(['handlers/EventDispatcher'],
 				this.deleteMapping = function(mapping){
 					$.ajax({
 						cache: false,
-						url: 'resources/workloads/mapping?mapping=' + mapping,
+						url: 'resources/workloads/mapping?mapping=' + encodeURIComponent(mapping),
 						type:'DELETE',
 						dataType:"json",
 						contentType: "application/json;",

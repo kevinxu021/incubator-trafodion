@@ -17,6 +17,8 @@ define(['handlers/EventDispatcher'],
 				this.CREATE_LIBRARY_ERROR = 'createLibraryError';
 				this.ALTER_LIBRARY_SUCCESS = 'alterLibrarySuccess';
 				this.ALTER_LIBRARY_ERROR = 'alterLibraryError';
+				this.GET_LIBRARY_SUCCESS = 'getLibrarySuccess';
+				this.GET_LIBRARY_ERROR = 'getLibraryError';
 
 				this.sessionTimeout = function() {
 					window.location.hash = '/stimeout';
@@ -100,6 +102,39 @@ define(['handlers/EventDispatcher'],
 						}
 					});
 				
+				};
+				
+				this.getLibrary = function(fileName){
+					var fd = new FormData();
+					fd.append("fileName", fileName);
+					
+					$.ajax({
+						url: 'resources/tools/getlibrary',
+						type:'POST',
+						data: fd,
+						processData : false,
+						contentType : false, 
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						fileName: fileName,
+						success: function(data){
+							var url = window.location.protocol + "//" + window.location.host+"/"+this.fileName;
+							var a = document.createElement('a'),
+						    ev = document.createEvent("MouseEvents");
+							a.href = url;
+							a.download = url.slice(url.lastIndexOf('/')+1);
+							ev.initMouseEvent("click", true, false, self, 0, 0, 0, 0, 0,
+								false, false, false, false, 0, null);
+							a.dispatchEvent(ev);
+							var result = {};
+							dispatcher.fire(_this.GET_LIBRARY_SUCCESS, result);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.GET_LIBRARY_ERROR, jqXHR, res, error);
+						}})
+		
 				};
 				
 				this.init = function() {

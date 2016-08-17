@@ -1507,6 +1507,7 @@ protected:
   ExpHbaseInterface* allocBRCEHI(NADefaults * defs = NULL);
   short backup(DDLExpr * ddlExpr, ExeCliInterface * cliInterface);
   short restore(DDLExpr * ddlExpr, ExeCliInterface * cliInterface);
+  short deleteBackup(DDLExpr * ddlExpr, ExeCliInterface * cliInterface);
   short lockSQL();
   short unlockSQL();
   NABoolean isSQLLocked();

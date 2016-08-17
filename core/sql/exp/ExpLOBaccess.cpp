@@ -1384,12 +1384,6 @@ Ex_Lob_Error ExLob::openDataCursor(char *file, LobsCursorType type,
             lobCursorLock_.unlock();
             return LOB_DATA_FILE_OPEN_ERROR;
           }                
-                 
-        if (hdfsSeek(fs_, fdData_, (it->second).descOffset_) == -1) 
-          {
-            lobCursorLock_.unlock();
-            return LOB_DATA_FILE_POSITION_ERROR;
-          }
       }
 
     // start reading in a worker thread
@@ -2959,8 +2953,7 @@ Ex_Lob_Error ExLob::readCursorDataSimple(char *tgt, Int64 tgtSize, cursor_t &cur
       offset = cursor.descOffset_ + cursor.bytesRead_;
 
       // gets chunks of 64KB. Uses readDirect internally.
-      // bytesRead = hdfsPread(fs_, fdData_, offset, tgt, bytesToCopy);
-      bytesRead = hdfsRead(fs_, fdData_, tgt, bytesToCopy);
+      bytesRead = hdfsPread(fs_, fdData_, offset, tgt, bytesToCopy);
 
       stats_.numHdfsReqs++;
 

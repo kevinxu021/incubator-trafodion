@@ -44,7 +44,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Wed Aug 17 17:58:02 2016
+-- Definition current  Wed Aug 17 21:57:28 2016
 
   (
     S_STORE_SK                       INT
@@ -301,11 +301,11 @@ Number of esps to scan:    1
   Esp# Range# StripeOffset       Length      FileName
 ====== ====== ============ ============  ==============================
 
-     0      0            0         4288  store_orc/000000_0
+     0      0            3         2853  store_orc/000000_0
 
-Summary of bytes read per ESP (4288 = 100 percent):
+Summary of bytes read per ESP (2853 = 100 percent):
 
-ESP    0 reads               4288 bytes ( 100 percent of avg)
+ESP    0 reads               2853 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 29
 ColNumber: 1, ColName: S_STORE_SK
@@ -436,11 +436,11 @@ Number of esps to scan:    1
   Esp# Range# StripeOffset       Length      FileName
 ====== ====== ============ ============  ==============================
 
-     0      0            0         4288  store_orc/000000_0
+     0      0            3         2853  store_orc/000000_0
 
-Summary of bytes read per ESP (4288 = 100 percent):
+Summary of bytes read per ESP (2853 = 100 percent):
 
-ESP    0 reads               4288 bytes ( 100 percent of avg)
+ESP    0 reads               2853 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
@@ -589,11 +589,11 @@ Number of esps to scan:    1
   Esp# Range# StripeOffset       Length      FileName
 ====== ====== ============ ============  ==============================
 
-     0      0            0         4288  store_orc/000000_0
+     0      0            3         2853  store_orc/000000_0
 
-Summary of bytes read per ESP (4288 = 100 percent):
+Summary of bytes read per ESP (2853 = 100 percent):
 
-ESP    0 reads               4288 bytes ( 100 percent of avg)
+ESP    0 reads               2853 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
@@ -722,11 +722,11 @@ Number of esps to scan:    1
   Esp# Range# StripeOffset       Length      FileName
 ====== ====== ============ ============  ==============================
 
-     0      0            0         4288  store_orc/000000_0
+     0      0            3         2853  store_orc/000000_0
 
-Summary of bytes read per ESP (4288 = 100 percent):
+Summary of bytes read per ESP (2853 = 100 percent):
 
-ESP    0 reads               4288 bytes ( 100 percent of avg)
+ESP    0 reads               2853 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
@@ -984,7 +984,7 @@ NUM_HITS    NUM_PARAMS
 >>invoke hive.hive.store_sales_orc;
 
 -- Definition of hive table STORE_SALES_ORC
--- Definition current  Wed Aug 17 17:58:24 2016
+-- Definition current  Wed Aug 17 21:57:51 2016
 
   (
     SS_SOLD_DATE_SK                  INT
@@ -1026,7 +1026,7 @@ NUM_HITS    NUM_PARAMS
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212338216705082261
+PLAN_ID .................. 212338231072078433
 ROWS_OUT ............. 1,698
 EST_TOTAL_COST ......... 176.2
 STATEMENT ................ select * from store_sales_orc where ss_item_sk = 1;
@@ -1164,7 +1164,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212338216705960424
+PLAN_ID .................. 212338231073006483
 ROWS_OUT ......... 2,880,404
 EST_TOTAL_COST ...... 23,161.59
 STATEMENT ................ select *
@@ -1357,11 +1357,11 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 
 6    .    7    root                                                  1.00E+000
 5    .    6    firstn                                                1.00E+000
-4    .    5    esp_exchange                    1:4(hash2)            1.66E+004
-2    3    4    nested_join                                           1.66E+004
-.    .    3    orc_scan                        STORE_SALES_SORTED_O  1.50E+003
-1    .    2    esp_exchange                    4(hash2):1            1.10E+001
-.    .    1    orc_scan                        DATE_DIM_ORC          1.10E+001
+4    .    5    esp_exchange                    1:4(hash2)            2.88E+006
+2    3    4    nested_join                                           2.88E+006
+.    .    3    orc_scan                        STORE_SALES_SORTED_O  1.44E+006
+1    .    2    esp_exchange                    4(hash2):1            2.00E+000
+.    .    1    orc_scan                        DATE_DIM_ORC          2.00E+000
 
 --- SQL operation complete.
 >>
@@ -1410,7 +1410,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Wed Aug 17 17:58:36 2016
+-- Definition current  Wed Aug 17 21:57:57 2016
 
   (
     D_DATE_SK                        INT
@@ -1549,8 +1549,8 @@ CREATE EXTERNAL TABLE DATE_DIM_ORC
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212338216718007741
-ROWS_OUT ................. 1
+PLAN_ID .................. 212338231078938927
+ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.59
 STATEMENT ................ select *
                            from hive.hive.date_dim_orc
@@ -1560,17 +1560,17 @@ STATEMENT ................ select *
 ------------------------------------------------------------------ NODE LISTING
 ROOT ======================================  SEQ_NO 2        ONLY CHILD 1
 REQUESTS_IN .............. 1
-ROWS_OUT ................. 1
+ROWS_OUT ............... 271
 EST_OPER_COST ............ 0
 EST_TOTAL_COST ........... 0.59
 DESCRIPTION
-  max_card_est ........... 1
+  max_card_est ...... 69,397.5
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
   statement_index ........ 0
   affinity_value ......... 0
-  max_max_cardinality .... 1
+  max_max_cardinality    271
   total_overflow_size .... 0.00 KB
   xn_access_mode ......... read_only
   xn_autoabort_interval    0
@@ -1620,11 +1620,11 @@ DESCRIPTION
 ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.DATE_DIM_ORC
 REQUESTS_IN .............. 1
-ROWS_OUT ................. 1
+ROWS_OUT ............... 271
 EST_OPER_COST ............ 0.59
 EST_TOTAL_COST ........... 0.59
 DESCRIPTION
-  max_card_est ........... 1
+  max_card_est ...... 69,397.5
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
@@ -1654,7 +1654,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Wed Aug 17 17:58:45 2016
+-- Definition current  Wed Aug 17 21:58:03 2016
 
   (
     D_DATE_SK                        INT
@@ -1793,8 +1793,8 @@ CREATE EXTERNAL TABLE DATE_DIM_ORC
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212338216727265766
-ROWS_OUT ................. 1
+PLAN_ID .................. 212338231085243574
+ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.59
 STATEMENT ................ select *
                            from hive.hive.date_dim_orc
@@ -1804,17 +1804,17 @@ STATEMENT ................ select *
 ------------------------------------------------------------------ NODE LISTING
 ROOT ======================================  SEQ_NO 2        ONLY CHILD 1
 REQUESTS_IN .............. 1
-ROWS_OUT ................. 1
+ROWS_OUT ............... 271
 EST_OPER_COST ............ 0
 EST_TOTAL_COST ........... 0.59
 DESCRIPTION
-  max_card_est ........... 1
+  max_card_est ...... 69,397.5
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
   statement_index ........ 0
   affinity_value ......... 0
-  max_max_cardinality .... 1
+  max_max_cardinality    271
   total_overflow_size .... 0.00 KB
   xn_access_mode ......... read_only
   xn_autoabort_interval    0
@@ -1864,11 +1864,11 @@ DESCRIPTION
 ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.DATE_DIM_ORC
 REQUESTS_IN .............. 1
-ROWS_OUT ................. 1
+ROWS_OUT ............... 271
 EST_OPER_COST ............ 0.59
 EST_TOTAL_COST ........... 0.59
 DESCRIPTION
-  max_card_est ........... 1
+  max_card_est ...... 69,397.5
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
@@ -2017,9 +2017,9 @@ orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK is null ) 
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-PLAN_ID .................. 212338216746827739
+PLAN_ID .................. 212338231104583328
 ROWS_OUT ................. 1
-EST_TOTAL_COST ........... 7.05
+EST_TOTAL_COST ........... 7.06
 STATEMENT ................ select count(*)
                            from hive.hive.customer_orc,
                              hive.hive.store_sales_sorted_orc
@@ -2032,7 +2032,7 @@ ROOT ======================================  SEQ_NO 8        ONLY CHILD 7
 REQUESTS_IN .............. 1
 ROWS_OUT ................. 1
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 7.05
+EST_TOTAL_COST ........... 7.06
 DESCRIPTION
   max_card_est ........... 1
   fragment_id ............ 0
@@ -2041,7 +2041,7 @@ DESCRIPTION
   statement_index ........ 0
   affinity_value ......... 0
   est_memory_per_cpu ..... 69 KB
-  max_max_cardinal  2,749,204
+  max_max_cardinal  2,880,404
   total_overflow_size .... 0.00 KB
   esp_2_node_map ......... (\NSK:-1:-1:-1:-1)
   esp_3_node_map ......... (\NSK:-1)
@@ -2074,7 +2074,7 @@ SORT_PARTIAL_AGGR_ROOT ====================  SEQ_NO 7        ONLY CHILD 6
 REQUESTS_IN .............. 1
 ROWS_OUT ................. 1
 EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 7.05
+EST_TOTAL_COST ........... 7.06
 DESCRIPTION
   max_card_est ........... 1
   fragment_id ............ 0
@@ -2087,9 +2087,9 @@ ESP_EXCHANGE ==============================  SEQ_NO 6        ONLY CHILD 5
 REQUESTS_IN .............. 1
 ROWS_OUT ................. 1
 EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 7.05
+EST_TOTAL_COST ........... 7.06
 DESCRIPTION
-  max_card_est ......... 318.77
+  max_card_est ........... 1
   fragment_id ............ 2
   parent_frag ............ 0
   fragment_type .......... esp
@@ -2106,9 +2106,9 @@ SORT_PARTIAL_AGGR_LEAF ====================  SEQ_NO 5        ONLY CHILD 4
 REQUESTS_IN .............. 1
 ROWS_OUT ................. 1
 EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 7.05
+EST_TOTAL_COST ........... 7.06
 DESCRIPTION
-  max_card_est ......... 318.77
+  max_card_est ........... 1
   fragment_id ............ 2
   parent_frag ............ 0
   fragment_type .......... esp
@@ -2117,12 +2117,12 @@ DESCRIPTION
 
 HYBRID_HASH_JOIN ==========================  SEQ_NO 4        CHILDREN 3, 2
 REQUESTS_IN .............. 1
-ROWS_OUT ........... 478,582
-EST_OPER_COST ............ 0.01
+ROWS_OUT ......... 2,880,404
+EST_OPER_COST ............ 0.02
 EST_TOTAL_COST ........... 7.05
 DESCRIPTION
   memory_quota_per_esp ... 1200 MB
-  max_card_est ........... 1.52558e+08
+  max_card_est ........... 2.8804e+06
   fragment_id ............ 2
   parent_frag ............ 0
   fragment_type .......... esp
@@ -2139,7 +2139,7 @@ DESCRIPTION
 ORC_SCAN ==================================  SEQ_NO 3        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.STORE_SALES_SORTED_ORC
 REQUESTS_IN .............. 1
-ROWS_OUT ......... 2,749,204
+ROWS_OUT ......... 2,880,404
 EST_OPER_COST ............ 5.63
 EST_TOTAL_COST ........... 5.63
 DESCRIPTION
@@ -2222,8 +2222,8 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 6    .    7    sort_partial_aggr_ro                                  1.00E+000
 5    .    6    esp_exchange                    1:4(hash2)            1.00E+000
 4    .    5    sort_partial_aggr_le                                  1.00E+000
-3    2    4    hybrid_hash_join                                      4.78E+005
-.    .    3    orc_scan                        STORE_SALES_SORTED_O  2.74E+006
+3    2    4    hybrid_hash_join                                      2.88E+006
+.    .    3    orc_scan                        STORE_SALES_SORTED_O  2.88E+006
 1    .    2    esp_exchange                    4(rep-b):1            3.17E+002
 .    .    1    orc_scan                        CUSTOMER_ORC          3.17E+002
 

@@ -78,11 +78,6 @@ export HOME_DIR="/home"
 
 export JAVA_HOME=""
 
-# If your machine doesn't have external internet access then you must
-# specify the location of the EPEL rpm, otherwise leave blank and it
-# will be installed from the internet
-export EPEL_RPM=""
-
 # full path of the Trafodion package tar file
 export TRAF_PACKAGE=""
 

@@ -2805,6 +2805,7 @@ short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
        (backup()) ||
        (restore()) ||
        (unlockTraf()) ||
+       (deleteBackup()) ||
        (updateVersion()))
      {
         // transaction will be started and commited in called methods.
@@ -2840,7 +2841,7 @@ short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
         // transaction will be started and commited in called methods.
         xnCanBeStarted = FALSE;
      
-     if(backup() || restore() || unlockTraf())
+     if(backup() || restore() || unlockTraf() || deleteBackup())
     	 xnCanBeStarted = FALSE;
      
      if ((ddlNode && ddlNode->castToStmtDDLNode() &&
@@ -4471,13 +4472,8 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 	  ((NodeMap *) getPartFunc()->getNodeMap()) ->
             assignScanInfosRepN(hiveSearchKey_);
         else {
-          if ( !(hTabStats->isOrcFile()) || 
-               CmpCommon::getDefault(ORC_READ_STRIPE_INFO) == DF_ON)
-            ((NodeMap *) getPartFunc()->getNodeMap()) ->
+          ((NodeMap *) getPartFunc()->getNodeMap()) ->
               assignScanInfos(hiveSearchKey_);
-          else 
-            ((NodeMap*) getPartFunc()->getNodeMap()) -> 
-              assignScanInfosNoSplit(hiveSearchKey_);
         }
       }
 

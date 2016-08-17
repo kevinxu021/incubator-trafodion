@@ -130,6 +130,8 @@ CmpContext::CmpContext(UInt32 f, CollHeap * h)
   sqlTextBuf_(NULL),
   uninitializedSeabaseErrNum_(0),
   hbaseErrNum_(0),
+  numSQNodes_(0),
+  hasVirtualSQNodes_(FALSE),
   trafMDDescsInfo_(NULL),
   transMode_(TransMode::IL_NOT_SPECIFIED_,    // init'd below
              TransMode::READ_WRITE_,
@@ -295,9 +297,6 @@ CmpContext::CmpContext(UInt32 f, CollHeap * h)
 
   lastUpdateStatsTime_ = -1;
   
-  HHDFSMasterHostList::resetNumSQNodes();
-  HHDFSMasterHostList::resethasVirtualSQNodes();
-
   optDefaults_ = new (heap_) OptDefaults(heap_);
 
   // create dynamic metadata descriptors

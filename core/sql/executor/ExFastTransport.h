@@ -435,13 +435,13 @@ class ExHdfsFastExtractTcb : public ExFastExtractTcb
 {
   typedef ex_tcb super;
 
-  void convertSQRowToString(ULng32 nullLen,
-                            ULng32 recSepLen,
-                            ULng32 delimLen,
-                            tupp_descriptor* dataDesc,
-                            char* targetData,
-                            NABoolean orcRow,
-                            NABoolean & convError);
+  NABoolean convertSQRowToString(ULng32 nullLen,
+                                 ULng32 recSepLen,
+                                 ULng32 delimLen,
+                                 tupp_descriptor* dataDesc,
+                                 char* targetData,
+                                 NABoolean orcRow,
+                                 NABoolean & convError);
 
   friend class ExFastExtractTdb;
 

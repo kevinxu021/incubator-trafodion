@@ -208,7 +208,7 @@ ssh -q -n $HDFS_NODE 'rm -rf $HOME/traf_temp_output'
 AMBARI_DIR=/var/lib/ambari-server/resources/scripts
 cd $LOCAL_WORKDIR
 
-ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD"  '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.master.distributed.log.splitting true'
+ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD"  '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.master.distributed.log.splitting true' 2>&1 > /dev/null
 if [ $? != 0 ]; then
     echo "***ERROR: unable to modify hbase.master.distributed.log.splitting through Ambari's configs.sh script."
     echo "***ERROR: Check if Ambari URL is correct, may need to enter external IP address."
@@ -221,52 +221,52 @@ sleep 2
 # Bug: install removes hbase co-processors installed as part of kerberozing Hadoop.  Add them
 # as part of adding trafodion co-processor (add JIRA #)
 if [[ "$SECURE_HADOOP" == "Y" ]]; then
-   ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.coprocessor.region.classes "org.apache.hadoop.hbase.coprocessor.transactional.TrxRegionObserver,org.apache.hadoop.hbase.coprocessor.transactional.TrxRegionEndpoint,org.apache.hadoop.hbase.coprocessor.AggregateImplementation,org.apache.hadoop.hbase.security.access.AccessController,org.apache.hadoop.hbase.security.token.TokenProvider"'
+   ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.coprocessor.region.classes "org.apache.hadoop.hbase.coprocessor.transactional.TrxRegionObserver,org.apache.hadoop.hbase.coprocessor.transactional.TrxRegionEndpoint,org.apache.hadoop.hbase.coprocessor.AggregateImplementation,org.apache.hadoop.hbase.security.access.AccessController,org.apache.hadoop.hbase.security.token.TokenProvider"' 2>&1 > /dev/null
 else
-   ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.coprocessor.region.classes "org.apache.hadoop.hbase.coprocessor.transactional.TrxRegionObserver,org.apache.hadoop.hbase.coprocessor.transactional.TrxRegionEndpoint,org.apache.hadoop.hbase.coprocessor.AggregateImplementation"'
+   ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.coprocessor.region.classes "org.apache.hadoop.hbase.coprocessor.transactional.TrxRegionObserver,org.apache.hadoop.hbase.coprocessor.transactional.TrxRegionEndpoint,org.apache.hadoop.hbase.coprocessor.AggregateImplementation"' 2>&1 > /dev/null
 fi
 if [ $? != 0 ]; then
     echo "***ERROR: unable to modify hbase.coprocessor.region.classes through Ambari's configs.sh script."
     exit -1
 fi
 sleep 2
-ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.hregion.impl org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegion'
+ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.hregion.impl org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegion' 2>&1 > /dev/null
 if [ $? != 0 ]; then
     echo "***ERROR: unable to modify hbase.hregion.impl through Ambari's configs.sh script."
     exit -1
 fi
 sleep 2
-ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.regionserver.region.split.policy org.apache.hadoop.hbase.regionserver.ConstantSizeRegionSplitPolicy'
+ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.regionserver.region.split.policy org.apache.hadoop.hbase.regionserver.ConstantSizeRegionSplitPolicy' 2>&1 > /dev/null
 if [ $? != 0 ]; then
     echo "***ERROR: unable to modify hbase.regionserver.region.split.policy through Ambari's configs.sh script."
     exit -1
 fi
 sleep 2 
-ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh  -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.snapshot.enabled true'
+ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh  -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.snapshot.enabled true' 2>&1 > /dev/null
 if [ $? != 0 ]; then
     echo "***ERROR: unable to modify hbase.snapshot.enabled through Ambari's configs.sh script."
     exit -1
 fi
 sleep 2
-ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.snapshot.master.timeoutMillis 600000'
+ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.snapshot.master.timeoutMillis 600000' 2>&1 > /dev/null
 if [ $? != 0 ]; then
     echo "***ERROR: unable to modify hbase.snapshot.master.timeoutMillis through Ambari's configs.sh script."
     exit -1
 fi
 sleep 2
-ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.snapshot.region.timeout 600000'
+ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.snapshot.region.timeout 600000' 2>&1 > /dev/null
 if [ $? != 0 ]; then
     echo "***ERROR: unable to modify hbase.snapshot.region.timeout through Ambari's configs.sh script."
     exit -1
 fi
 sleep 2
-ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hdfs-site dfs.namenode.acls.enabled true'
+ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hdfs-site dfs.namenode.acls.enabled true' 2>&1 > /dev/null
 if [ $? != 0 ]; then
     echo "***ERROR: unable to modify dfs.namenode.acls.enabled through Ambari's configs.sh script."
     exit -1
 fi
 sleep 2
-ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.client.scanner.timeout.period 600000'
+ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.client.scanner.timeout.period 600000' 2>&1 > /dev/null
 if [ $? != 0 ]; then
     echo "***ERROR: unable to modify hbase.client.scanner.timeout.period through Ambari's configs.sh script."
     exit -1
@@ -276,7 +276,7 @@ echo
 
 #Change Zookeeeper settings
 
-ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'zoo.cfg maxClientCnxns 0'
+ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'zoo.cfg maxClientCnxns 0' 2>&1 > /dev/null
 if [ $? != 0 ]; then
     echo "***ERROR: unable to modify maxClientCnxns through Ambari's configs.sh script."
     exit -1
@@ -321,7 +321,7 @@ while [ $completed -eq 0 ]; do
     curl -k -u $ADMIN:$PASSWORD \
         $URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
         > $LOCAL_WORKDIR/hbase_restart_status_temp
-    cat $LOCAL_WORKDIR/hbase_restart_status_temp
+    #cat $LOCAL_WORKDIR/hbase_restart_status_temp
     echo "***INFO: ...polling every $poll_time seconds until HBase stop is completed."
     # if stop command is completed then completed will not equal 0
     completed=$(cat $LOCAL_WORKDIR/hbase_restart_status_temp | grep '"request_status" : "COMPLETED"' | wc -l)
@@ -369,7 +369,7 @@ while [ $completed -eq 0 ]; do
     curl -k --user $ADMIN:$PASSWORD \
         $URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
         > $LOCAL_WORKDIR/traf_zoo_restart_temp
-    cat $LOCAL_WORKDIR/traf_zoo_restart_temp
+    #cat $LOCAL_WORKDIR/traf_zoo_restart_temp
     echo "***INFO: ...polling every $poll_time seconds until Zookeeper stop is completed."
     # if stop command is completed then completed will not equal 0
     completed=$(cat $LOCAL_WORKDIR/traf_zoo_restart_temp | grep '"request_status" : "COMPLETED"' | wc -l)
@@ -417,7 +417,7 @@ while [ $completed -eq 0 ]; do
     curl -k --user $ADMIN:$PASSWORD \
         $URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
         > $LOCAL_WORKDIR/traf_hdfs_restart_temp
-    cat $LOCAL_WORKDIR/traf_hdfs_restart_temp
+    #cat $LOCAL_WORKDIR/traf_hdfs_restart_temp
     echo "***INFO: ...polling every $poll_time seconds until HDFS stop is completed."
     # if stop command is completed then completed will not equal 0
     completed=$(cat $LOCAL_WORKDIR/traf_hdfs_restart_temp | grep '"request_status" : "COMPLETED"' | wc -l)
@@ -460,7 +460,7 @@ while [ $completed -eq 0 ]; do
     curl -k --user $ADMIN:$PASSWORD \
         $URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
         > $LOCAL_WORKDIR/traf_hdfs_restart_temp
-    cat $LOCAL_WORKDIR/traf_hdfs_restart_temp
+    #cat $LOCAL_WORKDIR/traf_hdfs_restart_temp
     echo "***INFO: ...polling every $poll_time seconds until HDFS start is completed."
     # if start command is completed then completed will not equal 0
     completed=$(cat $LOCAL_WORKDIR/traf_hdfs_restart_temp | grep '"request_status" : "COMPLETED"' | wc -l)
@@ -512,7 +512,7 @@ while [ $completed -eq 0 ]; do
     curl -k --user $ADMIN:$PASSWORD \
         $URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
         > $LOCAL_WORKDIR/traf_zoo_restart_temp
-    cat $LOCAL_WORKDIR/traf_zoo_restart_temp
+    #cat $LOCAL_WORKDIR/traf_zoo_restart_temp
     echo "***INFO: ...polling every $poll_time seconds until Zookeeper start is completed."
     # if start command is completed then completed will not equal 0
     completed=$(cat $LOCAL_WORKDIR/traf_zoo_restart_temp | grep '"request_status" : "COMPLETED"' | wc -l)
@@ -561,7 +561,7 @@ while [ $completed -eq 0 ]; do
     curl -k -u $ADMIN:$PASSWORD \
         $URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
         > $LOCAL_WORKDIR/hbase_restart_status_temp
-    cat $LOCAL_WORKDIR/hbase_restart_status_temp
+    #cat $LOCAL_WORKDIR/hbase_restart_status_temp
     echo "***INFO: ...polling every $poll_time seconds until HBase start is completed."
     # if start command is completed then completed will not equal 0
     completed=$(cat $LOCAL_WORKDIR/hbase_restart_status_temp | grep '"request_status" : "COMPLETED"' | wc -l)
@@ -618,12 +618,13 @@ source $TRAF_CONFIG
 
 TRAF_CONFIG="trafodion_config"
 TRAF_CONFIG_DIR="/etc/trafodion"
+TRAF_CONFIG_FILE=$TRAF_CONFIG_DIR/$TRAF_CONFIG
 
 if [ $node_count -ne 1 ]; then
    cp $TRAF_CONFIG $LOCAL_WORKDIR
-   $TRAF_PDCP $LOCAL_WORKDIR/$TRAF_CONFIG_FILE $HOME
+   $TRAF_PDCP $LOCAL_WORKDIR/$TRAF_CONFIG $HOME
    $TRAF_PDSH sudo mkdir -p $TRAF_CONFIG_DIR
-   $TRAF_PDSH sudo cp -rf $HOME/$TRAF_CONFIG_FILE $TRAF_CONFIG_DIR
-   $TRAF_PDSH sudo chmod 777 $TRAF_CONFIG
+   $TRAF_PDSH sudo cp -rf $HOME/$TRAF_CONFIG $TRAF_CONFIG_DIR
+   $TRAF_PDSH sudo chmod 777 $TRAF_CONFIG_FILE
 fi
 
