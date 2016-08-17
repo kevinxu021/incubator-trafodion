@@ -2523,7 +2523,7 @@ void ResStatisticsStatement::SendQueryStats(bool bStart, SRVR_STMT_HDL *pSrvrStm
 	//pQuery_info->m_num_nodes = ;
 	pQuery_info->m_udr_process_busy_time = ProcessBusyTime;
 	pQuery_info->m_pertable_stats = perTableRowSize;
-        pQuery_info->m_last_updated_time = pQuery_info->m_last_updated_time;
+    pQuery_info->m_last_updated_time = JULIANTIMESTAMP();
 
 	if (!pubStarted)
 		sendQueryStats(PUB_TYPE_STATEMENT_NEW_QUERYEXECUTION, pQuery_info);

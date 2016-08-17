@@ -277,6 +277,45 @@ public class BackupRestoreClient
 
     }
 
+    public boolean deleteBackup(String backuptag, boolean ts) throws Exception {
+        
+    	//ts indicates, delete all backups upto the timestamp
+    	if(ts)
+        {
+          // get all backup snapshots 
+          // delete snapshots
+          // get all mutations
+          // delete mutations
+          // de-register the same in snapshot meta.
+        }
+        else
+        {
+          //TODO : delete of mutations and update of meta.
+          if (logger.isDebugEnabled())
+            logger.debug("BackupRestoreClient deleteBackup User tag :" + backuptag);
+          
+          HBaseAdmin admin = new HBaseAdmin(config);
+          ArrayList<SnapshotMetaRecord> snapshotList;
+
+          snapshotList = getBackedupSnapshotList(backuptag);
+        
+          // For each table, in the list delete snapshot
+          for (SnapshotMetaRecord s : snapshotList) {
+            String hbaseTableName = s.getTableName();
+            String snapshotName =  s.getSnapshotPath();
+  
+              logger.info("BackupRestoreClient deleteSnapshot Snapshot Name :"
+                      + snapshotName);
+  
+            admin.deleteSnapshot(snapshotName);
+          }
+          admin.close();
+        }
+        
+    	System.out.println("BackupRestoreClient : deleteBackup :) :) ");
+        return true;
+    }
+    
     static public long getIdTmVal() throws Exception {
       IdTmId LvId;
       LvId = new IdTmId();

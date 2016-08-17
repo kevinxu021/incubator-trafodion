@@ -585,7 +585,7 @@ DESCRIPTION
   est_memory_per_cpu ..... 30 KB
   max_max_cardinality  1,709
   total_overflow_size .... 0.00 KB
-  esp_2_node_map ......... (\NSK:-1:-1:-1:-1)
+  esp_2_node_map ......... (\NSK:-1:-1:-1:-1:-1:-1)
   xn_access_mode ......... read_only
   xn_autoabort_interval    0
   auto_query_retry ....... enabled
@@ -637,8 +637,8 @@ DESCRIPTION
   buffer_size ....... 12,500
   record_length ........ 176
   parent_processes ....... 1
-  child_processes ........ 4
-  child_partitioning_func  hash2 partitioned 4 ways on (randomNum)
+  child_processes ........ 6
+  child_partitioning_func  hash2 partitioned 6 ways on (randomNum)
   seamonster_query ....... no
   seamonster_exchange .... no
 

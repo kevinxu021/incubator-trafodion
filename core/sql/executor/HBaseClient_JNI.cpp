@@ -2188,6 +2188,8 @@ BRC_RetCode BackupRestoreClient_JNI::init()
     JavaMethods_[JM_CREATE_SNAPSHOT].jm_signature = "([Ljava/lang/Object;Ljava/lang/String;)Z";
     JavaMethods_[JM_RESTORE_SNAPSHOTS].jm_name = "restoreSnapshots";
     JavaMethods_[JM_RESTORE_SNAPSHOTS].jm_signature = "(Ljava/lang/String;Z)Z";
+    JavaMethods_[JM_DELETE_BACKUP].jm_name = "deleteBackup";
+    JavaMethods_[JM_DELETE_BACKUP].jm_signature = "(Ljava/lang/String;Z)Z";
     JavaMethods_[JM_LIST_ALL_BACKUPS].jm_name = "listAllBackups";
     JavaMethods_[JM_LIST_ALL_BACKUPS].jm_signature = "()[[B";
     
@@ -2310,6 +2312,57 @@ BRC_RetCode BackupRestoreClient_JNI::restoreSnapshots(const char* backuptag,
         logError(CAT_SQL_HBASE, "BackupRestoreClient_JNI::restoreSnapshots()", getLastError());
         jenv_->PopLocalFrame(NULL);
         return BRC_ERROR_RESTORE_SNAPSHOT_EXCEPTION;
+    }
+    jenv_->PopLocalFrame(NULL);
+    return BRC_OK;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////
+BRC_RetCode BackupRestoreClient_JNI::deleteBackup(const char* backuptag,
+                                                  NABoolean timestamp) 
+{
+    QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "BackupRestoreClient_JNI::deleteBackup (%s) called.");
+    if (jenv_ == NULL)
+        if (initJVM() != JOI_OK)
+            return BRC_ERROR_INIT_PARAM;
+
+    if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+        getExceptionDetails();
+        return BRC_ERROR_DELETE_BACKUP_EXCEPTION;
+    }
+    
+    jstring js_backuptag = jenv_->NewStringUTF(backuptag);
+    if (js_backuptag == NULL) 
+    {
+        GetCliGlobals()->setJniErrorStr(getErrorText(BRC_ERROR_DELETE_BACKUP_EXCEPTION));
+        jenv_->PopLocalFrame(NULL);
+        return BRC_ERROR_DELETE_BACKUP_EXCEPTION;
+    }
+
+    jboolean j_timestamp = timestamp;
+    
+    tsRecentJMFromJNI = JavaMethods_[JM_DELETE_BACKUP].jm_full_name;
+    jboolean jresult = jenv_->CallBooleanMethod(
+            javaObj_, JavaMethods_[JM_DELETE_BACKUP].methodID, js_backuptag, j_timestamp);
+
+    jenv_->DeleteLocalRef(js_backuptag);
+
+    if (jenv_->ExceptionCheck())
+    {
+        getExceptionDetails(jenv_);
+        logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+        logError(CAT_SQL_HBASE, "BackupRestoreClient_JNI::deleteBackup()", getLastError());
+        jenv_->PopLocalFrame(NULL);
+        return BRC_ERROR_DELETE_BACKUP_EXCEPTION;
+    }
+
+    if (jresult == false) 
+    {
+        logError(CAT_SQL_HBASE, "BackupRestoreClient_JNI::deleteBackup()", getLastError());
+        jenv_->PopLocalFrame(NULL);
+        return BRC_ERROR_DELETE_BACKUP_EXCEPTION;
     }
     jenv_->PopLocalFrame(NULL);
     return BRC_OK;

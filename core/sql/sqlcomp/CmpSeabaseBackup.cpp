@@ -345,5 +345,45 @@ short CmpSeabaseDDL::restore(DDLExpr * ddlExpr,
 
 }
 
+short CmpSeabaseDDL::deleteBackup(DDLExpr * ddlExpr, 
+        ExeCliInterface * cliInterface)
+{
+    short error;
+    short rc;
+    Lng32 retcode;
+
+    //do not let deleteBackup when backup in progress.
+    if(isSQLLocked())
+    {
+        *CmpCommon::diags() << DgSqlCode(-CAT_BACKUP_IN_PROGRESS);
+        return -1;
+    }
+
+    ExpHbaseInterface * ehi = allocBRCEHI();
+    if (ehi == NULL)
+    {
+        //  Diagnostic already populated.
+        return -1;
+    }
+
+    //No need of any other lock for this operation.
+    retcode = ehi->deleteBackup(ddlExpr->getBackupTag(),
+                               ddlExpr->getBackupTagTimeStamp());
+    if (retcode < 0)
+    {
+        *CmpCommon::diags() << DgSqlCode(-8448)
+        << DgString0((char*)"ExpHbaseInterface::deleteBackup()")
+        << DgString1(getHbaseErrStr(-retcode))
+        << DgInt0(-retcode)
+        << DgString2((char*)GetCliGlobals()->getJniErrorStr().data());
+    }
+
+    //deallocate, not needed anymore.
+    ehi->close();
+    ehi = NULL;
+
+    return 0;
+}
+
 
   
