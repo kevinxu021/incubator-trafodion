@@ -48,6 +48,7 @@ define([
 			this.currentURL = window.location.hash;
 			this.hideLoading();
 
+			$(SRC_FILE_SELECT).on('click', this.onFileBtnClicked);
 			$(SRC_FILE_SELECT).on('change', this.onFileSelected);
 			$(CLEAR_BTN).on('click',this.clearAll);
 			$(CONVERT_BTN).on('click',this.convertSQL);
@@ -104,6 +105,7 @@ define([
 			this.currentURL = window.location.hash;
 			this.redirectFlag=false;
 			isPaused = false;
+			$(SRC_FILE_SELECT).on('click', this.onFileBtnClicked);
 			$(SRC_FILE_SELECT).on('change', this.onFileSelected);
 			$(CLEAR_BTN).on('click',this.clearAll);
 			$(CONVERT_BTN).on('click',this.convertSQL);
@@ -114,6 +116,7 @@ define([
 		},
 		doPause:  function(){
 			isPaused = true;
+			$(SRC_FILE_SELECT).off('click', this.onFileBtnClicked);
 			$(SRC_FILE_SELECT).off('change', this.onFileSelected);
 			$(CLEAR_BTN).off('click',this.clearAll);
 			$(CONVERT_BTN).off('click',this.convertSQL);
@@ -138,6 +141,9 @@ define([
 				tgtQueryTextEditor.setValue("");
 			$(SRC_FILE_NAME).val("");
 			//$(EXEC_RESULTS).text("");
+		},
+		onFileBtnClicked: function(){
+			this.value = null;
 		},
 		onFileSelected : function(e) {
 			var files = e.target.files;

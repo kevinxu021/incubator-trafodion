@@ -139,7 +139,10 @@ public class SessionModel {
 		return activeSessions.containsKey(key);
 
 	}
+	public static boolean containsKey(String sessionAndTimeStamp) {
+		return activeStatements.containsKey(sessionAndTimeStamp);
 
+	}
 	public static void putSessionObject(String key, Object obj) {
 		if (!activeSessions.containsKey(key)) {
 			synchronized (activeSessions) {

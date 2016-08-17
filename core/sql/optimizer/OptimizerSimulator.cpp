@@ -2357,10 +2357,10 @@ void OptimizerSimulator::restoreHHDFSMasterHostList()
         std::string value;
         //read HHDFSMasterHostList::hasVirtualSQNodes_;
         inLogfile >> name >> value;
-        HHDFSMasterHostList::hasVirtualSQNodes_ = std::atoi(value.c_str());
+        CmpCommon::context()->setHasVirtualSQNodes(std::atoi(value.c_str()));
         //read HHDFSMasterHostList::numSQNodes_;
         inLogfile >> name >> value;
-        HHDFSMasterHostList::numSQNodes_ = std::atoi(value.c_str());
+        CmpCommon::context()->setNumSQNodes(std::atoi(value.c_str()));
         inLogfile >> value;
         if(value.length() > 0){
             LIST(NAString) hosts;

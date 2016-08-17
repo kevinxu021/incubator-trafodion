@@ -64,7 +64,7 @@ public class QueryResource {
 	@Path("/cancel/")
 	@Produces("application/json")
 	@Consumes("application/json")
-	public Boolean cancelQuery(ObjectNode obj,@Context HttpServletRequest servletRequest,
+	public void cancelQuery(ObjectNode obj,@Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
 		String timeStamp = "";
 		if (obj.has("timeStamp")) {
@@ -72,36 +72,31 @@ public class QueryResource {
 		}
 		String sessionId = servletRequest.getSession().getId();
 		String Key = sessionId+timeStamp;
-		return cancelSQLQuery(servletResponse,Key);
+		cancelSQLQuery(servletResponse,Key);
 	}
 
-	private boolean cancelSQLQuery(HttpServletResponse servletResponse, String key) {
+	private void cancelSQLQuery(HttpServletResponse servletResponse, String key) {
 		// TODO Auto-generated method stub
-		Statement stmt=null;
-		// while
-		// (!((stmt=(Statement)SessionModel.getStatementObject(key))!=null)) {
-		// continue;
-		// }
-		stmt = (Statement) SessionModel.getStatementObject(key);
+		/* long startTime = System.currentTimeMillis();(System.currentTimeMillis()-startTime)>10000;*/
+		 while(!SessionModel.containsKey(key)) {
+			 continue;
+		 }
+		Statement stmt = (Statement) SessionModel.getStatementObject(key);
 		if (stmt != null) {
 			try {
 				if (stmt.isClosed()) {
-					// the query was completed.
-					return false;
+					// the query was completed.		
 				} else {
 					// the query was running.
 					stmt.cancel();
-					return true;
 				}
 			} catch (SQLException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-				return false;
 			} finally {
 				SessionModel.removeStatementObject(key);
 			}
 		}
-		return false;
 	}
 	public static TabularResult executeSQLQuery(String user, String password, String queryText)
 			throws EsgynDBMgrException {
@@ -145,7 +140,7 @@ public class QueryResource {
 			}
 			stmt1.close();
 			
-			if (queryText != null && queryText.trim().toLowerCase().equals("info system")) {
+			if (queryText != null && queryText.trim().toLowerCase().startsWith("info")) {
 				stmt = connection.createStatement();
 			} else {
 				stmt = connection.prepareStatement(queryText);
@@ -155,22 +150,15 @@ public class QueryResource {
 			}
 			js = executeQuery(stmt, queryText);
 		} catch (Exception e) {
+			SessionModel.putStatementObject(key, stmt);
 			_LOG.error("Failed to execute query : " + e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());
 		} finally {
-			/*if(key!=null){
-				SessionModel.removeStatementObject(key);
-			}*/
+			//in case the error happens, otherwise the cancel will be deadlock
 			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-				try {
-					Thread.sleep(5000);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}

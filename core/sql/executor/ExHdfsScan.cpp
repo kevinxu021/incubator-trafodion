@@ -1445,11 +1445,12 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	    getStatsEntry()->incActualRowsReturned();
 
 	  workAtp_->setDiagsArea(NULL);    // get rid of warnings.
-          if (((pentry_down->downState.request == ex_queue::GET_N) &&
-               (pentry_down->downState.requestValue == matches_)) ||
-              (pentry_down->downState.request == ex_queue::GET_NOMORE))
-              step_ = CLOSE_ALL_HDFS_CURSORS;
-          else
+          // Mantis-622, temporarily disabling cancel
+          //if (((pentry_down->downState.request == ex_queue::GET_N) &&
+          //     (pentry_down->downState.requestValue == matches_)) ||
+          //    (pentry_down->downState.request == ex_queue::GET_NOMORE))
+          //    step_ = CLOSE_ALL_HDFS_CURSORS;
+          //else
 	     step_ = PROCESS_HDFS_ROW;
 	  break;
 	}
@@ -1806,11 +1807,12 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                 else
                   currRangeNum_++;
 
-                if (((pentry_down->downState.request == ex_queue::GET_N) &&
-                    (pentry_down->downState.requestValue == matches_)) ||
-                     (pentry_down->downState.request == ex_queue::GET_NOMORE))
-                   step_ = DONE;
-                else
+                // Mantis-622, temporarily disabling cancel
+                //if (((pentry_down->downState.request == ex_queue::GET_N) &&
+                //    (pentry_down->downState.requestValue == matches_)) ||
+                //     (pentry_down->downState.request == ex_queue::GET_NOMORE))
+                //   step_ = DONE;
+                //else
                    // move to the next range
                    step_ = INIT_HDFS_CURSOR;
                 break;

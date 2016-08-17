@@ -95,15 +95,16 @@
 								style="width: 300px; border: none;" readonly id="State"
 								maxlength="25"></li>
 							<li class="dbmgr-form-item-row" style="width: 90%"><label
-								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">SQL
-									Error Code</label> <input class="dbmgr-form-workload-cell-label"
-								style="width: 300px; border: none;" readonly id="SqlErrorCode"
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Profile</label>
+								<input class="dbmgr-form-workload-cell-label"
+								style="width: 300px; border: none;" readonly id="profile"
 								maxlength="25"></li>
 							<li class="dbmgr-form-item-row" style="width: 90%"><label
-								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Stats
-									Error Code</label> <input class="dbmgr-form-workload-cell-label"
-								style="width: 300px; border: none;" readonly id="StatsErrorCode"
-								maxlength="25"></li>
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">SLA</label>
+								<input class="dbmgr-form-workload-cell-label"
+								style="width: 300px; border: none;" readonly id="sla"
+								maxlength="25"></li>								
+
 							<li class="dbmgr-form-item-row" style="width: 90%"><label
 								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Query
 									Type</label> <input class="dbmgr-form-workload-cell-label"
@@ -115,6 +116,16 @@
 								style="width: 300px; border: none;" readonly id="subqueryType"
 								maxlength="25"></li>
 							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Parent
+									Query System</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 300px; border: none;" readonly
+								id="parentQidSystem" maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Stats
+									Collection Type </label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 300px; border: none;" readonly id="StatsType"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
 								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Estimated
 									Rows Accessed</label> <input class="dbmgr-form-workload-cell-label"
 								style="width: 300px; border: none;" readonly
@@ -124,22 +135,12 @@
 									Rows Used</label> <input class="dbmgr-form-workload-cell-label"
 								style="width: 300px; border: none;" readonly id="EstRowsUsed"
 								maxlength="25"></li>
-							<li class="dbmgr-form-item-row" style="width: 90%"><label
-								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Stats
-									Collection Type </label> <input class="dbmgr-form-workload-cell-label"
-								style="width: 300px; border: none;" readonly id="StatsType"
-								maxlength="25"></li>
 						</ul>
 					</fieldset>
 					<div style="overflow:auto">
 					<fieldset class="dbmgr-fieldset-table" style="float:left">
 						<ul>
 							
-							<li class="dbmgr-form-item-row" style="width: 90%"><label
-								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Parent
-									Query System</label> <input class="dbmgr-form-workload-cell-label"
-								style="width: 300px; border: none;" readonly
-								id="parentQidSystem" maxlength="25"></li>
 							
 							<li class="dbmgr-form-item-row" style="width: 90%"><label
 								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Number
@@ -176,6 +177,16 @@
 									Row Return Time</label> <input class="dbmgr-form-workload-cell-label"
 								style="width: 300px; border: none;" readonly
 								id="firstRowReturnTime" maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">SQL
+									Error Code</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 300px; border: none;" readonly id="SqlErrorCode"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Stats
+									Error Code</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 300px; border: none;" readonly id="StatsErrorCode"
+								maxlength="25"></li>
 							<li class="dbmgr-form-item-row" style="width: 90%"><label
 								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Last Error Before AQR</label>
 								<input class="dbmgr-form-workload-cell-label"

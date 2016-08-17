@@ -6,6 +6,7 @@
 
 package com.esgyn.dbmgr.resources;
 
+import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -191,7 +192,7 @@ public class WorkloadsResource {
 
 			sb.append(String.format(
 					"where (exec_start_utc_ts between timestamp '%1$s' and timestamp '%2$s' "
-							+ "or exec_end_utc_ts between timestamp '%1$s' and timestamp '%2$s' or exec_end_utc_ts is null)",
+							+ "or exec_end_utc_ts between timestamp '%1$s' and timestamp '%2$s' or last_updated_time between timestamp '%1$s' and timestamp '%2$s')",
 					startTime, endTime));
 
 			String[] values = states.split(",");
@@ -267,6 +268,12 @@ public class WorkloadsResource {
 					qDetail.setEndTime(ts.getTime());
 				else
 					qDetail.setEndTime(-1);
+				ts = rs.getTimestamp("last_updated_time");
+				if (ts != null)
+					metrics.put("last_updated_time", ts.getTime());
+				else
+					metrics.put("last_updated_time", -1);
+
 				qDetail.setQueryText(rs.getString("query_text"));
 				metrics.put("query_sub_status", rs.getString("query_sub_status"));
 				metrics.put("master_process_id", rs.getString("master_process_id"));
@@ -313,12 +320,17 @@ public class WorkloadsResource {
 				metrics.put("error_text", rs.getString("error_text"));
 				metrics.put("total_num_aqr_retries", rs.getLong("total_num_aqr_retries"));
 				metrics.put("msg_bytes_to_disk", rs.getLong("msg_bytes_to_disk"));
+				metrics.put("disk_ios", rs.getLong("disk_ios"));
 				metrics.put("msgs_to_disk", rs.getLong("msgs_to_disk"));
 				metrics.put("num_rows_iud", rs.getLong("num_rows_iud"));
 				metrics.put("processes_created", rs.getLong("processes_created"));
 				metrics.put("num_nodes", rs.getLong("num_nodes"));
 				metrics.put("ovf_buffer_bytes_written", rs.getLong("ovf_buffer_bytes_written"));
 				metrics.put("ovf_buffer_bytes_read", rs.getLong("ovf_buffer_bytes_read"));
+				metrics.put("process_create_busy_time", rs.getLong("process_create_busy_time"));
+				metrics.put("udr_process_busy_time", rs.getLong("udr_process_busy_time"));
+				metrics.put("profile_name", rs.getString("profile_name"));
+				metrics.put("sla_name", rs.getString("sla_name"));
 				qDetail.setMetrics(metrics);
 			}
 			rs.close();
@@ -417,6 +429,9 @@ public class WorkloadsResource {
 				// parsedMap.remove("statsRowType");
 				String statsRowTypeStr = statsTypeMap.get(statsRowType);
 				if (statsRowTypeStr.trim().equals("SQLSTATS_DESC_MASTER_STATS")) {
+					summaryNode.put("sla", rowData[columnNames.indexOf("sla")].toString());
+					summaryNode.put("profile", rowData[columnNames.indexOf("profile")].toString());
+
 					// If the statsRow type is the master stats, use all the
 					// metrics as summary information.
 					for (String key : parsedMap.keySet()) {
@@ -754,7 +769,7 @@ public class WorkloadsResource {
 
 			if (trafRestUri != null && trafRestUri.length() > 0) {
 				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_DELETE_PROFILE);
-				uri = String.format(queryText, trafRestUri, profile);
+				uri = String.format(queryText, trafRestUri, URLEncoder.encode(profile, "UTF8"));
 				_LOG.debug(uri);
 				Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
 				workloadProfiles.remove(profile);
@@ -941,7 +956,7 @@ public class WorkloadsResource {
 
 			if (trafRestUri != null && trafRestUri.length() > 0) {
 				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_DELETE_SLA);
-				uri = String.format(queryText, trafRestUri, sla);
+				uri = String.format(queryText, trafRestUri, URLEncoder.encode(sla, "UTF8"));
 				_LOG.debug(uri);
 				Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
 				workloadSLAs.remove(sla);
@@ -1146,7 +1161,7 @@ public class WorkloadsResource {
 
 			if (trafRestUri != null && trafRestUri.length() > 0) {
 				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_DELETE_MAPPING);
-				uri = String.format(queryText, trafRestUri, mapping);
+				uri = String.format(queryText, trafRestUri, URLEncoder.encode(mapping, "UTF8"));
 				_LOG.debug(uri);
 				Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
 				workloadMappings.remove(mapping);
