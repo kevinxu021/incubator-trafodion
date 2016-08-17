@@ -2805,6 +2805,7 @@ short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
        (backup()) ||
        (restore()) ||
        (unlockTraf()) ||
+       (deleteBackup()) ||
        (updateVersion()))
      {
         // transaction will be started and commited in called methods.
@@ -2840,7 +2841,7 @@ short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
         // transaction will be started and commited in called methods.
         xnCanBeStarted = FALSE;
      
-     if(backup() || restore() || unlockTraf())
+     if(backup() || restore() || unlockTraf() || deleteBackup())
     	 xnCanBeStarted = FALSE;
      
      if ((ddlNode && ddlNode->castToStmtDDLNode() &&

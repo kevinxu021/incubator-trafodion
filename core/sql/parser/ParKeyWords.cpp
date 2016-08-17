@@ -1156,6 +1156,7 @@ ParKeyWord ParKeyWords::keyWords_[] = {
   ParKeyWord("UPPERCASE",          TOK_UPPERCASE,   NONRESTOKEN_),
   ParKeyWord("UPSERT",              TOK_UPSERT,       NONRESTOKEN_),
   ParKeyWord("UPSHIFT",            TOK_UPSHIFT,     COMPAQ_|RESWORD_|NONRESTOKEN_),
+  ParKeyWord("UPTO",               TOK_UPTO,        NONRESTOKEN_),
   ParKeyWord("USA",                TOK_USA,         NONRESTOKEN_),
   ParKeyWord("USAGE",              TOK_USAGE,       ANS_|RESWORD_),
   ParKeyWord("USE",                TOK_USE,         FLAGSNONE_),

@@ -9270,6 +9270,18 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
 		  unlockAll();
 	  }
   }
+  else if (ddlExpr->deleteBackup())
+  {
+	  if (xnInProgress(&cliInterface))
+	  {
+		  *CmpCommon::diags() << DgSqlCode(-20123)
+		  	<< DgString0("This operation");
+	  }
+	  else
+	  {
+		  deleteBackup(ddlExpr, &cliInterface);
+	  }
+  }
   else
     {
       CMPASSERT(ddlNode);
