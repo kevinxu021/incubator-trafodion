@@ -512,7 +512,6 @@ public:
   void *getLOBGlobals() const { return lobGlob_; }
   
   const Lng32 numOfPartCols() const { return numOfPartCols_; }
-  const Lng32 totalNumPartitions() const { return totalNumPartitions_; }
 
 private:
   enum FileType
