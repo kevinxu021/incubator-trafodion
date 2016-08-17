@@ -266,7 +266,7 @@ if [ $? != 0 ]; then
     exit -1
 fi
 sleep 2
-ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.client.scanner.timeout.period 600000' 2>&1 > /dev/null
+ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.client.scanner.timeout.period 3600000' 2>&1 > /dev/null
 if [ $? != 0 ]; then
     echo "***ERROR: unable to modify hbase.client.scanner.timeout.period through Ambari's configs.sh script."
     exit -1
