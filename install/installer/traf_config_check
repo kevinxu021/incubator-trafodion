@@ -35,11 +35,11 @@ function majorErrorFound {
       echo
       echo
       echo "******************************************" 
-      cat $ERROR_LOG
+      cat $TRAF_CONFIG
       echo
       echo
       echo "******************************************"
-      cat /etc/trafodion/trafodion_config
+      cat $ERROR_LOG
       echo "******************************************"
       echo
       echo
@@ -478,23 +478,6 @@ source $TRAF_CONFIG
 
 }
 
-function checkEPEL {
-
-if [[ "$SUSE_LINUX" != "true" ]]; then 
-   if [[ ! -z $EPEL_RPM ]]; then
-      if [[ ! -f $EPEL_RPM ]]; then
-         errorFound=1
-         echo "EPEL REPO PATH" >> $ERROR_LOG
-         echo "***ERROR: File not found. Please check path for existence and typos." >> $ERROR_LOG
-      fi
-      if [[ "$EPEL_RPM" != *"rpm"* ]]; then
-         errorFound=1
-         echo "***ERROR: File enter is not an RPM. Check file is of type epel***.rpm"
-      fi
-   fi
-fi
-}
-
 function checkBackupUser {
 
 TRAF_CONFIG="/etc/trafodion/trafodion_config"
@@ -502,7 +485,7 @@ TRAF_CONFIG="/etc/trafodion/trafodion_config"
 source $TRAF_CONFIG
 
 if [ -z $BACKUP_USER ]; then
-   echo "***ERROR: BACKUP_USER variable not set in config file."
+   echo "***WARNING: BACKUP_USER variable not set in config file."
    echo "***WARNING: BACKUP_USER will be set to trafodion."
    sudo chmod 777 $TRAF_CONFIG
    sudo echo "export BACKUP_USER=\"trafodion\"" >> $TRAF_CONFIG
@@ -1071,7 +1054,7 @@ if [[ ! -z $install_features_path ]]; then
       sudo chmod 777 $TRAF_CONFIG
    else
       sudo chmod 777 $TRAF_CONFIG
-      echo "export CDH_5_7_SUPPORT=\"$CDH_5_5_SUPPORT\"" >> $TRAF_CONFIG
+      echo "export CDH_5_7_SUPPORT=\"$CDH_5_7_SUPPORT\"" >> $TRAF_CONFIG
       sudo chmod 777 $TRAF_CONFIG
    fi
    if [[ -z $CDH_5_5_SUPPORT ]]; then
@@ -1160,8 +1143,6 @@ checkJavaSupport
 checkJavaVersion
 
 checkHomeDir
-
-checkEPEL
 
 checkHadoopSupport
 
