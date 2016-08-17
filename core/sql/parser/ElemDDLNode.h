@@ -107,6 +107,7 @@ class ElemDDLFileAttrUID;
 class ElemDDLFileAttrRowFormat;
 class ElemDDLFileAttrColFam;
 class ElemDDLFileAttrXnRepl;
+class ElemDDLFileAttrStorageType;
 class ElemDDLFileAttrNoLabelUpdate;
 class ElemDDLFileAttrOwner;
 //++ MV
@@ -136,6 +137,7 @@ class ElemDDLLikeOptWithoutConstraints;
 class ElemDDLLikeOptWithHeadings;
 class ElemDDLLikeOptWithHorizontalPartitions;
 class ElemDDLLikeOptWithoutSalt;
+class ElemDDLLikeSaltClause;
 class ElemDDLLikeOptWithoutDivision;
 class ElemDDLList;
 class ElemDDLLocation;
@@ -259,6 +261,7 @@ class StmtDDLAddConstraintRI;
 class StmtDDLAddConstraintUnique;
 class StmtDDLAlterAuditConfig;
 class StmtDDLAlterCatalog;
+class StmtDDLAlterSchema;
 class StmtDDLAlterIndex;
 class StmtDDLAlterIndexAttribute;
 class StmtDDLAlterIndexHBaseOptions;
@@ -275,6 +278,7 @@ class StmtDDLAlterTableHDFSCache;
 class StmtDDLAlterTableMove;
 class StmtDDLAlterTablePartition;
 class StmtDDLAlterTableRename;
+class StmtDDLAlterTableStoredDesc;
 class StmtDDLAlterTableNamespace;
 class StmtDDLAlterTableAlterColumnDatatype;
 class StmtDDLAlterTableAlterColumnRename;
@@ -428,6 +432,7 @@ public:
   virtual ElemDDLFileAttrRowFormat	* castToElemDDLFileAttrRowFormat();
   virtual ElemDDLFileAttrColFam	* castToElemDDLFileAttrColFam();
   virtual ElemDDLFileAttrXnRepl	* castToElemDDLFileAttrXnRepl();
+  virtual ElemDDLFileAttrStorageType	* castToElemDDLFileAttrStorageType();
   virtual ElemDDLFileAttrNoLabelUpdate  * castToElemDDLFileAttrNoLabelUpdate();
   virtual ElemDDLFileAttrOwner          * castToElemDDLFileAttrOwner();
 
@@ -458,6 +463,7 @@ public:
   virtual ElemDDLLikeOptWithHeadings    * castToElemDDLLikeOptWithHeadings();
   virtual ElemDDLLikeOptWithHorizontalPartitions    * castToElemDDLLikeOptWithHorizontalPartitions();
   virtual ElemDDLLikeOptWithoutSalt     * castToElemDDLLikeOptWithoutSalt();
+  virtual ElemDDLLikeSaltClause         * castToElemDDLLikeSaltClause();
   virtual ElemDDLLikeOptWithoutDivision * castToElemDDLLikeOptWithoutDivision();
   virtual ElemDDLList                   * castToElemDDLList();
   virtual ElemDDLLocation               * castToElemDDLLocation();
@@ -587,6 +593,7 @@ public:
   virtual StmtDDLAddConstraintUnique    * castToStmtDDLAddConstraintUnique(); 
   virtual StmtDDLAlterAuditConfig       * castToStmtDDLAlterAuditConfig();
   virtual StmtDDLAlterCatalog           * castToStmtDDLAlterCatalog();
+  virtual StmtDDLAlterSchema            * castToStmtDDLAlterSchema();
   virtual StmtDDLAlterIndex             * castToStmtDDLAlterIndex();
   virtual StmtDDLAlterIndexAttribute    * castToStmtDDLAlterIndexAttribute();
   virtual StmtDDLAlterIndexHBaseOptions * castToStmtDDLAlterIndexHBaseOptions();
@@ -607,6 +614,7 @@ public:
   virtual StmtDDLAlterTableHBaseOptions * castToStmtDDLAlterTableHBaseOptions();
   virtual StmtDDLAlterTablePartition    * castToStmtDDLAlterTablePartition();
   virtual StmtDDLAlterTableRename       * castToStmtDDLAlterTableRename();
+  virtual StmtDDLAlterTableStoredDesc   * castToStmtDDLAlterTableStoredDesc();
   virtual StmtDDLAlterTableNamespace    * castToStmtDDLAlterTableNamespace();
   virtual StmtDDLAlterTableAlterColumnDefaultValue* 
                 castToStmtDDLAlterTableAlterColumnDefaultValue();

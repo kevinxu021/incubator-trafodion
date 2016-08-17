@@ -396,14 +396,20 @@ ExWorkProcRetcode ExOrcScanTcb::work()
                     
                     char * vcLenPtr = &orcOperRow_[attr->getVCLenIndOffset()];
                     Lng32 dataLen = attr->getLength(vcLenPtr);
+		    Lng32 dataType = 0;
                     char * data = &orcOperRow_[attr->getOffset()];
+		    if (ppi->colType() == "TIMESTAMP") {
+		      dataType = 1;
+		    }
+                    ppiText.append((char*)&dataType, sizeof(dataType));
                     ppiText.append((char*)&dataLen, sizeof(dataLen));
                     ppiText.append(data, dataLen);
                   }
                 else
                   {
                     temp = 0;
-                    ppiText.append((char*)&temp, sizeof(temp));
+                    ppiText.append((char*)&temp, sizeof(temp)); // operand Type
+                    ppiText.append((char*)&temp, sizeof(temp)); // operand Len
                   }
 
                 orcPPIvec_.push_back(ppiText);
@@ -519,6 +525,14 @@ ExWorkProcRetcode ExOrcScanTcb::work()
 	    if (hdfsStats_)
 	      hdfsStats_->incAccessedRows();
 	    
+            if (virtColData_)
+            {
+              // for ORC, we don't have actual offsets inside the file or
+              // block, just increment the offset by 1 for every row
+              virtColData_->block_offset_inside_file++;
+              virtColData_->row_number_in_range++;
+            }
+
 	    bool rowWillBeSelected = true;
 	    if (selectPred())
 	      {

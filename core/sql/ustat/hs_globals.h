@@ -1353,6 +1353,9 @@ public:
     void getMemoryRequirementsForOneMCGroup(HSColGroupStruct* group, Int64 rows);
 
     static Int32 allocateMemoryForColumns(HSColGroupStruct* group, Int64 rows, HSColGroupStruct* mgr = NULL /* used for MC IS */);
+    static Int32 allocateMemoryForIUSColumns(HSColGroupStruct* group, Int64 rows,
+                                             HSColGroupStruct* delGroup, Int64 delRows,
+                                             HSColGroupStruct* insGroup, Int64 insRows);
 
     // For internal sort or IUS, remove and count nulls for each column from the
     // rowset just read.
@@ -1501,16 +1504,20 @@ public:
                                              NABoolean forceToFetch = TRUE);
     Lng32 updatePersistentSampleTableForIUS(NAString& sampleTableName, double sampleRate,
                                             NAString& targetTableName);
+    void generateIUSDeleteQuery(const NAString& smplTable, NAString& queryText);
+    void generateIUSSelectInsertQuery(const NAString& smplTable,
+                                      const NAString& sourceTable,
+                                      NAString& queryText);
     void getCBFFilePrefix(NAString& sampleTableName, NAString& filePrefix);
     void detectPersistentCBFsForIUS(NAString& sampleTableName, HSColGroupStruct *group);
-    Lng32 UpdateIUSPersistentSampleTable();
+    Lng32 UpdateIUSPersistentSampleTable(Int64 oldSampleSize, Int64 requestedSampleSize, Int64& newSampleSize);
     Lng32 readCBFsIntoMemForIUS(NAString& sampleTableName, HSColGroupStruct* group);
     Lng32 writeCBFstoDiskForIUS(NAString& sampleTableName, HSColGroupStruct* group);
     Lng32 deletePersistentCBFsForIUS(NAString& sampleTableName, HSColGroupStruct* group, SortState stateToDelete);
 
     void logDiagArea(const char* title);
 
-    Lng32 begin_IUS_work(char* buffer);
+    Lng32 begin_IUS_work();
     Lng32 end_IUS_work();
 
     // Populate the hash table used to determine when a ustat statement has run
@@ -1729,6 +1736,10 @@ private:
                          NABoolean internalSortWhenBetter,
                          NABoolean trySampleTableBypass = FALSE);
 
+    // After an allocation failure, this is called to reduce the amount of
+    // memory we estimate is available.
+    static void memReduceAllowance();
+
     // When a memory allocation fails, return any memory already allocated for
     // the group for internal sort, and set any PENDING columns back to
     // UNPROCESSED state.  This function cannot fail.
@@ -1758,6 +1769,17 @@ private:
 
     // Collect statistics by incrementally updating persistent sample table and
     // possibly histograms as well.
+    Lng32 doIUS(NABoolean& done);
+
+    // Collect stats by incrementally updating histograms where possible. Persistent
+    // sample is also incrementally updated.
+    Lng32 doFullIUS(Int64 currentSampleSize, Int64 futureSampleSize, NABoolean& done);
+
+    // Causes persistent sample table to be incrementally updated, and other
+    // preparatory tasks so RUS can be performed using persistent sample.
+    Lng32 prepareToUsePersistentSample (Int64 currentSampleSize, Int64 futureSampleSize);
+
+    // Incrementally update histograms for a selected batch of columns
     Lng32 CollectStatisticsForIUS(Int64 currentSampleSize, Int64 futureSampleSize);
 
     //
@@ -1802,6 +1824,15 @@ private:
 
     // used by IUS code for clean up purposes
     NABoolean sampleIExists_;
+
+    // For IUS, once the persistent sample table has been successfully updated
+    // in accordance with the IUS predicate, these ptrs will point to the requested
+    // (expected) and actual number of rows in the sample table. end_IUS_work will
+    // pass these ptrs to the function that updates the sample table's row in
+    // SB_PERSISTENT_SAMPLES. If non-null, the values are used for the corresponding
+    // columns in that table.
+    Int64* PST_IUSrequestedSampleRows_;
+    Int64* PST_IUSactualSampleRows_;
 
     template <class T>
     Int32 processIUSColumn(T* ptr,
@@ -2492,11 +2523,6 @@ class HSInMemoryTable : public NABasicObject
 
     void generateSelectDQuery(NAString& smplTable, NAString& queryTex);
     void generateSelectIQuery(NAString& smplTable, NAString& queryText);
-
-    void generateDeleteQuery(NAString& smplTable, NAString& queryText);
-
-    void generateSelectInsertQuery(NAString& smplTable, NAString& sourceTable,
-                                   NAString& queryText);
 
 
     // method for algorithm 1

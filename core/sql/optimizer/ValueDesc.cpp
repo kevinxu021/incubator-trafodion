@@ -60,6 +60,7 @@
 #include "NATable.h"
 #include "EncodedKeyValue.h"
 #include "GenExpGenerator.h"
+#include "TrafDDLdesc.h"
 
 #include "SqlParserGlobals.h"		// must be last #include
 
@@ -244,7 +245,7 @@ void ValueId::coerceType(enum NABuiltInTypeEnum desiredQualifier,
   NAType *desiredType = NULL;
   switch (desiredQualifier) {
   case NA_BOOLEAN_TYPE:
-    desiredType = new STMTHEAP SQLBoolean();
+    desiredType = new STMTHEAP SQLBooleanNative(originalType.supportsSQLnull());
     break;
   case NA_CHARACTER_TYPE:
     {
@@ -348,53 +349,81 @@ void ValueId::coerceType(const NAType& desiredType,
   //
   if (NotaCharType &&          // We do not want to force a characters storage values to be float
      (desiredType.getFSDatatype() == REC_FLOAT32 ||
-      desiredType.getFSDatatype() == REC_FLOAT64 ||
-      desiredType.getFSDatatype() == REC_TDM_FLOAT32 ||
-      desiredType.getFSDatatype() == REC_TDM_FLOAT64))
+      desiredType.getFSDatatype() == REC_FLOAT64 ))
     {
-      // type untyped params according to floattype CQD.
-      NAString tmp;
-      CmpCommon::getDefault(FLOATTYPE, tmp, -1);
-      NABoolean inputFloattypeIEEE =
-	((tmp == "IEEE") ||
-	 (CmpCommon::getDefault(ODBC_PROCESS) == DF_ON) ||
-	 (CmpCommon::getDefault(JDBC_PROCESS) == DF_ON));
-
-      if (NOT inputFloattypeIEEE)
-	{
-	  if (desiredType.getFSDatatype() == REC_TDM_FLOAT32)
-	    newType = new STMTHEAP
-	      SQLRealTdm(desiredType.supportsSQLnull(),
-			 STMTHEAP,
-			 desiredType.getPrecision());
-	  else
-	    newType = new STMTHEAP
-	      SQLDoublePrecisionTdm(desiredType.supportsSQLnull(),
-				    STMTHEAP,
-				    desiredType.getPrecision());
-	}
+      if (desiredType.getFSDatatype() == REC_FLOAT32)
+        newType = new STMTHEAP
+          SQLReal(desiredType.supportsSQLnull(),
+                  STMTHEAP,
+                  desiredType.getPrecision());
       else
-	{
-	  if (desiredType.getFSDatatype() == REC_FLOAT32)
-	    newType = new STMTHEAP
-	      SQLReal(desiredType.supportsSQLnull(),
-		      STMTHEAP,
-		      desiredType.getPrecision());
-	  else
-	    // ieee double, tandem real and tandem double are all
-	    // cast as IEEE double. Tandem real is cast as ieee double as
-	    // it won't 'fit' into ieee real.
-	    newType = new STMTHEAP
-	      SQLDoublePrecision(desiredType.supportsSQLnull(),
-				 STMTHEAP,
-				 desiredType.getPrecision());
-	}
-
+        // ieee double, tandem real and tandem double are all
+        // cast as IEEE double. Tandem real is cast as ieee double as
+        // it won't 'fit' into ieee real.
+        newType = new STMTHEAP
+          SQLDoublePrecision(desiredType.supportsSQLnull(),
+                             STMTHEAP,
+                             desiredType.getPrecision());
     }
   else {
      if ( newType == NULL )
        {
-	 if (DFS2REC::isBigNum(desiredType.getFSDatatype()))
+         // if param default is OFF, type tinyint as smallint.
+         // This is needed until all callers/drivers have full support to
+         // handle IO of tinyint datatypes.
+	 if (((desiredType.getFSDatatype() == REC_BIN8_SIGNED) ||
+              (desiredType.getFSDatatype() == REC_BIN8_UNSIGNED)) &&
+             ((CmpCommon::getDefault(TRAF_TINYINT_SUPPORT) == DF_OFF) ||
+              (CmpCommon::getDefault(TRAF_TINYINT_INPUT_PARAMS) == DF_OFF)))
+	   {
+             const NumericType &numType = (NumericType&)desiredType; 
+ 
+             NABoolean isSigned = numType.isSigned();
+             if (numType.getScale() == 0)
+               newType = new (STMTHEAP)
+                 SQLSmall(isSigned, desiredType.supportsSQLnull());
+             else
+               newType = new (STMTHEAP)
+                 SQLNumeric(sizeof(short), 
+                            numType.getPrecision(), 
+                            numType.getScale(),
+                            isSigned, 
+                            desiredType.supportsSQLnull());
+               
+	   } // TinyInt
+	 else if ((desiredType.getFSDatatype() == REC_BIN64_UNSIGNED) &&
+                  (CmpCommon::getDefault(TRAF_LARGEINT_UNSIGNED_IO) == DF_OFF))
+           {
+             NumericType &nTyp = (NumericType &)desiredType;
+             if (CmpCommon::getDefault(BIGNUM_IO) == DF_OFF)
+               {
+		 Int16 DisAmbiguate = 0;
+                 newType = new (STMTHEAP)
+                   SQLLargeInt(nTyp.getScale(),
+                               DisAmbiguate,
+                               TRUE,
+                               nTyp.supportsSQLnull(),
+                               NULL);
+               }
+             else
+               {
+                 newType = new (STMTHEAP)
+                   SQLBigNum(MAX_HARDWARE_SUPPORTED_UNSIGNED_NUMERIC_PRECISION,
+                             nTyp.getScale(),
+                             FALSE,
+                             FALSE,
+                             nTyp.supportsSQLnull(),
+                             NULL);
+               }
+           }
+	 else if ((desiredType.getFSDatatype() == REC_BOOLEAN) &&
+                  (CmpCommon::getDefault(TRAF_BOOLEAN_IO) == DF_OFF))
+           {
+             newType = new (STMTHEAP)
+               SQLVarChar(SQL_BOOLEAN_DISPLAY_SIZE, 
+                          desiredType.supportsSQLnull());
+           }
+	 else if (DFS2REC::isBigNum(desiredType.getFSDatatype()))
 	   {
 	     // If bignum IO is not enabled or
 	     // if max numeric precision allowed is what is supported in
@@ -556,6 +585,9 @@ ValueId::castToBaseColumn(NABoolean *isaConstant) const
         case ITM_BASECOLUMN:
           return (BaseColumn *)ie;
 
+        case ITM_INDEXCOLUMN:
+          return (BaseColumn *)(((IndexColumn*)ie)->getDefinition().getItemExpr());
+
         case ITM_INSTANTIATE_NULL:
 		case ITM_UNPACKCOL:
 		  ie = (*ie)[0] ;
@@ -592,21 +624,20 @@ ValueId::castToBaseColumn(NABoolean *isaConstant) const
             break;
           }
 
-		default:
-		  if (ie->getArity() > 0)
-		  {
-			ie = (*ie)[0];
-			break;
-		  }
-		  else
-                  {
-                       if (isaConstant)
-                       {
-                         *isaConstant = ie->doesExprEvaluateToConstant
-                           (FALSE,TRUE);
-                       }
-			return NULL;
-                  }
+          default:
+             if (ie->getArity() > 0)
+             {
+		ie = (*ie)[0];
+		break;
+             }
+             else
+             {
+               if (isaConstant)
+               {
+                  *isaConstant = ie->doesExprEvaluateToConstant(FALSE,TRUE);
+               }
+		return NULL;
+             }
         }
     } // end of while
 	return NULL;
@@ -737,6 +768,19 @@ void ValueIdList::insertSet(const ValueIdSet &other)
     insertAt(index++,vid);
 }
 
+Lng32 ValueIdList::getNumOfCharColumns() const
+{
+  Lng32 result = 0;
+
+  for (CollIndex i = 0; i < entries(); i++)
+    {
+      if (at(i).getType().getTypeQualifier() == NA_CHARACTER_TYPE )
+         result ++;
+    }
+
+  return result;
+}
+
 Lng32 ValueIdList::getRowLength() const
 {
   Lng32 result = 0;
@@ -744,6 +788,19 @@ Lng32 ValueIdList::getRowLength() const
   for (CollIndex i = 0; i < entries(); i++)
     {
       result += at(i).getType().getTotalSize();
+    }
+
+  return result;
+}
+
+Lng32 ValueIdList::getRowLengthOfNonCharColumns() const
+{
+  Lng32 result = 0;
+
+  for (CollIndex i = 0; i < entries(); i++)
+    {
+      if (at(i).getType().getTypeQualifier() != NA_CHARACTER_TYPE )
+         result += at(i).getType().getTotalSize();
     }
 
   return result;
@@ -1942,6 +1999,19 @@ NABoolean ValueIdSet::isDensePrefix(const ValueIdList &other) const
   return notContainedInThis.isEmpty();
 }
 
+Lng32 ValueIdSet::getNumOfCharColumns() const
+{
+  Lng32 result = 0;
+
+  for (ValueId x = init(); next(x); advance(x))
+    { 
+      if ( x.getType().getTypeQualifier() == NA_CHARACTER_TYPE )
+         result ++;
+    }
+
+  return result;
+}
+
 Lng32 ValueIdSet::getRowLength() const
 {
   Lng32 result = 0;
@@ -1953,6 +2023,20 @@ Lng32 ValueIdSet::getRowLength() const
 
   return result;
 }
+
+Lng32 ValueIdSet::getRowLengthOfNonCharColumns() const
+{
+  Lng32 result = 0;
+
+  for (ValueId x = init(); next(x); advance(x))
+    {
+      if ( x.getType().getTypeQualifier() != NA_CHARACTER_TYPE )
+        result += x.getType().getTotalSize();
+    }
+
+  return result;
+}
+
 
 Lng32 ValueIdSet::getRowLengthOfNumericCols() const
 {
@@ -6630,9 +6714,9 @@ ValueIdList::computeEncodedKey(const TableDesc* tDesc, NABoolean isMaxKey,
    }
 
    const NAFileSet * naf = naTable->getClusteringIndex();
-   const desc_struct * tableDesc = naTable->getTableDesc();
-   desc_struct * colDescs = tableDesc->body.table_desc.columns_desc;
-   desc_struct * keyDescs = (desc_struct*)naf->getKeysDesc();
+   const TrafDesc * tableDesc = naTable->getTableDesc();
+   TrafDesc * colDescs = tableDesc->tableDesc()->columns_desc;
+   TrafDesc * keyDescs = (TrafDesc*)naf->getKeysDesc();
 
    // cast away const since the method may compute and store the length
    keyBufLen = ((NAFileSet*)naf)->getEncodedKeyLength(); 
@@ -6733,28 +6817,3 @@ void ValueIdSet::generatePushdownListForORC(OrcPushdownPredInfoList& result)
    }
    result.insertEND();
 }
-
-void ValueIdSet::findAllReferencingMinMaxConstants(ValueIdSet & result) const
-{
-   // Simply loop over all the expressions in the set
-   for (ValueId x= init(); next(x); advance(x) ) {
-       ValueIdSet allConstants;
-       x.getItemExpr()->findAll(ITM_CONSTANT, allConstants, TRUE, TRUE);
-       
-       ValueIdSet minMaxConstants;
-       allConstants.findMinMaxConstants(minMaxConstants);
-       if ( minMaxConstants.entries() > 0 )
-         result += x;
-   }
-}
-
-
-void ValueIdSet::findMinMaxConstants(ValueIdSet& result) const
-{
-   for (ValueId x= init(); next(x); advance(x) ) {
-       ConstValue* cv = dynamic_cast<ConstValue*>(x.getItemExpr());
-       if ( cv->isMin() || cv->isMax() )
-          result += x;
-   }  
-}  
-

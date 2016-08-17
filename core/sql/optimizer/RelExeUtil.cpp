@@ -68,6 +68,7 @@
 #include "StmtDDLPopulateIndex.h"
 #include "StmtDDLDropIndex.h"
 #include "StmtDDLAlterIndex.h"   // why don't we need StmtDDLAlterTable as well???
+#include "StmtDDLAlterSchema.h"
 #include "StmtDDLCreateDropSequence.h"
 #include "StmtDDLGrant.h"
 #include "StmtDDLRevoke.h"
@@ -159,7 +160,7 @@ RelExpr * GenericUtilExpr::bindNode(BindWA *bindWA)
 	get(&corrName.getExtendedQualNameObj());
       
       if (NOT naTable) {
-	desc_struct *tableDesc = createVirtualTableDesc();
+	TrafDesc *tableDesc = createVirtualTableDesc();
 	naTable = bindWA->getNATable(corrName, FALSE/*catmanUsages*/, tableDesc);
 	if (bindWA->errStatus())
 	  return this;
@@ -233,6 +234,7 @@ RelExpr * DDLExpr::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
   result->objName_ = objName_;
   result->isVolatile_ = isVolatile_;
   result->isTable_ = isTable_;
+  result->isSchema_ = isSchema_;
   result->isIndex_ = isIndex_;
   result->isMV_ = isMV_;
   result->isView_ = isView_;
@@ -358,16 +360,11 @@ const NAString ExeUtilExpr::getText() const
       break;
 
     case FAST_DELETE_:
-    {
-      if (((ExeUtilFastDelete*)this)->isHiveTable())
-      {
-        result = "HIVE_TRUNCATE";
-      }
-      else
-      {
-        result = "FAST_DELETE";
-      }
-    }
+      result = "FAST_DELETE";
+      break;
+
+    case HIVE_TRUNCATE_:
+      result = "HIVE_TRUNCATE";
       break;
 
     case GET_STATISTICS_:
@@ -818,11 +815,7 @@ RelExpr * ExeUtilFastDelete::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap
 					     noLog_,
 					     ignoreTrigger_,
 					     isPurgedata_,
-					     outHeap,
-					     isHiveTable_,
-					     &hiveTableLocation_,
-                                             &hiveHostName_,
-                                             hiveHdfsPort_);
+					     outHeap);
   else
     result = (ExeUtilFastDelete *) derivedNode;
 
@@ -833,11 +826,27 @@ RelExpr * ExeUtilFastDelete::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap
 
   result->numLOBs_ = numLOBs_;
   result->lobNumArray_ = lobNumArray_;
-  result->isHiveTable_ = isHiveTable_;
+
+  return ExeUtilExpr::copyTopNode(result, outHeap);
+}
+
+// -----------------------------------------------------------------------
+// Member functions for class ExeUtilHiveTruncate
+// -----------------------------------------------------------------------
+RelExpr * ExeUtilHiveTruncate::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
+{
+  ExeUtilHiveTruncate *result;
+
+  if (derivedNode == NULL)
+    result = new (outHeap) ExeUtilHiveTruncate(getTableName(),
+                                               pl_,
+                                               outHeap);
+  else
+    result = (ExeUtilHiveTruncate *) derivedNode;
+
   result->hiveTableLocation_= hiveTableLocation_;
   result->hiveHostName_ = hiveHostName_;
   result->hiveHdfsPort_ = hiveHdfsPort_;
-
 
   return ExeUtilExpr::copyTopNode(result, outHeap);
 }
@@ -3097,6 +3106,7 @@ ExeUtilRegionStats::ExeUtilRegionStats
  NABoolean summaryOnly,
  NABoolean isIndex,
  NABoolean forDisplay,
+ NABoolean clusterView,
  RelExpr * child,
  CollHeap *oHeap)
      : ExeUtilExpr(REGION_STATS_, objectName,
@@ -3104,6 +3114,7 @@ ExeUtilRegionStats::ExeUtilRegionStats
        summaryOnly_(summaryOnly),
        isIndex_(isIndex),
        displayFormat_(forDisplay),
+       clusterView_(clusterView),
        errorInParams_(FALSE),
        inputColList_(NULL)
 {
@@ -3117,6 +3128,7 @@ RelExpr * ExeUtilRegionStats::copyTopNode(RelExpr *derivedNode, CollHeap* outHea
     result = new (outHeap) ExeUtilRegionStats(getTableName(),
                                               summaryOnly_, isIndex_, 
                                               displayFormat_,
+                                              clusterView_,
                                               NULL,
                                               outHeap);
   else
@@ -3145,7 +3157,8 @@ RelExpr * ExeUtilRegionStats::bindNode(BindWA *bindWA)
     return this;
   }
 
-  if (getTableName().getQualifiedNameObj().getObjectName().isNull())
+  if ((NOT clusterView_) &&
+      (getTableName().getQualifiedNameObj().getObjectName().isNull()))
     {
       *CmpCommon::diags() << DgSqlCode(-4218) << DgString0("REGION STATS");
       
@@ -3153,7 +3166,8 @@ RelExpr * ExeUtilRegionStats::bindNode(BindWA *bindWA)
       return this;
     }
 
-  if (! child(0))
+  if ((! child(0)) &&
+      (NOT getTableName().getQualifiedNameObj().getObjectName().isNull()))
     {
       NATable * naTable = bindWA->getNATable(getTableName());
       if ((!naTable) || (bindWA->errStatus()))
@@ -3912,6 +3926,7 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
   isHbase_ = FALSE;
   isNative_ = FALSE;
   hbaseDDLNoUserXn_ = FALSE;
+  isSchema_ = FALSE;
 
   NABoolean isSeq = FALSE;
 
@@ -3924,10 +3939,12 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
   NABoolean isPrivilegeMngt = FALSE;
   NABoolean isCreateSchema = FALSE;
   NABoolean isDropSchema = FALSE;
+  NABoolean isAlterSchema = FALSE;
   NABoolean isAuth = FALSE;
   NABoolean alterAddConstr = FALSE;
   NABoolean alterDropConstr = FALSE;
   NABoolean alterRenameTable = FALSE;
+  NABoolean alterStoredDesc = FALSE;
   NABoolean alterIdentityCol = FALSE;
   NABoolean alterColDatatype = FALSE;
   NABoolean alterAttr = FALSE;
@@ -4033,13 +4050,16 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
           (createTableNode->isSetTable()))
       {
         // these options not supported in open source
-        *CmpCommon::diags() << DgSqlCode(-4222) << DgString0("DDL");
+        *CmpCommon::diags() << DgSqlCode(-4222) << DgString0("InMemory/Set/Multiset");
         bindWA->setErrStatus();
         return NULL;
       }
 
       // Hive tables can only be specified as external and must be created
       // with the FOR clause
+       if (createTableNode->isExternal())
+         qualObjName_.applyDefaults(bindWA->getDefaultSchema());
+
       if (qualObjName_.isHive()) 
       {
         if (createTableNode->isExternal())
@@ -4049,7 +4069,7 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
         }
         else
         {
-          *CmpCommon::diags() << DgSqlCode(-4222) << DgString0("DDL");
+          *CmpCommon::diags() << DgSqlCode(-3242) << DgString0("External tables supported on hive tables only.");
           bindWA->setErrStatus();
           return NULL;
         }
@@ -4207,12 +4227,26 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
         }
       else if (getExprNode()->castToStmtDDLNode()->castToStmtDDLAlterTableHDFSCache())
          alterHdfsCache = TRUE;
+       else if (getExprNode()->castToStmtDDLNode()->castToStmtDDLAlterTableStoredDesc())
+         alterStoredDesc = TRUE;
        else
         otherAlters = TRUE;
 
       qualObjName_ =
         getDDLNode()->castToStmtDDLNode()->castToStmtDDLAlterTable()->
         getTableNameAsQualifiedName();
+    }
+    else if (getExprNode()->castToStmtDDLNode()->castToStmtDDLAlterSchema())
+    {
+      isAlter_ = TRUE;
+      isSchema_ = TRUE;
+
+      isAlterSchema = TRUE;
+
+      qualObjName_ =
+        QualifiedName(NAString("dummy"),
+                      getExprNode()->castToStmtDDLNode()->castToStmtDDLAlterSchema()->getSchemaNameAsQualifiedName().getSchemaName(),
+                      getExprNode()->castToStmtDDLNode()->castToStmtDDLAlterSchema()->getSchemaNameAsQualifiedName().getCatalogName());
     }
     else if (getExprNode()->castToStmtDDLNode()->castToStmtDDLAlterIndex())
     {
@@ -4389,7 +4423,7 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
       isLibrary_ = TRUE;
       alterLibrary = TRUE ;
       qualObjName_ = getExprNode()->castToStmtDDLNode()->
-        castToStmtDDLAlterLibrary()->getLibraryNameAsQualifiedName();
+	castToStmtDDLAlterLibrary()->getLibraryNameAsQualifiedName();
     }
     else if (getExprNode()->castToStmtDDLNode()->castToStmtDDLCreateRoutine())
     {
@@ -4419,11 +4453,12 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
           hbaseDDLNoUserXn_ = TRUE;
       }
 
-    if ((isCreateSchema || isDropSchema||isAlterSchemaHDFSCache) ||
+    if ((isCreateSchema || isDropSchema|| isAlterSchemaHDFSCache || isAlterSchema) ||
         ((isTable_ || isIndex_ || isView_ || isRoutine_ || isLibrary_ || isSeq) &&
          (isCreate_ || isDrop_ || purgedataHbase_ ||
           (isAlter_ && (alterAddCol || alterDropCol || alterDisableIndex || alterEnableIndex || 
 			alterAddConstr || alterDropConstr || alterRenameTable ||
+                        alterStoredDesc ||
                         alterIdentityCol || alterColDatatype || alterColRename ||
                         alterHdfsCache || alterLibrary || 
                         alterHBaseOptions || alterAttr | otherAlters)))))
@@ -4481,7 +4516,7 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
   if (isHbase_ || externalTable)
     return boundExpr;
 
-  *CmpCommon::diags() << DgSqlCode(-4222) << DgString0("DDL");
+  *CmpCommon::diags() << DgSqlCode(-3242) << DgString0("DDL operations can only be done on trafodion or external tables.");
   bindWA->setErrStatus();
   return NULL;
 }
@@ -4573,7 +4608,7 @@ RelExpr * ExeUtilProcessVolatileTable::bindNode(BindWA *bindWA)
   if (NOT isHbase_)
     {
       // non-hbase tables not supported in open source
-      *CmpCommon::diags() << DgSqlCode(-4222) << DgString0("DDL");
+      *CmpCommon::diags() << DgSqlCode(-3242) << DgString0("Non-hbase tables not supported.");
       bindWA->setErrStatus();
       return NULL;
     }
@@ -4768,6 +4803,12 @@ RelExpr * ExeUtilCreateTableAs::bindNode(BindWA *bindWA)
 	    ctQuery_ = "CREATE VOLATILE TABLE ";
 	  else
 	    ctQuery_ = "CREATE TABLE ";
+
+          if (createTableNode->createIfNotExists())
+            {
+              ctQuery_ += "IF NOT EXISTS ";
+            }
+
 	  ctQuery_ += 
 	    getTableName().getQualifiedNameObj().getQualifiedNameAsAnsiString();
 	  ctQuery_ += " ";
@@ -5059,88 +5100,100 @@ RelExpr * ExeUtilFastDelete::bindNode(BindWA *bindWA)
   if (bindWA->errStatus()) 
     return this;
 
+  // do not do override schema for this
+  bindWA->setToOverrideSchema(FALSE);
+  
+  NATable * naTable = bindWA->getNATable(getTableName());
+  if ((!naTable) || 
+      (bindWA->errStatus()))
+    return this;
+  
+  if ((getTableName().isHive()) ||
+      (naTable->isHiveTable()))
+    {
+      *CmpCommon::diags() << DgSqlCode(-3242) 
+                          << DgString0("Purgedata is not allowed for hive tables. Use Truncate command.");
+      bindWA->setErrStatus();
+      return NULL;
+    }
+  
+  if (! getTableName().isSeabase())
+    {
+      *CmpCommon::diags() << DgSqlCode(-4222) << DgString0("PURGEDATA");
+      bindWA->setErrStatus();
+      return NULL;
+    }
+  
+  DDLExpr * ddlExpr = new(bindWA->wHeap()) DDLExpr(TRUE,
+                                                   getTableName(),
+                                                   getStmtText(),
+                                                   CharInfo::UnknownCharSet);
+  RelExpr * boundExpr = ddlExpr->bindNode(bindWA);
+
+  return boundExpr;
+}
+
+// -----------------------------------------------------------------------
+// member functions for class ExeUtilHiveTruncate
+// -----------------------------------------------------------------------
+RelExpr * ExeUtilHiveTruncate::bindNode(BindWA *bindWA)
+{
+  if (nodeIsBound()) 
+    {
+      bindWA->getCurrentScope()->setRETDesc(getRETDesc());
+      return this;
+    }
+
+  bindChildren(bindWA);
+  if (bindWA->errStatus()) 
+    return this;
+
   NATable *naTable = NULL;
 
-  if (NOT doPurgedataCat_)
+  // do not do override schema for this
+  bindWA->setToOverrideSchema(FALSE);
+  
+  naTable = bindWA->getNATable(getTableName());
+  if ((!naTable) || 
+      (bindWA->errStatus()))
+    return this;
+ 
+  if ((NOT getTableName().isHive()) ||
+      (!naTable->isHiveTable()))
     {
-      // do not do override schema for this
-      bindWA->setToOverrideSchema(FALSE);
-      
-      naTable = bindWA->getNATable(getTableName());
-      if (getTableName().isHive())
-        {
-          if (! naTable)
-            {
-              *CmpCommon::diags() << DgSqlCode(-4222) << DgString0("PURGEDATA");
-              bindWA->setErrStatus();
-              return NULL;
-            }
-
-          const HHDFSTableStats* hTabStats = 
-            naTable->getClusteringIndex()->getHHDFSTableStats();
-          
-          isHiveTable_ = TRUE;
-          
-          const char * hiveTablePath = (*hTabStats)[0]->getDirName();
-          NAString hostName;
-          Int32 hdfsPort;
-          NAString tableDir;
-
-          NABoolean result = ((HHDFSTableStats* )hTabStats)->splitLocation
-            (hiveTablePath, hostName, hdfsPort, tableDir) ;       
-          if (!result) 
-            {
-              *CmpCommon::diags() << DgSqlCode(-4224)
-                                  << DgString0(hiveTablePath);
-              bindWA->setErrStatus();
-              return this;
-            }
-          
-          hiveTableLocation_ = tableDir;
-          hiveHostName_ = hostName;
-          hiveHdfsPort_ = hdfsPort;
-          hiveModTS_ = -1;
-        }
-      else if (getTableName().isSeabase())
-	{
-	  if (bindWA->errStatus())
-	    return this;
-
-	  DDLExpr * ddlExpr = new(bindWA->wHeap()) DDLExpr(TRUE,
-							   getTableName(),
-							   getStmtText(),
-							   CharInfo::UnknownCharSet);
-	  RelExpr * boundExpr = ddlExpr->bindNode(bindWA);
-	  return boundExpr;
-	}
-      
-      if (bindWA->errStatus())
-	{
-	  naTable = NULL;
-	  CmpCommon::diags()->clear();
-	  bindWA->resetErrStatus();
-	}
+      *CmpCommon::diags() << DgSqlCode(-3242) 
+                          << DgString0("Truncate is only allowed for hive tables.");
+      bindWA->setErrStatus();
+      return NULL;
     }
+
+  const HHDFSTableStats* hTabStats = 
+    naTable->getClusteringIndex()->getHHDFSTableStats();
+  
+  const char * hiveTablePath = (*hTabStats)[0]->getDirName();
+  NAString hostName;
+  Int32 hdfsPort;
+  NAString tableDir;
+  
+  NABoolean result = ((HHDFSTableStats* )hTabStats)->splitLocation
+    (hiveTablePath, hostName, hdfsPort, tableDir) ;       
+  if (!result) 
+    {
+      *CmpCommon::diags() << DgSqlCode(-4224)
+                          << DgString0(hiveTablePath);
+      bindWA->setErrStatus();
+      return this;
+    }
+  
+  hiveTableLocation_ = tableDir;
+  hiveHostName_ = hostName;
+  hiveHdfsPort_ = hdfsPort;
+  hiveModTS_ = -1;
 
   RelExpr * boundExpr = ExeUtilExpr::bindNode(bindWA);
   if (bindWA->errStatus())
     return NULL;
 
-  if ((! getTableName().isSeabase()) &&
-      (! getTableName().isHbase()) &&
-      (! getTableName().isHive()))
-    {
-      *CmpCommon::diags() << DgSqlCode(-4222) << DgString0("PURGEDATA");
-      bindWA->setErrStatus();
-      return NULL;
-    }
-
-  if (naTable && (!naTable->isHiveTable()))
-    {
-      *CmpCommon::diags() << DgSqlCode(-4222) << DgString0("PURGEDATA");
-      bindWA->setErrStatus();
-      return NULL;
-    }
   return boundExpr;
 }
 

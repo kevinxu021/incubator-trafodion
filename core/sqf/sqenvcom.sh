@@ -116,11 +116,13 @@ fi
 
 
 # Use JAVA_HOME if set, else look for installed openjdk, finally toolsdir
-REQ_JDK_VER="1.7.0_67"
+REQ_JDK_VER="1.8.0_65"
 if [[ -z "$JAVA_HOME" && -d "${TOOLSDIR}/jdk${REQ_JDK_VER}" ]]; then
   export JAVA_HOME="${TOOLSDIR}/jdk${REQ_JDK_VER}"
-elif [[ -z "$JAVA_HOME" && -d /usr/lib/jvm/java-1.7.0-openjdk.${ARCH}/ ]]; then
-  export JAVA_HOME="/usr/lib/jvm/java-1.7.0-openjdk.${ARCH}"
+elif [[ -z "$JAVA_HOME" && -d /usr/lib/jvm/java-1.8.0-openjdk/ ]]; then
+  export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk"
+elif [[ -z "$JAVA_HOME" && -d /usr/lib/jvm/java-1.8.0-openjdk.${ARCH}/ ]]; then
+  export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk.${ARCH}"
 elif [[ -z "$JAVA_HOME" ]]; then
   echo "Please set JAVA_HOME to version jdk${REQ_JDK_VER}"
 fi
@@ -148,14 +150,26 @@ export MY_SQROOT=$PWD
 export SQ_HOME=$PWD
 
 # set common version to be consistent between shared lib and maven dependencies
-export HBASE_DEP_VER_CDH=1.0.0-cdh5.4.4
-export HIVE_DEP_VER_CDH=1.1.0-cdh5.4.4
+export HBASE_DEP_VER_CDH=1.0.0-cdh5.5.1
+export HIVE_DEP_VER_CDH=1.1.0-cdh5.5.1
+export HBASE_TRX_ID_CDH=hbase-trx-cdh5_5
+if [[ "$HBASE_DISTRO" = "CDH5.4" ]]; then
+   export HBASE_DEP_VER_CDH=1.0.0-cdh5.4.4
+   export HIVE_DEP_VER_CDH=1.1.0-cdh5.4.4
+   export HBASE_TRX_ID_CDH=hbase-trx-cdh5_4
+fi
+
+export HBASE_DEP_VER_APACHE=1.1.2
+export HIVE_DEP_VER_APACHE=1.1.0
+export HBVER=apache1_1_2
+if [[ "$HBASE_DISTRO" = "APACHE1.0" ]]; then
+   export HBASE_DEP_VER_APACHE=1.0.2
+   export HBVER=apache1_0_2
+fi
+export HBASE_TRX_ID_APACHE=hbase-trx-${HBVER}
+
 export HBASE_DEP_VER_HDP=1.1.2
 export HIVE_DEP_VER_HDP=1.2.1
-export HBASE_DEP_VER_APACHE=1.0.2
-export HIVE_DEP_VER_APACHE=1.1.0
-export HBASE_TRX_ID_CDH=hbase-trx-cdh5_4
-export HBASE_TRX_ID_APACHE=hbase-trx-apache1_0_2
 export HBASE_TRX_ID_HDP=hbase-trx-hdp2_3
 if [ "${ARCH:0:3}" == "ppc" ]; then
     export THRIFT_DEP_VER=0.9.1
@@ -164,7 +178,6 @@ else
 fi
 export HIVE_DEP_VER=1.1.0
 export HADOOP_DEP_VER=2.6.0
-
 # staged build-time dependencies
 export HADOOP_BLD_LIB=${TOOLSDIR}/hadoop-${HADOOP_DEP_VER}/lib/native
 export HADOOP_BLD_INC=${TOOLSDIR}/hadoop-${HADOOP_DEP_VER}/include
@@ -178,16 +191,15 @@ export UTIL_JAR=trafodion-utility-${TRAFODION_VER}.jar
 export JDBCT4_JAR=jdbcT4-${TRAFODION_VER}.jar
 
 HBVER=""
-if [[ "$HBASE_DISTRO" = "HDP" ]] || [[ "$HBASE_DISTRO" == "BI" ]]; then
+if [[ "$HBASE_DISTRO" = "HDP" ]] || [[ "$HBASE_DISTRO" == "BI" ]] || [[ "$HBASE_DISTRO" == "MAPR" ]]; then
     export HBASE_TRX_JAR=${HBASE_TRX_ID_HDP}-${TRAFODION_VER}.jar
     HBVER="hdp2_3"
     export DTM_COMMON_JAR=trafodion-dtm-${HBVER}-${TRAFODION_VER}.jar
     export SQL_JAR=trafodion-sql-${HBVER}-${TRAFODION_VER}.jar
 fi
 
-if [[ "$HBASE_DISTRO" = "APACHE" ]]; then
+if [[ "$HBASE_DISTRO" =~ "APACHE" ]]; then
     export HBASE_TRX_JAR=${HBASE_TRX_ID_APACHE}-${TRAFODION_VER}.jar
-    HBVER="apache1_0_2"
     export DTM_COMMON_JAR=trafodion-dtm-${HBVER}-${TRAFODION_VER}.jar
     export SQL_JAR=trafodion-sql-${HBVER}-${TRAFODION_VER}.jar
 fi
@@ -447,67 +459,36 @@ elif [[ "$HADOOP_TYPE" == "biginsight" ]]; then
   export HIVE_CNF_DIR=/etc/hive/conf
 
 
-elif [[ -d /opt/mapr ]]; then
+elif [[ "$HADOOP_TYPE" == "mapr" ]]; then
   # we are on a MapR system
   # ----------------------------------------------------------------
+  export HADOOP_LIB_DIR="$HADOOP_PREFIX/lib/native"
+  export HADOOP_INC_DIR="/usr/include
+                         $HADOOP_PREFIX/include"
 
-  # We tried this with MapR 3.1, which has hadoop-0.20.2, hbase-0.94.13, hive-0.12
-
-  [[ $SQ_VERBOSE == 1 ]] && echo "Found /opt/mapr, this is a MapR distro"
-
-  # Note that hadoopversion and hiveversion are not officially
-  # supported by MapR, only hbaseversion is. We recommend creating
-  # these files to guide Trafodion to the right version, if necessary.
-  if [[ -r /opt/mapr/hadoop/hadoopversion ]]; then
-    MAPR_HADOOP_VERSION=$(cat /opt/mapr/hadoop/hadoopversion)
-    MAPR_HADOOPDIR=/opt/mapr/hadoop/hadoop-${MAPR_HADOOP_VERSION}
-  else
-    MAPR_HADOOPDIR=$(echo /opt/mapr/hadoop/hadoop-*)
-  fi
-  if [[ -r /opt/mapr/hbase/hbaseversion ]]; then
-    MAPR_HBASE_VERSION=$(cat /opt/mapr/hbase/hbaseversion)
-    MAPR_HBASEDIR=/opt/mapr/hbase/hbase-${MAPR_HBASE_VERSION}
-  else
-    MAPR_HBASEDIR=$(echo /opt/mapr/hbase/hbase-*)
-  fi
-  if [[ -r /opt/mapr/hive/hiveversion ]]; then
-    MAPR_HIVE_VERSION=$(cat /opt/mapr/hive/hiveversion)
-    MAPR_HIVEDIR=/opt/mapr/hive/hive-${MAPR_HIVE_VERSION}
-  else
-    MAPR_HIVEDIR=$(echo /opt/mapr/hive/hive-*)
-  fi
-
-  export CURL_INC_DIR=/usr/include
-  export CURL_LIB_DIR=/usr/lib64
-
-  # native library directories and include directories
-  if [[ -r $MAPR_HADOOPDIR/lib/native/Linux-amd64-64/libhdfs.so ]]; then
-    export HADOOP_LIB_DIR=$MAPR_HADOOPDIR/lib/native/Linux-amd64-64
-  else
-    export HADOOP_LIB_DIR=$MAPR_HADOOPDIR/c++/Linux-amd64-64/lib
-  fi
-  export HADOOP_INC_DIR=/build-not-supported-on-MapR-yet
   export USE_HADOOP_1=1
 
-  # directories with jar files and list of jar files
-  export HADOOP_JAR_DIRS="$MAPR_HADOOPDIR/lib"
-  export HADOOP_JAR_FILES="$MAPR_HADOOPDIR/client/hadoop-hdfs-*.jar"
-  export HBASE_JAR_FILES="$MAPR_HBASEDIR/hbase-*.jar
-                          $MAPR_HBASEDIR/lib/zookeeper.jar
-                          $MAPR_HBASEDIR/lib/protobuf-*.jar
-                          $MAPR_HBASEDIR/lib/snappy-java-*.jar "
-  export HIVE_JAR_DIRS="$MAPR_HIVEDIR/lib"
-  # Could not find a hadoop-mapreduce-client-core*.jar on my MapR test cluster,
-  # this jar file is required by other distros.
+  #HBASE_JAR_FILES obtained from hbase directly here.
+  lv_hbase_cp=`hbase classpath`
 
-  # Configuration directories
+  export HADOOP_JAR_DIRS="$HADOOP_PREFIX/share/hadoop/common
+                          $HADOOP_PREFIX/share/hadoop/common/lib
+                          $HADOOP_PREFIX/share/hadoop/mapreduce
+                          $HADOOP_PREFIX/share/hadoop/mapreduce/lib
+                          $HADOOP_PREFIX/share/hadoop/hdfs
+                          $HADOOP_PREFIX/share/hadoop/hdfs/lib
+                          $HADOOP_PREFIX/share/hadoop/yarn
+                          $HADOOP_PREFIX/share/hadoop/yarn/lib"
 
-  export HADOOP_CNF_DIR=$MAPR_HADOOPDIR/conf
-  export HBASE_CNF_DIR=$MAPR_HBASEDIR/conf
-  export HIVE_CNF_DIR=$MAPR_HIVEDIR/conf
+   export HADOOP_JAR_FILES="$HADOOP_PREFIX/share/hadoop/hdfs/hadoop-hdfs-*.jar"
+   export HIVE_JAR_DIRS="$HIVE_HOME/lib"
 
-  # HBase-trx jar with some modifications to work with MapR HBase 0.94.13
-  export HBASE_TRX_JAR=hbase-trx-mapr4_0-trx-${TRAFODION_VER}.jar
+   export HADOOP_CNF_DIR=$HADOOP_PREFIX/conf
+   export HBASE_CNF_DIR=$HBASE_HOME/conf
+   export HIVE_CNF_DIR=$HIVE_HOME/conf
+
+   export HBASE_TRX_JAR="${HBASE_TRX_ID_HDP}-${TRAFODION_VER}.jar"
+   HBVER="hdp2_3"
 
 else
 
@@ -516,6 +497,12 @@ else
   function vanilla_apache_usage {
 
   cat <<EOF
+    If you haven't set HBASE_DISTRO, please set it before source current file
+      export HBASE_DISTRO=APACHE1.0 (APACHE HBASE1.0)
+      export HBASE_DISTRO=APACHE1.1 (APACHE HBASE1.1)
+      export HBASE_DISTRO=CDH5.4    (cloudera 1.0.0-cdh5.4.4) 
+      export HBASE_DISTRO=CDH5.5    (cloudera 1.0.0-cdh5.5.1) 
+      export HBASE_DISTRO=HDP       (hortonworks 2.3)
 
     If you are ready to build Trafodion, perform one of the following options:
 
@@ -608,7 +595,6 @@ EOF
 
     # end of code for Apache Hadoop/HBase installation w/o distro
     export HBASE_TRX_JAR=${HBASE_TRX_ID_APACHE}-${TRAFODION_VER}.jar
-    HBVER="apache1_0_2"
     export DTM_COMMON_JAR=trafodion-dtm-${HBVER}-${TRAFODION_VER}.jar
     export SQL_JAR=trafodion-sql-${HBVER}-${TRAFODION_VER}.jar
   else
@@ -813,6 +799,11 @@ if [ -z $ICU ]; then
   export ICU="${TOOLSDIR}/icu4c_4.4"
 fi
 
+if [ -z $ORCCPPREADER ]; then
+  export ORCCPPREADER="${TOOLSDIR}/orc-cpp-reader"
+fi
+
+
 #######################
 # Developer Local over-rides  (see sqf/LocalSettingsTemplate.sh)
 # Cannot rely on this, the connectivity build overwrites the .trafodion file
@@ -886,7 +877,6 @@ if [[ -n "$HBASE_CNF_DIR"  ]]; then SQ_CLASSPATH="$SQ_CLASSPATH:$HBASE_CNF_DIR";
 if [[ -n "$HIVE_CNF_DIR"   ]]; then SQ_CLASSPATH="$SQ_CLASSPATH:$HIVE_CNF_DIR";   fi
 if [[ -n "$SQ_CLASSPATH"   ]]; then SQ_CLASSPATH="$SQ_CLASSPATH:";   fi
 
-
 # set Trx in classpath only incase of workstation env.
 # In case of cluster, correct version of trx is already installed by
 # installer and hbase classpath already contains the correct trx jar.
@@ -895,6 +885,7 @@ if [[ -n "$SQ_CLASSPATH"   ]]; then SQ_CLASSPATH="$SQ_CLASSPATH:";   fi
 if [[ -e $MY_SQROOT/sql/scripts/sw_env.sh ]]; then
         SQ_CLASSPATH=${SQ_CLASSPATH}:${HBASE_TRXDIR}/${HBASE_TRX_JAR}
 fi
+
 
 SQ_CLASSPATH=${SQ_CLASSPATH}:\
 $MY_SQROOT/export/lib/${DTM_COMMON_JAR}:\

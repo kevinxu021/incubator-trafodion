@@ -148,7 +148,7 @@ define([
 					                 {
 					                	 "aTargets": [ 0 ],
 					                	 "mData": 0,
-								 "className" : "dbmgr-nowrap",
+					                	 "className" : "dt-body-right dbmgr-nowrap",
 					                	 "mRender": function ( data, type, full ) {
 					                		 if (type === 'display') {
 					                			 return common.toServerLocalDateFromMilliSeconds(data, 'YYYY-MM-DD HH:mm:ss');

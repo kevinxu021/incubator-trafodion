@@ -697,6 +697,7 @@ SQLRETURN CConnect::Connect(SQLCHAR *ServerName,
 	inContext.inContextOptions2 = 0;
 
 	//wms_mapping
+	inContext.sessionName[0] = '\0';
 	if(m_QueryID_SessionName[0] != '\0')
 	{
 		inContext.inContextOptions1 = inContext.inContextOptions1 | INCONTEXT_OPT1_SESSIONNAME;
@@ -1278,7 +1279,14 @@ SQLRETURN CConnect::generateConnectionString(CONNECT_KEYWORD_TREE *KeywordTree,
 			sprintf(tempBuffer, "%s=%s;", ConnectKeywords[i], ConnectFieldItems->password);
 			break;
 		case KEY_CATALOG:
-			sprintf(tempBuffer, "%s=%s;", ConnectKeywords[i], ConnectFieldItems->catalog);
+			if (strlen(ConnectFieldItems->catalog) == 0)
+			{
+				sprintf(tempBuffer, "%s=TRAFODION;", ConnectKeywords[i]);
+			}
+			else
+			{
+				sprintf(tempBuffer, "%s=%s;", ConnectKeywords[i], ConnectFieldItems->catalog);
+			}
 			break;
 		case KEY_SCHEMA:
 			sprintf(tempBuffer, "%s=%s;", ConnectKeywords[i], ConnectFieldItems->schema);

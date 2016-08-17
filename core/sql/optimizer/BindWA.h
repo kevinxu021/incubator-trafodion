@@ -80,7 +80,7 @@ class SchemaDB;
 class StmtDDLCreateView;
 class StmtLevelAccessOptions;
 class StmtDDLCreateTrigger;
-struct desc_struct;
+struct TrafDesc;
 class NARoutine;
 class HbaseColUsageInfo;
 
@@ -1180,7 +1180,11 @@ class BindWA : public NABasicObject
     ALLOW_EXT_TABLES          = 0x00000001,
 
     // external table being dropped.
-    EXT_TABLE_DROP            = 0x00000002
+    EXT_TABLE_DROP            = 0x00000002,
+
+    // return underlying hive table defn, if the table has an associated
+    // external table
+    RETURN_HIVE_TABLE_DEFN    = 0x00000004
  };
 
 public:
@@ -1334,7 +1338,7 @@ public:
   // --------------------------------------------------------------------
   NATable *getNATable(CorrName &corrName,
 		      NABoolean catmanCollectTableUsages = TRUE,
-		      desc_struct *inTableDesc = NULL);
+		      TrafDesc *inTableDesc = NULL);
 
   TableDesc *createTableDesc(const NATable *naTable,
                              CorrName &corrName,
@@ -1349,7 +1353,7 @@ public:
   // (i.e. the same table can be referred to many times, via many corr names).
   // --------------------------------------------------------------------
 //  NARoutine *getNARoutine(QualifiedName &routineName,
-//		          desc_struct *inRoutineDesc = NULL);
+//		          TrafDesc *inRoutineDesc = NULL);
 
 
   // --------------------------------------------------------------------
@@ -1502,6 +1506,11 @@ public:
   { return (flags_ & EXT_TABLE_DROP) != 0; }
   void setExternalTableDrop(NABoolean v) 
   { v ? flags_ |= EXT_TABLE_DROP : flags_ &= ~EXT_TABLE_DROP; }
+
+  NABoolean returnHiveTableDefn() const 
+  { return (flags_ & RETURN_HIVE_TABLE_DEFN) != 0; }
+  void setReturnHiveTableDefn(NABoolean v) 
+  { v ? flags_ |= RETURN_HIVE_TABLE_DEFN : flags_ &= ~RETURN_HIVE_TABLE_DEFN; }
 
   LIST(OptSqlTableOpenInfo *) &getStoiList()  { return stoiList_; }
   LIST(OptUdrOpenInfo *) &getUdrStoiList()  { return udrStoiList_; }

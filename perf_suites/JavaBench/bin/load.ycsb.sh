@@ -4,6 +4,8 @@ USAGE="usage: load.ycsb.sh
     [ -sc|--scale|scale <<scalefactor>> ]
     [ -s|--streams|streams <<streams>> ] 
     [ -p|--partitions|partitions <<partitions>> ] 
+    [ -a|--aligned|aligned ]
+    [ -m|--monarch|monarch ]
     [ -c|--compress|compress ]
     [ -r|--rangepartition|rangepartition ]
     [ -d|--debug|debug ]
@@ -21,7 +23,8 @@ if (( $MAX_MXOSRVR < 32 )) ; then STREAMS=$MAX_MXOSRVR; else STREAMS=32; fi
 PARTITIONS=$SYSTEM_DEFAULT_PARTITIONS
 export TESTID=$(date +%y%m%d.%H%M)
 OPTION_COMPRESS=FALSE
-OPTION_RANGEPARTITION=TRUE
+OPTION_ALIGNED=""
+OPTION_RANGEPARTITION=FALSE
 
 while [[ $# > 0 ]] ; do
 key="$1"; shift;
@@ -31,6 +34,8 @@ case ${key,,} in
     -sc|--scale|scale)			SCALE="$1"; shift;;
     -s|--streams|streams)		STREAMS="$1"; shift;;
     -p|--partitions|partitions)		PARTITIONS="$1"; shift;; 
+    -a|--aligned|aligned)               OPTION_ALIGNED="aligned"; shift;;
+    -m|--monarch|monarch)               OPTION_MONARCH="monarch"; shift;;
     -c|--compress|compress)		OPTION_COMPRESS="TRUE";;
     -r|--rangepartition|rangepartition)	OPTION_RANGEPARTITION="TRUE";;
     -id|--testid|testid)		export TESTID="$1"; shift;;
@@ -97,15 +102,15 @@ case ${DATABASE,,} in
 		
 		if [[ ${OPTION_RANGEPARTITION} = TRUE ]] ; then
 		
-			java -Ddbconnect.properties=${DATABASE,,}.properties \
-			   YCSBLoader $SCALE schema $SCHEMA createschema dropcreate ${OPTIONS}
+			java -Xmx1500m -Ddbconnect.properties=${DATABASE,,}.properties \
+			   YCSBLoader $SCALE schema $SCHEMA createschema dropcreate ${OPTION_ALIGNED} ${OPTION_MONARCH} ${OPTIONS}
 
 			#split table
 			TABLENAME=${SCHEMA^^}.YCSB_TABLE_${SCALE}
 			echo "Table Name : ${TABLENAME}"
-pdsh -w ${SYSTEM_FIRST_NODE} "cd ${JAVABENCH_TEST_HOME};. profile;java GetYcsbSplitTableCommand table ${TABLENAME} partitions ${PARTITIONS} | hbase shell"
+pdsh -w ${SYSTEM_FIRST_NODE} "cd ${JAVABENCH_TEST_HOME};. profile;java -Xmx1500m GetYcsbSplitTableCommand table ${TABLENAME} partitions ${PARTITIONS} | hbase shell"
 		
-			# Allign Table
+			# Align Table
 			REGIONSERVERS=($(curl -sS --noproxy '*' http://${SYSTEM_NAMEMGR_URL}:${SYSTEM_NAMEMGR_PORT}/master-status?filter=all#baseStats \
 			  | grep href | grep ",${SYSTEM_REGIONSERVER_PORT}," | sort -u | sed 's/<\/a>//g'| sed 's/<[^][]*>//g' | sed 's/ //g'))
 			echo "Region Severs : ${REGIONSERVERS[*]}"
@@ -126,14 +131,14 @@ pdsh -w ${SYSTEM_FIRST_NODE} "cd ${JAVABENCH_TEST_HOME};. profile;java GetYcsbSp
 
 		else  # assume salt partition
 		
-			java -Ddbconnect.properties=${DATABASE,,}.properties \
-			   YCSBLoader $SCALE schema $SCHEMA createschema dropcreate salt ${PARTITIONS} ${OPTIONS}
+			java -Xmx1500m -Ddbconnect.properties=${DATABASE,,}.properties \
+			   YCSBLoader $SCALE schema $SCHEMA createschema dropcreate salt ${PARTITIONS} ${OPTION_ALIGNED} ${OPTION_MONARCH} ${OPTIONS}
 		
 		fi
 		
 		#  load
 		
-		java -Ddbconnect.properties=${DATABASE,,}.properties \
+		java -Xmx1500m -Ddbconnect.properties=${DATABASE,,}.properties \
 		   YCSBLoader $SCALE schema $SCHEMA load upsert usingload batchsize 1000 streams $STREAMS maintain ${OPTIONS}
 
 		;;
@@ -154,9 +159,9 @@ pdsh -w ${SYSTEM_FIRST_NODE} "cd ${JAVABENCH_TEST_HOME};. profile;java GetYcsbSp
 			create '${TABLENAME}', {NAME => 'ycsbfmly'}\" | hbase shell"
 		
 		#split table
-pdsh -w ${SYSTEM_FIRST_NODE} "cd ${JAVABENCH_TEST_HOME};. profile;java GetYcsbSplitTableCommand table ${TABLENAME} partitions ${PARTITIONS} | hbase shell"
+pdsh -w ${SYSTEM_FIRST_NODE} "cd ${JAVABENCH_TEST_HOME};. profile;java -Xmx1500m GetYcsbSplitTableCommand table ${TABLENAME} partitions ${PARTITIONS} | hbase shell"
 		
-			# Allign Table
+			# Align Table
 			REGIONSERVERS=($(curl -sS --noproxy '*' http://${SYSTEM_NAMEMGR_URL}:${SYSTEM_NAMEMGR_PORT}/master-status?filter=all#baseStats \
 			  | grep href | grep ",${SYSTEM_REGIONSERVER_PORT}," | sort -u | sed 's/<\/a>//g'| sed 's/<[^][]*>//g' | sed 's/ //g'))
 			echo "Region Severs : ${REGIONSERVERS[*]}"
@@ -174,7 +179,7 @@ pdsh -w ${SYSTEM_FIRST_NODE} "cd ${JAVABENCH_TEST_HOME};. profile;java GetYcsbSp
 			done
 			} | ssh ${SYSTEM_FIRST_NODE} hbase shell
 
-pdsh -w ${SYSTEM_FIRST_NODE} "cd ${JAVABENCH_TEST_HOME};. profile;java -Ddbconnect.properties=${DATABASE,,}.properties YCSBLoader $SCALE schema ${SCHEMA} load streams ${STREAMS}"
+pdsh -w ${SYSTEM_FIRST_NODE} "cd ${JAVABENCH_TEST_HOME};. profile;java -Xmx1500m -Ddbconnect.properties=${DATABASE,,}.properties YCSBLoader $SCALE schema ${SCHEMA} load streams ${STREAMS}"
 
 		;;
 		
@@ -186,7 +191,7 @@ pdsh -w ${SYSTEM_FIRST_NODE} "cd ${JAVABENCH_TEST_HOME};. profile;java -Ddbconne
 		
 		# create & load
 		
-		java -Ddbconnect.properties=${DATABASE,,}.properties \
+		java -Xmx1500m -Ddbconnect.properties=${DATABASE,,}.properties \
 		   YCSBLoader $SCALE schema $SCHEMA dropcreate load batchsize 1000 streams $STREAMS maintain ${OPTIONS}
 
 		;;

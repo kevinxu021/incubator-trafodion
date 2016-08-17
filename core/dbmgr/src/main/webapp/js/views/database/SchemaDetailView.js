@@ -96,7 +96,7 @@ define([
 					ddlTextEditor.setSize($(this).width(), $(this).height());
 				}
 			});
-			$(ddlTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
+			$(ddlTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px", "font-size":"12px"});
 
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 

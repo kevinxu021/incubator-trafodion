@@ -1,6 +1,6 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2015 Esgyn Corporation
+// (C) Copyright 2015-2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
@@ -50,23 +50,66 @@ public class QueryResource {
 		if (obj.has("sControlStmts")) {
 			sControlStmts = obj.get("sControlStmts").textValue();
 		}
+		String timeStamp = "";
+		if (obj.has("timeStamp")) {
+			timeStamp = String.valueOf(obj.get("timeStamp").longValue());
+		}
+		String sessionId = servletRequest.getSession().getId();
+		String key=sessionId+timeStamp;
+		
 		Session soc = SessionModel.getSession(servletRequest, servletResponse);
-		return executeSQLQuery(soc.getUsername(), soc.getPassword(), queryText, sControlStmts);
+		return executeSQLQuery(soc.getUsername(), soc.getPassword(), queryText, sControlStmts,key);
+	}
+	@POST
+	@Path("/cancel/")
+	@Produces("application/json")
+	@Consumes("application/json")
+	public void cancelQuery(ObjectNode obj,@Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+		String timeStamp = "";
+		if (obj.has("timeStamp")) {
+			timeStamp = String.valueOf(obj.get("timeStamp").longValue());
+		}
+		String sessionId = servletRequest.getSession().getId();
+		String Key = sessionId+timeStamp;
+		cancelSQLQuery(servletResponse,Key);
 	}
 
+	private void cancelSQLQuery(HttpServletResponse servletResponse, String key) {
+		// TODO Auto-generated method stub
+		/* long startTime = System.currentTimeMillis();(System.currentTimeMillis()-startTime)>10000;*/
+		 while(!SessionModel.containsKey(key)) {
+			 continue;
+		 }
+		Statement stmt = (Statement) SessionModel.getStatementObject(key);
+		if (stmt != null) {
+			try {
+				if (stmt.isClosed()) {
+					// the query was completed.		
+				} else {
+					// the query was running.
+					stmt.cancel();
+				}
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} finally {
+				SessionModel.removeStatementObject(key);
+			}
+		}
+	}
 	public static TabularResult executeSQLQuery(String user, String password, String queryText)
 			throws EsgynDBMgrException {
-		return executeSQLQuery(user, password, queryText, null);
+		return executeSQLQuery(user, password, queryText, null,null);
 	}
 
-	public static TabularResult executeSQLQuery(String user, String password, String queryText, String sControlStmts)
+	public static TabularResult executeSQLQuery(String user, String password, String queryText, String sControlStmts, String key)
 			throws EsgynDBMgrException {
-		String url = ConfigurationResource.getInstance().getJdbcUrl();
 		Connection connection = null;
 		try {
 			Class.forName(ConfigurationResource.getInstance().getJdbcDriverClass());
 			connection = JdbcHelper.getInstance().getConnection(user, password);
-			return executeQuery(connection, queryText, sControlStmts);
+			return executeQuery(connection, queryText, sControlStmts, key);
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());
@@ -81,8 +124,8 @@ public class QueryResource {
 		}
 	}
 
-	public static TabularResult executeQuery(Connection connection, String queryText, String sControlStmts)
-			throws EsgynDBMgrException {
+	public static TabularResult executeQuery(Connection connection, String queryText, String sControlStmts, String key)
+			throws EsgynDBMgrException {	
 
 		TabularResult js = new TabularResult();
 		Statement stmt = null;
@@ -96,23 +139,27 @@ public class QueryResource {
 				stmt1.execute(controlText);
 			}
 			stmt1.close();
-
-			if (queryText != null && queryText.trim().toLowerCase().equals("info system")) {
+			
+			if (queryText != null && queryText.trim().toLowerCase().startsWith("info")) {
 				stmt = connection.createStatement();
 			} else {
 				stmt = connection.prepareStatement(queryText);
 			}
-
+			if (key!=null) {
+				SessionModel.putStatementObject(key, stmt);
+			}
 			js = executeQuery(stmt, queryText);
 		} catch (Exception e) {
+			SessionModel.putStatementObject(key, stmt);
 			_LOG.error("Failed to execute query : " + e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());
 		} finally {
+			//in case the error happens, otherwise the cancel will be deadlock
 			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-
+					e.printStackTrace();
 				}
 			}
 		}
@@ -184,7 +231,7 @@ public class QueryResource {
 		Connection connection = null;
 		try {
 			connection = JdbcHelper.getInstance().getAdminConnection();
-			return executeQuery(connection, queryText, sControlStmts);
+			return executeQuery(connection, queryText, sControlStmts,null);
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());
@@ -221,6 +268,12 @@ public class QueryResource {
 		if (obj.has("sQueryType")) {
 			sQueryType = obj.get("sQueryType").textValue();
 		}
+		String timeStamp = "";
+		if (obj.has("timeStamp")) {
+			obj.get("timeStamp").asText();
+		}
+		String sessionId = servletRequest.getSession().getId();
+		String key=sessionId+timeStamp;
 
 		try {
 			Class.forName(ConfigurationResource.getInstance().getJdbcDriverClass());
@@ -230,7 +283,7 @@ public class QueryResource {
 		}
 
 		QueryPlanModel qe = new QueryPlanModel();
-		qe.GeneratePlan(soc.getUsername(), soc.getPassword(), queryText, sControlStmts, sQueryID, sQueryType);
+		qe.GeneratePlan(soc.getUsername(), soc.getPassword(), queryText, sControlStmts, sQueryID, sQueryType,key);
 
 		QueryPlanResponse response = qe.getQueryPlanResponse();
 		return response;

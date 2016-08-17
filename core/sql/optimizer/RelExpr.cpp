@@ -6636,6 +6636,23 @@ const NAString Intersect::getText() const
 }
 
 // -----------------------------------------------------------------------
+// // member functions for class Except
+// // -----------------------------------------------------------------------
+Except::Except(RelExpr *leftChild,
+             RelExpr *rightChild)
+: RelExpr(REL_EXCEPT, leftChild, rightChild)
+{ setNonCacheable(); }
+
+Except::~Except() {}
+
+Int32 Except::getArity() const { return 2; }
+
+const NAString Except::getText() const
+{
+  return "except";
+}
+
+// -----------------------------------------------------------------------
 // member functions for class Union
 // -----------------------------------------------------------------------
 Union::Union(RelExpr *leftChild,
@@ -8188,6 +8205,13 @@ NABoolean Scan::isHiveTable() const
 {
   return (getTableDesc() && getTableDesc()->getNATable() ?
 	  getTableDesc()->getNATable()->isHiveTable() :
+	  FALSE);
+}
+
+NABoolean Scan::isHiveOrcTable() const 
+{
+  return (getTableDesc() && getTableDesc()->getNATable() ?
+	  getTableDesc()->getNATable()->isORC() :
 	  FALSE);
 }
 
@@ -10052,12 +10076,12 @@ void FileScan::addLocalExpr(LIST(ExprNode *) &xlist,
       llist.insert("part_key_predicates");
     }
 
-  if (NOT getBeginKeyPred().isEmpty())
+  if (NOT getBeginKeyPred().isEmpty() && NOT isHiveTable())
     {
       xlist.insert(getBeginKeyPred().rebuildExprTree());
       llist.insert("begin_key");
     }
-  if (NOT getEndKeyPred().isEmpty())
+  if (NOT getEndKeyPred().isEmpty() && NOT isHiveTable())
     {
       xlist.insert(getEndKeyPred().rebuildExprTree());
       llist.insert("end_key");
@@ -10203,14 +10227,24 @@ const NAString HbaseAccess::getText() const
   if (isSampleScan())
     sampleOpt = "sample_";
 
+  NABoolean isMonarch = 
+    (getTableDesc() && getTableDesc()->getNATable()
+     ? getTableDesc()->getNATable()->isMonarch() : FALSE);
+  
   if (getIndexDesc() == NULL OR getIndexDesc()->isClusteringIndex())
     {
       if (isSeabaseTable())
 	{
 	  if (uniqueRowsetHbaseOper())
-	    (op += "trafodion_vsbb_") += sampleOpt += "scan ";
+            if (isMonarch)
+              (op += "monarch_vsbb_") += sampleOpt += "scan ";
+            else
+              (op += "trafodion_vsbb_") += sampleOpt += "scan ";
 	  else
-	    (op += "trafodion_") += sampleOpt += "scan ";
+            if (isMonarch)
+              (op += "monarch_") += sampleOpt += "scan ";
+          else
+              (op += "trafodion_") += sampleOpt += "scan ";
 	}
       else
 	(op += "hbase_") += sampleOpt += "scan ";
@@ -10218,7 +10252,10 @@ const NAString HbaseAccess::getText() const
   else 
     {
       if (isSeabaseTable())
-	(op += "trafodion_index_") += sampleOpt += "scan ";
+        if (isMonarch)
+          (op += "monarch_index_") += sampleOpt += "scan ";
+        else
+          (op += "trafodion_index_") += sampleOpt += "scan ";
       else
 	(op += "hbase_index_") += sampleOpt += "scan ";
  
@@ -10398,9 +10435,15 @@ const NAString HbaseDelete::getText() const
     (getTableDesc() && getTableDesc()->getNATable() ? 
      getTableDesc()->getNATable()->isSeabaseTable() : FALSE);
 
+  NABoolean isMonarch = 
+    (getTableDesc() && getTableDesc()->getNATable() ? 
+     getTableDesc()->getNATable()->isMonarch() : FALSE);
+
   NAString text;
 
-  if (NOT isSeabase)
+  if (isMonarch)
+    text = "monarch_";
+  else if (NOT isSeabase)
     text = "hbase_";
   else
     text = "trafodion_";
@@ -10505,7 +10548,12 @@ RelExpr *HbaseUpdate::bindNode(BindWA *bindWA)
 const NAString HbaseUpdate::getText() const
 {
   NABoolean isSeabase = 
-    (getTableDesc() ? getTableDesc()->getNATable()->isSeabaseTable() : FALSE);
+    (getTableDesc() && getTableDesc()->getNATable() ? 
+     getTableDesc()->getNATable()->isSeabaseTable() : FALSE);
+
+  NABoolean isMonarch = 
+    (getTableDesc() && getTableDesc()->getNATable() ? 
+     getTableDesc()->getNATable()->isMonarch() : FALSE);
 
   NAString text;
   if (isMerge())
@@ -10514,7 +10562,9 @@ const NAString HbaseUpdate::getText() const
     }
   else
     {
-      if (NOT isSeabase)
+      if (isMonarch)
+        text = "monarch_";
+      else if (NOT isSeabase)
 	text = "hbase_";
       else
 	text = "trafodion_";
@@ -13022,12 +13072,21 @@ const NAString HbaseInsert::getText() const
     (getTableDesc() && getTableDesc()->getNATable() ? 
      getTableDesc()->getNATable()->isSeabaseTable() : FALSE);
 
+  NABoolean isMonarch = 
+    (getTableDesc() && getTableDesc()->getNATable() ? 
+     getTableDesc()->getNATable()->isMonarch() : FALSE);
+
   NAString text;
 
   if (NOT isSeabase)
     text = "hbase_";
   else
-    text = "trafodion_";
+    {
+      if (isMonarch)
+        text = "monarch_";
+      else
+        text = "trafodion_";
+    }
 
   if (isUpsert())
     {
@@ -14809,11 +14868,10 @@ void Scan::computeMyRequiredResources(RequiredResources & reqResources, EstLogPr
                 computeCpuResourceForIndexJoinScans(tableId);
 
   CostScalar cpuResourcesRequired = cpuCostIndexOnlyScan;
-  if ( getTableDesc()->getNATable()->isHbaseTable()) 
-  {
-     if ( cpuCostIndexJoinScan < cpuResourcesRequired )
-       cpuResourcesRequired = cpuCostIndexJoinScan;
-  } 
+
+
+  if ( cpuCostIndexJoinScan < cpuResourcesRequired )
+    cpuResourcesRequired = cpuCostIndexJoinScan;
 
   CostScalar dataAccessCost = tAnalysis->getFactTableNJAccessCost();
   if(dataAccessCost < 0)
@@ -14829,6 +14887,11 @@ void Scan::computeMyRequiredResources(RequiredResources & reqResources, EstLogPr
       tAnalysis->computeDataAccessCostForTable(numOfProbes, rowsToScan);
   }
 
+  if ( getTableDesc()->getNATable()->isHbaseTable()) 
+    reqResources.incrementNumOfHBaseTables();
+
+  if ( getTableDesc()->getNATable()->isHiveTable()) 
+    reqResources.incrementNumOfHiveTables();
 
   CostScalar myMaxCard = getGroupAttr()->getResultMaxCardinalityForInput(inLP);
   reqResources.accumulate(csZero, cpuResourcesRequired, 
@@ -14988,7 +15051,22 @@ Lng32 FileScan::getTotalColumnWidthForExecPreds() const
   const TableAnalysis* tAnalysis = tdesc->getTableAnalysis();
   const ValueIdSet & usedCols = tAnalysis->getUsedCols() ;
 
-  return usedCols.getRowLength();
+  if ( isHiveOrcTable() ) {
+     Lng32 lengthForNonChars = usedCols.getRowLengthOfNonCharColumns();
+     Lng32 numOfcharCols = usedCols.getNumOfCharColumns();
+
+     const HHDFSTableStats* hdfsStats =
+             getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
+
+     const NAColumnArray &nac = 
+          getIndexDesc()->getNAFileSet()->getAllColumns();
+
+     Lng32 avgLengthPerRow = hdfsStats->getAvgStringLengthPerRow();
+
+     return lengthForNonChars + avgLengthPerRow * (numOfcharCols / nac.entries());
+  }
+  else
+     return usedCols.getRowLength();
 }
 
 // This function checks if the passed RelExpr is a UDF rule created by a CQS

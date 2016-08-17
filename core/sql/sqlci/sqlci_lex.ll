@@ -430,6 +430,7 @@ B			[ \t\n]+
 [Ww][Hh][Ii][Ll][Ee]                   return_IDENT_or_TOKEN(WHILE, 0);
 [Ss][Ii][Gg][Nn][Aa][Ll]	       return_IDENT_or_TOKEN(SIGNAL, 0);
 [Ww][Ii][Tt][Hh][Oo][Uu][Tt]           return_IDENT_or_TOKEN(WITHOUT, 0);
+[Ww][Ii][Tt][Hh]                       return_IDENT_or_TOKEN(WITH, 0);
 [Hh][Oo][Ll][Dd]                       return_IDENT_or_TOKEN(HOLD, 0);
 [Pp][Aa][Rr][Ss][Ee][Rr][Ff][Ll][Aa][Gg][Ss] return_IDENT_or_TOKEN(PARSERFLAGS, 0);
 [Tt][Ee][Rr][Mm][Ii][Nn][Aa][Ll]_[Cc][Hh][Aa][Rr][Ss][Ee][Tt] return_IDENT_or_TOKEN(TERMINAL_CHARSET, 0);
@@ -451,6 +452,7 @@ B			[ \t\n]+
 [Ii][Nn][Tt][Ee][Rr][Nn][Aa][Ll]	return_IDENT_or_TOKEN(INTERNAL, 0);  /* MV OZ_REFRESH */
 [Mm][Vv][Ll][Oo][Gg]				return_IDENT_or_TOKEN(MVLOG, 0);
 [Uu][Nn][Ll][Oo][Aa][Dd]                return_IDENT_or_TOKEN(UNLOAD, 0); 
+[Tt][Rr][Uu][Nn][Cc][Aa][Tt][Ee]        return_IDENT_or_TOKEN(TRUNCATE, 0);
 
 [\*]		{SqlciParse_IdentifierExpected = 0; return(ALLtoken);};
 [(]		{SqlciParse_IdentifierExpected = 0; return(LPAREN);};

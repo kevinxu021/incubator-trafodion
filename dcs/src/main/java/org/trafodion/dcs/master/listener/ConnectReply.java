@@ -22,22 +22,20 @@
 //
 package org.trafodion.dcs.master.listener;
 
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.Date;
 import java.io.*;
 import java.nio.*;
-import java.nio.channels.*;
-import java.nio.channels.spi.*;
 import java.net.*;
 import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.Stat;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.KeeperException;
 
 import org.trafodion.dcs.util.*;
 import org.trafodion.dcs.Constants;
@@ -64,15 +62,18 @@ class ConnectReply {
     private Integer serverPort=0;
     private Long timestamp=0L;
     private String clusterName = "";
+    private ListenerService listener = null;
+    private boolean userAffinity = true;
+    private Random random = null;
     
-    private  Random random = null;
-    
-    ConnectReply(ZkClient zkc,String parentZnode){
-        this.zkc = zkc;
-        this.parentZnode = parentZnode;
+    ConnectReply(ListenerService listener){
+        this.listener = listener;
+        zkc = listener.getZkc();
+        parentZnode = listener.getParentZnode();
+        userAffinity = listener.getUserAffinity();
+        random = new Random();
         exception = new GetObjRefException();
         versionList = new VersionList();
-        random = new Random();
     }
     // ----------------------------------------------------------
     void insertIntoByteBuffer(ByteBuffer buf)  throws java.io.UnsupportedEncodingException {
@@ -97,7 +98,6 @@ class ConnectReply {
     
         boolean replyException = false;
         Integer serverInstance=0;
-        String serverTimestamp="";
     
         versionList = new VersionList();
     
@@ -115,167 +115,184 @@ class ConnectReply {
         exception.exception_detail=0;
         exception.ErrorText=null;
     
-        Stat stat = null;
         byte[] data = null;
-        boolean found = false;
+        String sdata = null;
+        Stat stat = null;
         boolean exceptionThrown = false;
         
-        int length = 0;
-        int index = 0;
-        int maxIndex = -1;
-        int randomPicks = 0;
         String server = "";
+        HashMap<String,Object> attributes = null;
+
+        if(LOG.isDebugEnabled())
+            LOG.debug("ConnectedReply entry " );
+         
+        listener.getMapping().findProfile( cc);
+        if(LOG.isDebugEnabled())
+            LOG.debug("ConnectedReply after getMapping().findProfile " );
+         listener.getRegisteredServers().getServers(cc);
+
+        if(LOG.isDebugEnabled())
+            LOG.debug("ConnectedReply after getRegisteredServers().getServers " );
         
         try {
-            String registeredPath = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED;
+
             String nodeRegisteredPath = "";
-            
-            if (false == registeredPath.startsWith("/"))
-                registeredPath = "/" + registeredPath;
 
-            zkc.sync(registeredPath,null,null);
-            List<String> servers = zkc.getChildren(registeredPath, null);
-            length = servers.size();
-            if (length == 0){
-                throw new IOException("No Available Servers - length is 0");
-            }
+            HashMap<String, HashMap<String,Object>> reusedSlaServers = cc.getReusedSlaServers();
+            HashMap<String, HashMap<String,Object>> reusedOtherServers = cc.getReusedOtherServers();
+            HashMap<String, HashMap<String,Object>> idleServers = cc.getIdleServers();
+
+            if (userAffinity == false){
+                if(idleServers.size() > 0){
+                    reusedSlaServers.putAll(idleServers);
+                } else if(reusedOtherServers.size() > 0){
+                    reusedSlaServers.putAll(reusedOtherServers);
+                }
+                idleServers.clear();
+                reusedOtherServers.clear();
+             }
             if(LOG.isDebugEnabled()){
-                int dbgLength = length > 4 ? 4 : length;
-                for (int i = 0; i < dbgLength; i++){
-                    LOG.debug(clientSocketAddress + ": " + i + " server " + servers.get(i) );
-                }
+                LOG.debug("ConnectedReply userAffinity :" + userAffinity );
+                LOG.debug("ConnectedReply reusedSlaServers.size() :" + reusedSlaServers.size() );
+                LOG.debug("ConnectedReply idleServers.size() :" + idleServers.size() );
+                LOG.debug("ConnectedReply reusedOtherServers.size() " + reusedOtherServers.size() );
             }
-            switch(length) {
-                    case 1: randomPicks = 1;break;
-                    case 2: randomPicks = 1;break;
-                    case 3: case 4: randomPicks = 2;break;
-                    default:randomPicks = 3;
-            }
-            if(LOG.isDebugEnabled())
-                LOG.debug(clientSocketAddress + ": " + "randomPicks " + randomPicks + ", length " + length );
-            
-            int[] indexArr = new int[length];
-            Arrays.fill(indexArr, 0, length - 1, -1);
-            indexArr[0] = -1;
-//
-// pick randomly the AVAILABLE server 
-//                
-            for(int i=0; i < randomPicks; i++){
-                while(true){
-                    index = random.nextInt();
-                    index = Math.abs(index);
-                    index %= length;
-                    if (indexArr[index] != index) break;
-                }
-                indexArr[index] = index;
-                maxIndex = Math.max(maxIndex, index);
-                server = servers.get(index);
-                nodeRegisteredPath = registeredPath + "/" + server;
- 		if(LOG.isDebugEnabled())
-                    LOG.debug(clientSocketAddress + ": " + " index " + index + " server picked " + server );
-                data = isServerAvailable(nodeRegisteredPath);
-                if(data != null){
-                	found = true;
-                	break;
-                }else continue;
-            }
-//
-// search sequentially for AVAILABLE server starting from highest random index + 1 to length
-//
-            if (found == false){
-                for(index=maxIndex+1; index<length; index++){
-                    if (indexArr[index] != index){
-                        server = servers.get(index);
-                        nodeRegisteredPath = registeredPath + "/" + server;
-                        if(LOG.isDebugEnabled())
-                            LOG.debug(clientSocketAddress + ": " + "server selected in search 1 " + server );
-                            
-                        data = isServerAvailable(nodeRegisteredPath);
-                        if(data != null){
-                        	found = true;
-                        	break;
-                        }else continue;
-                    }
-                }
-            }
-//
-// search sequentially for AVAILABLE server starting from index 0 to max random index - 1
-//
-            if (found == false){
-                for(index=0; index<maxIndex; index++){
-                    if (indexArr[index] != index){
-                        server = servers.get(index);
-                        nodeRegisteredPath = registeredPath + "/" + server;
-                        if(LOG.isDebugEnabled())
-                            LOG.debug(clientSocketAddress + ": " + "server selected in search 2 " + server );
-                            
-                        data = isServerAvailable(nodeRegisteredPath);
-                        if(data != null){
-                        	found = true;
-                        	break;
-                        }else continue;
-                    }
-                }
-            }
-            if (found == true){
 
-                String[] stNode = server.split(":");
-                serverHostName=stNode[0];
-                serverInstance=Integer.parseInt(stNode[1]);
-                
-                String[] stData = (new String(data)).split(":");
-                timestamp=Long.parseLong(stData[1]);
-                serverNodeId=Integer.parseInt(stData[3]);
-                serverProcessId=Integer.parseInt(stData[4]);
-                serverProcessName=stData[5];
-                serverIpAddress=stData[6];
-                serverPort=Integer.parseInt(stData[7]);
-                
-                if(LOG.isDebugEnabled()){
-                    LOG.debug(clientSocketAddress + ": " + "serverHostName " + serverHostName );
-                    LOG.debug(clientSocketAddress + ": " + "serverInstance " + serverInstance );
-                    LOG.debug(clientSocketAddress + ": " + "serverNodeId " + serverNodeId );
-                    LOG.debug(clientSocketAddress + ": " + "serverProcessId " + serverProcessId);
-                    LOG.debug(clientSocketAddress + ": " + "serverProcessName " + serverProcessName );
-                    LOG.debug(clientSocketAddress + ": " + "serverIpAddress " + serverIpAddress );
-                    LOG.debug(clientSocketAddress + ": " + "serverPort " + serverPort );
-                    LOG.debug(clientSocketAddress + ": " + "timestamp " + timestamp );
-                }
-                
-                dialogueId = random.nextInt();
-                dialogueId = (dialogueId < 0 )? -dialogueId : dialogueId;
-                if(LOG.isDebugEnabled())
-                    LOG.debug(clientSocketAddress + ": " + "dialogueId: " + dialogueId);
-                data = Bytes.toBytes(String.format("CONNECTING:%d:%d:%d:%d:%s:%s:%d:%s:%s:%s:",
-                        timestamp,
-                        dialogueId, 
-                        serverNodeId,
-                        serverProcessId,
-                        serverProcessName,
-                        serverIpAddress,
-                        serverPort,
-                        cc.computerName, 
-                        clientSocketAddress, 
-                        cc.windowText ));
-                zkc.setData(nodeRegisteredPath, data, -1);
+            while (true) {
+                if(reusedSlaServers.size() > 0){
+                  server = randEntryKey(reusedSlaServers);
+                  attributes = reusedSlaServers.get(server);
+                  reusedSlaServers.remove(server);
+                  if(LOG.isDebugEnabled())
+                        LOG.debug("reusedSlaServers server: " + server );
+                } else if(idleServers.size() > 0){
+                  server = randEntryKey(idleServers);
+                  attributes = idleServers.get(server);
+                  idleServers.remove(server);
+                  if(LOG.isDebugEnabled())
+                        LOG.debug("idleServers server: " + server );
+                } else if(reusedOtherServers.size() > 0){
+                  server = randEntryKey(reusedOtherServers);
+                  attributes = reusedOtherServers.get(server);
+                  reusedOtherServers.remove(server);
+                  if(LOG.isDebugEnabled())
+                        LOG.debug("reusedOtherServers server: " + server );
+                } else {
+                  server = "";
+                  if(LOG.isDebugEnabled())
+                      LOG.debug("There are no servers in HashTables - start looking directly in zk " );
+                  String znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED;
+                  zkc.sync(znode,null,null);
+                  List<String> children = zkc.getChildren(znode,null);
+                  if( ! children.isEmpty()){ 
+                      for(String child : children) {
+                          if(LOG.isDebugEnabled())
+                                LOG.debug("Checking directly zk server path [" + znode + "/" + child + "]" );
+                          stat = zkc.exists(znode + "/" + child, false);
+                          if(stat != null) {
+                              data = zkc.getData(znode + "/" + child, null, stat);
+                              sdata = new String(data);
+                              if (sdata.startsWith(Constants.AVAILABLE) || sdata.startsWith(Constants.STARTING)){
+                                  if(LOG.isDebugEnabled())
+                                      LOG.debug("Found Available zk server " + child );
+                                  server = child;
+                                  break;
+                              }
+                        }
+                    }
+                  }
+                  if (server.length()==0)
+                      throw new IOException("No Available Servers ");
+                  else
+                      break;
+              }
+              nodeRegisteredPath = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED + "/" + server;
+              if(LOG.isDebugEnabled())
+                  LOG.debug("Checking server path [" + nodeRegisteredPath + "]" );
+              zkc.sync(nodeRegisteredPath,null,null);
+              stat = zkc.exists(nodeRegisteredPath, false);
+              if(stat != null) {
+                  data = zkc.getData(nodeRegisteredPath, null, stat);
+                  sdata = new String(data);
+                  if(LOG.isDebugEnabled())
+                      LOG.debug("Checking server [" + server + "] data [" + sdata + "]" );
+                  if (sdata.startsWith(Constants.AVAILABLE) || sdata.startsWith(Constants.STARTING))
+                      break;
+               }
+             }
+          
+            serverHostName=(String)attributes.get(Constants.HOST_NAME);
+            serverInstance=(Integer)attributes.get(Constants.INSTANCE);
+            
+            timestamp=(Long)attributes.get(Constants.TIMESTAMP);
+            serverNodeId=(Integer)attributes.get(Constants.NODE_ID);
+            serverProcessId=(Integer)attributes.get(Constants.PROCESS_ID);
+            serverProcessName=(String)attributes.get(Constants.PROCESS_NAME);
+            serverIpAddress=(String)attributes.get(Constants.IP_ADDRESS);
+            serverPort=(Integer)attributes.get(Constants.PORT);
+            
+            if(LOG.isDebugEnabled()){
+                LOG.debug(clientSocketAddress + ": " + "serverHostName " + serverHostName );
+                LOG.debug(clientSocketAddress + ": " + "serverInstance " + serverInstance );
+                LOG.debug(clientSocketAddress + ": " + "serverNodeId " + serverNodeId );
+                LOG.debug(clientSocketAddress + ": " + "serverProcessId " + serverProcessId);
+                LOG.debug(clientSocketAddress + ": " + "serverProcessName " + serverProcessName );
+                LOG.debug(clientSocketAddress + ": " + "serverIpAddress " + serverIpAddress );
+                LOG.debug(clientSocketAddress + ": " + "serverPort " + serverPort );
+                LOG.debug(clientSocketAddress + ": " + "timestamp " + timestamp );
             }
-        } catch (KeeperException.NodeExistsException e) {
+            
+            dialogueId = random.nextInt();
+            dialogueId = (dialogueId < 0 )? -dialogueId : dialogueId;
+            if(LOG.isDebugEnabled())
+                LOG.debug(clientSocketAddress + ": " + "dialogueId: " + dialogueId);
+            data = Bytes.toBytes(String.format("CONNECTING:%d:%d:%d:%d:%s:%s:%d:%s:%s:%s:%s:%s:%s:%d:",
+                    timestamp,              //1
+                    dialogueId,             //2 
+                    serverNodeId,           //3
+                    serverProcessId,        //4
+                    serverProcessName,      //5
+                    serverIpAddress,        //6
+                    serverPort,             //7
+                    cc.computerName,        //8 
+                    clientSocketAddress,    //10,11 
+                    cc.windowText,          //12
+                    cc.getSla(),            //13
+                    cc.getConnectProfile(), //14
+                    cc.getDisconnectProfile(), //15
+                    cc.getLastUpdate()      //16
+                    ));
+            nodeRegisteredPath = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED + "/" + server;
+            zkc.setData(nodeRegisteredPath, data, -1);
+            if(LOG.isDebugEnabled()){
+                LOG.debug("nodeRegisteredPath :" + nodeRegisteredPath);
+                LOG.debug("data :" + new String(data));
+            }
+            while(true){
+                data = zkc.getData(nodeRegisteredPath, null, stat);
+                sdata = new String(data);
+                if(sdata.startsWith(Constants.CONNECTING))
+                    break;
+                Thread.sleep(100);;
+            }
+
+         } catch (KeeperException.NodeExistsException e) {
             LOG.error(clientSocketAddress + ": " + "do nothing...some other server has created znodes: " + e.getMessage());
             exceptionThrown = true;
-        } catch (KeeperException e) {
+         } catch (KeeperException e) {
             LOG.error(clientSocketAddress + ": " + "KeeperException: " + e.getMessage());
             exceptionThrown = true;
-        } catch (InterruptedException e) {
+         } catch (InterruptedException e) {
             LOG.error(clientSocketAddress + ": " + "InterruptedException: " + e.getMessage());
             exceptionThrown = true;
-        } catch (IOException ie){
+         } catch (IOException ie){
             LOG.error(clientSocketAddress + ": " + ie.getMessage());
             exceptionThrown = true;
-        }
-        if (found == false || exceptionThrown == true){
+         }
+         if (exceptionThrown == true){
             exception.exception_nr = ListenerConstants.DcsMasterNoSrvrHdl_exn; //no available servers
             replyException = true;
-            if (found == false)
+            if (cc.isAvailable()|| cc.isLimit()|| cc.isThroughput())
                 LOG.error(clientSocketAddress + ": " + "No Available Servers");
             else
                 LOG.error(clientSocketAddress + ": " + "No Available Servers - exception thrown");
@@ -294,32 +311,45 @@ class ConnectReply {
                 LOG.debug(clientSocketAddress + ": " + "windowText: " + cc.windowText);
                 LOG.debug(clientSocketAddress + ": " + "dataSource: " + dataSource);
                 LOG.debug(clientSocketAddress + ": " + "client computer name:ipaddress:port " + cc.computerName+ ":" + clientSocketAddress);
+                LOG.debug(clientSocketAddress + ": " + "sla :" + cc.getSla());
+                LOG.debug(clientSocketAddress + ": " + "connectProfile :" + cc.getConnectProfile());
+                LOG.debug(clientSocketAddress + ": " + "disconnectProfile :" + cc.getDisconnectProfile());
+                LOG.debug(clientSocketAddress + ": " + "profile Last Update :" + cc.getLastUpdate());
             }
-
             userSid = new String(cc.user.userName).getBytes("UTF-8");
-
             isoMapping = 0;
-            StringTokenizer st = new StringTokenizer(serverHostName, ".");
-            if(st.hasMoreTokens()) {
-                clusterName = String.format("%s_%s", st.nextToken(), cc.client);
-            }
-            else {
-                clusterName = String.format("%s_%s", serverHostName, cc.client);
-            }
+            clusterName = serverHostName + "-" + cc.client;
             if(LOG.isDebugEnabled())
                 LOG.debug(clientSocketAddress + ": " + "clusterName " + clusterName );
         }
     return replyException;
     }
-    
-	private byte[] isServerAvailable(String serverPath) throws KeeperException, InterruptedException {
-        Stat stat = zkc.exists(serverPath,false);
-        if(stat != null){
-            byte[] data = zkc.getData(serverPath, false, stat);
-            if(data != null && new String(data).startsWith("AVAILABLE:")){
-            	return data;
-            }
+
+    static <K, V> Entry<K, V> randEntry(Iterator<Entry<K, V>> it, int count) {
+        int index = (int) (Math.random() * count);
+
+        while (index > 0 && it.hasNext()) {
+            it.next();
+            index--;
         }
-		return null;
-	}
+
+        return it.next();
+    }
+
+    static <K, V> Entry<K, V> randEntry(Set<Entry<K, V>> entries) {
+        return randEntry(entries.iterator(), entries.size());
+    }
+
+    static <K, V> Entry<K, V> randEntry(Map<K, V> map) {
+        return randEntry(map.entrySet());
+    }
+
+    static <K, V> K randEntryKey(Map<K, V> map) {
+        return randEntry(map).getKey();
+    }
+
+    static <K, V> V randEntryValue(Map<K, V> map) {
+        return randEntry(map).getValue();
+    }
+
 }

@@ -66,6 +66,8 @@ public class EDLoader extends Thread {
 	public static volatile boolean option_debug = false;
 	public static volatile boolean option_responsecurve = false;
 	public static volatile boolean option_perstreamsummary = false;
+        public static volatile boolean option_aligned = false;
+        public static volatile boolean option_monarch = false;
 
 	public static volatile int number_of_streams = 1;
 	public static volatile int number_of_intervals = VERY_LONG_TIME;
@@ -538,6 +540,15 @@ public class EDLoader extends Thread {
 						sql_statement = sql_statement + " hbase_options ( compression = 'LZ4')";
 					}
 
+                                 	if ( option_aligned) {
+						sql_statement = sql_statement + " attribute aligned format ";
+						if ( option_monarch) {
+							sql_statement = sql_statement + ", storage monarch ";
+						}
+					}
+					if ( option_monarch) {
+						sql_statement = sql_statement + " attribute storage monarch ";
+					}
 				}
 
 				if ( option_trace ) { System.out.println(" " + sql_statement); }
@@ -1738,10 +1749,12 @@ public class EDLoader extends Thread {
 				+ "     commitsize <commitsize> : Disable Autocommit and commit every <commitsize> rows_added.\n"
 				+ "     salt <saltsize> : Create the table with salting.\n"
 				+ "     compression : Create the table with compression.\n"
+				+ "     aligned : Create each table with aligned format attribute.\n"
+                                + "     monarch : Create each table with monarch storage  attribute.\n"
 				+ "     upsert : Use upsert syntax instead of insert syntax.\n"
 				+ "     usingload : Use using load syntax in insert/upsert.\n"
 				+ "     randomload : Will load in a random permutations of key values.\n"
-				+ "     intervallength <length_of_interval> : Lenght of reporting interval in seconds.(Default 10)\n"
+				+ "     intervallength <length_of_interval> : Length of reporting interval in seconds.(Default 10)\n"
 				+ "     trace : Enable Statement Tracing.\n"
 				+ "     debug : Enable Debug Tracing.\n"
 				;
@@ -1790,6 +1803,8 @@ public class EDLoader extends Thread {
 					case "usingload": option_usingload = true; break;
 					case "salt": saltsize = Integer.parseInt(args[++indx]); option_salt = true; break;
 					case "compression": option_compression = true; break;
+					case "aligned": option_aligned = true; break;
+					case "monarch": option_monarch = true; break;
 					case "randomload": option_randomload = true; break;
 					case "intervals": number_of_intervals = Integer.parseInt(args[++indx]); break;
 					case "intervallength": length_of_interval = Integer.parseInt(args[++indx]); break;
@@ -1856,7 +1871,7 @@ public class EDLoader extends Thread {
 			if (option_createschema) { System.out.println("   " + String.format("%16s", "CreateSchema" ) + " : " + option_createschema); }
 			if (option_create) { System.out.println("   " + String.format("%16s", "Create" ) + " : " + option_create); }
 			if (option_delete) { System.out.println("   " + String.format("%16s", "Delete" ) + " : " + option_delete); }
-			if (option_maintain) { System.out.println("   " + String.format("%16s", "Maintian" ) + " : " + option_maintain); }
+			if (option_maintain) { System.out.println("   " + String.format("%16s", "Maintain" ) + " : " + option_maintain); }
 			if (option_check) { System.out.println("   " + String.format("%16s", "Check" ) + " : " + option_check); }
 			if (option_load) { System.out.println("   " + String.format("%16s", "Load" ) + " : " + option_load); }
 
@@ -1867,6 +1882,8 @@ public class EDLoader extends Thread {
 			if (option_usingload) { System.out.println("   " + String.format("%16s", "UsingLoad" ) + " : " + option_usingload); }
 			if (option_salt) { System.out.println("   " + String.format("%16s", "Salt" ) + " : " + saltsize); }
 			if (option_compression) { System.out.println("   " + String.format("%16s", "Compression" ) + " : " + option_compression); }
+			if (option_aligned) { System.out.println("   " + String.format("%16s", "Aligned" ) + " : " + option_aligned); }
+			if (option_monarch) { System.out.println("   " + String.format("%16s", "Monarch" ) + " : " + option_monarch); }
 			if (option_randomload) { System.out.println("   " + String.format("%16s", "RandomLoad" ) + " : " + option_randomload); }
 
 			if ( number_of_intervals != VERY_LONG_TIME ) { System.out.println("   " + String.format("%16s", "Intervals" ) + " : " + number_of_intervals); }

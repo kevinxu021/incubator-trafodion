@@ -960,9 +960,13 @@ public:
   PerformanceGoal* getResourcePerformanceGoal() const { return resourcePerformanceGoal_; }
 
 
+  ULng32 getNumESPsPerNodePerQuery() const { return numESPsPerNodePerQuery_; }
+
 protected:
    NABoolean InitCostVariables();
    void CleanupCostVariables();
+
+  void computeNumESPsPerNodePerQuery(const RequiredResources* requiredResources);
 
 private:
   optLevelEnum optLevel_;
@@ -1186,6 +1190,10 @@ private:
   // purge data
   Lng32 requiredESPs_;
               
+  // number of ESPs per node per query, set during resource estimation 
+  // OptDefaults::estimateRequiredResources().
+  ULng32 numESPsPerNodePerQuery_;
+
   const IndexDesc* requiredScanDescForFastDelete_;
 
   NABoolean isSideTreeInsert_;
@@ -1193,6 +1201,7 @@ private:
   CostWeight* defaultCostWeight_;
   PerformanceGoal* defaultPerformanceGoal_;
   PerformanceGoal* resourcePerformanceGoal_;
+
 
   CollHeap* heap_;
 }; // class OptDefaults
@@ -1656,6 +1665,7 @@ public:
   inline RuleSubset &triedEnforcerRules() { return triedEnforcerRules_; }
   inline RuleSubset &ignoredRules() { return ignoreTheseRules_; }
 
+  virtual void display() { print(); };
   virtual void print (FILE * f = stdout,
 		      const char * prefix = "",
 		      const char * suffix = "") const;

@@ -17,6 +17,16 @@ public class SystemQueryCache {
 	public static final String GET_PROCESS_PSTACK = "GET_PROCESS_PSTACK";
 	public static final String GET_DCS_SUMMARY = "GET_DCS_SUMMARY";
 
+	public static final String WMS_GET_PROFILES = "WMS_GET_PROFILES";
+	public static final String WMS_GET_SLAS = "WMS_GET_SLAS";
+	public static final String WMS_GET_MAPPINGS = "WMS_GET_MAPPINGS";
+	public static final String WMS_ADD_ALTER_PROFILE = "WMS_ADD_ALTER_PROFILE";
+	public static final String WMS_DELETE_PROFILE = "WMS_DELETE_PROFILE";
+	public static final String WMS_ADD_ALTER_SLA = "WMS_ADD_ALTER_SLA";
+	public static final String WMS_DELETE_SLA = "WMS_DELETE_SLA";
+	public static final String WMS_ADD_ALTER_MAPPING = "WMS_ADD_ALTER_MAPPING";
+	public static final String WMS_DELETE_MAPPING = "WMS_DELETE_MAPPING";
+
 	public static final String SELECT_SCHEMAS = "SELECT_SCHEMAS";
 	public static final String SELECT_SCHEMA_ATTRIBUTES = "SELECT_SCHEMA_ATTRIBUTES";
 	public static final String SELECT_SCHEMA_OBJECTS = "SELECT_SCHEMA_OBJECTS";

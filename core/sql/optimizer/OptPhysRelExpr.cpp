@@ -4137,6 +4137,18 @@ NestedJoin::getClusteringIndexPartFuncForRightChild() const
   return NULL;
 }
 
+const NATable* NestedJoin::getNATableForRightChild() const
+{
+   const SET(IndexDesc *) &availIndexes=
+        child(1).getGroupAttr()->getAvailableBtreeIndexes();
+
+   if ( availIndexes.entries() == 0 )
+     return NULL;
+   else
+     return availIndexes[0]->getPrimaryTableDesc()->getNATable();
+}
+
+
 NABoolean 
 NestedJoin::checkCompleteSortOrder(const PhysicalProperty* sppForChild0)
 {
@@ -4449,7 +4461,7 @@ Context* NestedJoin::createContextForAChild(Context* myContext,
                // of prefix of inner child clustering key by join columns, local
                // predicates and and constant expressions
              )
-           ) AND OCBJoinIsFeasible(myContext)
+           ) AND OCBJoinIsFeasible(myContext) 
          )
         {
           OCBJoinIsConsidered = TRUE;
@@ -4548,6 +4560,12 @@ Context* NestedJoin::createContextForAChild(Context* myContext,
        (!getReqdOrder().entries() || njPws->getFastLoadIntoTrafodion())  &&
         CURRSTMT_OPTDEFAULTS->orderedWritesForNJ()
      )
+    shutDownPlan0 = TRUE;
+
+  // if it is NJ into a partitioned hive table, shut down plan0
+  const NATable* naTable = getNATableForRightChild();
+  if ( naTable && naTable->isHiveTable() && 
+       naTable->getClusteringIndex()->isPartitioned() )
     shutDownPlan0 = TRUE;
 
   // ---------------------------------------------------------------------
@@ -5004,82 +5022,105 @@ Context* NestedJoin::createContextForAChild(Context* myContext,
       // sort order from the right side to the left).
       if ( OCRJoinIsConsideredInCase2 )
       {
-         PartitioningFunction * innerTablePartFunc = 
-              getClusteringIndexPartFuncForRightChild(); 
-
-         ValueIdMap map(getOriginalEquiJoinExpressions());
-
-         // remap the right part func to the left (up)
-         PartitioningFunction *rightPartFunc = 
-              innerTablePartFunc -> copyAndRemap(map, TRUE);
-  
          Lng32 childNumPartsRequirement = njPws->getChildNumPartsRequirement();
+         PartitioningRequirement* partReqForChild = NULL;
 
-         // Scale down the number of partitions if necessary so that 
-         // childNUmPartsrequirement evenly divides the # of partitions
-         // of the rightPartFunc. We can do so because OCR works with
-         // hash2 partitioned table only and hash2 has the nice 
-         // property: 
-         //
-         // If down-scaling factor is x (x>1), then a row flows from 
-         // the outer table of partition p will land in one of the 
-         // partitions in the inner table ranging from partition  
-         // (p-1)x to partition p x. If rep-n partitioning function is 
-         // choosen for the inner table, the # of partitions that each
-         // outer table partition will drive is x. Since open operations
-         // are on-demand in nature, we will not open all (xp) partitions
-         // for each outer table partition.
+         const NATable* naTable = getNATableForRightChild();
+         if ( naTable && getNATableForRightChild()->isHiveTable() ) {
+
+          // produce a requirement of hash2(rand, childNumPartsRequirement)
+          ItemExpr *randNum = new(CmpCommon::statementHeap()) RandomNum(NULL, TRUE);
+          randNum->synthTypeAndValueId();
+
+          ValueIdSet partKey;
+          partKey.insert(randNum->getValueId());
+
+          ValueIdList partKeyList(partKey);
+
+          Hash2PartitioningFunction* partFunc = new(CmpCommon::statementHeap())
+            Hash2PartitioningFunction(partKey,
+                                    partKeyList,
+                                    childNumPartsRequirement,
+                                    NULL);
+
+           partReqForChild = new(CmpCommon::statementHeap()) RequireHash2(partFunc);
          
-         // Use the original inner table part func if down-scaling fails.
-         if ( rightPartFunc ->
-             scaleNumberOfPartitions(childNumPartsRequirement) == FALSE ) 
-           rightPartFunc = innerTablePartFunc;
-
-         Int32 antiskewSkewEsps =
-            (Int32)CmpCommon::getDefaultNumeric(NESTED_JOINS_ANTISKEW_ESPS);
-
-         if ( antiskewSkewEsps > 0 ) {
-            ValueIdSet joinPreds = getOriginalEquiJoinExpressions().getTopValues();
-
-            double threshold = defs.getAsDouble(SKEW_SENSITIVITY_THRESHOLD) / rppForMe->getCountOfPipelines();
-
-            SkewedValueList* skList = NULL;
-
-            // If the join is on a skewed set of columns from the left child,
-            // then generate the skew data partitioning requirement to deal
-            // with skew.
-
-            // We ignore whether the nested join probe cache is applicable here
-            // because we want to deal with both the ESP and DP2 skew, Probe
-            // cache can deal with DP2 skew, but not the ESP skew.
-            if ( childNodeContainSkew(0, joinPreds, threshold, &skList) )
-            {
-              Lng32 cop = rightPartFunc->getCountOfPartitions();
-
-              antiskewSkewEsps = MINOF(cop, antiskewSkewEsps);
-
-              rightPartFunc = new (CmpCommon::statementHeap())
-                     SkewedDataPartitioningFunction(
-                         rightPartFunc,
-                         skewProperty(skewProperty::UNIFORM_DISTRIBUTE,
-                                      skList, antiskewSkewEsps)
-                                                   );
-            }
-         }
-
-         
-         // Produce the part requirement for the outer child from
-         // the part function of the inner child.
-         PartitioningRequirement* partReqForChild
-             = rightPartFunc->makePartitioningRequirement();
+         } else {
+            PartitioningFunction * innerTablePartFunc = 
+                 getClusteringIndexPartFuncForRightChild(); 
    
+            ValueIdMap map(getOriginalEquiJoinExpressions());
+   
+            // remap the right part func to the left (up)
+            PartitioningFunction *rightPartFunc = 
+                 innerTablePartFunc -> copyAndRemap(map, TRUE);
+     
+   
+            // Scale down the number of partitions if necessary so that 
+            // childNUmPartsrequirement evenly divides the # of partitions
+            // of the rightPartFunc. We can do so because OCR works with
+            // hash2 partitioned table only and hash2 has the nice 
+            // property: 
+            //
+            // If down-scaling factor is x (x>1), then a row flows from 
+            // the outer table of partition p will land in one of the 
+            // partitions in the inner table ranging from partition  
+            // (p-1)x to partition p x. If rep-n partitioning function is 
+            // choosen for the inner table, the # of partitions that each
+            // outer table partition will drive is x. Since open operations
+            // are on-demand in nature, we will not open all (xp) partitions
+            // for each outer table partition.
+            
+            // Use the original inner table part func if down-scaling fails.
+            if ( rightPartFunc ->
+                scaleNumberOfPartitions(childNumPartsRequirement) == FALSE ) 
+              rightPartFunc = innerTablePartFunc;
+   
+            Int32 antiskewSkewEsps =
+               (Int32)CmpCommon::getDefaultNumeric(NESTED_JOINS_ANTISKEW_ESPS);
+   
+            if ( antiskewSkewEsps > 0 ) {
+               ValueIdSet joinPreds = getOriginalEquiJoinExpressions().getTopValues();
+   
+               double threshold = defs.getAsDouble(SKEW_SENSITIVITY_THRESHOLD) / rppForMe->getCountOfPipelines();
+   
+               SkewedValueList* skList = NULL;
+   
+               // If the join is on a skewed set of columns from the left child,
+               // then generate the skew data partitioning requirement to deal
+               // with skew.
+   
+               // We ignore whether the nested join probe cache is applicable here
+               // because we want to deal with both the ESP and DP2 skew, Probe
+               // cache can deal with DP2 skew, but not the ESP skew.
+               if ( childNodeContainSkew(0, joinPreds, threshold, &skList) )
+               {
+                 Lng32 cop = rightPartFunc->getCountOfPartitions();
+   
+                 antiskewSkewEsps = MINOF(cop, antiskewSkewEsps);
+   
+                 rightPartFunc = new (CmpCommon::statementHeap())
+                        SkewedDataPartitioningFunction(
+                            rightPartFunc,
+                            skewProperty(skewProperty::UNIFORM_DISTRIBUTE,
+                                         skList, antiskewSkewEsps)
+                                                      );
+               }
+            }
+   
+            
+            // Produce the part requirement for the outer child from
+            // the part function of the inner child.
+            partReqForChild = rightPartFunc->makePartitioningRequirement();
+         }
+      
          // Now, add in the partitioning requirement for the
          // outer child.
          RequirementGenerator rg(child(0), rppForMe);
          rg.removeAllPartitioningRequirements();
-         rg.addPartRequirement(partReqForChild);
-   
-   
+          rg.addPartRequirement(partReqForChild);
+      
+
          if (rg.checkFeasibility())
          {
            // Produce the required physical properties.
@@ -6124,11 +6165,20 @@ NABoolean NestedJoin::OCBJoinIsFeasible(const Context* myContext) const
 
     PartitioningFunction *rightPartFunc = NULL;
     Lng32 numOfESPs = rppForMe->getCountOfPipelines();
+
+    const NATable* naTable = getNATableForRightChild();
+    // OCB into hive tables is not allowed because NJ into hive is
+    // implmented as plan 0 and 1. It is also incorrect because each
+    // ESP may access all partitions of the hive table.
+    if ( naTable && naTable->isHiveTable() )
+       return FALSE;
+
     const SET(IndexDesc *) &availIndexes=
       child(1).getGroupAttr()->getAvailableBtreeIndexes();
 
     for (CollIndex i = 0; i < availIndexes.entries(); i++)
     {
+
       rightPartFunc = availIndexes[i]->getPartitioningFunction();
 
       if ( rightPartFunc )
@@ -6253,17 +6303,25 @@ NABoolean NestedJoin::OCRJoinIsFeasible(const Context* myContext)  const
   // inner (correctness).
   if ( JoinPredicateCoversChild1PartKey() == FALSE )
      return FALSE;
-
-   PartitioningFunction *rightPartFunc =
+  
+  PartitioningFunction *rightPartFunc =
          getClusteringIndexPartFuncForRightChild();
-
-  // Do not consider OCR if the inner is not hash2 partitioned
-   if ( rightPartFunc->isAHash2PartitioningFunction() == FALSE )
-      return FALSE;
 
   // Do not consider OCR if the inner is single partitioned
   if ( rightPartFunc->getCountOfPartitions() == 1 )
      return FALSE;
+
+  // If NJ into hive tables, allow OCR anyway.
+  const NATable* naTable = getNATableForRightChild();
+
+  if ( naTable && naTable->isHiveTable() )
+     return TRUE;
+
+  // No Hive cases resume here.
+  // Do not consider OCR if the inner is not hash2 partitioned
+  if ( rightPartFunc->isAHash2PartitioningFunction() == FALSE )
+      return FALSE;
+
 
   // IF N2Js, which demand opens, are not to be disabled, make sure 
   // OCR is allowed only if the threshold of #opens is reached.
@@ -8603,7 +8661,7 @@ Context* HashJoin::createContextForAChild(Context* myContext,
   // Only repartitioning plans are allowed for Full Outer Join. That is
   // because, broadcast is not compatible with it. Hence, no need to cut
   // down on the number of plans to consider. Keep childPlansToConsider at 6.
-
+ 
   if ((NOT isFullOuterJoin())
       AND (
 	   (rppForMe->getCountOfPipelines() == 1) OR
@@ -12406,37 +12464,8 @@ Context* RelRoot::createContextForAChild(Context* myContext,
 
     // final adjustment to countOfCPUs and pipelinesPerCPU - special cases
     // 
-    // Check CQD EXE_PARALLEL_PURGEDATA and do the #esp = #partition parallel
-    // plan when the CQD is not set to OFF. See ExeUtilFastDelete::bindNode()
-    // on legal values for the CQD.
+    RelExpr* x = child(0).getGroupAttr()->getLogExprForSynthesis();
 
-       RelExpr* x = child(0).getGroupAttr()->getLogExprForSynthesis();
-
-    if (CmpCommon::getDefault(EXE_PARALLEL_PURGEDATA) != DF_OFF)
-    {
-
-       if ( x && x->getOperatorType() == REL_UNARY_DELETE && 
-            ((Delete*)x)->isFastDelete() // fast delete is turned on 
-                                         // for DELETE USING PURGEDATA FROM <t>
-          ) 
-       {
-          PartitioningFunction *pf = ((Delete*)x)->getScanIndexDesc()
-                                                 ->getPartitioningFunction();
-
-          const NodeMap* np;
-          if ( pf && (np = pf->getNodeMap()) && np->getNumEntries() > 1 ) {
-             // set countOfCPUs to the number of partitions 
-             UInt32 partns = np->getNumEntries();
-             countOfCPUs = partns;
-             pipelinesPerCPU = 1;
-             CURRSTMT_OPTDEFAULTS->setRequiredESPs(partns);
-             CURRSTMT_OPTDEFAULTS->setRequiredScanDescForFastDelete(
-                                ((Delete*)x)->getScanIndexDesc());
-             canAdjustDoP = FALSE;
-          }
-       } 
-    }
-          
     // for multi-commit DELETE (expressed as DELETE WITH MULTI COMMIT FROM <t>)
     if ( containsLRU() ) 
     {
@@ -13063,7 +13092,7 @@ computeDP2CostDataThatDependsOnSPP(
        PartitioningFunction &physicalPartFunc //in/out
        ,DP2CostDataThatDependsOnSPP &dp2CostInfo //out
        ,const IndexDesc& indexDesc
-       ,const ScanKey& partKey
+       ,const ScanKey* partKey
        ,GroupAttributes &scanGroupAttr
        ,const Context& myContext
        ,NAMemory *heap
@@ -13119,7 +13148,7 @@ computeDP2CostDataThatDependsOnSPP(
   // -----------------------------------------------------------------------
   dp2CostInfo.setRepeatCountForOperatorsInDP2(
      (myContext.getInputLogProp()->getResultCardinality()).minCsOne());
-
+     
    // check if we are doing updates
   if (scan.getOperator().match(REL_ANY_LEAF_GEN_UPDATE) ||
       scan.getOperator().match(REL_ANY_UNARY_GEN_UPDATE) )
@@ -13137,6 +13166,7 @@ computeDP2CostDataThatDependsOnSPP(
       // ------------------------------------------------------------
 
       if ( physicalPartFunc.isARangePartitioningFunction() AND
+           partKey AND
            ( (scan.getOperatorType() == REL_FILE_SCAN) OR
              (scan.getOperatorType() == REL_HBASE_ACCESS)
            )
@@ -13151,7 +13181,7 @@ computeDP2CostDataThatDependsOnSPP(
 
           // Get the key columns from the partKey since the
           // part key in the part. func. contains veg references.
-          const ValueIdList& partKeyList = partKey.getKeyColumns();
+          const ValueIdList& partKeyList = partKey->getKeyColumns();
 
           ColumnOrderList keyPredsByCol(partKeyList);
 
@@ -13160,8 +13190,8 @@ computeDP2CostDataThatDependsOnSPP(
           // $$$ When we add support for Mdam to the PA this
           // $$$ will need to change to support several
           // $$$ disjuncts. See AP doc for algorithm.
-          CMPASSERT(partKey.getKeyDisjunctEntries() == 1);
-          partKey.getKeyPredicatesByColumn(keyPredsByCol,0);
+          CMPASSERT(partKey->getKeyDisjunctEntries() == 1);
+          partKey->getKeyPredicatesByColumn(keyPredsByCol,0);
 
           //But we only care about the leading column now...
           // $$$ Revisit when multicol. hists. are added
@@ -13446,6 +13476,7 @@ computeDP2CostDataThatDependsOnSPP(
         } // if we have range partitioning
       else
         if ( ( physicalPartFunc.isATableHashPartitioningFunction() AND
+               partKey AND
                (scan.getOperatorType() == REL_FILE_SCAN)
              ) OR
              ( indexDesc.isPartitioned() AND
@@ -13480,7 +13511,7 @@ computeDP2CostDataThatDependsOnSPP(
 
           // Get the key columns from the partKey since the
           // part key in the part. func. contains VEG references.
-          const ValueIdList& partKeyList = partKey.getKeyColumns();
+          const ValueIdList& partKeyList = partKey->getKeyColumns();
 
           ColumnOrderList keyPredsByCol(partKeyList);
 
@@ -13489,10 +13520,10 @@ computeDP2CostDataThatDependsOnSPP(
           // $$$ When we add support for Mdam to the PA this
           // $$$ will need to change to support several
           // $$$ disjuncts.
-          CMPASSERT(partKey.getKeyDisjunctEntries() == 1);
+          CMPASSERT(partKey->getKeyDisjunctEntries() == 1);
 
 	  // populate keyPredsByCol with predicates
-	  partKey.getKeyPredicatesByColumn(keyPredsByCol);
+	  partKey->getKeyPredicatesByColumn(keyPredsByCol);
 
           ULng32 keyColsCoveredByNJPredOrConst = 0;
 	  ULng32 keyColsCoveredByConst = 0;
@@ -13804,7 +13835,7 @@ PhysicalProperty * RelExpr::synthDP2PhysicalProperty(
   computeDP2CostDataThatDependsOnSPP(*physicalPartFunc // in/out
                                      ,dp2CostInfo //out
                                      ,*indexDesc // in
-                                     ,*partSearchKey // in
+                                     ,partSearchKey // in
                                      ,*getGroupAttr() //in
                                      ,*myContext // in
                                      ,CmpCommon::statementHeap() // in
@@ -14528,6 +14559,7 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   PartitioningFunction * ixDescPartFunc = indexDesc_->getPartitioningFunction();
   Lng32 numESPs = 1;
 
+
   // CQDs related to # of ESPs for a Hive table scan
   double bytesPerESP = getDefaultAsDouble(HIVE_MIN_BYTES_PER_ESP_PARTITION);
   Lng32 maxESPs = getDefaultAsLong(HIVE_MAX_ESPS);
@@ -14535,7 +14567,12 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   Lng32 numSQNodes = HHDFSMasterHostList::getNumSQNodes();
 
   // minimum # of ESPs required by the parent
-  Lng32 minESPs = (partReq ?  partReq->getCountOfPartitions() : 1);
+  Lng32 minESPs;
+
+  if ( partReq )
+     minESPs = partReq->getCountOfPartitions();
+  else 
+     minESPs = 1;
 
   if (partReq && partReq->castToRequireApproximatelyNPartitions())
     minESPs = partReq->castToRequireApproximatelyNPartitions()->
@@ -14572,7 +14609,7 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
 
     // adjust minESPs based on HIVE_MIN_BYTES_PER_ESP_PARTITION CQD
     if (bytesPerESP > 1.01) {
-      Int64 totalSize = hiveSearchKey_->getTotalSize();
+      Int64 totalSize = hiveSearchKey_->getTotalSize(); // TBD: exclude eliminated partitions
       numESPsBasedOnTotalSize = totalSize/(bytesPerESP-1.0);
     }
 
@@ -14648,8 +14685,8 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   NodeMap* myNodeMap = NULL;
 
   //
-  // Setup partKeys_, iff the hive table is clustered, sorted and in ORC format, or
-  // indexKey is present. In the frst case, the tables are created with the DDL 
+  // Setup partKeys_, iff the hive table is clustered and in ORC format, or
+  // indexKey is present. In the first case, the tables are created with the DDL 
   // similar to the following.
   //
   // create table store_sorted_orc
@@ -14660,19 +14697,12 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   // )
   // clustered by (s_store_sk) sorted by (s_store_sk, s_rec_start_date, s_rec_end_date) into 2 buckets;
   //
-  // Note that the clustered and the sorted by clause must appear together.
-  //
-  // We require ORC tables because it is possible to implement the search key through 
-  // ORC predicate pushdown.
+  // Note that the sorted by clause is only allowed together with the clustered by clause.
   //
   // Inside the compiler, 
   //     clustering columns: IndexDesc::getPartitioningKey()
-  //     sorted columns:     Indexdesc::getIndexKey()
+  //     sorted columns:     Indexdesc::getHiveSortKey()
   //
-  //NABoolean canUseSearchKey =  indexDesc_->isSortedORCHive() ;
-
-  NABoolean canUseSearchKey = ( indexDesc_->isSortedORCHive() ||
-                                indexDesc_->getIndexKey().entries() > 0 );
 
   const RequireReplicateNoBroadcast* rpnb = NULL;
   // If the requirement is repN, produce a repN partition func to satisfy it.
@@ -14745,21 +14775,22 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
 
       myPartFunc->createPartitioningKeyPredicates();
 
-      if ( canUseSearchKey ) {
+      if (indexDesc_->getPartitioningKey().entries() > 0) {
           ValueIdSet externalInputs = getGroupAttr()->getCharacteristicInputs();
           ValueIdSet dummySet;
   
-          // Create and set the Searchkey for the index key (aka those columns in the sorted by clause):
-           partKeys_ =  new (CmpCommon::statementHeap())
-                           SearchKey(indexDesc_->getIndexKey(), 
-                                      indexDesc_->getOrderOfKeyValues(), // the order of the index key
-                                      externalInputs,
-                                      NOT getReverseScan(),
-                                      selectionPred(),
-                                      *disjunctsPtr_,
-                                      dummySet, // needed by interface but not used here
-                                      indexDesc_
-                                      );
+          // Create and set the Searchkey for the partitioning key
+          // (aka those columns in the CLUSTERED BY clause):
+          partKeys_ =  new (CmpCommon::statementHeap())
+                           SearchKey(indexDesc_->getPartitioningKey(), 
+                                     indexDesc_->getOrderOfPartitioningKeyValues(),
+                                     externalInputs,
+                                     NOT getReverseScan(),
+                                     selectionPred(),
+                                     *disjunctsPtr_,
+                                     dummySet, // needed by interface but not used here
+                                     indexDesc_
+                                     );
       }
     }
   else
@@ -14773,61 +14804,47 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
         SinglePartitionPartitioningFunction(myNodeMap);
     }
 
+  sppForMe =
+    new(CmpCommon::statementHeap())
+    PhysicalProperty(sortOrderVEG,
+                     ESP_NO_SORT_SOT,
+                     NULL, /* no dp2 part func*/
+                     myPartFunc,
+                     EXECUTE_IN_MASTER_AND_ESP,
+                     SOURCE_VIRTUAL_TABLE);
+
+  // remove anything that's not covered by the group attributes
+  sppForMe->enforceCoverageByGroupAttributes (getGroupAttr()) ;
  
-  if ( !canUseSearchKey ) {
-     // create a very simple physical property for now, no sort order
-     // and no partitioning key for now
-     sppForMe = new(CmpCommon::statementHeap()) PhysicalProperty(myPartFunc,
-                                                                 location);
-  } else {
-     sppForMe =
-       new(CmpCommon::statementHeap())
-       PhysicalProperty(sortOrderVEG,
-                        ESP_NO_SORT_SOT,
-                        NULL, /* no dp2 part func*/
-                        myPartFunc,
-                        EXECUTE_IN_MASTER_AND_ESP,
-                        SOURCE_VIRTUAL_TABLE);
+  // -----------------------------------------------------------------------
+  // Vector to put all costing data that is computed at synthesis time
+  // Make it a local variable for now. If we ever reach the end of
+  // this routine create a variable from the heap, initialize it with this,
+  // and then set the sppForMe slot.
+  // -----------------------------------------------------------------------
+  DP2CostDataThatDependsOnSPP dp2CostInfo;
+  // ---------------------------------------------------------------------
+  // Estimate the number of active partitions and other costing
+  // data that depends on SPP:
+  // ---------------------------------------------------------------------
+ 
+  computeDP2CostDataThatDependsOnSPP(*myPartFunc   // in/out
+                                     ,dp2CostInfo //out
+                                     ,*indexDesc_ // in
+                                     ,partKeys_ // in
+                                     ,*getGroupAttr() //in
+                                     ,*context // in
+                                     ,CmpCommon::statementHeap() // in
+                                     , *this
+                                     );
 
-
-     // remove anything that's not covered by the group attributes
-     sppForMe->enforceCoverageByGroupAttributes (getGroupAttr()) ;
+  DP2CostDataThatDependsOnSPP *dp2CostInfoPtr =
+    new HEAP DP2CostDataThatDependsOnSPP(dp2CostInfo);
+  sppForMe->setDP2CostThatDependsOnSPP(dp2CostInfoPtr);
+ 
+  sppForMe->setCurrentCountOfCPUs(dp2CostInfo.getCountOfCPUsExecutingDP2s());
    
-     // -----------------------------------------------------------------------
-     // Vector to put all costing data that is computed at synthesis time
-     // Make it a local variable for now. If we ever reach the end of
-     // this routine create a variable from the heap, initialize it with this,
-     // and then set the sppForMe slot.
-     // -----------------------------------------------------------------------
-     DP2CostDataThatDependsOnSPP dp2CostInfo;
-     // ---------------------------------------------------------------------
-     // Estimate the number of active partitions and other costing
-     // data that depends on SPP:
-     // ---------------------------------------------------------------------
-   
-     computeDP2CostDataThatDependsOnSPP(*myPartFunc   // in/out
-                                        ,dp2CostInfo //out
-                                        ,*indexDesc_ // in
-                                        ,*partKeys_ // in
-                                        ,*getGroupAttr() //in
-                                        ,*context // in
-                                        ,CmpCommon::statementHeap() // in
-                                        , *this
-                                        );
-   
-     DP2CostDataThatDependsOnSPP *dp2CostInfoPtr =
-       new HEAP DP2CostDataThatDependsOnSPP(dp2CostInfo);
-     sppForMe->setDP2CostThatDependsOnSPP(dp2CostInfoPtr);
-   
-     sppForMe->setCurrentCountOfCPUs(dp2CostInfo.getCountOfCPUsExecutingDP2s());
-   
-   
-     //FILE* fd = fopen("nodemap.log", "a");
-     //myNodeMap->print(fd, "", "hiveNodeMap");
-     //fclose(fd);
-   }
-   
-   return sppForMe;
+  return sppForMe;
 }
 
 RangePartitionBoundaries * createRangePartitionBoundariesFromStats 
@@ -15014,62 +15031,109 @@ PhysicalProperty * FileScan::synthHbaseScanPhysicalProperty(
      // Compute the desirable #ESPs first
      //////////////////////////////////////
    
-     // minimum # of ESPs required by the parent
-     Lng32 minESPs = (partReq ? 
-                       partReq->getCountOfPartitions() : 
-                       CURRSTMT_OPTDEFAULTS->getMaximumDegreeOfParallelism());
+     // minimum and maximum # of ESPs required by the parent
+     Lng32 minESPs = 0;
+     Lng32 maxESPs = 0;
+           
+     NABoolean canFreelyAdjustDoP = TRUE;
+
+     if (partReq) {
+        minESPs = partReq->getCountOfPartitions();
+        maxESPs = partReq->getCountOfPartitions();
+        canFreelyAdjustDoP = FALSE;
+
+        if (partReq->castToRequireApproximatelyNPartitions()) {
+           minESPs = partReq->castToRequireApproximatelyNPartitions()->
+                                          getCountOfPartitionsLowBound();
+           canFreelyAdjustDoP = TRUE;
+        } else { 
+
+           if (partReq->castToFuzzyPartitioningRequirement() &&
+               ANY_NUMBER_OF_PARTITIONS == minESPs )
+           {
+              canFreelyAdjustDoP = TRUE;
+           } 
+        }
+
+     } else {
+        minESPs = CURRSTMT_OPTDEFAULTS->getMaximumDegreeOfParallelism();
+        maxESPs = rppForMe->getCountOfPipelines();
+     }
+
    
-     if (partReq && partReq->castToRequireApproximatelyNPartitions())
-       minESPs = partReq->castToRequireApproximatelyNPartitions()->
-                                                getCountOfPartitionsLowBound();
-   
-   
-     Lng32 maxESPs = 1;
      NADefaults &defs = ActiveSchemaDB()->getDefaults();
    
      // check for ATTEMPT_ESP_PARALLELISM CQD
      if ( !(CURRSTMT_OPTDEFAULTS->attemptESPParallelism() == DF_OFF) ) {
-        // CQDs related to # of ESPs for a HBase table scan
-        maxESPs = getDefaultAsLong(HBASE_MAX_ESPS);
 
-        Int32 numOfPartitions = -1;
+        Int32 numOfPartitions = 1; // assume single partitioned table
 
         if ( ixDescPartFunc ) 
            numOfPartitions = ixDescPartFunc->getCountOfPartitions();  
 
-        if ( maxESPs == 0 && minESPs <= numOfPartitions ) {
-           minESPs = maxESPs = numOfPartitions;
-        } else {
-           NABoolean fakeEnv = FALSE; 
-           CollIndex totalESPsAllowed = defs.getTotalNumOfESPsInCluster(fakeEnv);
+        NABoolean fakeEnv = FALSE; 
+        CollIndex totalESPsAllowed = defs.getTotalNumOfESPsInCluster(fakeEnv);
+
+        if ( !fakeEnv ) {
+
+           // compute the scan size at the scan level 
+           const CostScalar rowCount = getTuplesProcessed();
+           const CostScalar scanSize = rowCount * 
+                        (indexDesc_->getNAFileSet()->getRecordLength());
+
+           // if the # of tuples processed is unknown, use the output at the scan
+           if ( rowCount == 0.0 ) {
+              rowCount = getGroupAttr()->getResultCardinalityForEmptyInput();
+              scanSize = rowCount * getGroupAttr()->getRecordLength();
+           }  
+
+           // Get the threshold in MB of using # of partitions as the scan dop.
+           // Default value is 10MB.
+           Lng32 numPartitionsAsDopThreshold = 
+                  getDefaultAsLong(HBASE_SCAN_DOP_AS_PARTITIONS_THRESHOLD)
+                  * 1024 * 1024;
+   
+           // If canFreelyAdjustDoP is TRUE, the table is partitioned 
+           // and the table size is over the threashold, use 
+           // the number of partitions of the table as the scan dop.
+           if (canFreelyAdjustDoP ) {
+
+             if ( numOfPartitions > 1 &&
+                  numPartitionsAsDopThreshold >= 0 &&
+                  scanSize >= numPartitionsAsDopThreshold )
+             {
+                minESPs = maxESPs = numOfPartitions;
+             } else {
       
-           if ( !fakeEnv ) {
-              // limit the number of ESPs to max(totalESPsAllowed, HBASE_MAX_ESPS)
-               maxESPs = MAXOF(MINOF(totalESPsAllowed, maxESPs),1);
+               // CQDs related to # of ESPs for a HBase table scan
+               Lng32 maxESPsByUser = getDefaultAsLong(HBASE_MAX_ESPS);
+               // limit it to MAX(totalESPsAllowed, HBASE_MAX_ESPS)
+               maxESPs = MAXOF(totalESPsAllowed, maxESPsByUser);
    
-              if (!partReq && minESPs == 1) {
-                minESPs = rppForMe->getCountOfPipelines();
+               if (ixDescPartFunc && 
+                   (CmpCommon::getDefault(LIMIT_HBASE_SCAN_DOP) == DF_ON)) 
+               {
+                  minESPs = MINOF(minESPs, numOfPartitions);
+               }
    
-                if (ixDescPartFunc && (CmpCommon::getDefault(LIMIT_HBASE_SCAN_DOP) == DF_ON)) {
-                   minESPs = MINOF(minESPs, ixDescPartFunc->getCountOfPartitions());
-                }
-   
-              }
-   
-              if ( getDefaultAsLong(AFFINITY_VALUE) != -2 && ixDescPartFunc ) {
-                 Int32 numOfUniqueNodes = 
+               if ( getDefaultAsLong(AFFINITY_VALUE) != -2 && 
+                    ixDescPartFunc ) 
+               {
+                  Int32 numOfUniqueNodes = 
                      ixDescPartFunc->getNodeMap()->getNumberOfUniqueNodes();
    
-                 // #ESPs performing reading from HBase tables is capped at by 
-                 // the # of unique nodes or region servers.
-                 if ( numOfUniqueNodes > 0 )
-                    minESPs = MINOF(minESPs, numOfUniqueNodes);
+                  // #ESPs performing reading from HBase tables is capped at by 
+                  // the # of unique nodes or region servers.
+                  if ( numOfUniqueNodes > 0 )
+                     minESPs = MINOF(minESPs, numOfUniqueNodes);
+                 }
               }
            }
-           else  {
-              maxESPs = totalESPsAllowed;
-           }
+        } else  {
+           minESPs = maxESPs = totalESPsAllowed; // forced dop case
         }
+     } else {
+        maxESPs = minESPs = 1; // ESP parallelism is off
      }
    
      numESPs = MINOF(minESPs, maxESPs);
@@ -15232,7 +15296,7 @@ PhysicalProperty * FileScan::synthHbaseScanPhysicalProperty(
   computeDP2CostDataThatDependsOnSPP(*myPartFunc   // in/out
                                      ,dp2CostInfo //out
                                      ,*indexDesc_ // in
-                                     ,*partKeys_ // in
+                                     ,partKeys_ // in
                                      ,*getGroupAttr() //in
                                      ,*context // in
                                      ,CmpCommon::statementHeap() // in
@@ -15249,6 +15313,8 @@ PhysicalProperty * FileScan::synthHbaseScanPhysicalProperty(
 }
 
 //<pb>
+
+
 
 // -----------------------------------------------------------------------
 // FileScan::costMethod()
@@ -15328,8 +15394,7 @@ FileScan::synthPhysicalProperty(const Context* myContext,
   // Note on sort order for Hive tables:
   //
   // If the Hive table key is (INPUT__RANGE__NUMBER, ROW__NUMBER__IN__RANGE)
-  // then we can consider the key as sorted. This still has to be implemented
-  // for ORC tables.
+  // then we can consider the key as sorted.
   //
   // We could use also use sort orders, if the following conditions are met
   // (this is still TBD, could be done in synthHiveScanPhysicalProperty()):

@@ -302,7 +302,7 @@ public class HiveClient {
   //                   e.g. "p1=1,p2=two"
   public void createHiveTablePartition(String schemaName,
                                        String tableName,
-                                       String partitionString) throws Exception
+                                       String partitionString) throws IOException
   {
     if (logger.isDebugEnabled()) logger.debug("HiveClient.createHiveTablePartition(" + schemaName
                                               + ", " + tableName
@@ -318,8 +318,8 @@ public class HiveClient {
     }
     catch (Exception e)
     {
-      if (logger.isDebugEnabled()) logger.debug("HiveClient.createHiveTablePartition() -- exception: " + e);
-      throw e;
+      if (logger.isDebugEnabled()) logger.debug("HiveClient.createHiveTablePartition() -- exception: ", e);
+      throw new IOException(e);
     }
     if (logger.isDebugEnabled()) logger.debug("HiveClient.createHiveTablePartition() - success");
     

@@ -11,14 +11,14 @@
 
 --- SQL operation complete.
 >>
->>cqd HDFS_IO_BUFFERSIZE '3';
+>>cqd HDFS_IO_BUFFERSIZE '5';
 
 --- SQL operation complete.
 >>obey TEST002(tests);
 >>--------------------------------------------------------------------------
 >>
 >>log;
-hdfsBufSize_ = 3072, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 8
+hdfsBufSize_ = 5120, rangeTailIOSize_ = 20760, hdfsSqlMaxRecLen_ = 8
 >>select count(*) from customer ;
 
 (EXPR)              
@@ -142,7 +142,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>--------------------------------------------------------------------------
 >>
 >>log;
-hdfsBufSize_ = 32768, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 8
+hdfsBufSize_ = 32768, rangeTailIOSize_ = 20760, hdfsSqlMaxRecLen_ = 8
 >>select count(*) from customer ;
 
 (EXPR)              

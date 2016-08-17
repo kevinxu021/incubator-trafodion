@@ -281,7 +281,7 @@ class HSHiveTableDef : public HSTableDef
     Int64 getRowCount(NABoolean &isEstimate, NABoolean estimateIfNecessary = TRUE)
       {
         const HHDFSTableStats *tableStats = getHHDFSTableStats();
-        if ( tableStats->getTotalRows() >= 0 ) {
+        if ( getNATable()->isORC() ) {
           isEstimate = FALSE; // ORC
           return tableStats->getTotalRows();
         } else { 

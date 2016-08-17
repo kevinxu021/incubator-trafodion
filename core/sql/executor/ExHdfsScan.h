@@ -307,7 +307,6 @@ protected:
   struct ComTdbHdfsVirtCols *virtColData_; // pointer to data for virtual columns
 
   hdfsFile hdfsFp_;
-  hdfsFS hdfsFs_;     // shallow copy from cliGlobals.
 
   void * lobGlob_;
 
@@ -343,6 +342,7 @@ protected:
   NABoolean checkRangeDelimiter_;
 
   NABoolean dataModCheckDone_;
+  ComDiagsArea * loggingErrorDiags_;
 };
 
 #define RANGE_DELIMITER '\002'

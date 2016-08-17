@@ -78,7 +78,7 @@ typedef          Int32          ComSInt32;
 #define MAX_HARDWARE_SUPPORTED_SIGNED_NUMERIC_PRECISION 18
 
 //Unsigned NUMERICs upto this range are supported by hardware.
-#define MAX_HARDWARE_SUPPORTED_UNSIGNED_NUMERIC_PRECISION 9
+#define MAX_HARDWARE_SUPPORTED_UNSIGNED_NUMERIC_PRECISION 20
 
 typedef NAString                ComString;
 
@@ -153,6 +153,7 @@ typedef NABoolean               ComBoolean;
 #define SEABASE_SEQ_GEN          "SEQ_GEN"
 #define SEABASE_TABLES            "TABLES"
 #define SEABASE_TABLE_CONSTRAINTS "TABLE_CONSTRAINTS"
+#define SEABASE_TABLE_CONSTRAINTS_IDX "TABLE_CONSTRAINTS_IDX"
 #define SEABASE_TEXT            "TEXT"
 #define SEABASE_UNIQUE_REF_CONSTR_USAGE "UNIQUE_REF_CONSTR_USAGE"
 #define SEABASE_VIEWS              "VIEWS"
@@ -191,8 +192,11 @@ typedef NABoolean               ComBoolean;
 // length of explain_plan column in metric_query_table.
 // explain_plan greater than this length are chunked and store in multiple
 // rows in metric_text_table
-#define REPOS_MAX_EXPLAIN_PLAN_LEN 200000
-#define REPOS_MAX_EXPLAIN_PLAN_LEN_STR "200000"
+// Note: This symbol is used in the DDL for the Repository tables.
+// If you change it, consider whether the Repository tables will need
+// an upgrade. See file sqlcomp/CmpSeabaseDDLrepos.h.
+#define REPOS_MAX_EXPLAIN_PLAN_LEN 1000000
+#define REPOS_MAX_EXPLAIN_PLAN_LEN_STR "1000000"
 
 /******    *****/
 enum ComActivationTime { COM_UNKNOWN_TIME, COM_BEFORE , COM_AFTER };
@@ -643,7 +647,8 @@ enum ComTextType {COM_VIEW_TEXT = 0,
                   COM_TABLE_COMMENT_TEXT = 3,
                   COM_COMPUTED_COL_TEXT = 4,
                   COM_HBASE_COL_FAMILY_TEXT = 5,
-                  COM_HBASE_SPLIT_TEXT = 6
+                  COM_HBASE_SPLIT_TEXT = 6,
+                  COM_STORED_DESC_TEXT = 7
 };
 
 enum ComColumnDirection { COM_UNKNOWN_DIRECTION
@@ -800,6 +805,8 @@ enum ComFSDataType { COM_UNKNOWN_FSDT              = -1
                    , COM_VCHAR_FSDT                = REC_BYTE_V_ASCII
                    , COM_VCHAR_DBL_FSDT            = REC_BYTE_V_DOUBLE
                    , COM_VCHAR_LONG_FSDT           = REC_BYTE_V_ASCII_LONG
+                   , COM_SIGNED_BIN8_FSDT          = REC_BIN8_SIGNED
+                   , COM_UNSIGNED_BIN8_FSDT        = REC_BIN8_UNSIGNED
                    , COM_SIGNED_BIN16_FSDT         = REC_BIN16_SIGNED
                    , COM_UNSIGNED_BIN16_FSDT       = REC_BIN16_UNSIGNED
                    , COM_SIGNED_BIN32_FSDT         = REC_BIN32_SIGNED
@@ -815,6 +822,8 @@ enum ComFSDataType { COM_UNKNOWN_FSDT              = -1
 
 		   , COM_BLOB                      = REC_BLOB
 		   , COM_CLOB                      = REC_CLOB
+
+                   , COM_BOOLEAN                   = REC_BOOLEAN
 
                    , COM_DATETIME_FSDT             = REC_DATETIME
                    , COM_INTERVAL_MIN_FSDT         = REC_MIN_INTERVAL
@@ -997,11 +1006,14 @@ enum ComODBCDataType { COM_UNKNOWN_ODT
                      , COM_LONG_VARCHAR_ODT
                      , COM_NUMERIC_SIGNED_ODT
                      , COM_NUMERIC_UNSIGNED_ODT
+                     , COM_TINYINT_SIGNED_ODT
+                     , COM_TINYINT_UNSIGNED_ODT
                      , COM_SMALLINT_SIGNED_ODT
                      , COM_SMALLINT_UNSIGNED_ODT
                      , COM_INTEGER_SIGNED_ODT
                      , COM_INTEGER_UNSIGNED_ODT
                      , COM_LARGEINT_SIGNED_ODT
+                     , COM_LARGEINT_UNSIGNED_ODT
                      , COM_BIGINT_SIGNED_ODT
                      , COM_FLOAT_ODT
                      , COM_REAL_ODT
@@ -1012,6 +1024,7 @@ enum ComODBCDataType { COM_UNKNOWN_ODT
                      , COM_LARGE_DECIMAL_UNSIGNED_ODT
 		     , COM_BLOB_ODT
 		     , COM_CLOB_ODT
+		     , COM_BOOLEAN_ODT
                      , COM_DATETIME_ODT
                      , COM_TIMESTAMP_ODT
                      , COM_DATE_ODT
@@ -1025,11 +1038,14 @@ enum ComODBCDataType { COM_UNKNOWN_ODT
 #define COM_LONG_VARCHAR_ODT_LIT               "LONG VARCHAR      "
 #define COM_NUMERIC_SIGNED_ODT_LIT             "SIGNED NUMERIC    "
 #define COM_NUMERIC_UNSIGNED_ODT_LIT           "UNSIGNED NUMERIC  "
+#define COM_TINYINT_SIGNED_ODT_LIT             "SIGNED TINYINT    "
+#define COM_TINYINT_UNSIGNED_ODT_LIT           "UNSIGNED TINYINT  "
 #define COM_SMALLINT_SIGNED_ODT_LIT            "SIGNED SMALLINT   "
 #define COM_SMALLINT_UNSIGNED_ODT_LIT          "UNSIGNED SMALLINT "
 #define COM_INTEGER_SIGNED_ODT_LIT             "SIGNED INTEGER    "
 #define COM_INTEGER_UNSIGNED_ODT_LIT           "UNSIGNED INTEGER  "
 #define COM_LARGEINT_SIGNED_ODT_LIT            "SIGNED LARGEINT   "
+#define COM_LARGEINT_UNSIGNED_ODT_LIT          "UNSIGNED LARGEINT "
 #define COM_BIGINT_SIGNED_ODT_LIT              "SIGNED BIGINT     "
 #define COM_FLOAT_ODT_LIT                      "FLOAT             "
 #define COM_REAL_ODT_LIT                       "REAL              "
@@ -1043,6 +1059,7 @@ enum ComODBCDataType { COM_UNKNOWN_ODT
 #define COM_INTERVAL_ODT_LIT                   "INTERVAL          "
 #define COM_BLOB_ODT_LIT                       "BLOB              "
 #define COM_CLOB_ODT_LIT                       "CLOB              "
+#define COM_BOOLEAN_ODT_LIT                    "BOOLEAN           "
 
 enum ComAccessPathType  { COM_UNKNOWN_ACCESS_PATH_TYPE
                         , COM_BASE_TABLE_TYPE
@@ -1552,11 +1569,14 @@ enum ComSQLDataType { COM_UNKNOWN_SDT
                     , COM_BPINT_UNSIGNED_SDT
                     , COM_NUMERIC_SIGNED_SDT
                     , COM_NUMERIC_UNSIGNED_SDT
+                    , COM_TINYINT_SIGNED_SDT
+                    , COM_TINYINT_UNSIGNED_SDT
                     , COM_SMALLINT_SIGNED_SDT
                     , COM_SMALLINT_UNSIGNED_SDT
                     , COM_INTEGER_SIGNED_SDT
                     , COM_INTEGER_UNSIGNED_SDT
                     , COM_LARGEINT_SIGNED_SDT
+                    , COM_LARGEINT_UNSIGNED_SDT
                     , COM_FLOAT_SDT
                     , COM_REAL_SDT
                     , COM_DOUBLE_SDT
@@ -1566,6 +1586,7 @@ enum ComSQLDataType { COM_UNKNOWN_SDT
                     , COM_LARGE_DECIMAL_UNSIGNED_SDT
 		    , COM_BLOB_SDT
 		    , COM_CLOB_SDT
+		    , COM_BOOLEAN_SDT
                     , COM_DATETIME_SDT
                     , COM_TIMESTAMP_SDT
                     , COM_DATE_SDT
@@ -1579,12 +1600,15 @@ enum ComSQLDataType { COM_UNKNOWN_SDT
 #define COM_LONG_VARCHAR_SDT_LIT               "LONG VARCHAR      "
 #define COM_NUMERIC_SIGNED_SDT_LIT             "SIGNED NUMERIC    "
 #define COM_NUMERIC_UNSIGNED_SDT_LIT           "UNSIGNED NUMERIC  "
+#define COM_TINYINT_SIGNED_SDT_LIT             "SIGNED TINYINT   "
+#define COM_TINYINT_UNSIGNED_SDT_LIT           "UNSIGNED TINYINT "
 #define COM_SMALLINT_SIGNED_SDT_LIT            "SIGNED SMALLINT   "
 #define COM_SMALLINT_UNSIGNED_SDT_LIT          "UNSIGNED SMALLINT "
 #define COM_INTEGER_SIGNED_SDT_LIT             "SIGNED INTEGER    "
 #define COM_INTEGER_UNSIGNED_SDT_LIT           "UNSIGNED INTEGER  "
 #define COM_BPINT_UNSIGNED_SDT_LIT             "UNSIGNED BP INT   "
 #define COM_LARGEINT_SIGNED_SDT_LIT            "SIGNED LARGEINT   "
+#define COM_LARGEINT_UNSIGNED_SDT_LIT          "UNSIGNED LARGEINT "
 #define COM_FLOAT_SDT_LIT                      "FLOAT             "
 #define COM_REAL_SDT_LIT                       "REAL              "
 #define COM_DOUBLE_SDT_LIT                     "DOUBLE            "
@@ -1597,6 +1621,7 @@ enum ComSQLDataType { COM_UNKNOWN_SDT
 #define COM_INTERVAL_SDT_LIT                   "INTERVAL          "
 #define COM_BLOB_SDT_LIT                       "BLOB              "
 #define COM_CLOB_SDT_LIT                       "CLOB              "
+#define COM_BOOLEAN_SDT_LIT                    "BOOLEAN           "
 
 enum ComViewCheckOption { COM_UNKNOWN_CHECK_OPTION
                         , COM_CASCADE_CHECK_OPTION
@@ -1747,6 +1772,13 @@ enum ComReplType
   { COM_REPL_NONE =  0,    // no replication
     COM_REPL_SYNC =  1,    // synchronized replication during IUD query
     COM_REPL_ASYNC = 2     // asyn replication at a later time
+  };
+
+// storage system of a trafodion table
+enum ComStorageType
+  {
+    COM_STORAGE_HBASE = 0,
+    COM_STORAGE_MONARCH = 1
   };
 
 // DDL Operation literals

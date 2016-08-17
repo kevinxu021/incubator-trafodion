@@ -1756,8 +1756,7 @@ RelExpr * RelRoot::preCodeGen(Generator * generator,
             }
 
 
-	  if ((CmpCommon::getDefault(EID_SPACE_USAGE_OPT) == DF_ON) &&
-	      (NOT generator->downrevCompileNeeded()))
+	  if (CmpCommon::getDefault(EID_SPACE_USAGE_OPT) == DF_ON)
 	    {
 	      generator->setDoEidSpaceUsageOpt(TRUE);
 	    }
@@ -1797,9 +1796,6 @@ RelExpr * RelRoot::preCodeGen(Generator * generator,
 		  generator->oltOptInfo()->setOltEidLeanOpt(TRUE);
 		}
 	    }
-
-	  if (generator->downrevCompileNeeded())
-	    generator->oltOptInfo()->setOltEidLeanOpt(FALSE);
 
 	  if (CmpCommon::getDefault(OLT_QUERY_OPT_LEAN) == DF_OFF)
 	    generator->oltOptInfo()->setOltEidLeanOpt(FALSE);
@@ -2784,17 +2780,17 @@ RelExpr * ExeUtilExpr::preCodeGen(Generator * generator,
   return this;
 }
 
-// returns true if the whole ddl operation can run in one transaction
-// and transaction can be started by caller(master executor or arkcmp)
-// before executing this ddl.
+// xnCanBeStarted is set to true if the whole ddl operation can run in one transaction
+// It is set to false, then the DDL implementation methods manages the transaction
 short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
 {
   ExprNode * ddlNode = getDDLNode();
 
   xnCanBeStarted = TRUE;
-  // no DDL transactions.
-  if ((NOT ddlXns()) &&
-      ((dropHbase()) ||
+  // When the DDL transaction is not turned on via CQD
+  if (NOT ddlXns()) 
+  { 
+     if ((dropHbase()) ||
        (purgedataHbase()) ||
        (initHbase()) ||
        (createMDViews()) ||
@@ -2809,14 +2805,13 @@ short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
        (backup()) ||
        (restore()) ||
        (unlockTraf()) ||
-       (updateVersion())))
-    {
-      // transaction will be started and commited in called methods.
-      xnCanBeStarted = FALSE;
-    }
+       (updateVersion()))
+     {
+        // transaction will be started and commited in called methods.
+         xnCanBeStarted = FALSE;
+     }
   
-  // no DDL transactions
-  if (((ddlNode) && (ddlNode->castToStmtDDLNode()) &&
+     if (((ddlNode) && (ddlNode->castToStmtDDLNode()) &&
        (NOT ddlNode->castToStmtDDLNode()->ddlXns())) &&
       ((ddlNode->getOperatorType() == DDL_DROP_SCHEMA) ||
        (ddlNode->getOperatorType() == DDL_CLEANUP_OBJECTS) ||
@@ -2828,47 +2823,39 @@ short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
        (ddlNode->getOperatorType() == DDL_ALTER_TABLE_DROP_COLUMN) ||
        (ddlNode->getOperatorType() == DDL_ALTER_TABLE_ALTER_COLUMN_DATATYPE) ||
        (ddlNode->getOperatorType() == DDL_DROP_TABLE)))
-    {
-      // transaction will be started and commited in called methods.
-      xnCanBeStarted = FALSE;
-    }
+     {
+        // transaction will be started and commited in called methods.
+        xnCanBeStarted = FALSE;
+     }
+     isDDLxn = FALSE;
+  }
+  else  // When the DDL transaction is turned on
+  {
+     isDDLxn = FALSE;
+     if (ddlNode && ddlNode->castToStmtDDLNode() &&
+        ddlNode->castToStmtDDLNode()->ddlXns())
+     isDDLxn = TRUE;
 
-  isDDLxn = FALSE;
-  if ((ddlXns()) || 
-      ((ddlNode && ddlNode->castToStmtDDLNode() &&
-        ddlNode->castToStmtDDLNode()->ddlXns())))
-    isDDLxn = TRUE;
-
-  // ddl transactions are on.
-  // Following commands currently require transactions be started and
-  // committed in the called methods.
-  if ((ddlXns()) &&
-      (
-           (purgedataHbase()) ||
-           (backup()) ||
-           (restore()) ||
-           (unlockTraf()) ||
-           (upgradeRepos())
-       )
-      )
-    {
-      // transaction will be started and commited in called methods.
-      xnCanBeStarted = FALSE;
-    }
-
-  // ddl transactions are on.
-  // Cleanup and alter commands requires transactions to be started and commited
-  // in the called method.
-  if ((ddlNode && ddlNode->castToStmtDDLNode() &&
-       ddlNode->castToStmtDDLNode()->ddlXns()) &&
-      ((ddlNode->getOperatorType() == DDL_CLEANUP_OBJECTS) ||
-       (ddlNode->getOperatorType() == DDL_ALTER_TABLE_DROP_COLUMN) ||
-       (ddlNode->getOperatorType() == DDL_ALTER_TABLE_ALTER_COLUMN_DATATYPE)))
-    {
-      // transaction will be started and commited in called methods.
-      xnCanBeStarted = FALSE;
-    }
-
+     if (purgedataHbase() || upgradeRepos())
+        // transaction will be started and commited in called methods.
+        xnCanBeStarted = FALSE;
+     
+     if(backup() || restore() || unlockTraf())
+    	 xnCanBeStarted = FALSE;
+     
+     if ((ddlNode && ddlNode->castToStmtDDLNode() &&
+          ddlNode->castToStmtDDLNode()->ddlXns()) &&
+            ((ddlNode->getOperatorType() == DDL_CLEANUP_OBJECTS) ||
+             (ddlNode->getOperatorType() == DDL_ALTER_TABLE_DROP_COLUMN) ||
+             (ddlNode->getOperatorType() == DDL_ALTER_SCHEMA) ||
+             (ddlNode->getOperatorType() == DDL_CREATE_INDEX) ||
+             (ddlNode->getOperatorType() == DDL_POPULATE_INDEX) ||
+             (ddlNode->getOperatorType() == DDL_ALTER_TABLE_ALTER_COLUMN_DATATYPE)))
+     {
+        // transaction will be started and commited in called methods.
+        xnCanBeStarted = FALSE;
+     }
+  } 
   return 0;
 }
 
@@ -2882,7 +2869,8 @@ RelExpr * DDLExpr::preCodeGen(Generator * generator,
   if (! GenericUtilExpr::preCodeGen(generator,externalInputs,pulledNewInputs))
     return NULL;
   
-  if (specialDDL())
+  if ((specialDDL()) ||
+      (initHbase_))
     {
       generator->setAqrEnabled(FALSE);
     }
@@ -3570,18 +3558,6 @@ RelExpr * HashJoin::preCodeGen(Generator * generator,
 
   if (hjp.isEmpty())
   {
-    if (generator->downrevCompileNeeded())
-      {
-	// This is a cartesian product.
-	// create a join predicate " 1 = 1 " which will always be true.
-	//
-	ItemExpr *left = new(generator->wHeap()) ConstValue(1);
-	ItemExpr *right = new(generator->wHeap()) ConstValue(1);
-
-	BiRelat *pred = new(generator->wHeap()) BiRelat(ITM_EQUAL,left,right);
-	pred->bindNode(generator->getBindWA());
-	newJoinPreds.insert(pred->getValueId());
-      }
   }
   else
   {
@@ -3768,10 +3744,14 @@ NABoolean FileScan::processMinMaxKeys(Generator* generator,
     NABoolean minMaxKeyUpdated = FALSE;
     // impossible to satisfy such request.
     if ( !getSearchKey() && updateSearchKeyOnly )
-      return minMaxKeyUpdated;
+      return FALSE;
+
+    // if the table has no index key, bail out.
+    if ( getIndexDesc()->getIndexKey().entries() == 0 )
+      return FALSE;
 
     CollIndex leadKeyIdx = 0;
-    if (getIndexDesc()->getPrimaryTableDesc()->getNATable()->isHbaseTable() &
+    if (getIndexDesc()->getPrimaryTableDesc()->getNATable()->isHbaseTable() &&
         getIndexDesc()->getPrimaryTableDesc()->getNATable()->hasSaltedColumn()) 
     { 
        leadKeyIdx = 1;
@@ -4042,26 +4022,32 @@ NABoolean FileScan::processMinMaxKeys(Generator* generator,
    return minMaxKeyUpdated;
 }
 
-// A simpler version of FileScan::processMinMaxKeys() to use
-// for partition keys. For those, all we need to produce is
-// a set of predicates, no need to update a SearchKey and its
+// A simpler version of FileScan::processMinMaxKeys() to use for
+// partition keys and ORC columns. For those, all we need to produce
+// is a set of predicates, no need to update a SearchKey and its
 // begin/end predicates. Overlap with existing predicates is ok.
-void FileScan::processMinMaxKeysForPartitionCols(
-     Generator* generator, 
+void FileScan::processMinMaxKeysForPartitionAndStripeCols(
+     Generator* generator,
      ValueIdSet& pulledNewInputs,
-     ValueIdSet& availableValues)
+     ValueIdSet& availableValues,
+     NABoolean useORCPushDownPredicates,
+     ValueIdSet &orcMinMaxPredicates)
 {
-  // quick return for non-partitioned tables or if there are no
-  // min/max values
+  // quick return for non-partitioned, non-striped tables or if there
+  // are no min/max values
   if (getHiveSearchKey() == NULL ||
-      getHiveSearchKey()->getPartCols().entries() == 0 ||
       generator->getNumMinMaxVals() == 0 ||
-      CmpCommon::getDefault(HIVE_PARTITION_ELIMINATION_MM) == DF_OFF)
+      ((getHiveSearchKey()->getPartCols().entries() == 0 ||
+        CmpCommon::getDefault(HIVE_PARTITION_ELIMINATION_MM) == DF_OFF) &&
+       !useORCPushDownPredicates)
+      )
     return;
 
   ValueIdSet partitionColumns = getHiveSearchKey()->getPartCols();
+  ValueIdSet stripeColumns;
+
   // predicates on partitioning columns generated by this method
-  ValueIdSet newPredicates;
+  ValueIdSet newPartPredicates;
 
   // Check all the candidate values.  If any one of them matches
   // a partition column of this scan, then select it and
@@ -4071,39 +4057,71 @@ void FileScan::processMinMaxKeysForPartitionCols(
   CollHeap* gheap = generator->wHeap();
   const NABitVector &mmKeyVec = generator->getEnabledMinMaxKeys();
 
+  if (useORCPushDownPredicates)
+    {
+      ValueIdSet virtCols(getHiveSearchKey()->getVirtFileCols());
+      const ValueIdList &ixCols = getIndexDesc()->getIndexColumns();
+      const ValueIdList &vegCols = getTableDesc()->getColumnVEGList();
+
+      // translate the index columns into VEGRefs
+      for (CollIndex i=0; i<ixCols.entries(); i++)
+        {
+          IndexColumn *ixCol = static_cast<IndexColumn *>(ixCols[i].getItemExpr());
+
+          CMPASSERT(ixCol->getOperatorType() == ITM_INDEXCOLUMN);
+          stripeColumns += vegCols[ixCol->getNAColumn()->getPosition()];
+        }
+
+      // remove columns that are not stored in the ORC stripes
+      stripeColumns -= partitionColumns;
+      virtCols.insertList(getHiveSearchKey()->getVirtRowCols());
+      stripeColumns -= virtCols;
+    }
+
   for (CollIndex i = 0; mmKeyVec.nextUsed(i); i++) {
     ValueId mmKeyId = generator->getMinMaxKey(i);
+    NABoolean partColMM = partitionColumns.contains(mmKeyId);
+    NABoolean stripeColMM = stripeColumns.contains(mmKeyId);
 
-    if (partitionColumns.contains(mmKeyId)) {
+    if (partColMM || stripeColMM) {
 
           // Some other operator is producing min/max values
-          // :min, :max for one of our partitioning columns pc.
-          // Make use of that opportunity and generate partition
-          // elimination predicates pc >= :min and pc <= :max.
+          // :min, :max for one of our partitioning/stripe columns
+          // "col". Make use of that opportunity and generate
+          // partition elimination predicates col >= :min and col <=
+          // :max.
 
-          ItemExpr *partCol = mmKeyId.getItemExpr();
+          ItemExpr *col = mmKeyId.getItemExpr();
 
           // Indicate in the 'will use' list that we will use these
           // min/max values.  This will indicate to the HashJoin that
           // it should produce these values.
           generator->setMinMaxKeyToUsed(i);
-          addMinMaxHJColumn(partCol->getValueId());
+          addMinMaxHJColumn(col->getValueId());
 
           // generate the predicates
           ItemExpr *minPred = new (gheap) BiRelat(
                ITM_GREATER_EQ,
-               partCol,
+               col,
                generator->getMinVal(i).getItemExpr());
           ItemExpr *maxPred = new (gheap) BiRelat(
                ITM_LESS_EQ,
-               partCol,
+               col,
                generator->getMaxVal(i).getItemExpr());
 
           minPred->synthTypeAndValueId();
           maxPred->synthTypeAndValueId();
 
-          newPredicates += minPred->getValueId();
-          newPredicates += maxPred->getValueId();
+          if (partColMM)
+            {
+              newPartPredicates += minPred->getValueId();
+              newPartPredicates += maxPred->getValueId();
+            }
+          else if (stripeColMM)
+            {
+              orcMinMaxPredicates += minPred->getValueId();
+              orcMinMaxPredicates += maxPred->getValueId();
+            }
 
           ValueIdSet minMaxValues;
 
@@ -4116,11 +4134,11 @@ void FileScan::processMinMaxKeysForPartitionCols(
           // And we must pull those values from the HashJoin.
           pulledNewInputs += minMaxValues;
           availableValues += minMaxValues;
-    } // have a min/max value for a partitioning column (or columns)
+    } // have a min/max value for a partitioning or stripe column
   } // for loop over enabled min/max keys
 
-  if (newPredicates.entries() > 0)
-    hiveSearchKey_->addRuntimePartColPreds(newPredicates);
+  if (newPartPredicates.entries() > 0)
+    hiveSearchKey_->addRuntimePartColPreds(newPartPredicates);
 }
 
 void FileScan::convertKeyToPredicate(ValueIdList& key, OperatorTypeEnum op, ValueIdSet& preds, CollHeap* heap)
@@ -4151,25 +4169,6 @@ void FileScan::convertKeyToPredicate(ValueIdList& key, OperatorTypeEnum op, Valu
    }
 }
    
-void 
-FileScan::convertBeginKeyKeyToPredicatesForORC(ValueIdSet& preds, CollHeap* heap)
-{
-   ValueIdSet minMaxPreds;
-   ValueIdSet keyCopy(beginKeyPred_);
-   keyCopy.findAllReferencingMinMaxConstants(minMaxPreds);
-   ValueIdList keyListCopy(beginKeyPred_);
-   keyListCopy.removeCoveredExprs(minMaxPreds);
-
-   convertKeyToPredicate(keyListCopy, ITM_GREATER_EQ, preds, heap);
-
-   keyCopy = endKeyPred_;
-   minMaxPreds.clear();
-   keyCopy.findAllReferencingMinMaxConstants(minMaxPreds);
-   keyListCopy = endKeyPred_;
-   keyListCopy.removeCoveredExprs(minMaxPreds);
-   convertKeyToPredicate(keyListCopy, ITM_LESS_EQ, preds, heap);
-}
-
 RelExpr * FileScan::preCodeGen(Generator * generator,
 			       const ValueIdSet & externalInputs,
 			       ValueIdSet &pulledNewInputs)
@@ -4397,6 +4396,9 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
       if (isHiveTable()) {
 
         const HHDFSTableStats* hTabStats = getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
+        NABoolean useORCPushDownPredicates =
+          (hTabStats->isOrcFile() && CmpCommon::getDefault(ORC_PRED_PUSHDOWN) == DF_ON);
+        ValueIdSet orcMinMaxPredicates;
 
         if ( getSearchKey() && getDoUseSearchKey() ) {
        
@@ -4415,46 +4417,39 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
                              replicatePredicates);
         }
 
-         processMinMaxKeysForPartitionCols(
+        processMinMaxKeysForPartitionAndStripeCols(
              generator,
              pulledNewInputs,
-             availableValues);
+             availableValues,
+             useORCPushDownPredicates,
+             orcMinMaxPredicates);
 
         hiveSearchKey_->replaceVEGExpressions(
              availableValues,
              getGroupAttr()->getCharacteristicInputs(),
              &vegPairs); // to be side-affected
 
-        if (( hTabStats->isOrcFile() ) &&
-            (CmpCommon::getDefault(ORC_PRED_PUSHDOWN) == DF_ON) ) {
+        // only needed for EXPLAIN
+        minMaxHJColumns_.replaceVEGExpressions
+          (availableValues,
+           getGroupAttr()->getCharacteristicInputs(),
+           FALSE, // no need for key predicate generation here
+           &vegPairs);
 
-           // Process the min and max keys. The function will alter the
-           // beginKeyPred_ and endKeyPred_ to compute a narrowed version
-           // of begin and end key. Here we set the last argument to FALSE
-           // to side-effect begin/end key predicates only. 
-           NABoolean minMaxKeyUpdated = 
-              processMinMaxKeys(generator, pulledNewInputs, availableValues, FALSE);
-
+        if (useORCPushDownPredicates) {
 
            ValueIdSet locals(selectionPred());
-
-           if ( minMaxKeyUpdated ) { 
-             ValueIdSet minMaxPreds;
-             convertBeginKeyKeyToPredicatesForORC(minMaxPreds, generator->wHeap());
-             locals += minMaxPreds;
-           }
-
            ValueIdSet availableInputs(
                         getGroupAttr()->getCharacteristicInputs());
-   
            ValueIdSet orcPushdownPreds;
 
+           locals += orcMinMaxPredicates;
            locals.replaceVEGExpressions (
    	                 availableValues,
    	                 getGroupAttr()->getCharacteristicInputs(),
    	                 FALSE, // no need for key predicate generation here
-                            &vegPairs, // to be side-affected
-                            TRUE);
+                         &vegPairs, // to be side-affected
+                         TRUE);
    
            locals -= hiveSearchKey_->getPartAndVirtColPreds();
    
@@ -4466,7 +4461,7 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 
            orcPushdownPreds.generatePushdownListForORC(orcListOfPPI_);
 
-        } 
+        }
 
         setExecutorPredicates(selectionPred());
 
@@ -4476,13 +4471,8 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 	  ((NodeMap *) getPartFunc()->getNodeMap()) ->
             assignScanInfosRepN(hiveSearchKey_);
         else {
-          if ( !(hTabStats->isOrcFile()) || 
-               CmpCommon::getDefault(ORC_READ_STRIPE_INFO) == DF_ON)
-            ((NodeMap *) getPartFunc()->getNodeMap()) ->
+          ((NodeMap *) getPartFunc()->getNodeMap()) ->
               assignScanInfos(hiveSearchKey_);
-          else 
-            ((NodeMap*) getPartFunc()->getNodeMap()) -> 
-              assignScanInfosNoSplit(hiveSearchKey_);
         }
       }
 
@@ -4494,13 +4484,17 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 	 &vegPairs,
 	 TRUE);
 
+
       if (isHiveTable()) {
         // subtract predicates that are handled by hiveSearchKey_
         executorPredicates_ -= hiveSearchKey_->getCompileTimePartColPreds();
         executorPredicates_ -= hiveSearchKey_->getPartAndVirtColPreds();
+	// assign individual files and blocks to each ESPs
+        generator->setProcessLOB(TRUE);
       }
     }
 
+  
   // Selection predicates are not needed anymore:
   selectionPred().clear();
 
@@ -5407,6 +5401,10 @@ RelExpr * HbaseDelete::preCodeGen(Generator * generator,
          (NOT generator->isRIinliningForTrafIUD()) &&
          (NOT getTableDesc()->getNATable()->hasLobColumn()))
        uniqueRowsetHbaseOper() = TRUE;
+
+     // TEMP_MONARCH Rowset opers not supported yet.
+     if (getTableDesc()->getNATable()->isMonarch())
+       uniqueRowsetHbaseOper() = FALSE;
   }
   else
   if (isUnique)
@@ -5463,7 +5461,11 @@ RelExpr * HbaseDelete::preCodeGen(Generator * generator,
   // if unique oper with no index maintanence and autocommit is on, then
   // do not require a trnsaction. Hbase guarantees single row consistency.
   Int64 transId = -1;
-  if (((uniqueHbaseOper()) &&
+  if (getTableDesc()->getNATable()->isMonarch())
+    {
+      // TEMP_MONARCH Transactional operations not yet supported
+    }
+  else if (((uniqueHbaseOper()) &&
        (NOT cursorHbaseOper()) &&
        (NOT uniqueRowsetHbaseOper()) &&
        (NOT inlinedActions) &&
@@ -5785,7 +5787,11 @@ RelExpr * HbaseUpdate::preCodeGen(Generator * generator,
   // if unique oper with no index maintanence and autocommit is on, then
   // do not require a transaction. Hbase guarantees single row consistency.
   Int64 transId = -1;
-  if (((uniqueHbaseOper()) &&
+  if (getTableDesc()->getNATable()->isMonarch())
+    {
+      // TEMP_MONARCH Transactional operations not yet supported
+    }
+  else if (((uniqueHbaseOper()) &&
        (NOT isMerge()) &&
        (NOT cursorHbaseOper()) &&
        (NOT uniqueRowsetHbaseOper()) &&
@@ -5877,6 +5883,7 @@ RelExpr * HiveInsert::preCodeGen(Generator * generator,
     return this;
 
   generator->setHiveAccess(TRUE);
+  generator->setProcessLOB(TRUE);
   return GenericUpdate::preCodeGen(generator, externalInputs, pulledNewInputs);
 }
 
@@ -6058,18 +6065,6 @@ RelExpr * HbaseInsert::preCodeGen(Generator * generator,
 		} // lobinsert
 
 	      GenAssert(li, "must have a LobInsert node");
-#ifdef __ignore 
-	      LOBload * ll = new(generator->wHeap()) 
-		LOBload(li->child(0), li->getObj());
-	      ll->insertedTableObjectUID() = li->insertedTableObjectUID();
-	      ll->insertedTableSchemaName() = li->insertedTableSchemaName();
-
-	      ll->lobNum() = col->lobNum();
-	      ll->lobStorageType() = col->lobStorageType();
-	      ll->lobStorageLocation() = col->lobStorageLocation();
-	      ll->bindNode(generator->getBindWA());
-	      lobLoadExpr_.insert(ll->getValueId());
-#endif
 	    } // lob
 	}
     }
@@ -6088,7 +6083,11 @@ RelExpr * HbaseInsert::preCodeGen(Generator * generator,
   // if unique oper with no index maintanence and autocommit is on, then
   // do not require a trnsaction. Hbase guarantees single row consistency.
   Int64 transId = -1;
-  if (((uniqueHbaseOper()) &&
+  if (getTableDesc()->getNATable()->isMonarch())
+    {
+      // TEMP_MONARCH Transactional operations not yet supported
+    }
+  else if (((uniqueHbaseOper()) &&
        (NOT uniqueRowsetHbaseOper()) &&
        (NOT inlinedActions) &&
        (generator->getTransMode()->getAutoCommit() == TransMode::ON_) &&
@@ -6124,6 +6123,16 @@ RelExpr * HbaseInsert::preCodeGen(Generator * generator,
 RelExpr * ExeUtilFastDelete::preCodeGen(Generator * generator,
 					const ValueIdSet & externalInputs,
 					ValueIdSet &pulledNewInputs)
+{
+  if (nodeIsPreCodeGenned())
+    return this;
+
+  return ExeUtilExpr::preCodeGen(generator,externalInputs,pulledNewInputs);
+}
+
+RelExpr * ExeUtilHiveTruncate::preCodeGen(Generator * generator,
+                                          const ValueIdSet & externalInputs,
+                                          ValueIdSet &pulledNewInputs)
 {
   if (nodeIsPreCodeGenned())
     return this;
@@ -6286,7 +6295,10 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
           aggrPushdown = FALSE;
         }
 
-      if (aggrPushdown && isSeabase && (NOT selectionPred().isEmpty()))
+      // TEMP_MONARCH Aggr pushdown not yet supported
+      if (aggrPushdown && isSeabase && 
+          ((NOT selectionPred().isEmpty()) ||
+           (naTable->isMonarch())))
         aggrPushdown = FALSE;
     }
   
@@ -8673,6 +8685,17 @@ ItemExpr * BiArith::preCodeGen(Generator * generator)
   return this;
 } // BiArith::preCodeGen()
 
+ItemExpr * UnArith::preCodeGen(Generator * generator)
+{
+  if (nodeIsPreCodeGenned())
+    return this;
+
+  if (! ItemExpr::preCodeGen(generator))
+    return NULL;
+
+  return this;
+}
+
 ItemExpr * BiLogic::preCodeGen(Generator * generator)
 {
   if (nodeIsPreCodeGenned())
@@ -9040,13 +9063,15 @@ ItemExpr * BiRelat::preCodeGen(Generator * generator)
 
 
   // following is for simple types.
+  const NAType &type1B =
+    child(0)->castToItemExpr()->getValueId().getType();
+  const NAType &type2B =
+    child(1)->castToItemExpr()->getValueId().getType();
 
   SimpleType * attr_op1 = (SimpleType *)
-    (ExpGenerator::convertNATypeToAttributes(
-	 child(0)->getValueId().getType(), generator->wHeap()));
+    (ExpGenerator::convertNATypeToAttributes(type1B, generator->wHeap()));
   SimpleType * attr_op2 = (SimpleType *)
-    (ExpGenerator::convertNATypeToAttributes(
-	 child(1)->getValueId().getType(), generator->wHeap()));
+    (ExpGenerator::convertNATypeToAttributes(type2B, generator->wHeap()));
 
   ex_comp_clause temp_clause;
 
@@ -9054,6 +9079,68 @@ ItemExpr * BiRelat::preCodeGen(Generator * generator)
 			     attr_op1,
 			     attr_op2
 			     );
+
+  if ((temp_clause.get_case_index() == ex_comp_clause::COMP_NOT_SUPPORTED) &&
+      (type1B.getTypeQualifier() == NA_NUMERIC_TYPE) &&
+      (type2B.getTypeQualifier() == NA_NUMERIC_TYPE))
+    {
+      const NumericType &numOp1 = (NumericType&)type1B;
+      const NumericType &numOp2 = (NumericType&)type2B;
+
+      if ((numOp1.isExact() && numOp2.isExact()) &&
+          ((numOp1.getFSDatatype() == REC_BIN64_UNSIGNED) ||
+           (numOp2.getFSDatatype() == REC_BIN64_UNSIGNED)))
+        {
+          if (numOp1.getFSDatatype() == REC_BIN64_UNSIGNED)
+            {
+              // add a Cast node to convert op2 to sqllargeint.
+              ItemExpr * newOp2 =
+                new (generator->wHeap())
+                Cast(child(1),
+                     new (generator->wHeap())
+                     SQLLargeInt(numOp2.isSigned(),
+                                 numOp2.supportsSQLnull()));
+              
+              newOp2 = newOp2->bindNode(generator->getBindWA());
+              newOp2 = newOp2->preCodeGen(generator);
+              if (! newOp2)
+                return NULL;
+              
+              setChild(1, newOp2);
+
+              attr_op2 = (SimpleType *)
+                (ExpGenerator::convertNATypeToAttributes(
+                     newOp2->getValueId().getType(), generator->wHeap()));
+            }
+          else 
+           {
+              // add a Cast node to convert op1 to sqllargeint.
+              ItemExpr * newOp1 =
+                new (generator->wHeap())
+                Cast(child(0),
+                     new (generator->wHeap())
+                     SQLLargeInt(numOp1.isSigned(),
+                                 numOp1.supportsSQLnull()));
+              
+              newOp1 = newOp1->bindNode(generator->getBindWA());
+              newOp1 = newOp1->preCodeGen(generator);
+              if (! newOp1)
+                return NULL;
+              
+              setChild(0, newOp1);
+
+              attr_op1 = (SimpleType *)
+                (ExpGenerator::convertNATypeToAttributes(
+                     newOp1->getValueId().getType(), generator->wHeap()));
+           }
+
+          temp_clause.set_case_index(getOperatorType(),
+                                     attr_op1,
+                                     attr_op2
+                                     );
+        } // convert
+    }
+  
   if (temp_clause.get_case_index() != ex_comp_clause::COMP_NOT_SUPPORTED)
     {
       NABoolean doConstFolding = FALSE;
@@ -9096,7 +9183,7 @@ ItemExpr * BiRelat::preCodeGen(Generator * generator)
                                                        *type_op1,
                                                        *type_op2,
 						       generator->wHeap(),
-                                          &flags);
+                                                       &flags);
   CMPASSERT(result_type);
   if (result_type->getTypeQualifier() == NA_NUMERIC_TYPE)
     {
@@ -9339,43 +9426,13 @@ ItemExpr * Cast::preCodeGen(Generator * generator)
         }
     }
 
-  // Conversion to/from a tandem float type is only supported if
-  // the from/to type is a float type.
-  // If target is a tandem float type and source is not float or
-  // target is not float and source is tandem, then convert source
-  // to ieee float type (ieee double).
-  short srcFsType = child(0)->getValueId().getType().getFSDatatype();
-  short tgtFsType = getValueId().getType().getFSDatatype();
+  if (generator->getExpGenerator()->handleUnsupportedCast(this))
+    return NULL;
 
-  if ((((tgtFsType == REC_TDM_FLOAT32) ||
-	(tgtFsType == REC_TDM_FLOAT64)) &&
-       ! ((srcFsType >= REC_MIN_FLOAT) &&
-	  (srcFsType <= REC_MAX_FLOAT))) ||
-
-      (((srcFsType == REC_TDM_FLOAT32) ||
-	(srcFsType == REC_TDM_FLOAT64)) &&
-       ! ((tgtFsType >= REC_MIN_FLOAT) &&
-	  (tgtFsType <= REC_MAX_FLOAT))))
-    {
-      NAType * intermediateType =
-	new(generator->wHeap()) SQLDoublePrecision(
-	     child(0)->getValueId().getType().supportsSQLnull(),
-	     generator->wHeap());
-
-      // Genesis case 10-040126-9823.
-      // Match the scales of the source with that of the intermediate type. If
-      // this is not done, the cast to the intermediate type does not get scaled
-      // properly, leading to incorrect results.
-      child(0) = generator->getExpGenerator()->matchScales(
-        child(0)->getValueId(), *intermediateType);
-
-      child(0) = new(generator->wHeap()) Cast(child(0),intermediateType);
-
-      child(0)->bindNode(generator->getBindWA());
-
-      sourceTypeQual =
-	child(0)->getValueId().getType().getTypeQualifier();
-    }
+  const NAType &srcNAType = child(0)->getValueId().getType();
+  const NAType &tgtNAType = getValueId().getType();
+  short srcFsType = srcNAType.getFSDatatype();
+  short tgtFsType = tgtNAType.getFSDatatype();
 
   if ((sourceTypeQual == NA_NUMERIC_TYPE) &&
       (targetTypeQual == NA_DATETIME_TYPE))
@@ -9648,8 +9705,6 @@ ItemExpr * Cast::preCodeGen(Generator * generator)
 	    // -----------  ------------   --------------------------
 	    // IEEE 32 bit            38        7
 	    // IEEE 64 bit           308       17
-	    // Tandem 32 bit          78        7
-	    // Tandem 64 bit          78       18
 
 	    if (sourceNumType->getFSDatatype() == REC_IEEE_FLOAT32)
 	      {
@@ -9661,18 +9716,6 @@ ItemExpr * Cast::preCodeGen(Generator * generator)
 	      {
 		intermediatePrecision = 634; // (2 x 308) + 17 + 1 = 634
 		intermediateScale = 324;  // 308 + 17 - 1 = 324
-	      }
-
-	    else if (sourceNumType->getFSDatatype() == REC_TDM_FLOAT32)
-	      {
-		intermediatePrecision = 164; // (2 x 78) + 7 + 1 = 164
-		intermediateScale = 84;  // 78 + 7 - 1 = 84
-	      }
-
-	    else if (sourceNumType->getFSDatatype() == REC_TDM_FLOAT64)
-	      {
-		intermediatePrecision = 175; // (2 x 78) + 18 + 1 = 175
-		intermediateScale = 95;  // 78 + 18 - 1 = 95
 	      }
 
 	    NAType * intermediateType =
@@ -9688,6 +9731,9 @@ ItemExpr * Cast::preCodeGen(Generator * generator)
 	    child(0) = new(generator->wHeap()) Cast(child(0),intermediateType);
 
 	    child(0)->bindNode(generator->getBindWA());
+
+            if (generator->getExpGenerator()->handleUnsupportedCast((Cast*)child(0)->castToItemExpr()))
+              return NULL;
 
 	    // To suppress insertion of multiplying/dividing, mark Cast as
 	    // already pre-code-genned.
@@ -12614,7 +12660,10 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
   ValueIdSet newExePreds;
   ValueIdSet* originExePreds = new (generator->wHeap())ValueIdSet(executorPred()) ;//saved for futur nullable column check
 
-  if (CmpCommon::getDefault(HBASE_FILTER_PREDS) != DF_MINIMUM){ // the check for V2 and above is moved up before calculating retrieved columns
+  // TEMP_MONARCH Pred pushdown not yet supported for monarch
+  if ((NOT getTableDesc()->getNATable()->isMonarch()) &&
+      (CmpCommon::getDefault(HBASE_FILTER_PREDS) != DF_MINIMUM)) { 
+        // the check for V2 and above is moved up before calculating retrieved columns
       if ((NOT isUnique) &&
           (extractHbaseFilterPredsVX(generator, executorPred(), newExePreds)))
         return this;
@@ -12712,7 +12761,10 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
       // value is needed to retrieve a row.
       //only if needed. If there is already a non nullable non added non nullable with default columns in the set, we should not need to add
       //any other columns.
-      if (CmpCommon::getDefault(HBASE_FILTER_PREDS) == DF_MEDIUM && getMdamKeyPtr() == NULL){ //only enable column retrieval optimization with DF_MEDIUM and not for MDAM scan
+      // TEMP_MONARCH Pred pushdown not yet supported for monarch
+      if ((NOT getTableDesc()->getNATable()->isMonarch()) &&
+          (CmpCommon::getDefault(HBASE_FILTER_PREDS) == DF_MEDIUM && getMdamKeyPtr() == NULL)){ 
+        //only enable column retrieval optimization with DF_MEDIUM and not for MDAM scan
           bool needAddingNonNullableColumn = true; //assume we need to add one non nullable column
           for (ValueId vid = retColRefSet_.init();// look for each column in th eresult set if one match the criteria non null non added non nullable with default
                   retColRefSet_.next(vid);
@@ -12790,7 +12842,10 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
   // if hbase filter preds are enabled, then extracts those preds from executorPred()
   // which could be pushed down to hbase.
   // Do this only for non-unique scan access.
-  if (CmpCommon::getDefault(HBASE_FILTER_PREDS) == DF_MINIMUM){ //keep the check for pushdown after column retrieval for pushdown V1.
+  // TEMP_MONARCH Pred pushdown not yet supported for monarch
+  if ((NOT getTableDesc()->getNATable()->isMonarch()) &&
+      (CmpCommon::getDefault(HBASE_FILTER_PREDS) == DF_MINIMUM)){ 
+    //keep the check for pushdown after column retrieval for pushdown V1.
     if ((NOT isUnique) &&
         (extractHbaseFilterPreds(generator, executorPred(), newExePreds)))
       return this;

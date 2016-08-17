@@ -60,6 +60,8 @@ You need to have an approximate idea of  the volume of data being loaded to know
 data needs to be sorted. On a cluster, sort is done on all nodes with a pdsh-like utility.
 {project-name} data volume can also be larger than Hive data volume by a factor of 2 or 3. 
 
+<<<
+
 In step 3, create prep HFiles, use the following command to monitor the volume of data written
 out to the staging directory:
 

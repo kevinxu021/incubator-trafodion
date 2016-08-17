@@ -195,16 +195,17 @@ struct HiveScanInfo
 {
    void print(FILE* ofd, const char* indent, const char* title) const;
 
-  HiveScanInfo(HHDFSFileStats* file=NULL, Int64 off=0, Int64 span=0, NABoolean loc=FALSE,
+  HiveScanInfo(HHDFSFileStats* file=NULL, Int64 off=0, Int64 span=0,
+               Int32 localBlockNum=-1,
                const HHDFSListPartitionStats* partition=NULL,
                const char *partColExplodedValues=NULL)
-       : file_(file), offset_(off), span_(span), isLocal_(loc),
+       : file_(file), offset_(off), span_(span), localBlockNum_(localBlockNum),
          partition_(partition), partColExplodedValues_(partColExplodedValues) {}
      
    HHDFSFileStats* file_;
    Int64 offset_;
    Int64 span_;
-   NABoolean isLocal_;
+   Int32 localBlockNum_;
    const HHDFSListPartitionStats* partition_;
    const char *partColExplodedValues_;
 };
@@ -214,16 +215,14 @@ class HiveNodeMapEntry : public NodeMapEntry {
 public:
 
    HiveNodeMapEntry(PartitionState state = ACTIVE, CollHeap* heap=0)
-    : NodeMapEntry(state), scanInfo_(heap, 0), filled_(0) {}
+    : NodeMapEntry(state), scanInfo_(heap, 0) {}
 
    HiveNodeMapEntry(const HiveNodeMapEntry&, CollHeap* heap=0);
 
    ~HiveNodeMapEntry() {}
 
-   void addScanInfo(HiveScanInfo info, Int64 filled = 0) 
-     { scanInfo_.insertAt(scanInfo_.entries(), info); filled_+= filled; }
-
-   void addOrUpdateScanInfo(HiveScanInfo info, Int64 filled = 0);
+   void addScanInfo(HiveScanInfo info) 
+     { scanInfo_.insertAt(scanInfo_.entries(), info); }
 
    HiveNodeMapEntry& operator=(const HiveNodeMapEntry& other);
 
@@ -232,25 +231,10 @@ public:
    
    LIST(HiveScanInfo)& getScanInfo() { return scanInfo_; }
 
-   Int64 getFilled() { return filled_; }
-
 protected:
    LIST(HiveScanInfo) scanInfo_;
-
-   Int64 filled_; // number of bytes filled in scanInfo_
 };
 
-
-typedef HiveNodeMapEntry* HiveNMEntryPtr;
-
-class CompareHiveNMEntryPtr {
-    
-public:
-    // return TRUE iff t1's total filled is greater than t2's. Good to use 
-    // with C++ STL priority_queue to pick an HiveNodeMapEntry object
-    // with the least filled size in O(1). 
-    bool operator()(HiveNMEntryPtr& t1, HiveNMEntryPtr& t2);
-};
 
 class HBaseNodeMapEntry : public NodeMapEntry {
 
@@ -398,9 +382,6 @@ public:
   // (repartition without broadcast) 
   void assignScanInfosRepN(HivePartitionAndBucketKey *hiveSearchKey);
 
-  // For Hive tables, assign each HDFS file to one ESP.
-  void assignScanInfosNoSplit(HivePartitionAndBucketKey *hiveSearchKey);
-
   // balance out the assigned scan ranges to distribute work more evenly
   void balanceScanInfos(HivePartitionAndBucketKey *hiveSearchKey,
                         Int64 totalBytesToRead,
@@ -424,6 +405,9 @@ public:
   void printToLog(
 	      const char* indent = DEFAULT_INDENT,
               const char* title = "NodeMap") const;
+  NABoolean printMsgToLog(
+              const char* indent,
+              const char* msg) const;
 
   // Generate a string representation of this NodeMap.
   const NAString getText() const;

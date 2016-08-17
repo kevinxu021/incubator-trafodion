@@ -2,6 +2,7 @@
 >>set schema hive.hive;
 
 --- SQL operation complete.
+>>
 >>set terminal_charset utf8;
 >>
 >>cqd AUTO_QUERY_RETRY_WARNINGS 'ON';
@@ -14,6 +15,7 @@
 >>cqd HIST_ROWCOUNT_REQUIRING_STATS '50000';
 
 --- SQL operation complete.
+>>
 >>------------------------------------------------------------
 >>-- Testing query plan invalidation in the compiler, but
 >>-- not the executor. Perform DML/DDL operations on a
@@ -21,7 +23,6 @@
 >>-- getting a query cache hit and updating the changed
 >>-- Hive and HDFS metadata
 >>------------------------------------------------------------
->>
 >>prepare s1 from 
 +>  select c_preferred_cust_flag,
 +>         count(*) 
@@ -159,21 +160,21 @@ ID           COL2         P1           ID           COL2         P1           P2
 -----------  -----------  -----------  -----------  -----------  -----------  --------------------------------
 
           1            1            1            1            1            1  one                             
-          1            1            1           11           11            1  one                             
          11           11            1            1            1            1  one                             
+          1            1            1           11           11            1  one                             
          11           11            1           11           11            1  one                             
           2            2            2            2            2            2  two                             
-          2            2            2          222          222            2  two                             
-          2            2            2           22           22            2  two                             
-         22           22            2            2            2            2  two                             
-         22           22            2          222          222            2  two                             
-         22           22            2           22           22            2  two                             
         222          222            2            2            2            2  two                             
-        222          222            2          222          222            2  two                             
+         22           22            2            2            2            2  two                             
+          2            2            2           22           22            2  two                             
         222          222            2           22           22            2  two                             
+         22           22            2           22           22            2  two                             
+          2            2            2          222          222            2  two                             
+        222          222            2          222          222            2  two                             
+         22           22            2          222          222            2  two                             
          34           34            3           34           34            3  four                            
-         34           34            3            3            3            3  three                           
           3            3            3           34           34            3  four                            
+         34           34            3            3            3            3  three                           
           3            3            3            3            3            3  three                           
 
 --- 17 row(s) selected.
@@ -274,10 +275,10 @@ ID           ID           P1           P1
 
          22            2            2            2
          22           22            2            2
-          2            2            2            2
-          2           22            2            2
         222            2            2            2
         222           22            2            2
+          2            2            2            2
+          2           22            2            2
 
 --- 6 row(s) selected.
 >>
@@ -854,10 +855,10 @@ ID           CHAPTER                           ENGLISH                          
 >>
 >>select * from tbl_type;
 
-TINT    SM      I            BIG                   STR                               F                D                          T                           DT          VC
-------  ------  -----------  --------------------  --------------------------------  ---------------  -------------------------  --------------------------  ----------  ----------
+TINT  SM      I            BIG                   STR                               F                D                          T                           DT          VC                                        D10          D18         D181         D30
+----  ------  -----------  --------------------  --------------------------------  ---------------  -------------------------  --------------------------  ----------  ----------------------------------------  -----------  ----------  -----------  -------------------------------
 
-   201     202          203                   204  two hundred                        2.0000000E+002   2.00000000000000000E+002  2022-02-02 22:22:22.222222  2022-02-02  varchar
+ 101     202          203                   204  two hundred                        2.0000000E+002   2.00000000000000000E+002  2022-02-02 22:22:22.222222  2022-02-02  varchar                                    1234567890   123456.11        12345    11111111111111111111111111111
 
 --- 1 row(s) selected.
 >>insert into tbl_type_temp select * from tbl_type;
@@ -865,10 +866,10 @@ TINT    SM      I            BIG                   STR                          
 --- 1 row(s) inserted.
 >>select * from tbl_type_temp;
 
-TINT    SM      I            BIG                   STR                               F                D                          T                           DT          VC
-------  ------  -----------  --------------------  --------------------------------  ---------------  -------------------------  --------------------------  ----------  ----------
+TINT  SM      I            BIG                   STR                               F                D                          T                           DT          VC                                        D10          D18         D181         D30
+----  ------  -----------  --------------------  --------------------------------  ---------------  -------------------------  --------------------------  ----------  ----------------------------------------  -----------  ----------  -----------  -------------------------------
 
-   201     202          203                   204  two hundred                        2.0000000E+002   2.00000000000000000E+002  2022-02-02 22:22:22.222222  2022-02-02  varchar
+ 101     202          203                   204  two hundred                        2.0000000E+002   2.00000000000000000E+002  2022-02-02 22:22:22.222222  2022-02-02  varchar                                    1234567890   123456.11        12345    11111111111111111111111111111
 
 --- 1 row(s) selected.
 >>
@@ -1214,6 +1215,18 @@ ID           COL2         P1
 
 --- 4 row(s) selected.
 >>
+>>-- test partition elimination for predicates that don't
+>>-- rely on any partition column
+>>select * from hive.hive.hivenonp where 1=0;
+
+--- 0 row(s) selected.
+>>select * from hive.hive.hivepi where 2=3;
+
+--- 0 row(s) selected.
+>>select * from hive.hive.hivepiso where 4=5;
+
+--- 0 row(s) selected.
+>>
 >>update statistics for table hive.hive.hivepi on every column;
 
 --- SQL operation complete.
@@ -1314,7 +1327,7 @@ C1           C2           C3           C4
 --- SQL operation complete.
 >>load with NO OUTPUT into trafodion.seabase.tbl_dos_num select * from tbl_dos_num;
 
-*** ERROR[8413] The string argument contains characters that cannot be converted.
+*** ERROR[8413] The string argument contains characters that cannot be converted. Source data 33393437380d
 
 --- 0 row(s) loaded.
 >>cqd HIVE_SCAN_SPECIAL_MODE '1';
@@ -1345,7 +1358,7 @@ C1           C2
 --- SQL operation complete.
 >>select * from tbl_bad;
 
-*** ERROR[8413] The string argument contains characters that cannot be converted.
+*** ERROR[8413] The string argument contains characters that cannot be converted. Source data 61
 
 --- 0 row(s) selected.
 >>cqd HIVE_SCAN_SPECIAL_MODE '2';
@@ -1354,16 +1367,16 @@ C1           C2
 >>select * from tbl_bad;
 
 C1           C2                    C3                                C4               C5      C6                          C7                         C8
------------  --------------------  --------------------------------  ---------------  ------  --------------------------  -------------------------  ------
+-----------  --------------------  --------------------------------  ---------------  ------  --------------------------  -------------------------  ----
 
-          ?                     ?  c                                               ?       ?  ?                                                   ?       ?
-          ?                     ?  c                                               ?       ?  2017-01-01 10:10:10.000000   1.01000000000000000E+000       1
-          ?                     ?                                                  ?       ?  ?                                                   ?       ?
-          1                     1  averylongstring                   -1.0000000E+000       0  2017-01-01 10:10:10.000000   1.00010000000000000E+002       1
-          2                     2  good                               1.1000000E+000       2  2017-01-01 10:10:10.000000   2.00000000000000000E+002    1000
-          3                     3  good                               1.0000000E+000       2  2017-01-01 10:10:10.000000   2.10000000000000000E+002      10
-          ?            4294967295  good                               3.3999999E+038       ?  2017-01-01 10:10:10.000000   1.69999999999999968E+308      10
-          0            9999999999  bad                                             ?       ?  ?                                                   ?       ?
+          ?                     ?  c                                               ?       ?  ?                                                   ?     ?
+          ?                     ?  c                                               ?       ?  2017-01-01 10:10:10.000000   1.01000000000000000E+000     1
+          ?                     ?                                                  ?       ?  ?                                                   ?     ?
+          1                     1  averylongstring                   -1.0000000E+000       0  2017-01-01 10:10:10.000000   1.00010000000000000E+002     1
+          2                     2  good                               1.1000000E+000       2  2017-01-01 10:10:10.000000   2.00000000000000000E+002   100
+          3                     3  good                               1.0000000E+000       2  2017-01-01 10:10:10.000000   2.10000000000000000E+002    10
+          ?            4294967295  good                               3.3999999E+038       ?  2017-01-01 10:10:10.000000   1.69999999999999968E+308    10
+          0            9999999999  bad                                             ?       ?  ?                                                   ?     ?
 
 --- 8 row(s) selected.
 >>cqd HIVE_SCAN_SPECIAL_MODE reset;
@@ -1386,17 +1399,17 @@ C1           C2                    C3                                C4         
 --- SQL operation complete.
 >>load with no output into trafodion.seabase.traf_tbl_bad select * from tbl_bad;
 
-*** ERROR[8413] The string argument contains characters that cannot be converted.
+*** ERROR[8413] The string argument contains characters that cannot be converted. Source data 61
 
 --- 0 row(s) loaded.
 >>insert into trafodion.seabase.traf_tbl_bad select * from tbl_bad;
 
-*** ERROR[8413] The string argument contains characters that cannot be converted.
+*** ERROR[8413] The string argument contains characters that cannot be converted. Source data 61
 
 --- 0 row(s) inserted.
 >>upsert into trafodion.seabase.traf_tbl_bad select * from tbl_bad;
 
-*** ERROR[8413] The string argument contains characters that cannot be converted.
+*** ERROR[8413] The string argument contains characters that cannot be converted. Source data 61
 
 --- 0 row(s) inserted.
 >>cqd HIVE_SCAN_SPECIAL_MODE '2';
@@ -1515,14 +1528,16 @@ A            B
 
 --- 1 row(s) selected.
 >>
->>-- purgedata of hive data
->>cqd query_cache '0';
-
---- SQL operation complete.
->>purgedata hive.hive.thive;
+>>-- truncate of hive data
+>>--cqd query_cache '0';
+>>truncate hive.hive.thive;
 
 --- SQL operation complete.
 >>select * from hive.hive.thive;
+
+*** WARNING[8597] Statement was automatically retried 1 time(s). Delay before each retry was 0 seconds. See next entry for the error that caused this retry. 
+
+*** WARNING[8436] Mismatch detected between compiletime and runtime hive table definitions.
 
 --- 0 row(s) selected.
 >>insert into hive.hive.thive values (10, 20);
@@ -1536,14 +1551,255 @@ A            B
          10           20
 
 --- 1 row(s) selected.
->>purgedata hive.hive.thive;
+>>truncate hive.hive.thive;
 
 --- SQL operation complete.
->>purgedata hive.hive.thive;
+>>truncate hive.hive.thive;
 
 --- SQL operation complete.
 >>select * from hive.hive.thive;
 
+*** WARNING[8597] Statement was automatically retried 1 time(s). Delay before each retry was 0 seconds. See next entry for the error that caused this retry. 
+
+*** WARNING[8436] Mismatch detected between compiletime and runtime hive table definitions.
+
 --- 0 row(s) selected.
+>>
+>>-- truncate of partitioned hive table
+>>sh echo "drop table t005part;" > TEST005_junk;
+>>sh regrhive.ksh -f TEST005_junk;
+>>sh echo "create table t005part(a int) partitioned by (b int, c int);" > TEST005_junk;
+>>sh regrhive.ksh -f TEST005_junk;
+>>
+>>sh echo "insert into t005part partition (b=10,c=11) values (5);" > TEST005_junk;
+>>sh regrhive.ksh -f TEST005_junk;
+>>sh echo "select * from t005part;" > TEST005_junk;
+>>sh regrhive.ksh -f TEST005_junk | tee -a LOG005;
+t005part.a	t005part.b	t005part.c
+5	10	11
+>>
+>>truncate hive.hive.t005part;
+
+--- SQL operation complete.
+>>sh echo "select * from t005part;" > TEST005_junk;
+>>sh regrhive.ksh -f TEST005_junk | tee -a LOG005;
+t005part.a	t005part.b	t005part.c
+>>
+>>sh echo "insert into t005part partition (b=10,c=11) values (5);" > TEST005_junk;
+>>sh regrhive.ksh -f TEST005_junk;
+>>truncate hive.hive.t005part partition ('b=10');
+
+--- SQL operation complete.
+>>sh echo "select * from t005part;" > TEST005_junk;
+>>sh regrhive.ksh -f TEST005_junk | tee -a LOG005;
+t005part.a	t005part.b	t005part.c
+>>
+>>
+>>sh echo "insert into t005part partition (b=10,c=11) values (5);" > TEST005_junk;
+>>sh regrhive.ksh -f TEST005_junk;
+>>truncate hive.hive.t005part partition ('b=10','c=11');
+
+--- SQL operation complete.
+>>sh echo "select * from t005part;" > TEST005_junk;
+>>sh regrhive.ksh -f TEST005_junk | tee -a LOG005;
+t005part.a	t005part.b	t005part.c
+>>
+>>sh echo "insert into t005part partition (b=10,c=11) values (5);" > TEST005_junk;
+>>sh regrhive.ksh -f TEST005_junk;
+>>sh echo "insert into t005part partition (b=10,c=12) values (6);" > TEST005_junk;
+>>sh regrhive.ksh -f TEST005_junk;
+>>sh echo "select * from t005part;" > TEST005_junk;
+>>sh regrhive.ksh -f TEST005_junk | tee -a LOG005;
+t005part.a	t005part.b	t005part.c
+5	10	11
+6	10	12
+>>
+>>truncate hive.hive.t005part partition ('b=10','c=11');
+
+--- SQL operation complete.
+>>sh echo "select * from t005part;" > TEST005_junk;
+>>sh regrhive.ksh -f TEST005_junk | tee -a LOG005;
+t005part.a	t005part.b	t005part.c
+6	10	12
+>>
+>>truncate hive.hive.t005part partition ('b=10');
+
+--- SQL operation complete.
+>>sh echo "select * from t005part;" > TEST005_junk;
+>>sh regrhive.ksh -f TEST005_junk | tee -a LOG005;
+t005part.a	t005part.b	t005part.c
+>>
+>>-- should return error
+>>truncate hive.hive.t005part partition ('b=12');
+
+*** ERROR[8442] Unable to access HDFS interface. Call to ExpLOBInterfaceEmptyDirectory returned error LOB_DIR_NAME_ERROR(535). Error detail 0.
+
+*** ERROR[8035] Truncation of hive table failed. Reason: specified partition does not exist
+
+--- SQL operation failed with errors.
+>>
+>>
+>>-- should return error
+>>purgedata hive.hive.thive;
+
+*** ERROR[3242] This statement is not supported. Reason: Purgedata is not allowed for hive tables. Use Truncate command.
+
+*** ERROR[8822] The statement was not prepared.
+
+>>
+>>-- tests for hive insert error modes
+>>invoke hive.hive.thive_insert_smallint;
+
+-- Definition of hive table THIVE_INSERT_SMALLINT
+-- Definition current  Fri Jul 15 00:09:07 2016
+
+  (
+    A                                SMALLINT
+  )
+  /* stored as textfile */
+
+--- SQL operation complete.
+>>showddl hive.hive.thive_insert_smallint;
+
+/* Hive DDL */
+CREATE TABLE DEFAULT.THIVE_INSERT_SMALLINT
+  (
+    A                                smallint
+  )
+  stored as textfile
+;
+
+--- SQL operation complete.
+>>
+>>truncate hive.hive.thive_insert_smallint;
+
+--- SQL operation complete.
+>>cqd hive_insert_error_mode '0';
+
+--- SQL operation complete.
+>>insert into hive.hive.thive_insert_smallint values (10), (11111111), (21), 
++>  (22222222);
+
+--- 4 row(s) inserted.
+>>select * from hive.hive.thive_insert_smallint;
+
+A     
+------
+
+    10
+
+*** ERROR[8411] A numeric overflow occurred during an arithmetic computation or data conversion. Conversion of Source Type:VARCHAR(REC_BYTE_V_ASCII,8 BYTES,ISO88591) Source Value:11111111 to Target Type:SMALLINT SIGNED(REC_BIN16_SIGNED).
+
+--- 1 row(s) selected.
+>>
+>>truncate hive.hive.thive_insert_smallint;
+
+--- SQL operation complete.
+>>cqd hive_insert_error_mode '1';
+
+--- SQL operation complete.
+>>insert into hive.hive.thive_insert_smallint values (10), (11111111), (21), 
++>  (22222222);
+
+*** ERROR[8411] A numeric overflow occurred during an arithmetic computation or data conversion. Source Type:INTEGER SIGNED(MBIN32S) Source Value:11111111 Target Type:LARGEINT(IBIN64S) Max Target Value:32767. Instruction:RANGE_HIGH_S32S64 Operation:RANGE_HIGH.
+
+--- 0 row(s) inserted.
+>>select * from hive.hive.thive_insert_smallint;
+
+--- 0 row(s) selected.
+>>
+>>truncate hive.hive.thive_insert_smallint;
+
+--- SQL operation complete.
+>>cqd hive_insert_error_mode '2';
+
+--- SQL operation complete.
+>>insert into hive.hive.thive_insert_smallint values (10), (11111111), (21), 
++>  (22222222);
+
+--- 2 row(s) inserted.
+>>select * from hive.hive.thive_insert_smallint;
+
+A     
+------
+
+    10
+    21
+
+--- 2 row(s) selected.
+>>
+>>truncate hive.hive.thive_insert_smallint;
+
+--- SQL operation complete.
+>>cqd hive_insert_error_mode '3';
+
+--- SQL operation complete.
+>>insert into hive.hive.thive_insert_smallint values (10), (11111111), (21), 
++>  (22222222);
+
+--- 4 row(s) inserted.
+>>select * from hive.hive.thive_insert_smallint;
+
+A     
+------
+
+    10
+     ?
+    21
+     ?
+
+--- 4 row(s) selected.
+>>
+>>cqd hive_max_string_length_in_bytes '2';
+
+--- SQL operation complete.
+>>invoke hive.hive.thive_insert_varchar;
+
+-- Definition of hive table THIVE_INSERT_VARCHAR
+-- Definition current  Fri Jul 15 00:09:14 2016
+
+  (
+    A                                VARCHAR(1 CHAR) CHARACTER SET UTF8 COLLATE
+      DEFAULT
+  , B                                VARCHAR(2 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  )
+  /* stored as textfile */
+
+--- SQL operation complete.
+>>showddl hive.hive.thive_insert_varchar;
+
+/* Hive DDL */
+CREATE TABLE DEFAULT.THIVE_INSERT_VARCHAR
+  (
+    A                                varchar(1)
+  , B                                string
+  )
+  stored as textfile
+;
+
+--- SQL operation complete.
+>>cqd hive_insert_error_mode '1';
+
+--- SQL operation complete.
+>>truncate hive.hive.thive_insert_varchar;
+
+--- SQL operation complete.
+>>insert into hive.hive.thive_insert_varchar values ('abcddcba','efghijkl');
+
+--- 1 row(s) inserted.
+>>
+>>cqd hive_max_string_length_in_bytes '20';
+
+--- SQL operation complete.
+>>select * from hive.hive.thive_insert_varchar;
+
+A     B                   
+----  --------------------
+
+abcd  efghijkl            
+
+--- 1 row(s) selected.
+>>
 >>
 >>log;

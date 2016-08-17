@@ -282,16 +282,7 @@ public class hbstatus {
 		    System.out.println("Peer ID: " + lv_peer_id + " does not exist OR it has not been configured for synchronization.");
 		    System.exit(1);
 		}
-	    }
-	    catch (KeeperException zke) {
-		System.out.println("Zookeeper Exception trying to get STRConfig instance: " + zke);
-		System.exit(1);
-	    }
-	    catch (InterruptedException int_exception) {
-		System.out.println("Interrupted Exception trying to get STRConfig instance: " + int_exception);
-		System.exit(1);
-	    }
-	    catch (IOException ioe) {
+	    } catch (IOException ioe) {
 		System.out.println("IO Exception trying to get STRConfig instance: " + ioe);
 		System.exit(1);
 	    }

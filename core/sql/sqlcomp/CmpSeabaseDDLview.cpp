@@ -53,7 +53,6 @@
 
 #include "ExExeUtilCli.h"
 #include "Generator.h"
-#include "desc.h"
 
 // for privilege checking
 #include "PrivMgrCommands.h"
@@ -585,22 +584,12 @@ void CmpSeabaseDDL::createSeabaseView(
      return;
   }
   
-  ExpHbaseInterface * ehi = NULL;
-
-  ehi = allocEHI();
-  if (ehi == NULL)
-    {
-     processReturn();
-
-     return;
-    }
-
   if ((isSeabaseReservedSchema(viewName)) &&
       (!Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL)))
      {
       *CmpCommon::diags() << DgSqlCode(-1118)
 			  << DgTableName(extViewName);
-      deallocEHI(ehi); 
+
       return;
     }
 
@@ -621,8 +610,6 @@ void CmpSeabaseDDL::createSeabaseView(
 				   COM_UNKNOWN_OBJECT, FALSE, FALSE);
   if (retcode < 0)
     {
-      deallocEHI(ehi); 
-
       processReturn();
 
       return;
@@ -635,8 +622,6 @@ void CmpSeabaseDDL::createSeabaseView(
 	{
 	  *CmpCommon::diags() << DgSqlCode(-1390)
 			      << DgString0(extViewName);
-	  deallocEHI(ehi); 
-	  
 	  processReturn();
 	  
 	  return;
@@ -668,8 +653,6 @@ void CmpSeabaseDDL::createSeabaseView(
           if (CmpCommon::diags()->getNumber(DgSqlCode::ERROR_) == 0)
             SEABASEDDL_INTERNAL_ERROR("getting object UID and owner for create or replace view");
 
-          deallocEHI(ehi); 
-
           processReturn();
 
           return;
@@ -681,7 +664,7 @@ void CmpSeabaseDDL::createSeabaseView(
          if (!isDDLOperationAuthorized(SQLOperation::ALTER_VIEW,objectOwnerID,schemaOwnerID))
          {
             *CmpCommon::diags() << DgSqlCode(-CAT_NOT_AUTHORIZED);
-            deallocEHI(ehi);
+
             processReturn ();
             return;
          }
@@ -696,7 +679,7 @@ void CmpSeabaseDDL::createSeabaseView(
          if (privStatus != PrivStatus::STATUS_GOOD)
          {
             SEABASEDDL_INTERNAL_ERROR("Unable to retrieve privileges for replaced view");
-            deallocEHI(ehi); 
+
             processReturn();
             
             return;
@@ -707,7 +690,6 @@ void CmpSeabaseDDL::createSeabaseView(
       if (dropOneTableorView(cliInterface,extViewName.data(),COM_VIEW_OBJECT,false))
       
         {
-          deallocEHI(ehi); 
           processReturn();
           
           return;
@@ -740,7 +722,7 @@ void CmpSeabaseDDL::createSeabaseView(
                            grantableBitmap))
     {
       processReturn();
-      deallocEHI(ehi); 
+
       return;
     }
 
@@ -768,7 +750,7 @@ void CmpSeabaseDDL::createSeabaseView(
                                ownerGrantableBitmap))
         {
           processReturn();
-          deallocEHI(ehi); 
+
           return;
         }
     }
@@ -779,7 +761,6 @@ void CmpSeabaseDDL::createSeabaseView(
   ElemDDLColDefArray colDefArray(STMTHEAP);
   if (buildViewColInfo(createViewNode, &colDefArray))
     {
-      deallocEHI(ehi); 
       processReturn();
 
       return;
@@ -791,7 +772,6 @@ void CmpSeabaseDDL::createSeabaseView(
 
   if (buildColInfoArray(COM_VIEW_OBJECT, &colDefArray, colInfoArray, FALSE, FALSE))
     {
-      deallocEHI(ehi); 
       processReturn();
       
       return;
@@ -823,8 +803,6 @@ void CmpSeabaseDDL::createSeabaseView(
 			   0, NULL,
                            objUID))
     {
-      deallocEHI(ehi); 
-
       processReturn();
 
       return;
@@ -832,7 +810,6 @@ void CmpSeabaseDDL::createSeabaseView(
 
     if (objUID < 0)
       {
-        deallocEHI(ehi);
         processReturn();
         return;
       }
@@ -857,7 +834,6 @@ void CmpSeabaseDDL::createSeabaseView(
         ownerPrivBitmap, ownerGrantableBitmap);
       if (retcode != STATUS_GOOD && retcode != STATUS_WARNING)
         {
-          deallocEHI(ehi);
           processReturn();
           return;
         }
@@ -872,7 +848,6 @@ void CmpSeabaseDDL::createSeabaseView(
             privilegesBitmap, grantableBitmap);
           if (retcode != STATUS_GOOD && retcode != STATUS_WARNING)
             {
-              deallocEHI(ehi);
               processReturn();
               return;
             }
@@ -885,7 +860,7 @@ void CmpSeabaseDDL::createSeabaseView(
          if (privStatus != PrivStatus::STATUS_GOOD)
          {
             SEABASEDDL_INTERNAL_ERROR("Unable to restore privileges for replaced view");
-            deallocEHI(ehi); 
+
             processReturn();
             
             return;
@@ -913,7 +888,6 @@ void CmpSeabaseDDL::createSeabaseView(
       else
         cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
 
-      deallocEHI(ehi); 
       processReturn();
 
       return;
@@ -921,14 +895,12 @@ void CmpSeabaseDDL::createSeabaseView(
 
   if (updateTextTable(&cliInterface, objUID, COM_VIEW_TEXT, 0, viewText))
     {
-      deallocEHI(ehi); 
       processReturn();
       return;
     }
 
   if (updateViewUsage(createViewNode, objUID, &cliInterface))
     {
-      deallocEHI(ehi); 
       processReturn();
      
       return;
@@ -939,10 +911,17 @@ void CmpSeabaseDDL::createSeabaseView(
 			   COM_VIEW_OBJECT_LIT,
 			   "Y"))
     {
-      deallocEHI(ehi); 
-
       processReturn();
 
+      return;
+    }
+
+  if (updateObjectRedefTime(&cliInterface, 
+                            catalogNamePart, schemaNamePart, objectNamePart,
+                            COM_VIEW_OBJECT_LIT, -2, objUID))
+    {
+      processReturn();
+      
       return;
     }
 
@@ -952,7 +931,6 @@ void CmpSeabaseDDL::createSeabaseView(
      ComQiScope::REMOVE_MINE_ONLY, COM_VIEW_OBJECT,
      createViewNode->ddlXns(), FALSE);
 
-  deallocEHI(ehi); 
   processReturn();
 
   return;
@@ -980,19 +958,14 @@ void CmpSeabaseDDL::dropSeabaseView(
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
   CmpCommon::context()->sqlSession()->getParentQid());
 
-  ExpHbaseInterface * ehi = allocEHI();
-  if (ehi == NULL)
-    return;
 
   if ((isSeabaseReservedSchema(viewName)) &&
       (!Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL)))
     {
       *CmpCommon::diags() << DgSqlCode(-1119)
 			  << DgTableName(extViewName);
-      deallocEHI(ehi); 
 
       processReturn();
-
       return;
     }
 
@@ -1001,10 +974,7 @@ void CmpSeabaseDDL::dropSeabaseView(
 				   COM_VIEW_OBJECT, TRUE, FALSE);
   if (retcode < 0)
     {
-      deallocEHI(ehi); 
-
       processReturn();
-
       return;
     }
 
@@ -1013,10 +983,7 @@ void CmpSeabaseDDL::dropSeabaseView(
       *CmpCommon::diags() << DgSqlCode(-1389)
 			  << DgString0(extViewName);
 
-      deallocEHI(ehi); 
-
       processReturn();
-      
       return;
     }
 
@@ -1034,10 +1001,7 @@ void CmpSeabaseDDL::dropSeabaseView(
       if (CmpCommon::diags()->getNumber(DgSqlCode::ERROR_) == 0)
         SEABASEDDL_INTERNAL_ERROR("getting object UID and owner for drop view");
 
-      deallocEHI(ehi); 
-
       processReturn();
-
       return;
     }
 
@@ -1045,7 +1009,7 @@ void CmpSeabaseDDL::dropSeabaseView(
   if (!isDDLOperationAuthorized(SQLOperation::DROP_VIEW,objectOwnerID,schemaOwnerID))
   {
      *CmpCommon::diags() << DgSqlCode(-CAT_NOT_AUTHORIZED);
-     deallocEHI(ehi);
+
      processReturn ();
      return;
   }
@@ -1057,10 +1021,7 @@ void CmpSeabaseDDL::dropSeabaseView(
       cliRC = getUsingObject(&cliInterface, objUID, usingObjName);
       if (cliRC < 0)
 	{
-	  deallocEHI(ehi); 
-
 	  processReturn();
-	  
 	  return;
 	}
 
@@ -1069,10 +1030,7 @@ void CmpSeabaseDDL::dropSeabaseView(
 	  *CmpCommon::diags() << DgSqlCode(-1047)
 			      << DgTableName(usingObjName);
 
-	  deallocEHI(ehi); 
-
 	  processReturn();
-
 	  return;
 	}
     }
@@ -1081,10 +1039,7 @@ void CmpSeabaseDDL::dropSeabaseView(
       cliRC = getUsingViews(&cliInterface, objUID, usingViewsQueue);
       if (cliRC < 0)
 	{
-	  deallocEHI(ehi); 
-
 	  processReturn();
-	  
 	  return;
 	}
     }
@@ -1094,6 +1049,13 @@ void CmpSeabaseDDL::dropSeabaseView(
   NAList<objectRefdByMe> tablesRefdList;
   short status = getListOfReferencedTables(&cliInterface, objUID, tablesRefdList);
 
+  NABoolean monarchObject = FALSE;
+  ExpHbaseInterface * ehi = allocEHI(monarchObject);
+  if (ehi == NULL)
+    {
+      processReturn();
+      return;
+    }
   if (usingViewsQueue)
     {
       usingViewsQueue->position();
@@ -1105,12 +1067,10 @@ void CmpSeabaseDDL::dropSeabaseView(
 	  
 	  if (dropSeabaseObject(ehi, viewName,
                                 currCatName, currSchName, COM_VIEW_OBJECT,
-                                dropViewNode->ddlXns()))
+                                dropViewNode->ddlXns(), TRUE, TRUE,monarchObject))
 	    {
-	      deallocEHI(ehi); 
-
+              deallocEHI(ehi);
 	      processReturn();
-	      
 	      return;
 	    }
 	}
@@ -1118,14 +1078,13 @@ void CmpSeabaseDDL::dropSeabaseView(
 
   if (dropSeabaseObject(ehi, tabName,
                         currCatName, currSchName, COM_VIEW_OBJECT,
-                        dropViewNode->ddlXns()))
+                        dropViewNode->ddlXns(), TRUE, TRUE, monarchObject))
     {
-      deallocEHI(ehi); 
-
+      deallocEHI(ehi);
       processReturn();
-
       return;
     }
+  deallocEHI(ehi);
 
   // clear view definition from my cache only. 
   CorrName cn(objectNamePart, STMTHEAP, schemaNamePart, catalogNamePart);
@@ -1164,10 +1123,7 @@ void CmpSeabaseDDL::dropSeabaseView(
          dropViewNode->ddlXns(), FALSE);
     }
 
-  deallocEHI(ehi); 
-      
   processReturn();
-
   return;
 }
 

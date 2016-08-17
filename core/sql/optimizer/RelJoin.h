@@ -1311,6 +1311,10 @@ private:
   // return the part. fuction for the clustering index (i.e., the base table)
   virtual 
   PartitioningFunction * getClusteringIndexPartFuncForRightChild() const;
+
+  virtual
+  const NATable* getNATableForRightChild() const;
+
   NABoolean JoinPredicateCoversChild1PartKey() const;
 
   // check the sort order for the source as sppForChild0 and the target table. 

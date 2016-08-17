@@ -531,7 +531,7 @@ define([
 						"sWidth": "8%",
 						"aTargets": [ 0 ],
 						"mData": 0,
-						"className" : "dbmgr-nowrap",
+						"className" : "dt-body-right dbmgr-nowrap",
 						"mRender": function ( data, type, full ) {
 							if (type === 'display') {
 								//return moment(data).format("YYYY-MM-DD HH:mm:ss");

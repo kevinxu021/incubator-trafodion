@@ -60,7 +60,7 @@ class HistogramsCacheEntry;
 class BindWA;
 class MVInfoForDML;
 class NATableDB;
-struct desc_struct;
+struct TrafDesc;
 class HbaseCreateOption;
 class PrivMgrUserPrivs;
 class ExpHbaseInterface;
@@ -384,10 +384,10 @@ public:
   // ---------------------------------------------------------------------
 
   NATable(BindWA *bindWA, const CorrName &corrName, NAMemory *heap,
-          desc_struct *inTableDesc = NULL);
+          TrafDesc *inTableDesc = NULL);
 
   NATable(BindWA *bindWA, const CorrName &corrName, NAMemory *heap,
-          struct hive_tbl_desc*, desc_struct *extTableDesc = NULL);
+          struct hive_tbl_desc*, TrafDesc *extTableDesc = NULL);
 
   virtual ~NATable();
 
@@ -489,7 +489,7 @@ public:
 				       NABoolean *isPkey = NULL,
                                        NAList<int> *reorderList = NULL);
     
-  const desc_struct * getPartnsDesc() const { return partnsDesc_; }
+  const TrafDesc * getPartnsDesc() const { return partnsDesc_; }
 
   // A not-found partition is an offline partition.
   NABoolean containsPartition(const NAString &partitionName) const
@@ -501,7 +501,6 @@ public:
   }
   NABoolean isOfflinePartition(const NAString &partitionName) const
   { return !partitionName.isNull() && !containsPartition(partitionName); }
-
 
   // move relevant attributes from etTable to this.
   // Currently, column and key info is moved.
@@ -721,6 +720,8 @@ public:
   ComReplType xnRepl() { return xnRepl_; }
   void setXnRepl(ComReplType v) { xnRepl_ = v; }
 
+  ComStorageType storageType() { return storageType_; }
+  void setStorageType(ComStorageType v) { storageType_ = v; }
 
   void setIsExternalTable( NABoolean value )
   {  value ? flags_ |= IS_EXTERNAL_TABLE : flags_ &= ~IS_EXTERNAL_TABLE; }
@@ -752,6 +753,16 @@ public:
   static const char *getNameOfRowInRangeCol()
                                           { return "ROW__NUMBER__IN__RANGE"; }
 
+  void setHiveExtColAttrs( NABoolean value )
+  {  value ? flags_ |= HIVE_EXT_COL_ATTRS : flags_ &= ~HIVE_EXT_COL_ATTRS; }
+  NABoolean hiveExtColAttrs() const
+  {  return (flags_ & HIVE_EXT_COL_ATTRS) != 0; }
+
+  void setHiveExtKeyAttrs( NABoolean value )
+  {  value ? flags_ |= HIVE_EXT_KEY_ATTRS : flags_ &= ~HIVE_EXT_KEY_ATTRS; }
+  NABoolean hiveExtKeyAttrs() const
+  {  return (flags_ & HIVE_EXT_KEY_ATTRS) != 0; }
+ 
   const CheckConstraintList &getCheckConstraints() const
                                                 { return checkConstraints_; }
   const AbstractRIConstraintList &getUniqueConstraints() const
@@ -831,7 +842,7 @@ public:
 
   NABoolean insertMissingStatsWarning(CollIndexSet colsSet) const;
 
-  const desc_struct * getTableDesc() const { return tableDesc_; }
+  const TrafDesc * getTableDesc() const { return tableDesc_; }
   NAList<HbaseCreateOption*> * hbaseCreateOptions()
     { return clusteringIndex_->hbaseCreateOptions();}
 
@@ -893,6 +904,8 @@ public:
   NAString &defaultColFam() { return defaultColFam_; }
   NAList<NAString> &allColFams() { return allColFams_; }
 
+  NABoolean isMonarch() const { return (storageType_ == COM_STORAGE_MONARCH);};
+
 private:
   NABoolean getSQLMXAlignedTable() const
   {  return (flags_ & SQLMX_ALIGNED_ROW_TABLE) != 0; }
@@ -904,7 +917,7 @@ private:
   void setupPrivInfo();
 
   ExpHbaseInterface* getHBaseInterface() const;
-  static ExpHbaseInterface* getHBaseInterfaceRaw();
+  static ExpHbaseInterface* getHBaseInterfaceRaw(NABoolean isMonarch);
 
   //size of All NATable related data after construction
   //this is used when NATables are cached and only then
@@ -970,7 +983,9 @@ private:
     IS_EXTERNAL_TABLE         = 0x00080000,
     HAS_EXTERNAL_TABLE        = 0x00100000,
     IS_HISTOGRAM_TABLE        = 0x00200000,
-    HAS_HIVE_EXT_TABLE        = 0x00400000
+    HAS_HIVE_EXT_TABLE        = 0x00400000,
+    HIVE_EXT_COL_ATTRS        = 0x00800000,
+    HIVE_EXT_KEY_ATTRS        = 0x01000000,
   };
     
   UInt32 flags_;
@@ -1094,6 +1109,10 @@ private:
   // transaction replication across multiple clusters
   ComReplType xnRepl_;
 
+  // storage engine where data is stored.
+  // Currently: HBASE or MONARCH
+  ComStorageType storageType_;
+
   // ---------------------------------------------------------------------
   // Flags
   // ---------------------------------------------------------------------
@@ -1152,9 +1171,9 @@ private:
 
   ComSecurityKeySet secKeySet_ ;
 
-  desc_struct *partnsDesc_;
+  TrafDesc *partnsDesc_;
 
-  desc_struct *tableDesc_;
+  TrafDesc *tableDesc_;
 
   // hash table to store all the column positions for which missing
   // stats warning has been generated. We are not storing ValueIdSet
@@ -1263,7 +1282,7 @@ public:
 
   NATable * get(const ExtendedQualName* key, BindWA * bindWA = NULL, NABoolean findInCacheOnly = FALSE);
   NATable * get(CorrName& corrName, BindWA * bindWA,
-                desc_struct *inTableDescStruct);
+                TrafDesc *inTableDescStruct);
 
   void removeNATable2(CorrName &corrName, ComQiScope qiScope, 
                       ComObjectType ot);

@@ -75,6 +75,7 @@ Lng32 HSFuncExecQuery( const char *dml
                     , const HSTableDef *tabDef = NULL
                     , NABoolean doRetry = FALSE
                     , short errorToIgnore = 0
+                    , NABoolean checkMdam = FALSE
                     );
 
 Lng32 HSFuncExecDDL( const char *dml
@@ -92,6 +93,7 @@ Lng32 CreateHistView   (const HSGlobalsClass* hsGlobal);
 // Drop the sample table.
 Lng32 DropSampleTable();
 
+Lng32 checkMdam(SQLSTMT_ID *stmt);
 Lng32 printPlan(SQLSTMT_ID *stmt);
 void getRowCountFromStats(Int64 * rowsAffected , const HSTableDef *tabDef = NULL);
 
@@ -190,11 +192,6 @@ class HSSample
     Lng32 drop() { return dropSample(sampleTable, objDef); }
 
     NABoolean isIUS() { return isIUS_; }
-
-    // These setters are used when RUS is used as a backup for columns that could
-    // not be processed by IUS.
-    void setSampleType(Lng32 smplType) { sampleType = smplType; }
-    void setSampleTablePercent(double smplPct) { samplePercent = smplPct; }
 
   private:
     // Member function
@@ -421,7 +418,9 @@ class HSPersSamples
          Lng32 updIUSUpdateInfo(HSTableDef* tblDef,
                                 const char* updHistory,
                                 const char* updTimestampStr,
-                                const char* updWhereCondition);
+                                const char* updWhereCondition,
+                                const Int64* requestedSampleRows = NULL,
+                                const Int64* actualSampleRows = NULL);
 
          Lng32 readIUSUpdateInfo(HSTableDef* tblDef,
                                  char* updHistory,
@@ -429,7 +428,7 @@ class HSPersSamples
 
          // finds a persistent sample table for UID and reason code and returns it in 'table'.
          // (returns ' ' in table if none is found).
-         Lng32 find(HSTableDef *tabDef, NAString &table,
+         Lng32 find(HSTableDef *tabDef, char reason, NAString &table,
                     Int64 &requestedRows, Int64 &sampleRows, double &sampleRate);
 
          // finds a persistent sample table for UID and sample size and returns in 'table'.
@@ -443,10 +442,6 @@ class HSPersSamples
                               NABoolean isEstimate, char reason,
                               NABoolean createDandI=FALSE,
                               Int64 minRowsCtPerPartition = -1);
-         Lng32 createAndInsert(HSTableDef *tabDef, NAString &sampleName,
-                              Int64 &sampleRows, Int64 &actualRows, 
-                              NABoolean isEstimate, NABoolean isManual,
-                              Int64 minRowsCtPerPartition = -1);
 
           // remove persistent sample table(s) based on uid, sampleRows, and the
           // allowed difference between the number of rows and sampleRows.
@@ -455,7 +450,7 @@ class HSPersSamples
          // drop the named sample table and remove its entry from the
          // PERSISTENT_SAMPLES table.
          Lng32 removeSample(HSTableDef* tabDef, NAString& sampTblName,
-                            const char* txnLabel);
+                            char reason, const char* txnLabel);
 
          ~HSPersSamples();
 

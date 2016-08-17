@@ -172,6 +172,22 @@ void FastExtract::getPotentialOutputValues(ValueIdSet & vs) const
   vs.clear();
 };
 
+void FastExtract::recomputeOuterReferences()
+{
+  ValueIdSet outerRefs(getGroupAttr()->getCharacteristicInputs());
+  ValueIdSet allMyExprs(getSelectionPred());
+
+  allMyExprs.insertList(selectList_);
+  allMyExprs.insertList(reqdOrder_);
+  allMyExprs.weedOutUnreferenced(outerRefs);
+
+  // Add references needed by children, if any
+  for (Int32 i = 0; i < getArity(); i++)
+    outerRefs += child(i).getPtr()->getGroupAttr()->getCharacteristicInputs();
+
+  getGroupAttr()->setCharacteristicInputs(outerRefs);
+}
+
 void FastExtract::pullUpPreds()
 {
    // A FastExtract never pulls up predicates from its children.

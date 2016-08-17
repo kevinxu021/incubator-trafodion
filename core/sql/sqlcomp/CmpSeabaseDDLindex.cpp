@@ -58,7 +58,6 @@
 
 #include "ExExeUtilCli.h"
 #include "Generator.h"
-#include "desc.h"
 
 #include "ComCextdecs.h"
 #include "ComUser.h"
@@ -392,8 +391,7 @@ CmpSeabaseDDL::createIndexColAndKeyInfoArrays(
   return 0;
 }
 
-void CmpSeabaseDDL::createSeabaseIndex(
-				       StmtDDLCreateIndex * createIndexNode,
+void CmpSeabaseDDL::createSeabaseIndex( StmtDDLCreateIndex * createIndexNode,
 				       NAString &currCatName, NAString &currSchName)
 {
   Lng32 retcode = 0;
@@ -419,16 +417,12 @@ void CmpSeabaseDDL::createSeabaseIndex(
   NAString extIndexName = indexName.getExternalName(TRUE);
   NAString extNameForHbase = catalogNamePart + "." + schemaNamePart + "." + objectNamePart;
   NABoolean alignedFormatNotAllowed = FALSE; 
-  ExpHbaseInterface * ehi = allocEHI();
-  if (ehi == NULL)
-    return;
 
   if ((isSeabaseReservedSchema(indexName)) &&
       (!Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL)))
     {
       *CmpCommon::diags() << DgSqlCode(-1118)
 			  << DgTableName(extIndexName);
-      deallocEHI(ehi); 
       return;
     }
 
@@ -550,12 +544,12 @@ void CmpSeabaseDDL::createSeabaseIndex(
 	    << DgTableName(cn.getExposedNameAsAnsiString());
 	}
 
-      deallocEHI(ehi); 
-
       processReturn();
 
       return;
     }
+
+  Int64 btObjUID = naTable->objectUid().castToInt64();
 
   NAString &indexColFam = naTable->defaultColFam();
   NAString trafColFam;
@@ -622,6 +616,22 @@ void CmpSeabaseDDL::createSeabaseIndex(
   ParDDLFileAttrsCreateIndex &fileAttribs =
     createIndexNode->getFileAttributes();
 
+  if ((fileAttribs.isStorageTypeSpecified()) &&
+      (naTable->storageType() != fileAttribs.storageType()))
+    {
+      // error. Base table and index must be on the same storage.
+      *CmpCommon::diags() << DgSqlCode(-3242)
+                          << DgString0("Base table and index must be on the same storage.");
+      processReturn();
+      return;
+    }
+  const ComStorageType storageType = naTable->storageType();
+  NABoolean isMonarch = (storageType == COM_STORAGE_MONARCH);
+
+  ExpHbaseInterface * ehi = allocEHI(isMonarch);
+  if (ehi == NULL)
+    return;
+
   NABoolean alignedFormat = FALSE;
   if (fileAttribs.isRowFormatSpecified() == TRUE)
     {
@@ -642,11 +652,14 @@ void CmpSeabaseDDL::createSeabaseIndex(
         alignedFormat = TRUE;
     }
   else
-  if (naTable->isSQLMXAlignedTable())
-    alignedFormat = TRUE;
+    if (naTable->isSQLMXAlignedTable())
+      alignedFormat = TRUE;
 
   if (alignedFormatNotAllowed)
      alignedFormat = FALSE;
+
+  if (isMonarch)
+    alignedFormat = FALSE;
 
   if ((naTable->hasSecondaryIndexes()) &&
       (NOT createIndexNode->isVolatile()))
@@ -830,8 +843,6 @@ void CmpSeabaseDDL::createSeabaseIndex(
         }
     }
 
-  NABoolean ddlXns = FALSE;
-
   Lng32 keyColCount = 0;
   Lng32 nonKeyColCount = 0;
   Lng32 totalColCount = 0;
@@ -866,11 +877,11 @@ void CmpSeabaseDDL::createSeabaseIndex(
   char ** encodedKeysBuffer = NULL;
   if (numSplits > 0) {
 
-    desc_struct * colDescs = 
+    TrafDesc * colDescs = 
       convertVirtTableColumnInfoArrayToDescStructs(&tableName,
                                                    colInfoArray,
                                                    totalColCount) ;
-    desc_struct * keyDescs = 
+    TrafDesc * keyDescs = 
       convertVirtTableKeyInfoArrayToDescStructs(keyInfoArray,
                                                 colInfoArray,
                                                 keyColCount) ;
@@ -962,17 +973,61 @@ void CmpSeabaseDDL::createSeabaseIndex(
       goto label_error;
     }
 
-  endXnIfStartedHere(&cliInterface, xnWasStartedHere, 0);
 
-  ddlXns = createIndexNode->ddlXns();
-  if (createHbaseTable(ehi, &hbaseIndex, trafColFam.data(),
-                       &hbaseCreateOptions,
-                       numSplits, keyLength, 
-                       encodedKeysBuffer,
-                       FALSE, ddlXns) == -1)
+  HbaseStr hbaseTable;
+  hbaseTable.val = (char*)extNameForHbase.data();
+  hbaseTable.len = extNameForHbase.length();
+  if (isMonarch)
+    {
+      NAList<HbaseStr> monarchCols;
+      for (Lng32 i = 0; i < totalColCount; i++)
+        //      for (Lng32 i = 0; i < indexColRefArray.entries(); i++)
+        {
+          NAString * nas = new(STMTHEAP) NAString();
+          
+          NAString colFam(colInfoArray[i].hbaseColFam);
+          *nas = colFam; 
+          *nas += ":";
+
+          char * colQualPtr = (char*)colInfoArray[i].hbaseColQual;
+          Lng32 colQualLen = strlen(colQualPtr);
+          if (colQualPtr[0] == '@')
+            {
+              *nas += "@";
+              colQualPtr++;
+              colQualLen--;
+            }
+
+          NAString colQual;
+          HbaseAccess::convNumToId(colQualPtr, colQualLen, colQual);
+          *nas += colQual;
+          
+          HbaseStr hbs;
+          hbs.val = (char*)nas->data();
+          hbs.len = nas->length();
+          
+          monarchCols.insert(hbs);
+        }
+      
+      retcode = createMonarchTable(
+           ehi, &hbaseTable, 
+           MonarchTableType::RANGE_PARTITIONED, monarchCols,
+           &hbaseCreateOptions, 
+           numSplits, keyLength,
+           encodedKeysBuffer);
+    }
+  else
+    retcode = createHbaseTable(ehi, &hbaseIndex, trafColFam.data(),
+                               &hbaseCreateOptions,
+                               numSplits, keyLength, 
+                               encodedKeysBuffer,
+                               FALSE, createIndexNode->ddlXns());
+  if (retcode < 0)
     {
       goto label_error_drop_index;
     }
+
+  endXnIfStartedHere(&cliInterface, xnWasStartedHere, 0);
 
   if (NOT createIndexNode->isNoPopulateOptionSpecified())
     {
@@ -1013,6 +1068,11 @@ void CmpSeabaseDDL::createSeabaseIndex(
             }
         }
 
+      if (beginXnIfNotInProgress(&cliInterface, xnWasStartedHere))
+      {
+         goto label_error_drop_index;
+      }
+
       if (updateObjectAuditAttr(&cliInterface, 
 			       catalogNamePart, schemaNamePart, objectNamePart,
 				TRUE, COM_INDEX_OBJECT_LIT))
@@ -1031,12 +1091,13 @@ void CmpSeabaseDDL::createSeabaseIndex(
 
   if (updateObjectRedefTime(&cliInterface,
                             btCatalogNamePart, btSchemaNamePart, btObjectNamePart,
-                            COM_BASE_TABLE_OBJECT_LIT))
+                            COM_BASE_TABLE_OBJECT_LIT, -1, btObjUID))
     {
       goto label_error_drop_index;
     }
 
   deallocEHI(ehi);
+  endXnIfStartedHere(&cliInterface, xnWasStartedHere, 0);
 
   if (!Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL))
     {
@@ -1051,20 +1112,16 @@ void CmpSeabaseDDL::createSeabaseIndex(
 
  label_error:
   endXnIfStartedHere(&cliInterface, xnWasStartedHere, -1);
-
   deallocEHI(ehi);
-  
   return;
 
  label_error_drop_index:
-
+  endXnIfStartedHere(&cliInterface, xnWasStartedHere, -1);
   cleanupObjectAfterError(cliInterface, 
                           catalogNamePart, schemaNamePart, objectNamePart,
                           COM_INDEX_OBJECT,
-                          createIndexNode->ddlXns());
-
+                          FALSE);
   deallocEHI(ehi);
-
   return;
 }
 
@@ -1251,7 +1308,7 @@ void CmpSeabaseDDL::populateSeabaseIndex(
   // Create a table descriptor that contains information on both valid and
   // invalid indexes. Pass that to getNATable method which will use this
   // table desc to create the NATable struct.
-  desc_struct * tableDesc = 
+  TrafDesc * tableDesc = 
     getSeabaseTableDesc(
 		      tableName.getCatalogNamePart().getInternalName(),
 		      tableName.getSchemaNamePart().getInternalName(),
@@ -1320,6 +1377,7 @@ void CmpSeabaseDDL::populateSeabaseIndex(
     }
 
   const NAFileSetList &indexList = naTable->getIndexList();
+  NABoolean xnWasStartedHere = FALSE;
   for (Int32 i = 0; i < indexList.entries(); i++)
     {
       const NAFileSet * naf = indexList[i];
@@ -1378,43 +1436,47 @@ void CmpSeabaseDDL::populateSeabaseIndex(
 					    naf->uniqueIndex(),
 					    nafIndexName, tableName, selColList,
 	                                    useLoad))
-	    {
-	      // need to purgedata seabase index. TBD.
-	      
-	      //	      if (cmpDropSeabaseObject(createIndexNode->getIndexName(),
-	      //				     currCatName, currSchName, COM_INDEX_OBJECT_LIT))
-	      //			return;
-
-	      processReturn();
-
-              goto label_return;
-	    }
+	  {
+	    processReturn();
+            goto purgedata_return;
+	  }
       
-      if (updateObjectAuditAttr(&cliInterface, 
+          if (updateObjectAuditAttr(&cliInterface, 
 				catalogNamePart, schemaNamePart, objectNamePart,
 				TRUE, COM_INDEX_OBJECT_LIT))
-	{
-	  processReturn();
-	  
-          goto label_return;
-	}
-      
-      if (updateObjectValidDef(&cliInterface, 
+	  {
+	     processReturn();
+             goto purgedata_return;
+	  }
+          if (beginXnIfNotInProgress(&cliInterface, xnWasStartedHere))
+          {
+	     processReturn();
+             goto purgedata_return;
+          }
+          if (updateObjectValidDef(&cliInterface, 
 			       catalogNamePart, schemaNamePart, objectNamePart,
 			       COM_INDEX_OBJECT_LIT,
 			       "Y"))
-	{
-	  processReturn();
-
-          goto label_return;
-	}
-
+	  {
+	     processReturn();
+             goto purgedata_return;
+	  }
+          endXnIfStartedHere(&cliInterface, xnWasStartedHere, 0);
       }
     } // for
 
  label_return:
   processReturn();
-      
+  return;
+ purgedata_return:
+  endXnIfStartedHere(&cliInterface, xnWasStartedHere, -1);
+  updateObjectAuditAttr(&cliInterface, 
+                 catalogNamePart, schemaNamePart, objectNamePart,
+                 TRUE, COM_INDEX_OBJECT_LIT);
+  NABoolean dontForceCleanup = FALSE;
+  purgedataObjectAfterError(cliInterface,
+                               catalogNamePart, schemaNamePart, objectNamePart, COM_INDEX_OBJECT, dontForceCleanup);
+  processReturn();
   return;
 }
 
@@ -1440,14 +1502,6 @@ void CmpSeabaseDDL::dropSeabaseIndex(
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
        CmpCommon::context()->sqlSession()->getParentQid());
 
-  ExpHbaseInterface * ehi = allocEHI();
-  if (ehi == NULL)
-    {
-      processReturn();
-
-      return;
-    }
-
   NABoolean isVolatile = FALSE;
 
   if ((dropIndexNode->isVolatile()) &&
@@ -1469,8 +1523,6 @@ void CmpSeabaseDDL::dropSeabaseIndex(
 
 	  processReturn();
 
-	  deallocEHI(ehi); 
-
 	  return;
 	}
       
@@ -1489,8 +1541,6 @@ void CmpSeabaseDDL::dropSeabaseIndex(
 	  {
 	    processReturn();
 
-	    deallocEHI(ehi); 
-	    
 	    return;
 	  }
 
@@ -1534,8 +1584,6 @@ void CmpSeabaseDDL::dropSeabaseIndex(
                                    TRUE, TRUE);
   if (retcode < 0)
     {
-      deallocEHI(ehi); 
-
       processReturn();
 
       return;
@@ -1554,8 +1602,6 @@ void CmpSeabaseDDL::dropSeabaseIndex(
 	}
 
       processReturn();
-
-      deallocEHI(ehi); 
 
       return;
     }
@@ -1577,11 +1623,36 @@ void CmpSeabaseDDL::dropSeabaseIndex(
     {
       processReturn();
       
-      deallocEHI(ehi); 
-      
       return;
     }
   
+  BindWA bindWA(ActiveSchemaDB(), CmpCommon::context(), FALSE/*inDDL*/);
+
+  CorrName cn(btObjName,
+              STMTHEAP,
+              btSchName,
+              btCatName);
+
+  NATable *naTable = bindWA.getNATable(cn); 
+  if (naTable == NULL || bindWA.errStatus())
+    {
+      // shouldn't happen, actually, since getBaseTable above succeeded
+
+      CmpCommon::diags()->clear();     
+      *CmpCommon::diags() << DgSqlCode(-CAT_OBJECT_DOES_NOT_EXIST_IN_TRAFODION)
+                          << DgString0(extIndexName);
+      processReturn();     
+      return;
+    }
+
+  ExpHbaseInterface * ehi = allocEHI(naTable->isMonarch());
+  if (ehi == NULL)
+    {
+      processReturn();
+
+      return;
+    }
+
   // Verify that current user has authority to drop the index
   if ((!isDDLOperationAuthorized(SQLOperation::DROP_INDEX, btObjOwner, btSchemaOwner)) &&
       (!isDDLOperationAuthorized(SQLOperation::ALTER_TABLE, btObjOwner, btSchemaOwner)))
@@ -1688,9 +1759,11 @@ void CmpSeabaseDDL::dropSeabaseIndex(
 	}
      }
 
+  NABoolean dropFromStorage = TRUE;
+  NABoolean dropFromMD = TRUE;
   if (dropSeabaseObject(ehi, idxName,
 			currCatName, currSchName, COM_INDEX_OBJECT,
-                        dropIndexNode->ddlXns()))
+                        dropIndexNode->ddlXns(), dropFromMD, dropFromStorage, naTable->isMonarch()))
     {
       processReturn();
 
@@ -1701,7 +1774,7 @@ void CmpSeabaseDDL::dropSeabaseIndex(
 
   if (updateObjectRedefTime(&cliInterface,
                             btCatName, btSchName, btObjName,
-                            COM_BASE_TABLE_OBJECT_LIT))
+                            COM_BASE_TABLE_OBJECT_LIT, -1, btUID))
     {
       processReturn();
 
@@ -1711,7 +1784,6 @@ void CmpSeabaseDDL::dropSeabaseIndex(
     }
 
   // remove NATable for the base table of this index
-  CorrName cn(btObjName, STMTHEAP, btSchName, btCatName);
   ActiveSchemaDB()->getNATableDB()->removeNATable
     (cn,
      ComQiScope::REMOVE_FROM_ALL_USERS, COM_BASE_TABLE_OBJECT,
@@ -1822,10 +1894,10 @@ void CmpSeabaseDDL::alterSeabaseTableDisableOrEnableIndex(
   Int32 btObjOwner = 0;
   Int32 btSchemaOwner = 0;
   Int64 btObjectFlags = 0;
-  if ((getObjectInfo(&cliInterface,
-                     btCatName, btSchName, btObjName, 
-                     COM_BASE_TABLE_OBJECT,
-                     btObjOwner, btSchemaOwner, btObjectFlags)) < 0)
+  if ((btUID = getObjectInfo(&cliInterface,
+                             btCatName, btSchName, btObjName, 
+                             COM_BASE_TABLE_OBJECT,
+                             btObjOwner, btSchemaOwner, btObjectFlags, btUID)) < 0)
     {
       processReturn();
 
@@ -1847,6 +1919,15 @@ void CmpSeabaseDDL::alterSeabaseTableDisableOrEnableIndex(
 			   catalogNamePart, schemaNamePart, objectNamePart,
 			   COM_INDEX_OBJECT_LIT,
 			   (isDisable ? "N" : "Y")))
+    {
+      processReturn();
+
+      return;
+    }
+
+  if (updateObjectRedefTime(&cliInterface,
+                            btCatName, btSchName, btObjName,
+                            COM_BASE_TABLE_OBJECT_LIT, -1, btUID))
     {
       processReturn();
 
@@ -1916,12 +1997,6 @@ void CmpSeabaseDDL::alterSeabaseTableDisableOrEnableAllIndexes(
   const NAString catalogNamePart = tableName.getCatalogNamePartAsAnsiString();
   const NAString schemaNamePart = tableName.getSchemaNamePartAsAnsiString(TRUE);
   const NAString objectNamePart = tableName.getObjectNamePartAsAnsiString(TRUE);
-
-  // If you try to perform an alter table <table> disable/enable all constraints
-  // and the current schema does not match the schema where the table resides, the
-  // following CMPASSERT will fail.
-  CMPASSERT (catalogNamePart == currCatName);
-  CMPASSERT (schemaNamePart == currSchName);
 
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
        CmpCommon::context()->sqlSession()->getParentQid());
@@ -2019,13 +2094,6 @@ void CmpSeabaseDDL::alterSeabaseIndexHBaseOptions(
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
   CmpCommon::context()->sqlSession()->getParentQid());
   
-  ExpHbaseInterface * ehi = allocEHI();
-  if (ehi == NULL)
-    {
-      processReturn();
-      return;
-    }
-
   // Disallow this ALTER on system metadata schema objects
 
   if ((isSeabaseReservedSchema(indexName)) &&
@@ -2033,7 +2101,7 @@ void CmpSeabaseDDL::alterSeabaseIndexHBaseOptions(
     {
       *CmpCommon::diags() << DgSqlCode(-CAT_ALTER_NOT_ALLOWED_IN_SMD)
                           << DgTableName(extIndexName);
-      deallocEHI(ehi); 
+
       processReturn();
       return;
     }
@@ -2049,7 +2117,7 @@ void CmpSeabaseDDL::alterSeabaseIndexHBaseOptions(
   if (retcode < 0)  // some error occurred
     {
       processReturn();
-      deallocEHI(ehi);
+
       return;
     }
   else if (retcode == 0)
@@ -2059,7 +2127,6 @@ void CmpSeabaseDDL::alterSeabaseIndexHBaseOptions(
       *CmpCommon::diags() << DgSqlCode(-CAT_OBJECT_DOES_NOT_EXIST_IN_TRAFODION)
                           << DgString0(extIndexName);
 
-      deallocEHI(ehi); 
       processReturn();     
       return;
     }
@@ -2079,7 +2146,7 @@ void CmpSeabaseDDL::alterSeabaseIndexHBaseOptions(
 		   btCatName, btSchName, btObjName, btUID, btObjOwner, btSchemaOwner))
     {
       processReturn();      
-      deallocEHI(ehi);      
+
       return;
     }
   
@@ -2096,11 +2163,18 @@ void CmpSeabaseDDL::alterSeabaseIndexHBaseOptions(
       CmpCommon::diags()->clear();     
       *CmpCommon::diags() << DgSqlCode(-CAT_OBJECT_DOES_NOT_EXIST_IN_TRAFODION)
                           << DgString0(extIndexName);
-      deallocEHI(ehi);  
+
       processReturn();     
       return;
     }
- 
+
+  ExpHbaseInterface * ehi = allocEHI(naTable->isMonarch());
+  if (ehi == NULL)
+    {
+      processReturn();
+      return;
+    }
+
   // Make sure user has the privilege to perform the ALTER
   
   if (!isDDLOperationAuthorized(SQLOperation::ALTER_TABLE, btObjOwner, btSchemaOwner))
@@ -2154,6 +2228,16 @@ void CmpSeabaseDDL::alterSeabaseIndexHBaseOptions(
     {
       deallocEHI(ehi);
       processReturn();
+      return;
+    }
+
+  if (updateObjectRedefTime(&cliInterface,
+                            btCatName, btSchName, btObjName,
+                            COM_BASE_TABLE_OBJECT_LIT, -1, btUID))
+    {
+      deallocEHI(ehi);
+      processReturn();
+
       return;
     }
 

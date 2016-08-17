@@ -180,6 +180,7 @@ enum OperatorTypeEnum {
                         REL_LEFT_TSJ,
                         REL_UNION,
                         REL_INTERSECT,
+                        REL_EXCEPT,
                         REL_CHOICE,
                         REL_UPDATE,
                         REL_DELETE,
@@ -844,6 +845,7 @@ enum OperatorTypeEnum {
                         DDL_FIRST_STMT_OP = DDL_FIRST_DDL_OP,
                         DDL_ALTER_AUDIT_CONFIG,
                         DDL_ALTER_CATALOG,
+                        DDL_ALTER_SCHEMA,
                         DDL_ALTER_INDEX_ATTRIBUTE,
                         DDL_ALTER_INDEX_ALTER_HBASE_OPTIONS,
                         DDL_ALTER_LIBRARY,
@@ -867,6 +869,7 @@ enum OperatorTypeEnum {
                         DDL_ALTER_TABLE_MOVE,
                         DDL_ALTER_TABLE_PARTITION,
                         DDL_ALTER_TABLE_RENAME,
+                        DDL_ALTER_TABLE_STORED_DESC,
                         DDL_ALTER_TABLE_SET_CONSTRAINT,
                         DDL_ALTER_TABLE_DROPPABLE,
                         DDL_ALTER_TABLE_INSERT_ONLY,
@@ -1054,7 +1057,9 @@ enum OperatorTypeEnum {
   
                        // default column family for columns specified in CREATE stmt
                         ELM_FILE_ATTR_COL_FAM_ELEM,
+
                         ELM_FILE_ATTR_XN_REPL_ELEM,
+                        ELM_FILE_ATTR_STORAGE_TYPE_ELEM,
 
                         ELM_GRANTEE_ELEM,
                         ELM_KEY_VALUE_ELEM,
@@ -1064,6 +1069,7 @@ enum OperatorTypeEnum {
                         ELM_LIKE_OPT_WITH_HEADINGS_ELEM,
                         ELM_LIKE_OPT_WITH_HORIZONTAL_PARTITIONS_ELEM,
                         ELM_LIKE_OPT_WITHOUT_SALT_ELEM,
+                        ELM_LIKE_OPT_SALT_CLAUSE_ELEM,
                         ELM_LIKE_OPT_WITHOUT_DIVISION_ELEM,
                         ELM_LOCATION_ELEM,
                         ELM_OPTION_LIST,

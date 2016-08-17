@@ -29,7 +29,7 @@
 
   <properties>
     <hadoop.version>2.4.0</hadoop.version>
-    <hbase.version>${env.HBASE_DEP_VER_APACHE}</hbase.version>
+    <hbase.version>1.1.2</hbase.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <protobuf.version>2.5.0</protobuf.version>                                                                                              
     <protocVersion>2.5.0</protocVersion>                                                                                                    
@@ -39,7 +39,7 @@
 
   <groupId>org.apache</groupId>
   <modelVersion>4.0.0</modelVersion>
-  <artifactId>hbase-trx-apache1_0_2</artifactId>
+  <artifactId>hbase-trx-apache1_1_2</artifactId>
   <version>${env.TRAFODION_VER}</version>
   <name>HBase - Trx</name>
   <description>Trx of HBase usage</description>
@@ -62,7 +62,16 @@
           <skipAssembly>true</skipAssembly>
         </configuration>
       </plugin>
-        <plugin>
+     <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.5.1</version>
+        <configuration>
+          <source>1.7</source>
+          <target>1.7</target>
+        </configuration>
+      </plugin>
+      <plugin>
             <artifactId>maven-surefire-plugin</artifactId>
             <version>2.5</version>
             <configuration>

@@ -38,7 +38,7 @@ define([
 	var _this = null;
 	var ddlTextEditor = null;
 	var isAjaxCompleted=true;
-	
+
 	var BREAD_CRUMB = '#database-crumb';
 	var OBJECT_DETAILS_CONTAINER = '#object-details-container',
 	OBJECT_NAME_CONTAINER = '#db-object-name',
@@ -131,8 +131,7 @@ define([
 					ddlTextEditor.setSize($(this).width(), $(this).height());
 				}
 			});
-			//$(ddlTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
-			$(ddlTextEditor.getWrapperElement()).css({"border" : "1px solid #eee"});
+			$(ddlTextEditor.getWrapperElement()).css({"border" : "1px solid #eee",  "height":"450px", "font-size":"12px"});
 
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 
@@ -309,12 +308,12 @@ define([
 			}			
 		},
 		libraryAlteredEvent: function(args) {
-			 if(routeArgs.type == 'library'){
+			if(routeArgs.type == 'library'){
 				if(common.ExternalDisplayName(args.schemaName) == common.ExternalDisplayName(routeArgs.schema) && 
 						common.ExternalDisplayName(args.libName) == common.ExternalDisplayName(routeArgs.name)){
 					_this.doReset();
 				}				 
-			 }
+			}
 		},
 		getParentObjectName: function(){
 			var parentObjectName = null;
@@ -360,7 +359,7 @@ define([
 		dropLibrary: function(){
 			$(DROP_LIBRARY_SPINNER).css('visibility', 'visible');
 			$(DROP_LIBRARY_BUTTON).prop('disabled',true);
-			
+
 			_this.isAjaxCompleted=false;
 			dbHandler.dropObject(common.ExternalDisplayName(routeArgs.schema), routeArgs.type, common.ExternalDisplayName(routeArgs.name));
 		},
@@ -643,13 +642,13 @@ define([
 					break;							
 				}
 			}
-			
+
 			if(routeArgs.type == 'library'){
 				$(UPDATE_LIBRARY_CONTAINER).show();
 			}else{
 				$(UPDATE_LIBRARY_CONTAINER).hide();
 			}
-			
+
 			var ACTIVE_BTN = $(FEATURE_SELECTOR + ' .active');
 			var activeButton = null;
 			if(ACTIVE_BTN){
@@ -748,6 +747,17 @@ define([
 					}
 					if(property == 'Code File Name'){
 						routeArgs.CodeFileName = value.substring(value.lastIndexOf("/")+1);
+					}
+					if(property == 'Store File Size (MB)' || property == 'Mem Store Size (MB)'){
+						if (value == "0") {
+							value = '< 1';
+						} else {
+							value = common.formatNumberWithCommas(parseInt(value));
+						}
+					}
+					if(property == 'Number Salt Partitions' || property == 'Row Total Length' || property == 'Read Requests Count'
+						|| property == 'Write Requests Count' || property == 'Region Count' || property == 'Key Length'){
+						value = common.formatNumberWithCommas(parseInt(value));
 					}
 					if(routeArgs.type == 'index' && property == 'Table Name'){
 						var parentObjectName = _this.getParentObjectName();
@@ -896,6 +906,91 @@ define([
 
 					}
 				}
+				var aoColumnDefs = [];
+				aoColumnDefs.push({
+					"aTargets": [ 2 ],
+					"mData": 2,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (type == 'display') {
+							return common.formatNumberWithCommas(data);
+						} else {
+							return data;
+						}
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 3 ],
+					"mData": 3,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (type == 'display') {
+							return common.formatNumberWithCommas(data);
+						} else {
+							return data;
+						}
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 4 ],
+					"mData": 4,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (data == "0") {
+							return '< 1';
+						} else {
+							return common.formatNumberWithCommas(parseInt(data));
+						}
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 5 ],
+					"mData": 5,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (data == "0") {
+							return '< 1';
+						} else {
+							return common.formatNumberWithCommas(parseInt(data));
+						}
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 6 ],
+					"mData": 6,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (data == "0") {
+							return '< 1';
+						} else {
+							return common.formatNumberWithCommas(parseInt(data));
+						}
+					}
+				});				
+				aoColumnDefs.push({
+					"aTargets": [ 7 ],
+					"mData": 7,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (type == 'display') {
+							return common.formatNumberWithCommas(data);
+						} else {
+							return data;
+						}
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 8 ],
+					"mData": 8,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (type == 'display') {
+							return common.formatNumberWithCommas(data);
+						} else {
+							return data;
+						}
+					}
+				});				
 				regionsDataTable = $('#db-object-regions-list').DataTable({
 					"oLanguage": {
 						"sEmptyTable": "There are no regions"
@@ -909,12 +1004,13 @@ define([
 					"sPaginationType": "full_numbers",
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
+					"aoColumnDefs": aoColumnDefs,
 					"order": [[ 1, "asc" ]],
 					scrollCollapse: true,
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
 					          { extend : 'csv', exportOptions: { columns: ':visible' } },
-					         // { extend : 'excel', exportOptions: { columns: ':visible' } },
+					          // { extend : 'excel', exportOptions: { columns: ':visible' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Regions for "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Regions for "+routeArgs.type + " " + routeArgs.name }
 					          ]
@@ -1164,6 +1260,7 @@ define([
 				aoColumnDefs.push({
 					"aTargets": [ 2 ],
 					"mData": 2,
+					"className" : "dt-body-right",
 					"mRender": function ( data, type, full ) {
 						if (type === 'display') {
 							return common.toServerLocalDateFromUtcMilliSeconds(data);  
@@ -1174,6 +1271,7 @@ define([
 				aoColumnDefs.push({
 					"aTargets": [ 3 ],
 					"mData": 3,
+					"className" : "dt-body-right",
 					"mRender": function ( data, type, full ) {
 						if (type === 'display') {
 							return common.toServerLocalDateFromUtcMilliSeconds(data);  
@@ -1212,7 +1310,7 @@ define([
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
 					          { extend : 'csv', exportOptions: { columns: ':visible' } },
-					         // { extend : 'excel', exportOptions: { columns: ':visible' } },
+					          // { extend : 'excel', exportOptions: { columns: ':visible' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text(), orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text() }
 					          ]
@@ -1276,8 +1374,57 @@ define([
 				}
 				var aoColumnDefs = [];
 				aoColumnDefs.push({
+					"aTargets": [ 3 ],
+					"mData": 3,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (type == 'display') {
+							return common.formatNumberWithCommas(data);
+						} else {
+							return data;
+						}
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 6 ],
+					"mData": 6,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (type == 'display') {
+							return common.formatNumberWithCommas(data);
+						} else {
+							return data;
+						}
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 7 ],
+					"mData": 7,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (type == 'display') {
+							return common.formatNumberWithCommas(data);
+						} else {
+							return data;
+						}
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 8 ],
+					"mData": 8,
+					"className" : "dt-body-right",
+					"mRender": function ( data, type, full ) {
+						if (type == 'display') {
+							return common.formatNumberWithCommas(data);
+						} else {
+							return data;
+						}
+					}
+				});				
+				aoColumnDefs.push({
 					"aTargets": [ 9 ],
 					"mData": 9,
+					"className" : "dt-body-right",
 					"mRender": function ( data, type, full ) {
 						if (type === 'display') {
 							return common.toServerLocalDateFromUtcMilliSeconds(data);  
