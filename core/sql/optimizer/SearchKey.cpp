@@ -3616,9 +3616,10 @@ Int64 HivePartitionAndBucketKey::getRowcountInSelectedPartitionsCT()
 void HivePartitionAndBucketKey::computeAvgAccessMetrics(FileScan* fileScan)
 {
   const SUBARRAY(HHDFSListPartitionStats *)& selPartitions = getMask();
-  Int32 numSelectedParts = selPartitions.entries();
+  Int32 numSelectedParts = MAXOF(selPartitions.entries(), 1);
 
   const HHDFSTableStats * hdfsStats = getHDFSTableStats();
+
   avgRCInOnePartnSelected_ = hdfsStats->getTotalRows() / numSelectedParts;
   avgFileSizeInOnePartnSelected_ = hdfsStats->getTotalSize() / numSelectedParts;
 
