@@ -919,9 +919,6 @@ public class SnapshotMeta {
           LOG.error("getPriorSnapshotSet(tag) Exception setting up scanner " + e);
           throw new RuntimeException(e);
       }
-      if (returnList.isEmpty()) {
-         throw new Exception("Exception in getPriorSnapshotSet(key).  Record not found");
-      }
       if (LOG.isTraceEnabled()) LOG.trace("getPriorSnapshotSet(tag): returning " + returnList.size() + " records");
       return returnList;
    }
