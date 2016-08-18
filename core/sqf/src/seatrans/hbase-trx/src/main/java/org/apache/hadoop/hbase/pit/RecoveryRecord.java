@@ -200,7 +200,7 @@ public class RecoveryRecord {
      SnapshotMeta sm;
      List<SnapshotMetaRecord> snapshotList = null;
      MutationMeta mm;
-     List<MutationMetaRecord> mutationList = null;
+     ArrayList<MutationMetaRecord> mutationList = null;
 
      try {
        if (LOG.isTraceEnabled()) LOG.trace("  Creating SnapshotMeta object ");
@@ -230,7 +230,42 @@ public class RecoveryRecord {
      }
 
      // This recovery record is for a restore operation to the given tag, not a point-in-time recovery,
-     // so there are no mutation files to include.  We can just return
+     // so there are no mutation files to include.
+     ListIterator<SnapshotMetaRecord> snapshotIter;
+     for (snapshotIter = snapshotList.listIterator(); snapshotIter.hasNext();) {
+        SnapshotMetaRecord tmpRecord = snapshotIter.next();
+        if (tmpRecord.getStartRecord() == true) {
+           // Somehow we retrieved a SnapshotMetaStartRecord
+           if (LOG.isTraceEnabled()) LOG.trace("Error:  SnapshotMetaStartRecord found in snapshotList "
+                              + String.valueOf(tmpRecord.getKey()));
+           throw new Exception("Error:  SnapshotMetaStartRecord found in snapshotList "
+                              + String.valueOf(tmpRecord.getKey()));
+        }
+        long tmpSnapshotKey = tmpRecord.getKey();
+        String tmpTable = tmpRecord.getTableName();
+        TableRecoveryGroup recGroup = recoveryTableMap.get(tmpTable);
+        if (recGroup != null){
+           // We found an existing TableRecoveryGroup for the table associated with the current snapshot.
+           // This can happen if there was a DDL operation and a partial snapshot of the table
+           // after the last full snapshot was completed.  We can throw away the prior TableRecoveryGroup
+           // and create a new one associated with this snapshot.
+           if (LOG.isTraceEnabled()) LOG.trace(" Deleting existing TableRecoveryGroup for tmpRecord: "+ tmpRecord);
+           recoveryTableMap.remove(tmpTable);
+        }
+        try{
+            mutationList = mm.getMutationsFromSnapshot(tmpSnapshotKey);
+        }
+        catch (Exception e){
+          if (LOG.isTraceEnabled()) LOG.trace("Exception getting the range of mutations for snapshot " + tmpSnapshotKey + " " + e);
+          throw e;
+        }
+        if (LOG.isTraceEnabled()) LOG.trace("Creating new TableRecoveryGroup for tmpRecord: "+ tmpRecord
+        		                             + " with " + mutationList.size() + " mutations");
+        recGroup = new TableRecoveryGroup(tmpRecord, mutationList);
+        if (LOG.isTraceEnabled()) LOG.trace("Adding new entry into RecoveryTableMap from snapshot for tmpTable: "+ tmpTable);
+        recoveryTableMap.put(tmpTable, recGroup);
+     }
+
      if (LOG.isTraceEnabled()) LOG.trace("Exit RecoveryRecord constructor tag " + tag + " " + this.toString());
      return;
    }

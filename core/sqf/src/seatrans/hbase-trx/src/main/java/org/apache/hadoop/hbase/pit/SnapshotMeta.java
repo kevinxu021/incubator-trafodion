@@ -109,7 +109,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 
 /**
- * This class is responsible for maintaing all metadata writes, puts or deletes, to the Trafodion snapshot table.
+ * This class is responsible for maintaining all metadata writes, puts or deletes, to the Trafodion snapshot table.
  *
  * @see
  * <ul>
@@ -758,6 +758,71 @@ public class SnapshotMeta {
    }
 
    /**
+    * deleteSnapshotStartRecord
+    * @param String tag
+    * @throws Exception
+    * 
+    * This method takes a String parameter that is the tag associated with the desired snapshot start record
+    * and deletes it
+    */
+   public void deleteSnapshotStartRecord(String tag) throws Exception {
+      if (LOG.isTraceEnabled()) LOG.trace("deleteSnapshotStartRecord for tag " + tag);
+      SnapshotMetaRecord record = null;
+      long snapshotStartId = 0;
+      long snapshotStopId = 0;
+      boolean found = false;
+
+      try {
+          Scan s = new Scan();
+          s.setCaching(100);
+          s.setCacheBlocks(false);
+          ResultScanner ss = table.getScanner(s);
+
+          try {
+             for (Result r : ss) {
+                long currKey = Bytes.toLong(r.getRow());
+                if (LOG.isTraceEnabled()) LOG.trace("currKey is " + currKey);
+                for (Cell cell : r.rawCells()) {
+                   StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
+                   if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
+                   if (st.hasMoreElements()) {
+                      String keyString         = st.nextToken();
+                      String startRecordString = st.nextToken();
+                      if (startRecordString.contains("true")) {
+
+                         // We found a snapshot start.  Let's see if the tag is the one we want.
+                         String userTagString           = st.nextToken();
+                         if (userTagString.equals(tag)) {
+                        	found = true;
+                            deleteRecord(currKey);
+                            if (LOG.isTraceEnabled()) LOG.trace("Deleted startRecord for " + currKey);
+                         }
+                      }
+                   }
+                }
+            }
+         }
+         catch(Exception e){
+            LOG.error("deleteSnapshotStartRecord(tag) Exception getting results " + e);
+            throw new RuntimeException(e);
+         }
+         finally {
+            if (LOG.isTraceEnabled()) LOG.trace("deleteSnapshotStartRecord(tag) closing ResultScanner");
+            ss.close();
+         }
+      }
+      catch(Exception e){
+          LOG.error("deleteSnapshotStartRecord(tag) Exception setting up scanner " + e);
+          throw new RuntimeException(e);
+      }
+      if (found == false) {
+         throw new Exception("Exception in deleteSnapshotStartRecord(key).  Record not found");
+      }
+      if (LOG.isTraceEnabled()) LOG.trace("deleteSnapshotStartRecord(tag): Exit ");
+      return;
+   }
+
+   /**
     * getPriorSnapshotSet
     * @param String tag
     * @return ArrayList<SnapshotMetaRecord> set
@@ -831,6 +896,7 @@ public class SnapshotMeta {
                          String snapshotPathString = st.nextToken();
                          String archivedString     = st.nextToken();
                          String archivePathString  = st.nextToken();
+                         if (LOG.isTraceEnabled()) LOG.trace("getPriorSnapshotSet adding record to returnList, key "  + currKey);
                          record = new SnapshotMetaRecord(currKey, tableNameString, userTagString,
                         		 snapshotPathString, archivedString.contains("true"), archivePathString);
 
@@ -852,9 +918,6 @@ public class SnapshotMeta {
       catch(Exception e){
           LOG.error("getPriorSnapshotSet(tag) Exception setting up scanner " + e);
           throw new RuntimeException(e);
-      }
-      if (returnList.isEmpty()) {
-         throw new Exception("Exception in getPriorSnapshotSet(key).  Record not found");
       }
       if (LOG.isTraceEnabled()) LOG.trace("getPriorSnapshotSet(tag): returning " + returnList.size() + " records");
       return returnList;
