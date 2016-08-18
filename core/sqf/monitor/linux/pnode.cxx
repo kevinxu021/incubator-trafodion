@@ -49,6 +49,8 @@ using namespace std;
 
 #include "replicate.h"
 #include "reqqueue.h"
+#include "healthcheck.h"
+
 extern CReqQueue ReqQueue;
 extern char MyPath[MAX_PROCESS_PATH];
 extern int MyPNID;
@@ -63,6 +65,7 @@ extern CNode *MyNode;
 extern CMonStats *MonStats;
 extern CRedirector Redirector;
 extern CReplicate Replicator;
+extern CHealthCheck HealthCheck;
 
 extern bool IAmIntegrating;
 
@@ -151,6 +154,7 @@ CNode::CNode( char *name, int pnid, int rank )
       ,syncSocketPort_(-1)
       ,procStatFile_(NULL)
       ,procMeminfoFile_(-1)
+      ,licenseVerifier_(false)
 {
     const char method_name[] = "CNode::CNode";
     TRACE_ENTRY;
@@ -187,7 +191,7 @@ CNode::CNode( char *name, int pnid, int rank )
     }
 
     if (pnid_ == MyPNID)
-    {
+    {  
         GetSchedulingData();
 #ifdef HARD_AFFINITY
         int i;
@@ -1446,6 +1450,38 @@ void CNode::StartSMServiceProcess( void )
     TRACE_EXIT;
 }
 
+void CNode::CompleteLicenseRequest( bool status, long expireDateInDays )
+{
+    const char method_name[] = "CNode::CompleteLicenseRequest";
+    TRACE_ENTRY;
+
+    static int  results_count = 0;
+    static bool verificationSuccess = true;
+    
+    //Invalid License, note it and wait for remaining replies
+    if (status == false)
+    {
+      verificationSuccess = false;
+    }
+    
+    if ((++results_count == Monitor->GetNumVerifiers()))
+    {
+         results_count=0;
+         HealthCheck.setLicenseInfo(expireDateInDays, verificationSuccess);
+         
+         // No need to force a validation when it has already failed.  Will be handled above
+         if (verificationSuccess)
+         {
+            HealthCheck.setState(MON_CHECK_LICENSE);
+         }
+         else
+         {
+           verificationSuccess = true;
+         }
+    }
+
+    TRACE_EXIT;
+}
 CNodeContainer::CNodeContainer( void )
                :NumberPNodes(0)
                ,NumberLNodes(0)

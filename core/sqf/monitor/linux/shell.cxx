@@ -44,6 +44,7 @@ using namespace std;
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <string> 
 
 #include "msgdef.h"
 #include "props.h"
@@ -3585,6 +3586,12 @@ void ls_cmd (char *cmd_tail, char delimiter)
     delete [] wdir;
 }
 
+//TRK - do not allow access for initial checkin
+void license_cmd (char *cmd_tail, char delimiter)
+{
+   printf("\n Not Supported\n");
+}
+
 void node_cmd (char *cmd_tail)
 {
     int nid;
@@ -5859,6 +5866,10 @@ bool process_command( char *token, char *cmd_tail, char delimiter )
         {
             setenv("LD_LIBRARY_PATH", LDpath, 1);
         }
+    }
+    else if (strcmp (token, "license") == 0)
+    {
+        license_cmd(cmd_tail, delimiter);
     }
     else if (strcmp (token, "ls") == 0)
     {

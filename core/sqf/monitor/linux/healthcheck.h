@@ -51,6 +51,7 @@ typedef enum
   MON_STOP_WATCHDOG,
   MON_START_WATCHDOG,
   MON_EXIT_PRIMITIVES,
+  MON_CHECK_LICENSE,
   HC_EXIT
 } HealthCheckStates;
 
@@ -70,7 +71,8 @@ public:
     void healthCheckThread();
     void initializeVars();
     static void sigusr2SignalHandler (int , siginfo_t *, void *);
-
+    void setLicenseInfo(long expireTime, bool success);
+    void verifyLicenseExpiration();
     pthread_t tid() { return thread_id_; }
 
     enum { QUIESCE_TIMEOUT_DEFAULT = 30 };  // Max seconds to wait for SE processes to exit 
@@ -83,7 +85,8 @@ private:
     void processTimerEvent();
     void startQuiesce();
     void scheduleNodeDown();
-
+    void timeToVerifyLicense(struct timespec &ts, int myPid);
+    
     HealthCheckStates state_;           // current state of the health check thread
     long long param1_;                  // optional param
     CLock healthCheckLock_;             // lock required to update/read the state
@@ -93,6 +96,8 @@ private:
     struct timespec lastReqCheckTime_;  // last time when request was checked for responsiveness
     struct timespec lastSyncCheckTime_; // last time when sync thread was checked for responsiveness
     struct timespec nonresponsiveTime_; // start time when Sync thread became unresponsive
+    struct timespec licenseCheckTime_;  // license check time 
+    struct timespec licenseExpireTime_; // When the license expires
     long long wakeupTimeSaved_;         // time when healthcheck thread should wakeup, in secs.
     CProcess * watchdogProcess_;        // ptr to the watchdog process object
     CProcess * smserviceProcess_;       // ptr to the smservice process object
