@@ -205,6 +205,16 @@ public class ConfigurationResource {
 		return adminPass;
 	}
 
+	public int getHttpReadTimeoutSeconds() {
+		int httpReadTimeOut = 120;
+		try {
+			String timeOut = xmlConfig.getProperty("httpReadTimeOutSeconds", "120");
+			httpReadTimeOut = Integer.parseInt(timeOut);
+		} catch (Exception ex) {
+		}
+		return httpReadTimeOut;
+	}
+
 	public int getSessionTimeoutMinutes() {
 		int timeOutVal = 120;
 		try {
