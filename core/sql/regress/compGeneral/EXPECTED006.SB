@@ -178,20 +178,6 @@
 >>
 >>obey TEST006(negative_tests);
 >>
->>-- Error 2055
->>control query default mp_subvolume 'raydddddd';
-
-*** ERROR[2055] The specified value 'RAYDDDDDD' for DEFAULTS attribute MP_SUBVOLUME is not valid.
-
-*** ERROR[8822] The statement was not prepared.
-
->>control query default mp_subvolume 'raydd~@';
-
-*** ERROR[2055] The specified value 'RAYDD~@' for DEFAULTS attribute MP_SUBVOLUME is not valid.
-
-*** ERROR[8822] The statement was not prepared.
-
->>
 >>-- Error 3233
 >>set parserflags 131072;
 
@@ -1303,21 +1289,6 @@
 >>--cqd PUBLISHING_ROLES 'a.b';
 >>--cqd PUBLISHING_ROLES reset;
 >>
->>cqd POS 'off';
-
---- SQL operation complete.
->>cqd HIST_SCRATCH_VOL '@system@.@volume@.b.c';
-
-*** ERROR[2055] The specified value '@system@.@volume@.b.c' for DEFAULTS attribute HIST_SCRATCH_VOL is not valid.
-
-*** ERROR[8822] The statement was not prepared.
-
->>cqd HIST_SCRATCH_VOL reset;
-
---- SQL operation complete.
->>cqd POS reset;
-
---- SQL operation complete.
 >>
 >>cqd EID_TRACE_STR 'abc';
 
