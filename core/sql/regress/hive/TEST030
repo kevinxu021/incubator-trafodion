@@ -196,7 +196,7 @@ select [last 0] ss_net_profit from
 date_dim_orc dim, store_sales_sorted_orc ss
 where
 dim.d_date_sk = ss.ss_sold_date_sk
-and d_year in ( 2001,2000) and d_dom = 30 -- produce 24 rows
+and d_year in (2001) and d_dom = 30 -- produce 12 rows
 ;
 
 explain options 'f' s;

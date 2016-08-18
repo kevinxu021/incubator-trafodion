@@ -102,6 +102,15 @@ else
         fi
     fi
 fi
+for node in $NODE_LIST
+do
+    trafCreated=$(ssh -q -n $node sudo grep "$TRAF_USER:" /etc/group | wc -l)
+    if [[ "$trafCreated" -ne "1" ]]; then
+       echo "***ERROR: Unable to create Trafodion group  on node $node"
+       exit -1
+    fi
+done
+
 #=================================================
 # Create Trafodion user, if not already created
 found=1
@@ -138,6 +147,16 @@ if [ $return_code -ne 0 ]; then
         exit -1
     fi
 fi
+
+for node in $NODE_LIST
+do 
+    trafCreated=$(ssh -q -n $node sudo grep "$TRAF_USER:" /etc/passwd | wc -l)
+    if [[ "$trafCreated" -ne "1" ]]; then
+       echo "***ERROR: Unable to create Trafodion userid on node $node"
+       exit -1
+    fi
+done
+
 
 #=================================================
 
