@@ -22,6 +22,7 @@ under the License.
  */
 package org.trafodion.dcs.master.listener;
 
+import java.io.File;
 import java.io.*;
 import java.nio.*;
 import java.nio.channels.*;
@@ -70,9 +71,14 @@ public class ListenerService extends Thread{
     private DefinedMapping mapping = null;
     private RegisteredServers registeredServers = null;
     private boolean userAffinity = true;
-    
+    private String hostSelectionMode = "";
+    private long timeStamp;
+    private String fullPath;
+    private File file;
+
     private void init(){
         try {
+            fileConfFile();
             mapping = new DefinedMapping(this);
             registeredServers = new RegisteredServers(this);
             if(metrics != null)metrics.initListenerMetrics(System.nanoTime());
@@ -105,6 +111,7 @@ public class ListenerService extends Thread{
             this.portRange = conf.getInt(Constants.DCS_MASTER_PORT_RANGE,Constants.DEFAULT_DCS_MASTER_PORT_RANGE);
             this.parentZnode = conf.get(Constants.ZOOKEEPER_ZNODE_PARENT,Constants.DEFAULT_ZOOKEEPER_ZNODE_PARENT);
             this.userAffinity = conf.getBoolean(Constants.DCS_MASTER_USER_SERVER_AFFINITY,Constants.DEFAULT_DCS_MASTER_USER_SERVER_AFFINITY);
+            this.hostSelectionMode = conf.get(Constants.DCS_MASTER_HOST_SELECTION_MODE,Constants.DEFAULT_DCS_MASTER_HOST_SELECTION_MODE);
             this.metrics = null;
             this.zkc = new ZkClient(3000,0,0);
             zkc.connect();
@@ -122,7 +129,7 @@ public class ListenerService extends Thread{
         }
     }
 
-    public ListenerService(ZkClient zkc,DcsNetworkConfiguration netConf,int port,int portRange,int requestTimeout, int selectorTimeout, Metrics metrics, String parentZnode, boolean userAffinity) {
+    public ListenerService(ZkClient zkc,DcsNetworkConfiguration netConf,int port,int portRange,int requestTimeout, int selectorTimeout, Metrics metrics, String parentZnode, Configuration conf) {
         this.zkc = zkc;
         while (zkc.getZk() == null || zkc.getZk().getState() != ZooKeeper.States.CONNECTED) {
             try {
@@ -132,14 +139,20 @@ public class ListenerService extends Thread{
         }
         LOG.info("Connected to ZooKeeper");
         this.netConf = netConf;
+        this.conf = conf;
         this.port = port;
         this.portRange = portRange;
         this.requestTimeout = requestTimeout;
         this.selectorTimeout = selectorTimeout;
         this.metrics = metrics;
         this.parentZnode = parentZnode;
-        this.userAffinity = userAffinity;
-        init();
+        userAffinity = this.conf.getBoolean(
+                    Constants.DCS_MASTER_USER_SERVER_AFFINITY,
+                    Constants.DEFAULT_DCS_MASTER_USER_SERVER_AFFINITY);
+        hostSelectionMode = this.conf.get(
+                    Constants.DCS_MASTER_HOST_SELECTION_MODE,
+                    Constants.DEFAULT_DCS_MASTER_HOST_SELECTION_MODE);
+       init();
     }
 
     public void send(PendingRequest preq) {
@@ -458,9 +471,48 @@ public class ListenerService extends Thread{
     public RegisteredServers getRegisteredServers(){
         return registeredServers;
     }
+    private void fileConfFile() {
+        fullPath = System.getenv("DCS_INSTALL_DIR") + "/conf/dcs-site.xml";
+        if(LOG.isDebugEnabled())
+          LOG.debug("Conf file path :" + fullPath);
+        file = new File(fullPath);
+        timeStamp = file.lastModified();
+    }
+    private boolean isConfFileUpdated() {
+        long timeStamp = file.lastModified();
+        if( this.timeStamp != timeStamp ) {
+          this.timeStamp = timeStamp;
+          //Yes, file is updated
+          if(LOG.isDebugEnabled())
+            LOG.debug("Conf file is updated");
+          return true;
+        }
+        //No, file is not updated
+        return false;
+    }
+    public String getConfHostSelectionMode(){
+        if(isConfFileUpdated()){
+          this.conf = DcsConfiguration.create();
+          hostSelectionMode = this.conf.get(
+                    Constants.DCS_MASTER_HOST_SELECTION_MODE,
+                    Constants.DEFAULT_DCS_MASTER_HOST_SELECTION_MODE);
+        }
+        if(LOG.isDebugEnabled())
+          LOG.debug("Conf hostSelectionMode :" + hostSelectionMode);
+        return hostSelectionMode;
+    }
     public boolean getUserAffinity(){
+        if(isConfFileUpdated()){
+          this.conf = DcsConfiguration.create();
+          userAffinity = this.conf.getBoolean(
+                    Constants.DCS_MASTER_USER_SERVER_AFFINITY,
+                    Constants.DEFAULT_DCS_MASTER_USER_SERVER_AFFINITY);
+        }
+        if(LOG.isDebugEnabled())
+          LOG.debug("Conf userAffinity :" + userAffinity);
         return userAffinity;
     }
+
     public static void main(String [] args) {
         ListenerService as = new ListenerService(args);
     }

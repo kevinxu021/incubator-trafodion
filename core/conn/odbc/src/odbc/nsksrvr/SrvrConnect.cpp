@@ -2238,6 +2238,10 @@ TNULL:
 			}
 			free(extData);
 			extData = NULL;
+                        
+                       strcpy(srvrGlobal->mappedSLAName, sla.c_str());
+                       strcpy(srvrGlobal->mappedProfileName, cprofile.c_str());
+
 //if 0
 // build sla path from zk node /<user name>/wms/slas/sla
 			char * cstr = new char [dcsRegisteredNode.length()+1];
