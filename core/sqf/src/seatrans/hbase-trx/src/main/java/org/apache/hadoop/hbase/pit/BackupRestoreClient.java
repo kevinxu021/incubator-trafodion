@@ -296,18 +296,29 @@ public class BackupRestoreClient
     	//ts indicates, delete all backups upto the timestamp
     	if(ts)
         {
+          // Convert the string timestamp to a long
+          int timeout = 1000;
+          boolean cb = false;
+          IdTm cli = new IdTm(cb);
+          IdTmId idtmid = new IdTmId();
+          cli.strToId(timeout, idtmid, backuptag);
+
           // get all backup snapshots 
-          // delete snapshots
-          // get all mutations
-          // delete mutations
-          // de-register the same in snapshot meta.
+          ArrayList<SnapshotMetaStartRecord> snapshotStartList = null;
+          snapshotStartList = sm.getAllPriorSnapshotStartRecords(idtmid.val);
+        		  
+          for (SnapshotMetaStartRecord s : snapshotStartList) {
+            String userTag = s.getUserTag();
+            RecoveryRecord rr = new RecoveryRecord(userTag);
+            deleteRecoveryRecord(rr);
+            sm.deleteSnapshotStartRecord(userTag);
+          }
         }
         else
         {
-          //TODO : delete of mutations and update of meta.
           if (logger.isDebugEnabled())
             logger.debug("BackupRestoreClient deleteBackup User tag :" + backuptag);
-          
+
           RecoveryRecord rr = new RecoveryRecord(backuptag);
           deleteRecoveryRecord(rr);
           sm.deleteSnapshotStartRecord(backuptag);
