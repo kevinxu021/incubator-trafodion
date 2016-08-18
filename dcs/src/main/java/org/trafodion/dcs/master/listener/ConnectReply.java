@@ -64,9 +64,9 @@ class ConnectReply {
     private String clusterName = "";
     private ListenerService listener = null;
     private boolean userAffinity = true;
-    private String hostSelectionMode = Constants.RESTRICT;
-    private String hostConfSelectionMode = Constants.RESTRICT;
-    private String hostPrefSelectionMode = Constants.RESTRICT;
+    private String hostSelectionMode = Constants.PREFERRED;
+    private String hostConfSelectionMode = Constants.PREFERRED;
+    private String hostProfSelectionMode = Constants.PREFERRED;
     private Random random = null;
     
     ConnectReply(ListenerService listener){
@@ -139,11 +139,11 @@ class ConnectReply {
         
         try {
             hostConfSelectionMode = listener.getConfHostSelectionMode();
-            hostPrefSelectionMode = cc.getProfHostSelectionMode();
-            if(hostPrefSelectionMode.equals(Constants.PREFERRED))
+            hostProfSelectionMode = cc.getProfHostSelectionMode();
+            if(hostProfSelectionMode.equals(Constants.PREFERRED))
               hostSelectionMode = hostConfSelectionMode;
             else
-              hostSelectionMode = hostPrefSelectionMode;
+              hostSelectionMode = hostProfSelectionMode;
 
             if(LOG.isDebugEnabled())
                 LOG.debug("hostSelectionMode :" + hostSelectionMode );
