@@ -308,6 +308,9 @@ public:
     void EmptyQuiescingPids();
     void SendQuiescingNotices();
     
+    inline bool IsLicenseVerifier() {return licenseVerifier_;}
+    inline void SetLicenseVerifier(bool licenseVerifier) {licenseVerifier_=licenseVerifier;}
+    void CompleteLicenseRequest( bool status, long expireDateInDays);
 protected:
 private:
     enum itemsProcmem {memTotal,        // total usable memory
@@ -373,6 +376,7 @@ private:
     FILE *procStatFile_;    // "/proc/stat" file pointer
     int  procMeminfoFile_;  // "/proc/meminfo" file descriptor
 
+    bool licenseVerifier_;  // is this a node whose responsibility is to verify the license
     typedef struct {
         char * buffer;
         char * bol;
