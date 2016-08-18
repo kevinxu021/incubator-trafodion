@@ -1,6 +1,6 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2015 Esgyn Corporation
+// (C) Copyright 2015-2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
@@ -51,16 +51,20 @@ define(['handlers/EventDispatcher', 'common'],
 				this.sessionTimeout = function() {
 					window.location.hash = '/stimeout';
 				};
-				this.fetchDcsServers = function(){
+				this.fetchDcsServers = function(asyncFlag){
 					var xhr = xhrs["fetchDcsServers"];
 					if(xhr && xhr.readyState !=4){
 						xhr.abort();
+					}
+					if(asyncFlag == null){
+						asyncFlag = true;
 					}
 					xhrs["fetchDcsServers"] = $.ajax({
 						cache: false,
 						url: 'resources/server/dcs/servers',
 						type:'GET',
 						dataType:"json",
+						async: asyncFlag,
 						contentType: "application/json;",
 						statusCode : {
 							401 : _this.sessionTimeout,
