@@ -849,6 +849,10 @@ protected:
   short buildViewColInfo(StmtDDLCreateView * createViewParseNode,
 			 ElemDDLColDefArray * colDefArray);
   
+  short buildViewTblColUsage(const StmtDDLCreateView * createViewParseNode,
+                             const ComTdbVirtTableColumnInfo * colInfoArray,
+                             const Int64 viewObjUID, NAString &viewColUsageText);
+
   short buildColInfoArray(ElemDDLParamDefArray *paramArray,
                           ComTdbVirtTableColumnInfo * colInfoArray);
   
@@ -871,6 +875,7 @@ protected:
   short gatherViewPrivileges (const StmtDDLCreateView * createViewParseNode,
                               ExeCliInterface * cliInterface,
                               NABoolean viewCreator,
+                              Int32 userID,
                               PrivMgrBitmap &privilegesBitmap,
                               PrivMgrBitmap &grantableBitmap);
 

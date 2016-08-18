@@ -898,13 +898,13 @@ NABoolean PCodeCfg::canGenerateNativeExpr()
                 return FALSE;
               }
 
-              switch (((ex_comp_clause*)clause)->get_case_index()) {
-                case ex_comp_clause::NE_DATETIME_DATETIME:
-                case ex_comp_clause::EQ_DATETIME_DATETIME:
-                case ex_comp_clause::LT_DATETIME_DATETIME:
-                case ex_comp_clause::GT_DATETIME_DATETIME:
-                case ex_comp_clause::LE_DATETIME_DATETIME:
-                case ex_comp_clause::GE_DATETIME_DATETIME:
+              switch (((ex_comp_clause*)clause)->getInstruction()) {
+                case NE_DATETIME_DATETIME:
+                case EQ_DATETIME_DATETIME:
+                case LT_DATETIME_DATETIME:
+                case GT_DATETIME_DATETIME:
+                case LE_DATETIME_DATETIME:
+                case GE_DATETIME_DATETIME:
                 {
                   // Only support standard types
                   long dtCode =
@@ -1736,13 +1736,13 @@ NABoolean PCodeCfg::canGenerateNativeExpr()
               if (clause->isSpecialNulls())
                 return FALSE;
 
-              switch (((ex_comp_clause*)clause)->get_case_index()) {
-                case ex_comp_clause::NE_DATETIME_DATETIME:
-                case ex_comp_clause::EQ_DATETIME_DATETIME:
-                case ex_comp_clause::LT_DATETIME_DATETIME:
-                case ex_comp_clause::GT_DATETIME_DATETIME:
-                case ex_comp_clause::LE_DATETIME_DATETIME:
-                case ex_comp_clause::GE_DATETIME_DATETIME:
+              switch (((ex_comp_clause*)clause)->getInstruction()) {
+                case NE_DATETIME_DATETIME:
+                case EQ_DATETIME_DATETIME:
+                case LT_DATETIME_DATETIME:
+                case GT_DATETIME_DATETIME:
+                case LE_DATETIME_DATETIME:
+                case GE_DATETIME_DATETIME:
                 {
                   // Only support standard types
                   long dtCode =
@@ -8192,13 +8192,13 @@ void PCodeCfg::layoutNativeCode()
                     "trueLabel = %p, falseLabel = %p, nullLabel = %p\n",
                      trueLabel,      falseLabel,      nullLabel );
 
-              switch (((ex_comp_clause*)clause)->get_case_index()) {
-                case ex_comp_clause::NE_DATETIME_DATETIME:
-                case ex_comp_clause::EQ_DATETIME_DATETIME:
-                case ex_comp_clause::LT_DATETIME_DATETIME:
-                case ex_comp_clause::GT_DATETIME_DATETIME:
-                case ex_comp_clause::LE_DATETIME_DATETIME:
-                case ex_comp_clause::GE_DATETIME_DATETIME:
+              switch (((ex_comp_clause*)clause)->getInstruction()) {
+                case NE_DATETIME_DATETIME:
+                case EQ_DATETIME_DATETIME:
+                case LT_DATETIME_DATETIME:
+                case GT_DATETIME_DATETIME:
+                case LE_DATETIME_DATETIME:
+                case GE_DATETIME_DATETIME:
                 {
                   DPT0( "VV9B210: ", VV_VD,
                       "CLAUSE_EVAL - COMP_TYPE - found DATETIME case index\n" );
@@ -8336,8 +8336,8 @@ void PCodeCfg::layoutNativeCode()
                         // comparison, the fall-through may be the "true" block,
                         // or it may be the "false" block - default is TRUE.
 
-                        switch (((ex_comp_clause*)clause)->get_case_index()) {
-                          case ex_comp_clause::NE_DATETIME_DATETIME:
+                        switch (((ex_comp_clause*)clause)->getInstruction()) {
+                          case NE_DATETIME_DATETIME:
 ////                        resJitVal = jit_insn_ne(f, year1, year2);
                             resJitVal = jitGenCompare( Bldr, IntCompare_NE,
                                                        year1,  year2,
@@ -8351,7 +8351,7 @@ void PCodeCfg::layoutNativeCode()
 
                             dumpTrueBlockFirst = FALSE;
                             break;
-                          case ex_comp_clause::EQ_DATETIME_DATETIME:
+                          case EQ_DATETIME_DATETIME:
 ////                        resJitVal = jit_insn_ne(f, year1, year2);
                             resJitVal = jitGenCompare( Bldr, IntCompare_EQ,
                                                        year1,  year2,
@@ -8365,7 +8365,7 @@ void PCodeCfg::layoutNativeCode()
                             IR_insn_branch_if_not_zero( Bldr, resJitVal, &falseLabel );
 
                             break;
-                          case ex_comp_clause::LT_DATETIME_DATETIME:
+                          case LT_DATETIME_DATETIME:
 ////                        resJitVal = jit_insn_lt(f, year1, year2);
                             resJitVal = jitGenCompare( Bldr, IntCompare_ULT,
                                                        year1,  year2,
@@ -8392,7 +8392,7 @@ void PCodeCfg::layoutNativeCode()
 
                             dumpTrueBlockFirst = FALSE;
                             break;
-                          case ex_comp_clause::GT_DATETIME_DATETIME:
+                          case GT_DATETIME_DATETIME:
 ////                        resJitVal = jit_insn_gt(f, year1, year2);
                             resJitVal = jitGenCompare( Bldr, IntCompare_UGT,
                                                        year1,  year2,
@@ -8419,7 +8419,7 @@ void PCodeCfg::layoutNativeCode()
 
                             dumpTrueBlockFirst = FALSE;
                             break;
-                          case ex_comp_clause::LE_DATETIME_DATETIME:
+                          case LE_DATETIME_DATETIME:
 ////                        resJitVal = jit_insn_lt(f, year1, year2);
                             resJitVal = jitGenCompare( Bldr, IntCompare_ULT,
                                                        year1,  year2,
@@ -8445,7 +8445,7 @@ void PCodeCfg::layoutNativeCode()
                             IR_insn_branch_if_not_zero( Bldr, resJitVal, &falseLabel );
 
                             break;
-                          case ex_comp_clause::GE_DATETIME_DATETIME:
+                          case GE_DATETIME_DATETIME:
 ////                        resJitVal = jit_insn_gt(f, year1, year2);
                             resJitVal = jitGenCompare( Bldr, IntCompare_UGT,
                                                        year1,  year2,
@@ -11799,13 +11799,13 @@ void PCodeCfg::layoutNativeCode(Space* showplanSpace = NULL)
 
             case ex_clause::COMP_TYPE:
             {
-              switch (((ex_comp_clause*)clause)->get_case_index()) {
-                case ex_comp_clause::NE_DATETIME_DATETIME:
-                case ex_comp_clause::EQ_DATETIME_DATETIME:
-                case ex_comp_clause::LT_DATETIME_DATETIME:
-                case ex_comp_clause::GT_DATETIME_DATETIME:
-                case ex_comp_clause::LE_DATETIME_DATETIME:
-                case ex_comp_clause::GE_DATETIME_DATETIME:
+              switch (((ex_comp_clause*)clause)->getInstruction()) {
+                case NE_DATETIME_DATETIME:
+                case EQ_DATETIME_DATETIME:
+                case LT_DATETIME_DATETIME:
+                case GT_DATETIME_DATETIME:
+                case LE_DATETIME_DATETIME:
+                case GE_DATETIME_DATETIME:
                 {
                   jit_value_t year1, year2;
 
@@ -11886,37 +11886,37 @@ void PCodeCfg::layoutNativeCode(Space* showplanSpace = NULL)
                         // comparison, the fall-through may be the "true" block,
                         // or it may be the "false" block - default is TRUE.
 
-                        switch (((ex_comp_clause*)clause)->get_case_index()) {
-                          case ex_comp_clause::NE_DATETIME_DATETIME:
+                        switch (((ex_comp_clause*)clause)->getInstruction()) {
+                          case NE_DATETIME_DATETIME:
                             resJitVal = jit_insn_ne(f, year1, year2);
                             jit_insn_branch_if(f, resJitVal, &trueLabel);
                             dumpTrueBlockFirst = FALSE;
                             break;
-                          case ex_comp_clause::EQ_DATETIME_DATETIME:
+                          case EQ_DATETIME_DATETIME:
                             resJitVal = jit_insn_ne(f, year1, year2);
                             jit_insn_branch_if(f, resJitVal, &falseLabel);
                             break;
-                          case ex_comp_clause::LT_DATETIME_DATETIME:
+                          case LT_DATETIME_DATETIME:
                             resJitVal = jit_insn_lt(f, year1, year2);
                             jit_insn_branch_if(f, resJitVal, &trueLabel);
                             resJitVal = jit_insn_gt(f, year1, year2);
                             jit_insn_branch_if(f, resJitVal, &falseLabel);
                             dumpTrueBlockFirst = FALSE;
                             break;
-                          case ex_comp_clause::GT_DATETIME_DATETIME:
+                          case GT_DATETIME_DATETIME:
                             resJitVal = jit_insn_gt(f, year1, year2);
                             jit_insn_branch_if(f, resJitVal, &trueLabel);
                             resJitVal = jit_insn_lt(f, year1, year2);
                             jit_insn_branch_if(f, resJitVal, &falseLabel);
                             dumpTrueBlockFirst = FALSE;
                             break;
-                          case ex_comp_clause::LE_DATETIME_DATETIME:
+                          case LE_DATETIME_DATETIME:
                             resJitVal = jit_insn_lt(f, year1, year2);
                             jit_insn_branch_if(f, resJitVal, &trueLabel);
                             resJitVal = jit_insn_gt(f, year1, year2);
                             jit_insn_branch_if(f, resJitVal, &falseLabel);
                             break;
-                          case ex_comp_clause::GE_DATETIME_DATETIME:
+                          case GE_DATETIME_DATETIME:
                             resJitVal = jit_insn_gt(f, year1, year2);
                             jit_insn_branch_if(f, resJitVal, &trueLabel);
                             resJitVal = jit_insn_lt(f, year1, year2);
