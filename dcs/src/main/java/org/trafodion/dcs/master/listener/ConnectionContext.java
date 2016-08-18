@@ -82,8 +82,9 @@ public class ConnectionContext {
     String client;
     String ccExtention;
 	
+    private final HashMap<String, HashMap<String,Object>> allAvailableServers = new HashMap<String, HashMap<String,Object>>();
     private final HashMap<String, HashMap<String,Object>> idleServers = new HashMap<String, HashMap<String,Object>>();
-    private final HashMap<String, HashMap<String,Object>> reusedSlaServers = new HashMap<String, HashMap<String,Object>>();
+    private final HashMap<String, HashMap<String,Object>> reusedUserServers = new HashMap<String, HashMap<String,Object>>();
     private final HashMap<String, HashMap<String,Object>> reusedOtherServers = new HashMap<String, HashMap<String,Object>>();
     
     HashMap<String, HashMap<String,String>> closedServers;
@@ -104,6 +105,7 @@ public class ConnectionContext {
     String disconnectProfile;
     long lastUpdate;
     Set<String> hostList;
+    String hostSelectionMode = Constants.PREFERRED;
 /*
 */
 
@@ -219,89 +221,31 @@ public class ConnectionContext {
   */
 
     public  void setAvailableServers(HashMap<String, String> availableServers){
-        reusedSlaServers.clear();
+        allAvailableServers.clear();
+        reusedUserServers.clear();
         reusedOtherServers.clear();
-        idleServers .clear();
-        Set<String> keys = availableServers.keySet();
+        idleServers.clear();
+
+        Set<String> servers = availableServers.keySet();
         if(LOG.isDebugEnabled())
-            LOG.debug("Available Servers :" + keys);
+            LOG.debug("Available Servers :" + servers);
 
-        for( String key : keys){
-            String[] stNode = key.split(":");
-            String hostName=stNode[0];
-            int instance=Integer.parseInt(stNode[1]);
-            if(LOG.isDebugEnabled())
-                LOG.debug("Available Server key :" + key + " hostName :" + hostName);
+        for( String server : servers){
+            HashMap<String,Object> attr = buildAttributeHashMap(server, availableServers.get(server));
+            allAvailableServers.put(server, attr);
+            if (hostList.isEmpty() || hostList.contains(attr.get(Constants.HOST_NAME))){
 
-            if(LOG.isDebugEnabled()){
-	        if (hostList.contains(hostName)){
-		  LOG.debug("hostList contains hostName :" + hostName);
-		}
-		else if (hostList.isEmpty()){
-                  LOG.debug("hostList is empty");
-                } 
-                else {
-		  LOG.debug("hostList does not contain hostName :" + hostName);
-		}
-	    }
-            if (hostList.isEmpty() || hostList.contains(hostName)){
-                String value = availableServers.get(key);
-                String[] sValue = value.split(":");
-                if(LOG.isDebugEnabled()){
-                    LOG.debug("value :" + value);
-                    LOG.debug("sValue.length :" + sValue.length);
-                    int i=0;
-                    for(String v: sValue){
-                        LOG.debug("v[" + i + "] :" + v);
-                        i++;
-                    }
+                if(attr.size() == 8)
+                  idleServers.put(server, attr);
+                else if(attr.size() == 17) {
+                  if(attr.get(Constants.MAPPED_SLA).equals(sla) && attr.get(Constants.USER_NAME).equals(user.userName))
+                     reusedUserServers.put(server, attr);
+                  else
+                     reusedOtherServers.put(server, attr);
                 }
-                HashMap<String,Object> attr = new HashMap<String,Object>();
-                attr.put(Constants.HOST_NAME, hostName);
-                attr.put(Constants.INSTANCE, instance);
-                attr.put(Constants.TIMESTAMP, Long.parseLong(sValue[1]));
-                attr.put(Constants.NODE_ID, Integer.parseInt(sValue[3]));
-                attr.put(Constants.PROCESS_ID, Integer.parseInt(sValue[4]));
-                attr.put(Constants.PROCESS_NAME, sValue[5]);
-                attr.put(Constants.IP_ADDRESS, sValue[6]);
-                attr.put(Constants.PORT, Integer.parseInt(sValue[7]));
-                if(LOG.isDebugEnabled())
-                      LOG.debug("attr.put sValue.length :" + sValue.length);
-                if(sValue.length == 8){
-                    if(LOG.isDebugEnabled())
-                          LOG.debug("before attr.put idleServers");
-                    idleServers.put(key, attr);
-                    if(LOG.isDebugEnabled())
-                          LOG.debug("after attr.put idleServers");
-                }
-                else if(sValue.length == 17) {
-                   attr.put(Constants.COMPUTER_NAME, sValue[8]);
-                   attr.put(Constants.CLIENT_SOCKET, sValue[9]);
-                   attr.put(Constants.CLIENT_PORT, sValue[10]);
-                   attr.put(Constants.WINDOW_TEXT, sValue[11]);
-                   attr.put(Constants.MAPPED_SLA, sValue[12]);
-                   attr.put(Constants.MAPPED_CONNECT_PROFILE, sValue[13]);
-                   attr.put(Constants.MAPPED_DISCONNECT_PROFILE, sValue[14]);
-                   attr.put(Constants.MAPPED_PROFILE_TIMESTAMP, (sValue[15].equals(""))? Long.parseLong("0") : Long.parseLong(sValue[15]));
-                   attr.put (Constants.USER_NAME, sValue[16]);
-                   if(sValue[12].equals(sla) && sValue[16].equals(user.userName)){
-                        reusedSlaServers.put(key, attr);
-                   }
-                   else {
-                        reusedOtherServers.put(key, attr);
-                   }
-               }
             }
         }
-/*
-        if( ! reusedSlaServers.isEmpty())
-            sortByTimestamp(reusedSlaServers);
-        if( ! reusedOtherServers.isEmpty())
-            sortByTimestamp(reusedOtherServers);
-        if( !idleServers.isEmpty())
-            sortByTimestamp(idleServers);
-*/
-   }
+    }
     private static void sortByTimestamp(Map<String, LinkedHashMap<String,Object>> map) { 
         List<Set<Map.Entry<String,Object>>> list = new LinkedList(map.entrySet());
         Collections.sort(list, new Comparator<Object>() {
@@ -343,6 +287,9 @@ public class ConnectionContext {
                 hostList.add(tkn);
         }
     }
+    public void setProfHostSelectionMode(String hostSelectionMode){
+        this.hostSelectionMode = hostSelectionMode;
+    }
     public void setLastUpdate(String s){
         if (s == null || s.length()== 0) s = "0";
         lastUpdate = new Long(s);
@@ -374,6 +321,9 @@ public class ConnectionContext {
     public Set<String> getHostList(){
        return hostList;
     }
+    public String getProfHostSelectionMode(){
+        return hostSelectionMode;
+    }
     public String getSla(){
         return sla;
     }
@@ -396,14 +346,17 @@ public class ConnectionContext {
         if(limit == 0)return false;
         return curLimit > limit;
     }
-    public HashMap<String, HashMap<String,Object>> getReusedSlaServers(){
-        return reusedSlaServers;
+    public HashMap<String, HashMap<String,Object>> getReusedUserServers(){
+        return reusedUserServers;
     }
     public HashMap<String, HashMap<String,Object>> getReusedOtherServers(){
         return reusedOtherServers;
     }
     public HashMap<String, HashMap<String,Object>> getIdleServers(){
         return idleServers;
+    }
+    public HashMap<String, HashMap<String,Object>> getAllAvailableServers(){
+        return allAvailableServers;
     }
     public HashMap<String, String> getAttributes(){
         return attributes;
@@ -419,7 +372,48 @@ public class ConnectionContext {
         return curThroughput > throughput;
     }
     public boolean isAvailable(){
-        if(idleServers.size() == 0 && reusedSlaServers.size() == 0 && reusedOtherServers.size() == 0)return false; 
+        if(idleServers.size() == 0 && reusedUserServers.size() == 0 && reusedOtherServers.size() == 0)return false; 
         return true;
+    }
+    public HashMap<String,Object> buildAttributeHashMap(String server, String value ){
+        String[] stNode = server.split(":");
+        String hostName = stNode[0];
+        int instance=Integer.parseInt(stNode[1]);
+        if(LOG.isDebugEnabled())
+            LOG.debug("Available Server :" + server + " hostName :" + hostName);
+
+        String[] sValue = value.split(":");
+        if(LOG.isDebugEnabled()){
+            LOG.debug("value :" + value);
+            LOG.debug("sValue.length :" + sValue.length);
+            int i=0;
+            for(String v: sValue){
+                LOG.debug("v[" + i + "] :" + v);
+                i++;
+            }
+        }
+        HashMap<String,Object> attr = new HashMap<String,Object>();
+        attr.put(Constants.HOST_NAME, hostName);
+        attr.put(Constants.INSTANCE, instance);
+        attr.put(Constants.TIMESTAMP, Long.parseLong(sValue[1]));
+        attr.put(Constants.NODE_ID, Integer.parseInt(sValue[3]));
+        attr.put(Constants.PROCESS_ID, Integer.parseInt(sValue[4]));
+        attr.put(Constants.PROCESS_NAME, sValue[5]);
+        attr.put(Constants.IP_ADDRESS, sValue[6]);
+        attr.put(Constants.PORT, Integer.parseInt(sValue[7]));
+        if(LOG.isDebugEnabled())
+              LOG.debug("attr.put sValue.length :" + sValue.length);
+        if(sValue.length == 17) {
+            attr.put(Constants.COMPUTER_NAME, sValue[8]);
+            attr.put(Constants.CLIENT_SOCKET, sValue[9]);
+            attr.put(Constants.CLIENT_PORT, sValue[10]);
+            attr.put(Constants.WINDOW_TEXT, sValue[11]);
+            attr.put(Constants.MAPPED_SLA, sValue[12]);
+            attr.put(Constants.MAPPED_CONNECT_PROFILE, sValue[13]);
+            attr.put(Constants.MAPPED_DISCONNECT_PROFILE, sValue[14]);
+            attr.put(Constants.MAPPED_PROFILE_TIMESTAMP, (sValue[15].equals(""))? Long.parseLong("0") : Long.parseLong(sValue[15]));
+            attr.put (Constants.USER_NAME, sValue[16]);
+        }
+        return attr;
     }
 }
