@@ -51,11 +51,11 @@ LINK_OPTIONS   += $(LNK_FLGS)
 
 COMMON_LIBS =
 
-$(BINEXPDIR)/decoder:  $(OBJS1)
-	$(CXX) -o $@ src/decoder.c $(OBJS1)
+$(BINEXPDIR)/decoder: src/decoder.c 
+	$(CXX) -o $@ src/decoder.c $(OBJS1) -lssl
 
-encoder:
-	$(CC) -o $@ src/encoder.c
+encoder: src/encoder.c
+	$(CC) -o $@ src/encoder.c -lssl
 
 copy:  $(BINEXPDIR)/decoder
 	cp $(BINEXPDIR)/decoder $(BINEXPDIR)/../../../../install/installer
