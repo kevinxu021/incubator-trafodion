@@ -4471,7 +4471,7 @@ void OptDefaults::computeNumESPsPerNodePerQuery(const RequiredResources* require
            defs.getAsLong(HIVE_NUM_ESPS_PER_DATANODE);
   } else {
      // Use the value for queries involving Hbase tables only
-     numESPsPerNodePerQuery_ = defs.getNumOfESPsPerNode();
+     numESPsPerNodePerQuery_ = defs.getNumOfESPsPerNodeInFloat();
   }
 }
 
