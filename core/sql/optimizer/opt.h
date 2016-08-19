@@ -960,7 +960,7 @@ public:
   PerformanceGoal* getResourcePerformanceGoal() const { return resourcePerformanceGoal_; }
 
 
-  ULng32 getNumESPsPerNodePerQuery() const { return numESPsPerNodePerQuery_; }
+  float getNumESPsPerNodePerQuery() const { return numESPsPerNodePerQuery_; }
 
 protected:
    NABoolean InitCostVariables();
@@ -1192,7 +1192,7 @@ private:
               
   // number of ESPs per node per query, set during resource estimation 
   // OptDefaults::estimateRequiredResources().
-  ULng32 numESPsPerNodePerQuery_;
+  float numESPsPerNodePerQuery_;
 
   const IndexDesc* requiredScanDescForFastDelete_;
 
