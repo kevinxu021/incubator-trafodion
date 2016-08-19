@@ -56,7 +56,7 @@ define([
 	var profileFormValidator = null;
 	var profileDialogParams = null;
 	var profileNameColIndex = -1;
-	var deleteProfileIconColIndex = 6;
+	var deleteProfileIconColIndex = 7;
 	var dataTableColNames = [];
 	var nodesList = null;
 	var nodesDataTable = null;
@@ -691,7 +691,8 @@ define([
 					msg = "Error : Unable to communicate with the server.";
 				}
 			}
-			alert(msg);		
+			var msgObj={msg:msg, tag:"danger", shortMsg:"Failed to delete profile."};
+			_this.popupNotificationMessage(null,msgObj);
 		}
 	});
 

@@ -739,45 +739,91 @@ public class RESTServlet implements RestConstants {
             return mappingsMap;
         }
     }
-    public synchronized Response.Status postWmsSla(String name, String sdata) throws Exception {
+    public synchronized String postWmsSla(String name, String sdata) throws Exception {
         Response.Status status = Response.Status.OK;
         Stat stat = null;
         byte[] data = null;
         String tdata = "";
+        String result = "OK";
+        boolean connProfileFound = false;
         
         if(LOG.isDebugEnabled())
-            LOG.debug("sdata :" + sdata);
-        if(name.equals(Constants.DEFAULT_WMS_SLA_NAME)== false){
-            String delims = "[=:]";
-            String[] tokens = sdata.split(delims);
-            if((tokens.length % 2) != 0){
-                LOG.error("postWmsSla [" + name + "] incorrect format :" + sdata);
-            }
-            else {
-                for (int i = 0; i < tokens.length; i=i+2){
-                    switch(tokens[i]){
-                    case Constants.IS_DEFAULT:
-                        tokens[i + 1] = "no";
-                        break;
+            LOG.debug("postWmsSla [" + name + "] sdata :" + sdata);
+        try {
+            if(name.equals(Constants.DEFAULT_WMS_SLA_NAME)== false){
+                String delims = "[=:]";
+                String[] tokens = sdata.split(delims);
+                if((tokens.length % 2) != 0){
+                    LOG.error("postWmsSla [" + name + "] incorrect format :" + sdata);
+                }
+                else {
+                    for (int i = 0; i < tokens.length; i=i+2){
+                        switch(tokens[i]){
+                        case Constants.IS_DEFAULT:
+                            tokens[i + 1] = "no";
+                            break;
+                        case Constants.ON_CONNECT_PROFILE:
+                            String connProfileName = tokens[i + 1];
+                            if(connProfileName == null || connProfileName.length() < 1){
+                                result = "OnConnect profile is required and cannot be empty";
+                                LOG.error(result);
+                                status = Response.Status.NOT_ACCEPTABLE;
+                                throw new ResponseException("406 missing dependency");
+                            }
+                            connProfileFound = true;
+                        case Constants.ON_DISCONNECT_PROFILE:
+                            String profileName = tokens[i + 1];
+                            if(profileName != null && profileName.length() > 0){
+                                Set<String> profiles = new HashSet<>(profilesMap.keySet());
+                                if(!profiles.contains(profileName)){
+                                    result = "Profile " + profileName + " does not exist!";
+                                    LOG.error(result);
+                                    status = Response.Status.NOT_ACCEPTABLE;
+                                    throw new ResponseException("406 missing dependency");
+                               }
+                            }
+                            break;
+                        }
+                        if(i>0)
+                            tdata = tdata + ":";
+                        tdata = tdata + tokens[i] + "=" + tokens[i + 1];
                     }
-                    if(i>0)
-                        tdata = tdata + ":";
-                    tdata = tdata + tokens[i] + "=" + tokens[i + 1];
-                }
-                data = tdata.getBytes();
-                stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name,false);
-                if (stat == null) {
-                    status = Response.Status.CREATED;
-                    zkc.create(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name,
-                            data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
-                            CreateMode.PERSISTENT);
-                } else {
-                    zkc.setData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name, data, -1);
+                    if(!connProfileFound){
+                        result = "OnConnect profile is required and cannot be empty";
+                        LOG.error(result);
+                        status = Response.Status.NOT_ACCEPTABLE;
+                        throw new ResponseException("406 missing dependency");
+                	
+                    }
+                    data = tdata.getBytes();
+                    stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name,false);
+                    if (stat == null) {
+                        status = Response.Status.CREATED;
+                        zkc.create(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name,
+                                data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                                CreateMode.PERSISTENT);
+                    } else {
+                        zkc.setData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name, data, -1);
+                    }
                 }
             }
+        } catch (Exception e){}
+        result = status.toString() + ": " + result;
+        if (status == Response.Status.OK){
+            result = "200 " + result;
         }
-        return status;
-    }
+        else if (status == Response.Status.CREATED){
+            result = "201 " + result;
+        }
+        else if (status == Response.Status.NOT_MODIFIED){
+             result = "304 " + result;
+        }
+        else if (status == Response.Status.NOT_ACCEPTABLE){
+             result = "406 " + result;
+        }
+
+        return result;
+     }
     public synchronized Response.Status postWmsProfile(String name, String sdata) throws Exception {
         Response.Status status = Response.Status.OK;
         Stat stat = null;
@@ -832,6 +878,7 @@ public class RESTServlet implements RestConstants {
         short defaultOrderNumber = Short.valueOf(Constants.DEFAULT_ORDER_NUMBER);
         short currentOrderNumber = 0;
         String tdata = "";
+        boolean slaFound = false;
 
         orderNumbers.clear();
         for(Map.Entry<String, LinkedHashMap<String,String>> entry : mappingsMap.entrySet()) {
@@ -861,6 +908,24 @@ public class RESTServlet implements RestConstants {
                     case Constants.IS_DEFAULT:
                         tokens[i + 1] = "no";
                         break;
+                    case Constants.SLA:
+                        String slaName = tokens[i + 1];
+                        if(slaName == null || slaName.length() < 1){
+                            result = "SLA is required and cannot be empty";
+                            LOG.error(result);
+                            status = Response.Status.NOT_ACCEPTABLE;
+                            throw new ResponseException("406 missing dependency");
+                        }else{
+                            Set<String> slas = new HashSet<>(slasMap.keySet());
+                            if(!slas.contains(slaName)){
+                                result = "SLA " + slaName + " does not exist!";
+                                LOG.error(result);
+                                status = Response.Status.NOT_ACCEPTABLE;
+                                throw new ResponseException("406 missing dependency");
+                           }
+                        }
+                        slaFound = true;
+                        break;
                     case Constants.ORDER_NUMBER:
                         currentOrderNumber = Short.valueOf(tokens[i + 1]);
                         if (currentOrderNumber <= 0 || currentOrderNumber >= defaultOrderNumber){
@@ -876,6 +941,12 @@ public class RESTServlet implements RestConstants {
                     if(i>0)
                         tdata = tdata + ":";
                     tdata = tdata + tokens[i] + "=" + tokens[i + 1];
+                }
+                if(!slaFound){
+                    result = "SLA is required and cannot be empty";
+                    LOG.error(result);
+                    status = Response.Status.NOT_ACCEPTABLE;
+                    throw new ResponseException("406 missing dependency");
                 }
                 String orderNumber = Short.toString(currentOrderNumber);
                 if(orderNumbers.contains(orderNumber)){
@@ -917,7 +988,8 @@ public class RESTServlet implements RestConstants {
 
         return result;
     }
-    public synchronized void deleteWmsSla(String name) throws Exception{
+    public synchronized String deleteWmsSla(String name) throws Exception{
+	String result = "200 OK.";
         Stat stat = null;
         byte[] data = null;
         
@@ -926,6 +998,17 @@ public class RESTServlet implements RestConstants {
         if(name.equals(Constants.DEFAULT_WMS_SLA_NAME)== false){
             stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name,false);
             if(stat != null){
+        	//Reject delete request if sla is being used by mappings
+                for(Map.Entry<String, LinkedHashMap<String,String>> entry : mappingsMap.entrySet()) {
+                    LinkedHashMap<String,String> value = entry.getValue();
+        	    String slaName = value.get(Constants.SLA);
+        	    if(name.equals(slaName)){
+                       result = "406 SLA " + name + " is being used mapping " +entry.getKey();
+                       LOG.error(result);
+       		       return result;
+        	    }
+                }
+        	
                 data = zkc.getData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name, false, stat);
                 if(data != null ){
                     String[] sData = (new String(data)).split(":");
@@ -939,8 +1022,10 @@ public class RESTServlet implements RestConstants {
                 }
             }
         }
+        return result;
     }
-    public synchronized void deleteWmsProfile(String name) throws Exception{
+    public synchronized String deleteWmsProfile(String name) throws Exception{
+        String result = "200 OK.";
         Stat stat = null;
         byte[] data = null;
         
@@ -949,6 +1034,18 @@ public class RESTServlet implements RestConstants {
         if(name.equals(Constants.DEFAULT_WMS_PROFILE_NAME)== false){
             stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + name,false);
             if(stat != null){
+        	//Reject delete request if profile is being used by SLAs
+                for(Map.Entry<String, LinkedHashMap<String,String>> entry : slasMap.entrySet()) {
+                    LinkedHashMap<String,String> value = entry.getValue();
+        	    String connProfileName = value.get(Constants.ON_CONNECT_PROFILE);
+        	    String disconnProfileName = value.get(Constants.ON_DISCONNECT_PROFILE);
+        	    if(name.equals(connProfileName) || name.equals(disconnProfileName)){
+                       result = "406 Profile " + name + " is being used SLA " +entry.getKey();
+                       LOG.error(result);
+       		       return result;
+        	    }
+                }
+                
                 data = zkc.getData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + name, false, stat);
                 if(data != null ){
                     String[] sData = (new String(data)).split(":");
@@ -962,6 +1059,7 @@ public class RESTServlet implements RestConstants {
                 }
             }
         }
+        return result;
     }
     public synchronized void deleteWmsMapping(String name) throws Exception{
         Stat stat = null;
