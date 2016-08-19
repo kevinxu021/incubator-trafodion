@@ -86,6 +86,7 @@ public:
 
   // make sure all SeaQuest nodes are recorded with their SQ node numbers 0...n-1
   static NABoolean initializeWithSeaQuestNodes();
+  static void reset();
 
 private:
   static HostId getHostNumInternal(const char *hostName);
@@ -94,6 +95,7 @@ private:
           return CmpCommon::context()->getHosts();
         }
 
+  // no data members, all state is kept in CmpContext
 };
 
 class HHDFSDiags
@@ -182,6 +184,8 @@ public:
        HHDFSStatsBase(table),
        heap_(heap),
        fileName_(heap),
+       replication_(1),
+       blockSize_(-1),
        blockHosts_(NULL) {}
   ~HHDFSFileStats();
   virtual void populate(hdfsFS fs,
@@ -213,6 +217,7 @@ public:
                              Int32 numSQNodes,
                              Int32 numESPs,
                              HHDFSListPartitionStats *partition,
+                             Int32 &nextDefaultPartNum,
                              NABoolean useLocality,
                              Int32 balanceLevel);
 

@@ -73,6 +73,7 @@
 #include "CmpSeabaseDDL.h"
 #include "Globals.h"
 #include "QCache.h"
+#include "HDFSHook.h"
 
 #include "SqlParserGlobals.h"		// MUST be last #include!
 
@@ -1987,6 +1988,9 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDui___(HIVE_INSERT_ERROR_MODE,               "1"),
   DDint__(HIVE_LIB_HDFS_PORT_OVERRIDE,          "-1"),
   DDint__(HIVE_LOCALITY_BALANCE_LEVEL,          "3"),
+  DDflt1_(HIVE_LOCALITY_MAX_OVERLOAD,           "1.05"),
+  DDint__(HIVE_LOCALITY_MAX_SECOND_CHECK_TGTS,  "20"),
+  DDint__(HIVE_LOCALITY_NUM_SECOND_LOOPS,       "4"),
   DDui___(HIVE_MAX_ESPS,                        "9999"),
   // Set to one byte less than QUERY_CACHE_MAX_CHAR_LEN so that hive queries with
   // string literals can be cached.
@@ -4407,6 +4411,9 @@ void NADefaults::updateSystemParameters(NABoolean reInit)
         OSIM_errorMessage(e.getErrMessage());
         return;
   }
+
+  HHDFSMasterHostList::reset();
+
   // First (but only if NSK-LITE Services exist),
   // write system parameters (attributes DEF_*) into DefaultDefaults,
   // then copy DefaultDefaults into CurrentDefaults.
