@@ -314,6 +314,8 @@ define([
 					aoColumnDefs.push({
 						"aTargets": [ priorityColIndex ],
 						"mData": priorityColIndex,
+						"visible" : false,
+						"searchable" : false,
 						"mRender": function ( data, type, full ) {
 							if(data != null){
 								return common.toProperCase(data);
@@ -364,6 +366,8 @@ define([
 						"aTargets": [ limitColIndex ],
 						"mData": limitColIndex,
 						"className" : "dt-body-right",
+						"visible" : false,
+						"searchable" : false,
 						"mRender": function ( data, type, full ) {
 							if(data != null && data.length > 0){
 								return common.formatNumberWithCommas(parseInt(data));
@@ -377,6 +381,8 @@ define([
 						"aTargets": [ throughputColIndex ],
 						"mData": throughputColIndex,
 						"className" : "dt-body-right",
+						"visible" : false,
+						"searchable" : false,
 						"mRender": function ( data, type, full ) {
 							if(data != null && data.length > 0){
 								return common.formatNumberWithCommas(parseInt(data));
@@ -586,13 +592,14 @@ define([
 		deleteSLAError: function(jqXHR){
 			var msg = "";
 			if (jqXHR.responseText) {
-				msg = jqXHR.responseText;
+				msg =  jqXHR.responseText;
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
 					msg = "Error : Unable to communicate with the server.";
 				}
 			}
-			alert(msg);
+			var msgObj={msg:msg, tag:"danger", shortMsg:"Failed to delete sla."};
+			_this.popupNotificationMessage(null,msgObj);
 		},
 		displayProfiles: function (result){
 			$(SLA_CONNECT_PROFILE_NAME).empty();
