@@ -3933,6 +3933,10 @@ enum DefaultConstants
   // if ON, read object descriptor from metadata, if it was stored.
   TRAF_READ_OBJECT_DESC,
 
+  HIVE_LOCALITY_MAX_OVERLOAD,
+  HIVE_LOCALITY_MAX_SECOND_CHECK_TGTS,
+  HIVE_LOCALITY_NUM_SECOND_LOOPS,
+
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!
   __NUM_DEFAULT_ATTRIBUTES

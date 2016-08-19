@@ -3016,6 +3016,20 @@ HHDFSTableStats * OptimizerSimulator::restoreHiveTableStats(const QualifiedName 
     struct hive_sd_desc *hsd = hvt_desc->getSDs();
     hiveHDFSTableStats->tableDir_ = hsd->location_;
     hiveHDFSTableStats->validationJTimestamp_ = JULIANTIMESTAMP();
+
+    // for debugging
+    NAString logFile = 
+      ActiveSchemaDB()->getDefaults().getValue(HIVE_HDFS_STATS_LOG_FILE);
+
+    if (logFile.length())
+      {
+        FILE *ofd = fopen(logFile, "a");
+        if (ofd){
+          hiveHDFSTableStats->print(ofd);
+          fclose(ofd);
+        }
+      }
+
     return hiveHDFSTableStats;
 }
 
@@ -3286,7 +3300,7 @@ NABoolean OsimHHDFSORCFileStats::setValue(HHDFSStatsBase* stats, const char *att
     if(NULL == stats)
         return FALSE;
     
-    if(OsimHHDFSStatsBase::setValue(stats, attrName, attrValue))
+    if(OsimHHDFSFileStats::setValue(stats, attrName, attrValue))
        return TRUE;
     
     HHDFSORCFileStats* hhstats = dynamic_cast<HHDFSORCFileStats*>(stats);
@@ -3299,8 +3313,9 @@ NABoolean OsimHHDFSORCFileStats::setValue(HHDFSStatsBase* stats, const char *att
               NAString values = attrValue;
               LIST(NAString) valueList;
               values.split('|', valueList);
+              assert(hhstats->numOfRows_.entries() == 0);
               for(Int32 i = 0; i < valueList.entries(); i++)
-                  hhstats->numOfRows_[i] = std::atoi(valueList[i].data());
+                hhstats->numOfRows_.insert((Int64) std::atoi(valueList[i].data()));
           }
     }
     else if (!strcmp(attrName, "offsets"))
@@ -3310,8 +3325,9 @@ NABoolean OsimHHDFSORCFileStats::setValue(HHDFSStatsBase* stats, const char *att
               NAString values = attrValue;
               LIST(NAString) valueList;
               values.split('|', valueList);
+              assert(hhstats->offsets_.entries() == 0);
               for(Int32 i = 0; i < valueList.entries(); i++)
-                      hhstats->offsets_[i] = std::atoi(valueList[i].data());
+                hhstats->offsets_.insert((Int64) std::atoi(valueList[i].data()));
         }
     }
     else if (!strcmp(attrName, "totalBytes"))
@@ -3321,8 +3337,9 @@ NABoolean OsimHHDFSORCFileStats::setValue(HHDFSStatsBase* stats, const char *att
               NAString values = attrValue;
               LIST(NAString) valueList;
               values.split('|', valueList);
+              assert(hhstats->totalBytes_.entries() == 0);
               for(Int32 i = 0; i < valueList.entries(); i++)
-                      hhstats->totalBytes_[i] = std::atoi(valueList[i].data());
+                hhstats->totalBytes_.insert((Int64) std::atoi(valueList[i].data()));
         }
     }
     else
