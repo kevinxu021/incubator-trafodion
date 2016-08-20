@@ -297,6 +297,34 @@ private:
     string new_name_;
 };
 
+class CReplLicense: public CReplObj
+{
+public:
+    CReplLicense(int req_pid, int req_nid, char *req_license);
+    virtual ~CReplLicense();
+
+    bool replicate(struct internal_msg_def *& msg);
+
+private:
+    int  req_pid_;
+    int  req_nid_;
+    char license_[LICENSE_NUM_BYTES];
+};
+
+class CReplLicenseVerified: public CReplObj
+{
+public:
+    CReplLicenseVerified(int req_pid, int req_nid, char *license, bool success);
+    virtual ~CReplLicenseVerified();
+
+    bool replicate(struct internal_msg_def *& msg);
+
+private:
+  int  req_pid_;
+  int  req_nid_;
+  char license_[LICENSE_NUM_BYTES];
+  bool success_;
+};
 
 class CReplNodeUp: public CReplObj
 {

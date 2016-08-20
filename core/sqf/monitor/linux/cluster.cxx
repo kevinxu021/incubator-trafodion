@@ -391,6 +391,48 @@ long CCluster::AssignTmSeqNumber( void )
     return TmSeqAssigned[MyPNID];
 }
 
+//Assign a new verifier if needed
+void CCluster::CheckLicenseVerifier(int pnid)
+{
+    const char method_name[] = "CCluster::CheckLicenseValidator";
+    TRACE_ENTRY;
+    
+    CNode *node = Node[pnid];
+
+    // if this down node is not a verifier, return
+    if ((!node) || (!(node->IsLicenseVerifier())))
+    {
+        return;
+    }
+
+    node->SetLicenseVerifier(false);
+
+    if (trace_settings & (TRACE_INIT | TRACE_RECOVERY | TRACE_REQUEST | TRACE_SYNC))
+        trace_printf("%s@%d" " - Node "  "%d" " License Verifier Node failed." "\n", method_name, __LINE__, pnid);
+
+    for (int index=0; index<cfgPNodes_; index++)
+    {
+        if ( node->IsSpareNode() ||
+             node->IsSoftNodeDown() ||
+             node->GetState() != State_Up ||
+             node->GetPhase() != Phase_Ready  ||
+             node->IsLicenseVerifier()) // already a verifier
+        {
+            continue; // skip this node for any of the above reasons 
+        } 
+        node->SetLicenseVerifier(true);
+        
+        if (trace_settings & (TRACE_INIT | TRACE_RECOVERY | TRACE_REQUEST | TRACE_SYNC | TRACE_TMSYNC))
+        {
+            trace_printf("%s@%d" " - Node "  "%d" " is a new License Verifier." "\n", method_name, __LINE__, index);
+        }
+        break;
+    }
+        
+    // TRK - TODO, make sure we found a verifier otherwise adjust verifier count
+    
+    TRACE_EXIT;
+}
 
 // Assigns a new TMLeader if given pnid is same as TmLeaderNid 
 // TmLeader is a logical node num. 
@@ -509,7 +551,7 @@ CCluster::CCluster (void)
     TRACE_ENTRY;
 
     MPI_Comm_set_errhandler(MPI_COMM_WORLD,MPI_ERRORS_RETURN);
-
+  
     char *env = getenv("SQ_MON_CHECK_SEQNUM");
     if ( env )
     {
@@ -554,6 +596,21 @@ CCluster::CCluster (void)
         socks_[i] = -1;
     }
 
+    char *verifiers = getenv("SQ_MON_NUM_VERIFIERS");
+    if ( verifiers )
+    {
+        numVerifiers_ = atoi(verifiers);
+    }
+    else
+    {
+        numVerifiers_ = 3;  //default
+    }
+    
+    if (numVerifiers_ > cfgPNodes)
+    {
+      numVerifiers_ = cfgPNodes;
+    }
+    
     env = getenv("SQ_MON_NODE_DOWN_VALIDATION");
     if ( env )
     {
@@ -1867,7 +1924,7 @@ void CCluster::HandleOtherNodeMsg (struct internal_msg_def *recv_msg,
         spareNode = Nodes->GetNode( recv_msg->u.activate_spare.spare_pnid );
         ReqQueue.enqueueActivateSpareReq( spareNode, downNode );
         break;
-
+ 
     case InternalType_Clone:
         if (trace_settings & (TRACE_SYNC | TRACE_REQUEST | TRACE_PROCESS))
             trace_printf("%s@%d - Internal clone request, process (%d, %d)"
@@ -1903,6 +1960,31 @@ void CCluster::HandleOtherNodeMsg (struct internal_msg_def *recv_msg,
 
         // Queue the node down request for processing by a worker thread.
         ReqQueue.enqueueNodeNameReq( recv_msg->u.nodename.current_name, recv_msg->u.nodename.new_name );
+        break;
+    case InternalType_License:
+        if (trace_settings & (TRACE_SYNC | TRACE_REQUEST | TRACE_PROCESS))
+            trace_printf("%s@%d - Internal license request\n", method_name, __LINE__);
+
+        // Queue the license request for processing by a worker thread.
+        if ( MyNode->IsLicenseVerifier() == true)
+        {
+            ReqQueue.enqueueLicenseReq( recv_msg->u.license.req_nid
+                                   , recv_msg->u.license.req_pid
+                                   , recv_msg->u.license.license);
+        }
+        break;
+    case InternalType_LicenseVerified:
+        if (trace_settings & (TRACE_SYNC | TRACE_REQUEST | TRACE_PROCESS))
+            trace_printf("%s@%d - Internal license verified request)\n", method_name, __LINE__);
+
+        // Only process if it is our node that originated the request
+        if (MyNode->IsMyNode(recv_msg->u.license.req_nid))
+        {
+            ReqQueue.enqueueLicenseVerifiedReq( recv_msg->u.license.req_nid
+                                   , recv_msg->u.license.req_pid
+                                   , recv_msg->u.license.license
+                                   , recv_msg->u.license.success);
+        } 
         break;
     case InternalType_SoftNodeDown:
         if (trace_settings & (TRACE_SYNC | TRACE_REQUEST | TRACE_PROCESS))
@@ -2384,8 +2466,7 @@ void CCluster::HandleMyNodeMsg (struct internal_msg_def *recv_msg,
                         , method_name, __LINE__
                         , recv_msg->u.activate_spare.spare_pnid
                         , recv_msg->u.activate_spare.down_pnid);
-        break;
-
+        break;	
     case InternalType_Clone:
         if (trace_settings & (TRACE_SYNC | TRACE_REQUEST | TRACE_PROCESS))
             trace_printf("%s@%d - Internal clone request, completed replicating process (%d, %d) %s\n", method_name, __LINE__, recv_msg->u.clone.nid, recv_msg->u.clone.os_pid, (recv_msg->u.clone.backup?" Backup":""));
@@ -2413,7 +2494,31 @@ void CCluster::HandleMyNodeMsg (struct internal_msg_def *recv_msg,
         if (trace_settings & (TRACE_SYNC | TRACE_REQUEST | TRACE_PROCESS))
             trace_printf("%s@%d - Internal node name request (%s to %s)\n", method_name, __LINE__, recv_msg->u.nodename.current_name, recv_msg->u.nodename.new_name);
         break;
+    case InternalType_License:
+        if (trace_settings & (TRACE_SYNC | TRACE_REQUEST | TRACE_PROCESS))
+            trace_printf("%s@%d - Internal license request)\n", method_name, __LINE__);
 
+        // Queue the node name request for processing by a worker thread.
+         if ( MyNode->IsLicenseVerifier() == true)
+         {
+            ReqQueue.enqueueLicenseReq( recv_msg->u.license.req_nid
+                                   , recv_msg->u.license.req_pid
+                                   , recv_msg->u.license.license);
+         } 
+        break;
+    case InternalType_LicenseVerified:
+        if (trace_settings & (TRACE_SYNC | TRACE_REQUEST | TRACE_PROCESS))
+            trace_printf("%s@%d - Internal license verified request)\n", method_name, __LINE__);
+
+        // Only process if it is our node that originated the request
+        if (MyNode->IsMyNode(recv_msg->u.license.req_nid))
+        {
+            ReqQueue.enqueueLicenseVerifiedReq( recv_msg->u.license.req_nid
+                                   , recv_msg->u.license.req_pid
+                                   , recv_msg->u.license.license
+                                   , recv_msg->u.license.success);
+        } 
+        break;
     case InternalType_SoftNodeDown:
         if (trace_settings & (TRACE_SYNC | TRACE_REQUEST | TRACE_PROCESS))
             trace_printf("%s@%d - Internal soft down node request for pnid=%d\n", method_name, __LINE__, recv_msg->u.down.pnid);
@@ -2888,7 +2993,34 @@ void CCluster::InitializeConfigCluster( void )
             delete [] syncPortNums;
 
             int TmLeaderPNid = LNode[TmLeaderNid]->GetNode()->GetPNid();
-
+   /* TRK commented out for initial checkin
+        
+            int VerifierSuccess = 0;
+            
+            // pick the initial verifiers
+            for (int i=0; i<cfgPNodes_; i++)
+            {
+                node = Nodes->GetNode(i);
+                if ( (node ) && (VerifierSuccess < numVerifiers_))
+                {
+                   node->SetLicenseVerifier( true );
+                   VerifierSuccess++;
+                   if (trace_settings & TRACE_INIT)
+                       trace_printf( "%s@%d License Verifier set to pnid %d\n"
+                                    , method_name, __LINE__, i);
+                }
+                if (VerifierSuccess == numVerifiers_)
+                {
+                  break;
+                }
+            }
+            
+            // if for whatever reason we didnt't have enough nodes 
+            if (VerifierSuccess < numVerifiers_)
+            {
+              numVerifiers_ = VerifierSuccess;
+            }
+   */
             // Any nodes not in the initial MPI_COMM_WORLD are down.
             for (int i=0; i<cfgPNodes_; ++i)
             {
@@ -2896,7 +3028,9 @@ void CCluster::InitializeConfigCluster( void )
                 {
                     node = Nodes->GetNode(i);
                     if ( node ) node->SetState( State_Down );
-
+   /* TRK commented out for initial checkin
+                    CheckLicenseVerifier(i); 
+   */
                     // assign new TmLeader if TMLeader node is dead.
                     if (TmLeaderPNid == i) 
                     {
@@ -2909,6 +3043,13 @@ void CCluster::InitializeConfigCluster( void )
                 }
             }
         }
+        else
+        {
+          /* TRK- commented out for initial checkin
+           CNode *node = Nodes->GetNode(0);
+           node->SetLicenseVerifier( true );  
+           */
+    }
 
         // Initialize communicators for point-to-point communications
         int myRank;
@@ -2931,7 +3072,7 @@ void CCluster::InitializeConfigCluster( void )
 
         if (nodeNames) delete [] nodeNames;
     }
-
+    
     if (trace_settings & (TRACE_INIT | TRACE_RECOVERY))
     {
         for ( int i =0; i < MAX_NODE_MASKS ; i++ )

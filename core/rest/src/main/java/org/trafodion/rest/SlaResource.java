@@ -224,11 +224,26 @@ public class SlaResource extends ResourceBase {
                  } 
                 if (lastUpdate == false)
                     sdata = sdata + ";" + Constants.LAST_UPDATE + "=" + Long.toString(System.currentTimeMillis());
-                status = servlet.postWmsSla(key, sdata);
+                result = servlet.postWmsSla(key, sdata);
             }
-            if (status == Response.Status.CREATED)
-                result = "201 Created.";
-            return Response.status(status).type(MIMETYPE_TEXT).entity(result + CRLF).build();
+            if (result.startsWith("200")){
+                status = Response.Status.OK;
+            }
+            else if (result.startsWith("201")){
+                status = Response.Status.CREATED;
+            }
+            else if (result.startsWith("304")){
+                status = Response.Status.NOT_MODIFIED;
+            }
+            else if (result.startsWith("406")){
+                status = Response.Status.NOT_ACCEPTABLE;
+            }
+            result = result.substring(4);
+            if (status != Response.Status.OK && status != Response.Status.CREATED)
+              return Response.serverError().entity(result).build();
+
+            return Response.status(status).type(MIMETYPE_TEXT).entity(result).build();
+
         } catch (Exception e) {
             e.printStackTrace();
 
@@ -298,9 +313,25 @@ public class SlaResource extends ResourceBase {
                 LOG.debug("DELETE name :" + name);
             Response.Status status = Response.Status.OK; 
             String result = "200 OK.";
-            servlet.deleteWmsSla(name);
+            result = servlet.deleteWmsSla(name);
             
-            return Response.status(status).type(MIMETYPE_TEXT).entity(result + CRLF).build();
+            if (result.startsWith("200")){
+                status = Response.Status.OK;
+            }
+            else if (result.startsWith("201")){
+                status = Response.Status.CREATED;
+            }
+            else if (result.startsWith("304")){
+                status = Response.Status.NOT_MODIFIED;
+            }
+            else if (result.startsWith("406")){
+                status = Response.Status.NOT_ACCEPTABLE;
+            }
+            result = result.substring(4);
+            if (status != Response.Status.OK && status != Response.Status.CREATED)
+              return Response.serverError().entity(result).build();
+
+            return Response.status(status).type(MIMETYPE_TEXT).entity(result).build();
             
         } catch (Exception e) {
             e.printStackTrace();

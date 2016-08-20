@@ -490,7 +490,7 @@ Stats Summary
 Stats Details
 =============
 
-  RegionServer:       ansharma-3:44229
+  RegionServer:       edev06:54527
   RegionNum:          1
   RegionName:         TRAFODION.T002SCH.SB_PERSISTENT_SAMPLES/121ea772487c23e7f165e29db4647fd4
   NumStores:          2
@@ -918,7 +918,7 @@ RegionName: 1470338660549                          0
 RegionName: 1470338665125                          0
 RegionName: 1470338701334                          0
 RegionName: 1470338662761                          0
-RegionName: 1470338662761                          0
+RegionName: 1470816094440                          0
 
 --- 8 row(s) selected.
 >>

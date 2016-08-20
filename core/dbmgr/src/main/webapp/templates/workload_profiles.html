@@ -67,13 +67,13 @@
 							<label for="profile-cqd-stmts" class="control-label">CQDs: </label><br>
 							<textarea id="profile-cqd-stmts" name="profile-cqd-stmts" rows="4" cols="500" spellcheck="false"
 								placeholder="Enter control query default statements separated by semicolon..."
-								class="textarea" style="width: 650px"></textarea>
+								class="textarea" style="width: 650px;font-size:12px"></textarea>
 						</div>
 						<div class="form-group">
 							<label for="profile-set-stmts" class="control-label">SETs: </label><br>
 							<textarea id="profile-set-stmts" name="profile-set-stmts" rows="4" cols="500" spellcheck="false"
 								placeholder="Enter SET statements separated by semicolon..."
-								class="textarea" style="width: 650px"></textarea>
+								class="textarea" style="width: 650px;font-size:12px"></textarea>
 						</div>    
    						<div class="form-group">
 							<label for="profile-host-list" class="control-label">Host(s): </label><br>
@@ -82,6 +82,13 @@
 								class="textarea" style="width: 650px;display:none"></textarea>
 								<div id="pnode-list-container" class="table-responsive" style="border-width: 1px;border-style: solid;padding:5px"></div>
 						</div>
+						<div class="form-group">
+							<label for="host-selection-mode" class="control-label">Host Selection Mode</label> 
+							<select class="form-control input-sm" id="host-selection-mode" style="width: 500px;">
+								<option value="preferred">Preferred</option>
+								<option value="restrict">Restrict</option>
+							</select>
+						</div>						
 					    <label id="add-profile-error-message" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></label>
 					</form>
 				</div>

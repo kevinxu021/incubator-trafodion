@@ -68,7 +68,7 @@ void CReplObj::validateObj()
 // Determine the maximum size of a replication object (excluding CReplEvent)
 int CReplObj::calcAllocSize()
 {
-    return  max(max(max(max(max(max(max(max(max(max(max(max(max(max(max(max(max(max(max(sizeof(CReplSoftNodeUp),
+    return  max(max(max(max(max(max(max(max(max(max(max(max(max(max(max(max(max(max(max(max(max(sizeof(CReplSoftNodeUp),
                                                                                 sizeof(CReplSoftNodeDown)),
                                                                             sizeof(CReplSchedData)),
                                                                         sizeof(CReplActivateSpare)),
@@ -87,7 +87,9 @@ int CReplObj::calcAllocSize()
                         sizeof(CReplDumpComplete)),
                     sizeof(CReplStdioData)),
                 sizeof(CReplStdinReq)),
-            sizeof(CReplShutdown));
+            sizeof(CReplShutdown)),
+          sizeof(CReplLicense)),
+        sizeof(CReplLicenseVerified));
 }
 
 void * CReplObj::operator new(size_t ) throw()
@@ -1254,6 +1256,117 @@ bool CReplNodeName::replicate(struct internal_msg_def *&msg)
     strcpy (msg->u.nodename.new_name, new_name_.c_str());
     strcpy (msg->u.nodename.current_name, current_name_.c_str());
 
+    // Advance sync buffer pointer
+    Nodes->AddMsg( msg, replSize() );
+
+    TRACE_EXIT;
+
+    return true;
+}
+
+CReplLicense::CReplLicense(int req_pid, int req_nid, char *req_license)
+               : req_pid_ (req_pid)
+               , req_nid_ (req_nid)
+{
+    // Add eyecatcher sequence as a debugging aid
+    memcpy(&eyecatcher_, "RPL0", 4);
+    memcpy (license_, req_license, LICENSE_NUM_BYTES);
+    
+    // Compute message size (adjust if needed to conform to
+    // internal_msg_def structure alignment).
+    replSize_ = (MSG_HDR_SIZE + sizeof (license_def ) + msgAlignment_)
+                & ~msgAlignment_;
+
+    if (trace_settings & (TRACE_SYNC_DETAIL | TRACE_PROCESS_DETAIL))
+    {
+        const char method_name[] = "CReplLicense::CReplLicense";
+        trace_printf("%s@%d  - License Validation\n",
+                     method_name, __LINE__);
+    }
+}
+
+CReplLicense::~CReplLicense()
+{
+    const char method_name[] = "CReplLicense::~CReplLicense";
+
+    if (trace_settings & (TRACE_SYNC_DETAIL | TRACE_PROCESS_DETAIL))
+        trace_printf("%s@%d - License Validation replication\n", method_name, __LINE__ );
+
+    // Alter eyecatcher sequence as a debugging aid to identify deleted object
+    memcpy(&eyecatcher_, "rpl0", 4);
+}
+
+bool CReplLicense::replicate(struct internal_msg_def *&msg)
+{
+    const char method_name[] = "CReplLicense::replicate";
+    TRACE_ENTRY;
+
+    
+    if (trace_settings & (TRACE_SYNC | TRACE_PROCESS))
+        trace_printf("%s@%d" " - Validate License", method_name, __LINE__);
+
+    msg->type = InternalType_License;
+    msg->u.license.req_pid = req_pid_;
+    msg->u.license.req_nid = req_nid_;
+    memcpy (msg->u.license.license, license_, LICENSE_NUM_BYTES);
+
+    // Advance sync buffer pointer
+    Nodes->AddMsg( msg, replSize() );
+
+    TRACE_EXIT;
+
+    return true;
+}
+
+CReplLicenseVerified::CReplLicenseVerified(int req_pid, int req_nid, char* license, bool success)
+               : req_pid_ (req_pid)
+               , req_nid_ (req_nid)
+               , success_ (success)
+{
+    // Add eyecatcher sequence as a debugging aid
+    memcpy(&eyecatcher_, "RPL1", 4);
+    memcpy (license_, license, LICENSE_NUM_BYTES);
+    
+    // Compute message size (adjust if needed to conform to
+    // internal_msg_def structure alignment).
+    replSize_ = (MSG_HDR_SIZE + sizeof ( license_def ) + msgAlignment_)
+                & ~msgAlignment_;
+
+    if (trace_settings & (TRACE_SYNC_DETAIL | TRACE_PROCESS_DETAIL))
+    {
+        const char method_name[] = "CReplLicenseVerified::CReplLicense";
+        trace_printf("%s@%d  - License Validation\n",
+                     method_name, __LINE__);
+    }
+
+}
+
+CReplLicenseVerified::~CReplLicenseVerified()
+{
+    const char method_name[] = "CReplLicenseVerified::~CReplLicenseVerified";
+
+    if (trace_settings & (TRACE_SYNC_DETAIL | TRACE_PROCESS_DETAIL))
+        trace_printf("%s@%d - License Verified replication\n", method_name, __LINE__ );
+
+    // Alter eyecatcher sequence as a debugging aid to identify deleted object
+    memcpy(&eyecatcher_, "rpl1", 4);
+}
+
+bool CReplLicenseVerified::replicate(struct internal_msg_def *&msg)
+{
+    const char method_name[] = "CReplLicenseVerified::replicate";
+    TRACE_ENTRY;
+
+    if (trace_settings & (TRACE_SYNC | TRACE_PROCESS))
+        trace_printf("%s@%d" " - License Verified", method_name, __LINE__);
+
+    // build message to replicate this process kill to other nodes
+    msg->type = InternalType_LicenseVerified;
+//     msg->u.license.req_pid = req_pid_;
+    msg->u.license.req_nid = req_nid_;
+    msg->u.license.success = success_;
+    memcpy (msg->u.license.license, license_, LICENSE_NUM_BYTES);
+    
     // Advance sync buffer pointer
     Nodes->AddMsg( msg, replSize() );
 

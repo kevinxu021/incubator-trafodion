@@ -37,6 +37,8 @@ enum InternalType
     InternalType_DumpComplete,      // Dump process complete
     InternalType_Event,             // Send Event to process
     InternalType_Exit,              // Delete process for monitor
+    InternalType_License,           // License
+    InternalType_LicenseVerified,   // License
     InternalType_IoData,            // Stdin/Stdout data for a process
     InternalType_Kill,              // Kill monitored process
     InternalType_NodeName,          // Node Name Change 
@@ -95,6 +97,17 @@ typedef struct
     
 typedef int Verifier_t;             // Process verifier typedef
 
+typedef struct 
+{
+   char version[LICENSE_VERSION_SIZE];
+   char name[LICENSE_NAME_SIZE];
+   char numNodes[LICENSE_NODES_SIZE];
+   char expireDate[LICENSE_EXPIRE_SIZE];
+   char package[LICENSE_PACKAGE_SIZE];
+   char type[LICENSE_TYPE_SIZE];
+   char reserved[LICENSE_RESERVED_SIZE];
+}licenseStruct;
+
 struct clone_def
 {
     bool backup;           // true for a backup process
@@ -147,6 +160,13 @@ struct nodename_def
     char new_name[MAX_PROCESS_NAME];
 };
 
+struct license_def
+{
+    int        req_nid;                         // Node id of requesting process 
+    int        req_pid;                         // Pid id of requesting process
+    bool       success;                         
+    char       license[LICENSE_NUM_BYTES];
+};
 
 struct shutdown_def
 {
@@ -370,7 +390,8 @@ struct internal_msg_def
         struct event_def   event;
         ioData_t           iodata;
         struct kill_def    kill;
-	struct nodename_def  nodename;
+        struct license_def  license;
+        struct nodename_def  nodename;
         struct notify_def  notify;
         struct process_def process;
         struct process_init_def processInit;
