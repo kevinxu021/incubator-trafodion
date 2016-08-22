@@ -179,11 +179,6 @@ echo "export CDH_VERSION=\"$CDH_VERSION\"" >> $TRAF_CONFIG
 sudo chmod 777 $TRAF_CONFIG
 sudo rm -rf hbaseVersion.txt
 
-#Debug version
-trafodionVersion=$(echo $trafodionFullName | sed 's/trafodion_.*server-//' | sed 's/-debug//' | sed 's/.tgz//')
-
-echo "***INFO: Trafodion version = $trafodionVersion"
-
 }
 
 #==============================================
@@ -349,17 +344,6 @@ fi
 # if user did not supply their own config file, use the default
 # or prompt to generate a new one.
 if [ -z "$USER_CONFIG" ]; then
-   if [ -f $TRAF_CONFIG ]; then
-      # strip out LOCAL_WORKDIR from config file, if there.
-      # LOCAL_WORKDIR was erroneously saved to the config file in
-      # previous versions of the installer scripts and since the config
-      # file hangs around between installer runs it needs to be stripped
-      # out here before we source in the config file
-      cp $TRAF_CONFIG config_temp
-      sudo grep -vE "LOCAL_WORKDIR" config_temp > $TRAF_CONFIG 2> /dev/null
-      source $TRAF_CONFIG
-   fi
-
    # prompt user for configuration info
    $LOCAL_WORKDIR/traf_config_setup | tee -a $INSTALL_LOG
    if [ ${PIPESTATUS[0]} != "0" ]; then
@@ -384,6 +368,11 @@ else
    fi
    sudo chmod 777 $TRAF_CONFIG
 fi
+
+sudo chmod 777 $TRAF_CONFIG
+sudo sed -i '/\<LOCAL_WORKDIR\>/d' $TRAF_CONFIG
+echo "export LOCAL_WORKDIR=\"$LOCAL_WORKDIR\"" >> $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
 
 source $TRAF_CONFIG
 if [ $? -ne 0 ]; then

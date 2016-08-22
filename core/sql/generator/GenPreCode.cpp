@@ -2805,6 +2805,7 @@ short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
        (backup()) ||
        (restore()) ||
        (unlockTraf()) ||
+       (deleteBackup()) ||
        (updateVersion()))
      {
         // transaction will be started and commited in called methods.
@@ -2840,7 +2841,7 @@ short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
         // transaction will be started and commited in called methods.
         xnCanBeStarted = FALSE;
      
-     if(backup() || restore() || unlockTraf())
+     if(backup() || restore() || unlockTraf() || deleteBackup())
     	 xnCanBeStarted = FALSE;
      
      if ((ddlNode && ddlNode->castToStmtDDLNode() &&
@@ -4471,13 +4472,8 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 	  ((NodeMap *) getPartFunc()->getNodeMap()) ->
             assignScanInfosRepN(hiveSearchKey_);
         else {
-          if ( !(hTabStats->isOrcFile()) || 
-               CmpCommon::getDefault(ORC_READ_STRIPE_INFO) == DF_ON)
-            ((NodeMap *) getPartFunc()->getNodeMap()) ->
+          ((NodeMap *) getPartFunc()->getNodeMap()) ->
               assignScanInfos(hiveSearchKey_);
-          else 
-            ((NodeMap*) getPartFunc()->getNodeMap()) -> 
-              assignScanInfosNoSplit(hiveSearchKey_);
         }
       }
 
@@ -9080,12 +9076,12 @@ ItemExpr * BiRelat::preCodeGen(Generator * generator)
 
   ex_comp_clause temp_clause;
 
-  temp_clause.set_case_index(getOperatorType(),
+  temp_clause.setInstruction(getOperatorType(),
 			     attr_op1,
 			     attr_op2
 			     );
 
-  if ((temp_clause.get_case_index() == ex_comp_clause::COMP_NOT_SUPPORTED) &&
+  if ((temp_clause.getInstruction() == COMP_NOT_SUPPORTED) &&
       (type1B.getTypeQualifier() == NA_NUMERIC_TYPE) &&
       (type2B.getTypeQualifier() == NA_NUMERIC_TYPE))
     {
@@ -9139,17 +9135,17 @@ ItemExpr * BiRelat::preCodeGen(Generator * generator)
                      newOp1->getValueId().getType(), generator->wHeap()));
            }
 
-          temp_clause.set_case_index(getOperatorType(),
+          temp_clause.setInstruction(getOperatorType(),
                                      attr_op1,
                                      attr_op2
                                      );
         } // convert
     }
   
-  if (temp_clause.get_case_index() != ex_comp_clause::COMP_NOT_SUPPORTED)
+  if (temp_clause.getInstruction() != COMP_NOT_SUPPORTED)
     {
       NABoolean doConstFolding = FALSE;
-      if ((temp_clause.get_case_index() == ex_comp_clause::ASCII_COMP) &&
+      if ((temp_clause.getInstruction() == ASCII_COMP) &&
 	  (CmpCommon::getDefault(CONSTANT_FOLDING) == DF_ON))
 	{
 	  if (((child(0)->getOperatorType() == ITM_CONSTANT) &&

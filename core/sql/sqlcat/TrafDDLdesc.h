@@ -1114,6 +1114,7 @@ public:
   char*  viewfilename;    // the physical file, to be Opened for auth-cking.
   char*  viewtext;
   char*  viewchecktext;
+  char*  viewcolusages;
 
   Int64 viewDescFlags; // my flags
 

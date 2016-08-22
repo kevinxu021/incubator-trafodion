@@ -57,6 +57,7 @@ define([
 			
 			mode = '';
 			
+			$(SRC_FILE_SELECT).on('click', this.onFileBtnClicked);
 			$(SRC_FILE_SELECT).on('change', this.onFileSelected);
 			$(CLEAR_BTN).on('click',this.clearAll);
 			$(SAVE_BTN).on('click', this.saveSQL);
@@ -102,6 +103,7 @@ define([
 					_this.showErrorMessage(lastRawError);
 				}
 			}
+			$(SRC_FILE_SELECT).on('click', this.onFileBtnClicked);
 			$(SRC_FILE_SELECT).on('change', this.onFileSelected);
 			$(CLEAR_BTN).on('click',this.clearAll);
 			$(SAVE_BTN).on('click', this.saveSQL);
@@ -112,6 +114,7 @@ define([
 		doPause:  function(){
 			isPaused = true;
 			this.redirectFlag=true;
+			$(SRC_FILE_SELECT).off('click', this.onFileBtnClicked);
 			$(SRC_FILE_SELECT).off('change', this.onFileSelected);
 			$(CLEAR_BTN).off('click',this.clearAll);
 			$(SAVE_BTN).off('click', this.saveSQL);
@@ -144,6 +147,9 @@ define([
 					alert("An execute is current in progress. Wait and come back to this page after it is complete.")
 				}
 			}
+		},
+		onFileBtnClicked: function(){
+			this.value = null;
 		},
 		onFileSelected : function(e) {
 			var files = e.target.files;

@@ -78,9 +78,6 @@ public:
 
   static CollIndex entries();
   static CollIndex getNumSQNodes();
-  static void resetNumSQNodes() { numSQNodes_ = 0; }
-  static void resethasVirtualSQNodes() { hasVirtualSQNodes_ = FALSE; }
-
   static CollIndex getNumNonSQNodes();
   static NABoolean usesRemoteHDFS()         { return getNumNonSQNodes() > 0; }
   static NABoolean hasVirtualSQNodes();
@@ -89,6 +86,7 @@ public:
 
   // make sure all SeaQuest nodes are recorded with their SQ node numbers 0...n-1
   static NABoolean initializeWithSeaQuestNodes();
+  static void reset();
 
 private:
   static HostId getHostNumInternal(const char *hostName);
@@ -97,9 +95,7 @@ private:
           return CmpCommon::context()->getHosts();
         }
 
-  // an array that translates host names into integer indexes
-  static THREAD_P CollIndex numSQNodes_;
-  static THREAD_P NABoolean hasVirtualSQNodes_;
+  // no data members, all state is kept in CmpContext
 };
 
 class HHDFSDiags
@@ -174,11 +170,22 @@ class HHDFSFileStats : public HHDFSStatsBase
 {
   friend class OsimHHDFSFileStats;
 public:
+  enum PrimarySplitUnit
+  {
+    UNKNOWN_SPLIT_UNIT_,
+    SPLIT_AT_FILE_LEVEL_,
+    SPLIT_AT_HDFS_BLOCK_LEVEL_,
+    SPLIT_AT_ORC_STRIPE_LEVEL_
+    // could later add splittable compression blocks for delimited files
+  };
+
   HHDFSFileStats(NAMemory *heap,
                  HHDFSTableStats *table) :
        HHDFSStatsBase(table),
        heap_(heap),
        fileName_(heap),
+       replication_(1),
+       blockSize_(-1),
        blockHosts_(NULL) {}
   ~HHDFSFileStats();
   virtual void populate(hdfsFS fs,
@@ -191,11 +198,17 @@ public:
   const NAString & getFileName() const                   { return fileName_; }
   Int32 getReplication() const                        { return replication_; }
   Int64 getBlockSize() const                            { return blockSize_; }
-  HostId getHostId(Int32 replicate, Int64 blockNum) const
-                        { return blockHosts_[replicate*numBlocks_+blockNum]; }
+  HostId getHostId(Int32 replicate, Int64 blockNum) const;
   const ComCompressionInfo &getCompressionInfo() const
                                                   { return compressionInfo_; }
   virtual void print(FILE *ofd);
+
+                                // methods to split the file into work units
+  virtual PrimarySplitUnit getSplitUnitType(Int32 balanceLevel) const;
+  virtual Int32 getNumOFSplitUnits(PrimarySplitUnit su) const;
+  virtual void getSplitUnit(Int32 ix, Int64 &offset, Int64 &length, PrimarySplitUnit su) const;
+  virtual Int32 getHDFSBlockNumForSplitUnit(Int32 ix, PrimarySplitUnit su) const;
+  virtual NABoolean splitsOfPrimaryUnitsAllowed(PrimarySplitUnit su) const;
 
   // Assign all blocks in this to ESPs, considering locality
   // return: total # of bytes assigned for the hive file
@@ -203,31 +216,17 @@ public:
                              NodeMap* nodeMap,
                              Int32 numSQNodes,
                              Int32 numESPs,
-                             Int32 numOfBytesToReadPerRow,
-                             HHDFSListPartitionStats *partition);
-
-  // Assign all blocks in this to ESPs, without considering locality
-  virtual void assignToESPs(NodeMapIterator* nmi,
-                            HiveNodeMapEntry*& entry,
-                            Int64 totalBytesPerESP,
-                            Int32 numOfBytesToReadPerRow,
-                            HHDFSListPartitionStats *partition,
-			    Int64& filled);
-
-  virtual NABoolean splitsAllowed() const;
+                             HHDFSListPartitionStats *partition,
+                             Int32 &nextDefaultPartNum,
+                             NABoolean useLocality,
+                             Int32 balanceLevel);
 
   // Assign all blocks in this to the entry (ESP). The ESP will access
   // all the blocks.
-  virtual void assignToESPsRepN(HiveNodeMapEntry*& entry,
-                                const HHDFSListPartitionStats* p);
+  virtual void assignFileToESP(HiveNodeMapEntry*& entry,
+                               const HHDFSListPartitionStats* p);
   
   virtual OsimHHDFSStatsBase* osimSnapShot();
-
-  // Assign all content in this to the entry (ESP). The difference 
-  // of this method and assignToESPsRepN() or assignToESPs() is that
-  // this method does not require the row/block/stripe info be available.
-  virtual void assignToESPsNoSplit(HiveNodeMapEntry*& entry,
-                                   const HHDFSListPartitionStats* p);
 
 protected:
 
@@ -241,6 +240,7 @@ protected:
                              Int32& samples,
                              HHDFSDiags &diags,
                              char recordTerminator);
+  void fakeHostIdsOnVirtualSQNodes();
 
   NAString fileName_;
   Int32 replication_;
@@ -277,9 +277,15 @@ public:
   void populateWithCplus(HHDFSDiags &diags, hdfsFS fs, hdfsFileInfo *fileInfo, NABoolean readStripeInfo, NABoolean readNumRows, NABoolean needToOpenORCI);
   void populateWithJNI(HHDFSDiags &diags, NABoolean readStripeInfo, NABoolean readNumRows, NABoolean needToOpenORCI);
 
-  // find the block number for the stripe with offset x
-  Int64 findBlockForStripe(Int64 x);
-  
+  NABoolean hasStripeInfo() const { return offsets_.entries() > 0; }
+
+  // methods to split the file into work units
+  virtual PrimarySplitUnit getSplitUnitType(Int32 balanceLevel) const;
+  virtual Int32 getNumOFSplitUnits(PrimarySplitUnit su) const;
+  virtual void getSplitUnit(Int32 ix, Int64 &offset, Int64 &length, PrimarySplitUnit su) const;
+  virtual Int32 getHDFSBlockNumForSplitUnit(Int32 ix, PrimarySplitUnit su) const;
+  virtual NABoolean splitsOfPrimaryUnitsAllowed(PrimarySplitUnit su) const;
+
   virtual OsimHHDFSStatsBase* osimSnapShot();
 
   static void resetTotalAccumulatedRows() 
@@ -290,26 +296,8 @@ public:
    }
 
   void print(FILE *ofd);
-protected:
-  // Assign all stripes in this to ESPs, considering locality
-  Int64 assignToESPs(Int64 *espDistribution,
-                     NodeMap* nodeMap,
-                     Int32 numSQNodes,
-                     Int32 numESPs,
-                     Int32 numOfBytesToReadPerRow,
-                     HHDFSListPartitionStats *partition);
 
-  // Assign all stripes in this to ESPs, without considering locality
-  void assignToESPs(NodeMapIterator* nmi,
-                    HiveNodeMapEntry*& entry,
-                    Int64 totalBytesPerESP,
-                    Int32 numOfBytesToReadPerRow,
-                    HHDFSListPartitionStats *partition,
-		    Int64& filled);
-
-  NABoolean splitsAllowed() const {return TRUE;}
-  
-protected: 
+private: 
  
   // per stripe info
   LIST(Int64) numOfRows_;
@@ -330,7 +318,7 @@ public:
        HHDFSStatsBase(table),
        heap_(heap), fileStatsList_(heap), scount_(0) {}
   ~HHDFSBucketStats();
-
+  // 
   const CollIndex entries() const         { return fileStatsList_.entries(); }
   const HHDFSFileStats * operator[](CollIndex i) const 
                                                  { return fileStatsList_[i]; }
@@ -529,7 +517,6 @@ public:
   void *getLOBGlobals() const { return lobGlob_; }
   
   const Lng32 numOfPartCols() const { return numOfPartCols_; }
-  const Lng32 totalNumPartitions() const { return totalNumPartitions_; }
 
 private:
   enum FileType

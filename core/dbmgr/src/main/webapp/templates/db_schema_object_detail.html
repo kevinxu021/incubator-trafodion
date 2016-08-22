@@ -23,7 +23,7 @@
 				<ol id="database-crumb" class="breadcrumb" style="margin-bottom:2px">
 					<li><a href="#/database">Schemas</a></li>
 				</ol>
-
+				<iframe id="ifile" style="display:none"></iframe>
 				<div class="panel-body" style="padding-bottom:15px;padding-top:2px">
                     <label id="db-object-name" style='padding: 2px 0px;font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;font-size:18px;font-weight:500'></label>
 					<ul id="db-object-feature-selector" class="nav dbmgr-nav nav-pills" style="padding-bottom:15px;">
@@ -50,6 +50,10 @@
 									<button id="drop-library-btn" type="button" class="btn btn-primary btn-sm fa fa-trash-o" style="height: 30px;margin-top:10px;margin-bottom:10px;margin-left:20px">
 										Drop
 									</button>
+									<button id="download-library-btn" type="button" class="btn btn-primary btn-sm fa fa-download" style="height: 30px;margin-top:10px;margin-bottom:10px;margin-left:20px">
+										Download
+									</button>
+									<img id="download-loading-spinner" src="img/ajax-loader.gif" style="padding-left: 2px;visibility:hidden" />
 									<img id="drop-library-spinner" style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" />									
 								</div>						
 							</div>

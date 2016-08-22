@@ -1300,12 +1300,8 @@ enum DefaultConstants
   // For Scratch files
   // -------------------------------------------------------------------------
 
-  SCRATCH_DISKS,
-  SCRATCH_DISKS_EXCLUDED,
-  SCRATCH_DISKS_PREFERRED,
-  SCRATCH_DRIVE_LETTERS,
-  SCRATCH_DRIVE_LETTERS_EXCLUDED,
-  SCRATCH_DRIVE_LETTERS_PREFERRED,
+  SCRATCH_DIRS,
+  
 
   // -------------------------------------------------------------------------
   // For SortGroupBy.
@@ -1443,10 +1439,6 @@ enum DefaultConstants
   RECOMPILATION_WARNINGS,
 
   SHOWCONTROL_SHOW_ALL,
-  MP_CATALOG,
-  MP_SUBVOLUME,
-  MP_SYSTEM,
-  MP_VOLUME,
   NAMETYPE,
 
 
@@ -2601,13 +2593,11 @@ enum DefaultConstants
 
 
  PARTIAL_SORT_ADJST_FCTR,
-
   SCRATCH_MAX_OPENS_HASH,
   SCRATCH_MAX_OPENS_SORT,
-
+  SCRATCH_DISK_LOGGING,
   SCRATCH_MGMT_OPTION,
   SCRATCH_PREALLOCATE_EXTENTS,
-  SCRATCH_DISK_LOGGING,
   SCRATCH_IO_BLOCKSIZE_SORT,
   SCRATCH_IO_VECTOR_SIZE_HASH,
   SCRATCH_IO_VECTOR_SIZE_SORT,
@@ -3935,12 +3925,17 @@ enum DefaultConstants
 
   // if TRUE, create tinyint literal insteadl of smallint.
   TRAF_CREATE_TINYINT_LITERAL,
+  HIVE_SIMULATE_REAL_NODEMAP,
 
   // if ON, generate object descriptor during DDL and store it in metadata.
   TRAF_STORE_OBJECT_DESC,
 
   // if ON, read object descriptor from metadata, if it was stored.
   TRAF_READ_OBJECT_DESC,
+
+  HIVE_LOCALITY_MAX_OVERLOAD,
+  HIVE_LOCALITY_MAX_SECOND_CHECK_TGTS,
+  HIVE_LOCALITY_NUM_SECOND_LOOPS,
 
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!

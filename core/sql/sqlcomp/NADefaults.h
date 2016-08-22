@@ -352,6 +352,9 @@ public:
 
   static float computeNumESPsPerCore(NABoolean aggressive);
 
+  // get the number of configured ESPs (in float) per node.
+  float            getNumOfESPsPerNodeInFloat() const;
+
 private:
 
   UInt32 defFlags_;
@@ -384,9 +387,6 @@ private:
   					 Int32 errOrWarn,
   					 Provenance overwriteIfNotYet);
   void		   deleteMe();
-
-  // get the number of configured ESPs (in float) per node.
-  float            getNumOfESPsPerNodeInFloat() const;
 
   static const char *keywords_[];	// attr_VALUE keywords (ON, OFF, ANSI...
 

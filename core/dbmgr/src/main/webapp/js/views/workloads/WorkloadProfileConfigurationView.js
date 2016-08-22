@@ -46,6 +46,7 @@ define([
 	CQD_CONTAINER = '#profile-cqd-stmts',
 	SET_CONTAINER = '#profile-set-stmts',
 	PROFILE_NODES = '#profile-host-list',
+	HOST_SELECTION_MODE = '#host-selection-mode',
 	PROFILE_APPLY_BTN = "#profileApplyButton",
 	PROFILE_RESET_BTN = "#profileResetButton",
 	PROFILE_DELETE_DIALOG = '#profile-delete-dialog',
@@ -55,7 +56,7 @@ define([
 	var profileFormValidator = null;
 	var profileDialogParams = null;
 	var profileNameColIndex = -1;
-	var deleteProfileIconColIndex = 6;
+	var deleteProfileIconColIndex = 7;
 	var dataTableColNames = [];
 	var nodesList = null;
 	var nodesDataTable = null;
@@ -76,8 +77,8 @@ define([
 			wHandler.on(wHandler.ADDALTER_PROFILE_ERROR, this.addAlterProfileError);
 			wHandler.on(wHandler.DELETE_PROFILE_SUCCESS, this.deleteProfileSuccess);
 			wHandler.on(wHandler.DELETE_PROFILE_ERROR, this.deleteProfileError);
-			sHandler.on(sHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
-			sHandler.on(sHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
+			sHandler.on(sHandler.FETCHDCS_SUCCESS, this.fetchNodesSuccess);
+			sHandler.on(sHandler.FETCHDCS_ERROR, this.fetchNodesError); 
 
 			$(ADD_PROFILE_BTN).on('click', this.addProfileBtnClicked);
 			$(DELETE_PROFILE_YES_BTN).on('click', this.deleteProfileBtnClicked);
@@ -86,7 +87,7 @@ define([
 
 			this.fetchNodes();
 
-			$.validator.addMethod("alphanumeric", function(value, element) {
+			$.validator.addMethod("wmsprofile_alphanumeric", function(value, element) {
 				if(profileDialogParams.type && profileDialogParams.type == 'alter')
 					return true; // For alter we don't allow editing the name,so no check needed
 				
@@ -99,7 +100,7 @@ define([
 
 			profileFormValidator = $(PROFILE_FORM).validate({
 				rules: {
-					"profile_name": { required: true, alphanumeric: true},
+					"profile_name": { required: true, wmsprofile_alphanumeric: true},
 					"profile-cqd-stmts": { cqdssets: true},
 					"profile-set-stmts": { cqdssets: true}
 				},
@@ -163,15 +164,15 @@ define([
 			wHandler.on(wHandler.ADDALTER_PROFILE_ERROR, this.addAlterProfileError);
 			wHandler.on(wHandler.DELETE_PROFILE_SUCCESS, this.deleteProfileSuccess);
 			wHandler.on(wHandler.DELETE_PROFILE_ERROR, this.deleteProfileError);
-			sHandler.on(sHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
-			sHandler.on(sHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
+			sHandler.on(sHandler.FETCHDCS_SUCCESS, this.fetchNodesSuccess);
+			sHandler.on(sHandler.FETCHDCS_ERROR, this.fetchNodesError); 
 			this.fetchNodes();
 		},
 		doPause: function(){
 			$(REFRESH_MENU).off('click', this.doRefresh);
 			$(window).off('resize', this.onResize);
-			sHandler.off(sHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
-			sHandler.off(sHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
+			sHandler.off(sHandler.FETCHDCS_SUCCESS, this.fetchNodesSuccess);
+			sHandler.off(sHandler.FETCHDCS_ERROR, this.fetchNodesError); 
 			wHandler.off(wHandler.FETCH_PROFILES_SUCCESS, this.displayProfiles);
 			wHandler.off(wHandler.FETCH_PROFILES_ERROR, this.fetchProfilesError);
 			wHandler.off(wHandler.ADDALTER_PROFILE_SUCCESS, this.addAlterProfileSuccess);
@@ -185,12 +186,14 @@ define([
 			_this.fetchProfiles();
 		},
 		fetchNodes:function(){
-			sHandler.fetchNodes(false);
+			sHandler.fetchDcsServers(false);
 		},
 		fetchNodesSuccess: function(result) {
 			var nList = [];
 			$.each(result.resultArray, function(i, v){
+				if($.inArray(v[0], nList) < 0){
 				nList.push(v[0]);
+				}
 			});
 			_this.nodesList = nList;
 		},
@@ -221,6 +224,8 @@ define([
 					var sets = profileDialogParams.data["set"].replace(/<br>/g,"\n"); 
 					$(SET_CONTAINER).val(sets);
 					$(PROFILE_NODES).val(profileDialogParams.data["hostList"]);
+					var selMode = profileDialogParams.data["hostSelectionMode"];
+					$(HOST_SELECTION_MODE).val(selMode != null ? selMode.toLowerCase() : "");
 					_this.setNodeSelection();
 				}
 				if(profileDialogParams.type && profileDialogParams.type == 'alter'){
@@ -241,6 +246,8 @@ define([
 					var sets = profileDialogParams.data["set"].replace(/<br>/g,"\n"); 
 					$(SET_CONTAINER).val(sets);
 					$(PROFILE_NODES).val(profileDialogParams.data["hostList"]);
+					var selMode = profileDialogParams.data["hostSelectionMode"];
+					$(HOST_SELECTION_MODE).val(selMode != null ? selMode.toLowerCase() : "");
 					_this.setNodeSelection();
 				}
 			}			
@@ -353,6 +360,7 @@ define([
 				var cqdColIndex = -1;
 				var setColIndex = -1;
 				var isDefColIndex = -1;
+				var selModeColIndex = -1;
 				
 				// add needed columns
 				$.each(keys, function(k, v) {
@@ -378,6 +386,10 @@ define([
 					}
 					if(v == 'hostList'){
 						obj.title = 'Hosts';
+					}
+					if(v == 'hostSelectionMode'){
+						obj.title = 'Selection Mode';
+						selModeColIndex = k;
 					}
 					aoColumns.push(obj);
 					dataTableColNames.push(v);
@@ -457,6 +469,18 @@ define([
 						"visible" : false,
 						"searchable" : false
 					});					
+				}
+				if(selModeColIndex >=0){
+					aoColumnDefs.push({
+						"aTargets": [ selModeColIndex ],
+						"mData": selModeColIndex,
+						"mRender": function ( data, type, full ) {
+							if(data != null){
+								return common.toProperCase(data);
+							}else 
+								return data;
+						}
+					});
 				}
 				aoColumnDefs.push({
 					"aTargets": [ deleteProfileIconColIndex ],
@@ -603,6 +627,7 @@ define([
 			profile.name = $(PROFILE_NAME).val();
 			profile.cqds = $(CQD_CONTAINER).val();
 			profile.sets = $(SET_CONTAINER).val();
+			profile.hostSelectionMode = $(HOST_SELECTION_MODE).val();
 
 			var selectedNodes = [];
 			var allNodes = nodesDataTable.column(1).data();
@@ -666,7 +691,8 @@ define([
 					msg = "Error : Unable to communicate with the server.";
 				}
 			}
-			alert(msg);		
+			var msgObj={msg:msg, tag:"danger", shortMsg:"Failed to delete profile."};
+			_this.popupNotificationMessage(null,msgObj);
 		}
 	});
 

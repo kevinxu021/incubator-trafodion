@@ -81,7 +81,7 @@ define([
 			$(SLA_APPLY_BTN).on('click', this.slaApplyBtnClicked);
 			$(SLA_RESET_BTN).on('click', this.slaResetBtnClicked);
 
-			$.validator.addMethod("alphanumeric", function(value, element) {
+			$.validator.addMethod("wmssla_alphanumeric", function(value, element) {
 				if(slaDialogParams.type && slaDialogParams.type == 'alter')
 					return true; // For alter we don't allow editing the name,so no check needed
 
@@ -90,9 +90,10 @@ define([
 
 			slaFormValidator = $(SLA_FORM).validate({
 				rules: {
-					"sla_name": { required: true, alphanumeric: true},
+					"sla_name": { required: true, wmssla_alphanumeric: true},
 					"sla_limit": { digits: true},
-					"sla_throughput" : { number: true}
+					"sla_throughput" : { number: true},
+					"connect_profile_name": {required: true}
 				},
 				highlight: function(element) {
 					$(element).closest('.form-group').addClass('has-error');
@@ -126,12 +127,12 @@ define([
 			});
 
 			$(SLA_DIALOG).on('hide.bs.modal', function (e, v) {
+				slaFormValidator.resetForm();
 				$(SLA_NAME).focus();
 				_this.doReset();
 			});	
 
 			$(SLA_DIALOG).on('hidden.bs.modal', function (e, v) {
-				slaFormValidator.resetForm();
 				$(ADD_SLA_ERROR_CONTAINER).text("");
 				$(ADD_SLA_ERROR_CONTAINER).hide();
 				$(SLA_DIALOG_TITLE).text('Add Profile');
@@ -313,6 +314,8 @@ define([
 					aoColumnDefs.push({
 						"aTargets": [ priorityColIndex ],
 						"mData": priorityColIndex,
+						"visible" : false,
+						"searchable" : false,
 						"mRender": function ( data, type, full ) {
 							if(data != null){
 								return common.toProperCase(data);
@@ -363,6 +366,8 @@ define([
 						"aTargets": [ limitColIndex ],
 						"mData": limitColIndex,
 						"className" : "dt-body-right",
+						"visible" : false,
+						"searchable" : false,
 						"mRender": function ( data, type, full ) {
 							if(data != null && data.length > 0){
 								return common.formatNumberWithCommas(parseInt(data));
@@ -376,6 +381,8 @@ define([
 						"aTargets": [ throughputColIndex ],
 						"mData": throughputColIndex,
 						"className" : "dt-body-right",
+						"visible" : false,
+						"searchable" : false,
 						"mRender": function ( data, type, full ) {
 							if(data != null && data.length > 0){
 								return common.formatNumberWithCommas(parseInt(data));
@@ -585,13 +592,14 @@ define([
 		deleteSLAError: function(jqXHR){
 			var msg = "";
 			if (jqXHR.responseText) {
-				msg = jqXHR.responseText;
+				msg =  jqXHR.responseText;
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
 					msg = "Error : Unable to communicate with the server.";
 				}
 			}
-			alert(msg);
+			var msgObj={msg:msg, tag:"danger", shortMsg:"Failed to delete sla."};
+			_this.popupNotificationMessage(null,msgObj);
 		},
 		displayProfiles: function (result){
 			$(SLA_CONNECT_PROFILE_NAME).empty();

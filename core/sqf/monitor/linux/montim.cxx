@@ -102,6 +102,7 @@ static const string ReqType_Event = " - Event";
 static const string ReqType_Exit = " - Process Exit";
 static const string ReqType_Get = " - Get";
 static const string ReqType_Kill = " - Kill";
+static const string ReqType_License = " - License";
 static const string ReqType_Mount = " - Mount";
 static const string ReqType_NodeInfo = " - NodeInfo";
 static const string ReqType_NewProcess = " - NewProcess";
@@ -346,6 +347,19 @@ processSpecial( ProcessInfo *proc, string intime, string line )
            mkReqInfo( ReqType_Kill, "ReqType_Kill" );
       }
       proc->lastReq = ReqType_Kill;
+    }
+    else if(line.find(ReqType_License) != string::npos)
+    {
+/*
+      cout << ReqType_License << " was received" 
+           << " with useMPI=" << proc->useMPI << endl;
+*/
+      if ((reqInfo = proc->reqInfoMap[ReqType_License]) == NULL)
+      {
+        proc->reqInfoMap[ReqType_License] = 
+           mkReqInfo( ReqType_License, "ReqType_License" );
+      }
+      proc->lastReq = ReqType_License;
     }
     else if(line.find(ReqType_Mount) != string::npos)
     {

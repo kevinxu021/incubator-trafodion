@@ -38,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.esgyn.dbmgr.common.RESTRequestException;
+import com.esgyn.dbmgr.resources.ConfigurationResource;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -122,9 +123,9 @@ public class RESTProcessor {
 						return true; // temporarily disable this check..
 					}
 				});
-			} else
+			} else {
 				conn = (HttpURLConnection) url.openConnection();
-			conn.setReadTimeout(180000); // 3 minutes
+			}
 			conn.setRequestProperty("Accept", "application/json, application/text, text/plain");
 			if (a.contentType != null && a.contentType.length() > 0) {
 				conn.setRequestProperty("Content-Type", a.contentType);
@@ -142,7 +143,7 @@ public class RESTProcessor {
 				conn.setRequestProperty("Authorization", basicAuth);
 			}
 			conn.setConnectTimeout(10000); // 10secs
-			conn.setReadTimeout(15000); // 10secs
+			conn.setReadTimeout(ConfigurationResource.getInstance().getHttpReadTimeoutSeconds() * 1000); 
 
 			if (a.method != null && a.method.equalsIgnoreCase("delete")) {
 				conn.setDoOutput(true);

@@ -82,16 +82,17 @@ if [ -z "$traf_gid" ]; then
             found=$($TRAF_PDSH "cat /etc/group | sed -e 's@^.*:x:\([0-9]*\):.*@\1@' | grep ^$traf_gid$ " 2>/dev/null | wc -l)
         fi
     done
-    $TRAF_PDSH sudo /usr/sbin/groupadd --gid $traf_gid $TRAF_GROUP
-    if [ $? -ne 0 ]; then
-       if [ $? -ne 9]; then
+    $TRAF_PDSH sudo /usr/sbin/groupadd --gid $traf_gid $TRAF_GROUP 2>/dev/null
+    return_code=$?
+    if [ $return_code -ne 0 ]; then
+       if [ $return_code -ne 9]; then
           echo "***ERROR: unable to create Trafodion group: $TRAF_GROUP"
           exit -1
        fi
     fi
 else
     # Make sure Trafodion group exists on all nodes and create it if it is not
-    $TRAF_PDSH sudo /usr/sbin/groupadd --gid $traf_gid $TRAF_GROUP
+    $TRAF_PDSH sudo /usr/sbin/groupadd --gid $traf_gid $TRAF_GROUP 2>/dev/null
     return_code=$?
     if [ $return_code -ne 0 ]; then
         # if it is not a duplicate group error then we have a problem
@@ -101,6 +102,15 @@ else
         fi
     fi
 fi
+for node in $NODE_LIST
+do
+    trafCreated=$(ssh -q -n $node sudo grep "$TRAF_USER:" /etc/group | wc -l)
+    if [[ "$trafCreated" -ne "1" ]]; then
+       echo "***ERROR: Unable to create Trafodion group  on node $node"
+       exit -1
+    fi
+done
+
 #=================================================
 # Create Trafodion user, if not already created
 found=1
@@ -126,8 +136,8 @@ $TRAF_PDSH sudo /usr/sbin/useradd \
     --gid $traf_gid \
     --password "$(openssl passwd $TRAF_USER_PASSWORD)" \
     --uid $traf_uid \
-    $TRAF_USER
-return_code=$?
+    $TRAF_USER 2>/dev/null
+return_code=${PIPESTATUS[0]}
 if [ $return_code -ne 0 ]; then
     if [ $return_code -eq 9 ]; then
         echo "***WARNING: username already exists, will use existing userid, $TRAF_USER..."
@@ -137,6 +147,16 @@ if [ $return_code -ne 0 ]; then
         exit -1
     fi
 fi
+
+for node in $NODE_LIST
+do 
+    trafCreated=$(ssh -q -n $node sudo grep "$TRAF_USER:" /etc/passwd | wc -l)
+    if [[ "$trafCreated" -ne "1" ]]; then
+       echo "***ERROR: Unable to create Trafodion userid on node $node"
+       exit -1
+    fi
+done
+
 
 #=================================================
 

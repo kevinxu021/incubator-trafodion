@@ -2357,10 +2357,10 @@ void OptimizerSimulator::restoreHHDFSMasterHostList()
         std::string value;
         //read HHDFSMasterHostList::hasVirtualSQNodes_;
         inLogfile >> name >> value;
-        HHDFSMasterHostList::hasVirtualSQNodes_ = std::atoi(value.c_str());
+        CmpCommon::context()->setHasVirtualSQNodes(std::atoi(value.c_str()));
         //read HHDFSMasterHostList::numSQNodes_;
         inLogfile >> name >> value;
-        HHDFSMasterHostList::numSQNodes_ = std::atoi(value.c_str());
+        CmpCommon::context()->setNumSQNodes(std::atoi(value.c_str()));
         inLogfile >> value;
         if(value.length() > 0){
             LIST(NAString) hosts;
@@ -3016,6 +3016,20 @@ HHDFSTableStats * OptimizerSimulator::restoreHiveTableStats(const QualifiedName 
     struct hive_sd_desc *hsd = hvt_desc->getSDs();
     hiveHDFSTableStats->tableDir_ = hsd->location_;
     hiveHDFSTableStats->validationJTimestamp_ = JULIANTIMESTAMP();
+
+    // for debugging
+    NAString logFile = 
+      ActiveSchemaDB()->getDefaults().getValue(HIVE_HDFS_STATS_LOG_FILE);
+
+    if (logFile.length())
+      {
+        FILE *ofd = fopen(logFile, "a");
+        if (ofd){
+          hiveHDFSTableStats->print(ofd);
+          fclose(ofd);
+        }
+      }
+
     return hiveHDFSTableStats;
 }
 
@@ -3061,6 +3075,8 @@ void OsimHHDFSStatsBase::serializeAttrs(XMLString & xml)
     xml.append("numBlocks='").append(std::to_string((long long)(hhstats->numBlocks_)).c_str()).append("' ");
     xml.append("numFiles='").append(std::to_string((long long)(hhstats->numFiles_)).c_str()).append("' ");
     xml.append("totalRows='").append(std::to_string((long long)(hhstats->totalRows_)).c_str()).append("' ");
+    xml.append("numStripes='").append(std::to_string((long long)(hhstats->numStripes_)).c_str()).append("' ");
+    xml.append("totalStringLengths='").append(std::to_string((long long)(hhstats->totalStringLengths_)).c_str()).append("' ");
     xml.append("totalSize='").append(std::to_string((long long)(hhstats->totalSize_)).c_str()).append("' ");
     xml.append("modificationTS='").append(std::to_string((long long)(hhstats->modificationTS_)).c_str()).append("' ");
     xml.append("sampledBytes='").append(std::to_string((long long)(hhstats->sampledBytes_)).c_str()).append("' ");
@@ -3223,6 +3239,10 @@ NABoolean OsimHHDFSStatsBase::setValue(HHDFSStatsBase* hhstats, const char *attr
         hhstats->numFiles_ = std::atol(attrValue);
       else if (!strcmp(attrName, "totalRows"))
         hhstats->totalRows_= std::atol(attrValue);
+      else if (!strcmp(attrName, "numStripes"))
+        hhstats->numStripes_= std::atol(attrValue);
+      else if (!strcmp(attrName, "totalStringLengths"))
+        hhstats->totalStringLengths_= std::atol(attrValue);
       else if (!strcmp(attrName, "totalSize"))
         hhstats->totalSize_= std::atol(attrValue);
       else if (!strcmp(attrName, "modificationTS"))
@@ -3280,7 +3300,7 @@ NABoolean OsimHHDFSORCFileStats::setValue(HHDFSStatsBase* stats, const char *att
     if(NULL == stats)
         return FALSE;
     
-    if(OsimHHDFSStatsBase::setValue(stats, attrName, attrValue))
+    if(OsimHHDFSFileStats::setValue(stats, attrName, attrValue))
        return TRUE;
     
     HHDFSORCFileStats* hhstats = dynamic_cast<HHDFSORCFileStats*>(stats);
@@ -3293,8 +3313,9 @@ NABoolean OsimHHDFSORCFileStats::setValue(HHDFSStatsBase* stats, const char *att
               NAString values = attrValue;
               LIST(NAString) valueList;
               values.split('|', valueList);
+              assert(hhstats->numOfRows_.entries() == 0);
               for(Int32 i = 0; i < valueList.entries(); i++)
-                  hhstats->numOfRows_[i] = std::atoi(valueList[i].data());
+                hhstats->numOfRows_.insert((Int64) std::atoi(valueList[i].data()));
           }
     }
     else if (!strcmp(attrName, "offsets"))
@@ -3304,8 +3325,9 @@ NABoolean OsimHHDFSORCFileStats::setValue(HHDFSStatsBase* stats, const char *att
               NAString values = attrValue;
               LIST(NAString) valueList;
               values.split('|', valueList);
+              assert(hhstats->offsets_.entries() == 0);
               for(Int32 i = 0; i < valueList.entries(); i++)
-                      hhstats->offsets_[i] = std::atoi(valueList[i].data());
+                hhstats->offsets_.insert((Int64) std::atoi(valueList[i].data()));
         }
     }
     else if (!strcmp(attrName, "totalBytes"))
@@ -3315,8 +3337,9 @@ NABoolean OsimHHDFSORCFileStats::setValue(HHDFSStatsBase* stats, const char *att
               NAString values = attrValue;
               LIST(NAString) valueList;
               values.split('|', valueList);
+              assert(hhstats->totalBytes_.entries() == 0);
               for(Int32 i = 0; i < valueList.entries(); i++)
-                      hhstats->totalBytes_[i] = std::atoi(valueList[i].data());
+                hhstats->totalBytes_.insert((Int64) std::atoi(valueList[i].data()));
         }
     }
     else

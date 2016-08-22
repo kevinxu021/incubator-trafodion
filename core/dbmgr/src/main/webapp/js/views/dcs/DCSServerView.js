@@ -189,7 +189,7 @@ define([
 							"className" : "dt-body-right",
 							"mRender": function ( data, type, full ) {
 								if(data != null && data.length > 0){
-									return common.millisecondsToString(data);
+									return common.millisecondsToString(data * 1000);
 								}else{
 									return "";
 								}

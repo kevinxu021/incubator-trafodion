@@ -62,6 +62,7 @@ extern CRedirector Redirector;
 extern CHealthCheck HealthCheck;
 extern CReplicate Replicator;
 extern int MyPNID;
+extern bool IsRealCluster;
 
 // constructor
 CHealthCheck::CHealthCheck()
@@ -77,7 +78,11 @@ CHealthCheck::CHealthCheck()
     quiesceStartTime_.tv_nsec = 0;
     nonresponsiveTime_.tv_sec = 0;
     nonresponsiveTime_.tv_nsec = 0;
-
+    licenseCheckTime_.tv_sec = 0;
+    licenseCheckTime_.tv_nsec = 0;
+    licenseExpireTime_.tv_sec = 0;
+    licenseExpireTime_.tv_nsec = 0;
+    
     state_ = HC_AVAILABLE; // default state
     param1_ = 0;
     watchdogProcess_ = NULL;
@@ -147,9 +152,9 @@ void CHealthCheck::healthCheckThread()
     TRACE_ENTRY;
 
     HealthCheckStates state;
-
+    // TRK int myPid = getpid();
     struct timespec ts;
-
+    
     if (trace_settings & TRACE_HEALTH)
         trace_printf("%s@%d health check thread starting\n", method_name, __LINE__);
 
@@ -172,6 +177,15 @@ void CHealthCheck::healthCheckThread()
             mem_log_write(MON_HEALTHCHECK_WAKEUP_2, (int)(currTime_.tv_sec - wakeupTimeSaved_));
         }
 
+  /* TRK comment out for initial checkin
+        // Check if we should validate license, but not on a virtual cluster and
+        // not unless we are a verifier
+        if ((MyNode->IsLicenseVerifier() && (IsRealCluster))
+        {
+          timeToVerifyLicense(currTime_, myPid);
+        }
+  */
+  
         // Replicate the clone to other nodes
         CReplSchedData *repl = new CReplSchedData();
         Replicator.addItem(repl);
@@ -281,15 +295,18 @@ void CHealthCheck::healthCheckThread()
                 updateWatchdogProcess();
                 state_ = HC_AVAILABLE;
                 break;
-
+            case MON_CHECK_LICENSE:
+              // verify license expiration date
+              verifyLicenseExpiration();
+              state_ = HC_AVAILABLE;
+              break;
             default:
                 mem_log_write(MON_HEALTHCHECK_BAD_STATE, state_);
                 state_ = MON_NODE_DOWN; // something is seriously wrong, bring down the node.
                 break;
         }
-
+      
         setTimeToWakeUp(ts);
-
         healthCheckLock_.unlock();
     }
 
@@ -655,4 +672,130 @@ void CHealthCheck::scheduleNodeDown()
     TRACE_EXIT; 
 }
 
+// Determine if it is time to validate the license and then do it if needed
+void CHealthCheck::timeToVerifyLicense(struct timespec &currentTime, int myPid)
+{
+    const char method_name[] = "CHealthCheck::timeToVerifyLicense";
+    TRACE_ENTRY;
+    
+    char  myLicense[LICENSE_NUM_BYTES];
+    FILE *pFile;
+    bool  success = true;
+  
+ 
+  if (currentTime.tv_sec >= licenseCheckTime_.tv_sec)
+  {
+       if (trace_settings & TRACE_HEALTH)
+            trace_printf("%s@%d timeToVerifyLicense : TRUE\n", method_name, __LINE__); 
+    
+      char *licenseFile = getenv("SQ_MON_LICENSE_FILE");
+      if (!licenseFile)
+      {
+         if (trace_settings & TRACE_HEALTH)
+            trace_printf("%s@%d timeToVerifyLicense, License not set\n", method_name, __LINE__); 
+         
+          char buf[MON_STRING_BUF_SIZE];
+          sprintf(buf, "[%s], CHealthCheck Invalid License (path not set)\n", method_name);
+          mon_log_write(MON_HEALTHCHECK_LICENSE_INVALID, SQ_LOG_ERR, buf);
+         
+          return;
+      }
+      
+      pFile = fopen( licenseFile, "r" );
+      if ( pFile )
+      {
+         int bytesRead = fread (myLicense,sizeof(char), LICENSE_NUM_BYTES,pFile);
+         if (bytesRead != LICENSE_NUM_BYTES)
+         {
+             success = false;   
+         }
+         fclose(pFile);
+      }
+      else
+      {
+        success = false;
+      }
+      
+      if (success)
+      {      
+          CReplLicense *replL = new CReplLicense(myPid, MyPNID, myLicense);
+          Replicator.addItem(replL);
+      }
+      else
+      {
+         if (trace_settings & TRACE_HEALTH)
+            trace_printf("%s@%d timeToVerifyLicense, Invalid License\n", method_name, __LINE__); 
+         
+          char buf[MON_STRING_BUF_SIZE];
+          sprintf(buf, "[%s], CHealthCheck Invalid License\n", method_name);
+          mon_log_write(MON_HEALTHCHECK_LICENSE_INVALID, SQ_LOG_ERR, buf);
+      }
+    }
+    
+    TRACE_EXIT; 
+}
 
+void CHealthCheck::setLicenseInfo(long expireTimeInDays, bool success)
+{
+    const char method_name[] = "CHealthCheck::setLicenseExpireTime";
+    TRACE_ENTRY;
+    
+    if (success)
+    {
+        // Set Expire Time, but change it into seconds, from Days
+        licenseExpireTime_.tv_sec = expireTimeInDays*LICENSE_ONE_DAY;
+    }
+    else
+    {
+        char buf[MON_STRING_BUF_SIZE];
+        sprintf(buf, "[%s], CHealthCheck Invalid License\n", method_name);
+        mon_log_write(MON_HEALTHCHECK_LICENSE_INVALID, SQ_LOG_ERR, buf);
+    }
+    TRACE_EXIT;
+}
+
+void CHealthCheck::verifyLicenseExpiration()
+{
+    const char method_name[] = "CHealthCheck::verifyLicenseExpiration";
+    TRACE_ENTRY;
+    
+    //only care about seconds    
+    clock_gettime(CLOCK_REALTIME, &currTime_);
+    struct timespec timeLeft;
+    timeLeft.tv_sec = licenseExpireTime_.tv_sec - currTime_.tv_sec;
+    
+    if (timeLeft.tv_sec < LICENSE_SEVEN_DAYS)
+    {
+      if (timeLeft.tv_sec < 0)
+      {
+        
+          if (trace_settings & TRACE_HEALTH)
+            trace_printf("%s@%d verifyLicenseExpiration, License expired\n", method_name, __LINE__); 
+        
+          char buf[MON_STRING_BUF_SIZE];
+          sprintf(buf, "[%s], CHealthCheck LICENSE EXPIRED\n", method_name);
+          mon_log_write(MON_HEALTHCHECK_LICENSE_EXPIRE, SQ_LOG_ERR, buf); 
+          
+          // Continue warning every day
+          licenseCheckTime_.tv_sec=currTime_.tv_sec+LICENSE_ONE_DAY; 
+      }
+      else
+      {
+          if (trace_settings & TRACE_HEALTH)
+            trace_printf("%s@%d verifyLicenseExpiration, License expiring soon\n", method_name, __LINE__); 
+        
+          char buf[MON_STRING_BUF_SIZE];
+          sprintf(buf, "[%s], CHealthCheck LICENSE EXPIRING\n", method_name);
+          mon_log_write(MON_HEALTHCHECK_LICENSE_WARN, SQ_LOG_WARNING, buf); 
+          
+          // Continue warning every day
+          licenseCheckTime_.tv_sec=currTime_.tv_sec+LICENSE_ONE_DAY; 
+      }
+    }
+    else
+    {
+          // check again in another 7 days
+          licenseCheckTime_.tv_sec=currTime_.tv_sec+LICENSE_SEVEN_DAYS; 
+    }
+    TRACE_EXIT;
+}

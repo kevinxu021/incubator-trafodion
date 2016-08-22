@@ -77,7 +77,6 @@ public class QueryResource {
 
 	private void cancelSQLQuery(HttpServletResponse servletResponse, String key) {
 		// TODO Auto-generated method stub
-		 ;
 		/* long startTime = System.currentTimeMillis();(System.currentTimeMillis()-startTime)>10000;*/
 		 while(!SessionModel.containsKey(key)) {
 			 continue;
@@ -95,7 +94,7 @@ public class QueryResource {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} finally {
-				SessionModel.cleanStatementObject();
+				SessionModel.removeStatementObject(key);
 			}
 		}
 	}
@@ -141,7 +140,7 @@ public class QueryResource {
 			}
 			stmt1.close();
 			
-			if (queryText != null && queryText.trim().toLowerCase().equals("info system")) {
+			if (queryText != null && queryText.trim().toLowerCase().startsWith("info")) {
 				stmt = connection.createStatement();
 			} else {
 				stmt = connection.prepareStatement(queryText);
