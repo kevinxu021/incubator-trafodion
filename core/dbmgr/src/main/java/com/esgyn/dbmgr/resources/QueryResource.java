@@ -77,10 +77,14 @@ public class QueryResource {
 
 	private void cancelSQLQuery(HttpServletResponse servletResponse, String key) {
 		// TODO Auto-generated method stub
-		/* long startTime = System.currentTimeMillis();(System.currentTimeMillis()-startTime)>10000;*/
-		 while(!SessionModel.containsKey(key)) {
-			 continue;
-		 }
+		try {
+			if (!SessionModel.containsKey(key)) {
+				Thread.sleep(5000);
+			}
+		} catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		Statement stmt = (Statement) SessionModel.getStatementObject(key);
 		if (stmt != null) {
 			try {
@@ -93,9 +97,7 @@ public class QueryResource {
 			} catch (SQLException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-			} finally {
-				SessionModel.removeStatementObject(key);
-			}
+			} 
 		}
 	}
 	public static TabularResult executeSQLQuery(String user, String password, String queryText)
@@ -150,11 +152,10 @@ public class QueryResource {
 			}
 			js = executeQuery(stmt, queryText);
 		} catch (Exception e) {
-			SessionModel.putStatementObject(key, stmt);
 			_LOG.error("Failed to execute query : " + e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());
 		} finally {
-			//in case the error happens, otherwise the cancel will be deadlock
+			SessionModel.removeStatementObject(key);
 			if (stmt != null) {
 				try {
 					stmt.close();
