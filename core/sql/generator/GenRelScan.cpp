@@ -195,8 +195,9 @@ short FileScan::codeGen(Generator * generator)
   return 0;
 }
 
-int HbaseAccess::createAsciiColAndCastExprNative(Generator * generator,
-                                                 const NAType &givenType,
+int HbaseAccess::createAsciiColAndCastExprForOrc(Generator * generator,
+                                                 const NAType &castType,
+                                                 const NAType *underlyingHiveType,
                                                  ItemExpr *&asciiValue,
                                                  ItemExpr *&castValue)
 {
@@ -205,20 +206,56 @@ int HbaseAccess::createAsciiColAndCastExprNative(Generator * generator,
   castValue = NULL;
   CollHeap * h = generator->wHeap();
 
+  const NAType * asciiType = 
+    (underlyingHiveType ? underlyingHiveType : &castType);
+  if ((underlyingHiveType) &&
+      (DFS2REC::isSQLVarChar(underlyingHiveType->getFSDatatype())) &&
+      (castType.getTypeQualifier() == NA_CHARACTER_TYPE))
+    {
+      SQLVarChar * vcAsciiType = (SQLVarChar *)underlyingHiveType;
+
+     // if underlying hive type passed in is a hive 'string'
+     // datatype that is being mapped to external table char/varchar type,
+     // then set its size to be the same as external table datatype length.
+      Lng32 maxByteLen = castType.getNominalSize();
+      if ((vcAsciiType->wasHiveString()) &&
+          (maxByteLen != vcAsciiType->getNominalSize()))
+        {
+          vcAsciiType = new(h) SQLVarChar
+            (maxByteLen, 
+             vcAsciiType->supportsSQLnull(), 
+             vcAsciiType->isUpshifted(),
+             vcAsciiType->isCaseinsensitive(),
+             vcAsciiType->getCharSet(), 
+             vcAsciiType->getCollation(), 
+             vcAsciiType->getCoercibility());
+        }
+      asciiType = vcAsciiType;
+    }
+
   // if this is an upshifted datatype, remove the upshift attr.
   // We dont want to upshift data during retrievals or while building keys.
   // Data is only upshifted during insert or updates.
-  const NAType * newGivenType = &givenType;
-  if (newGivenType->getTypeQualifier() == NA_CHARACTER_TYPE &&
-      ((CharType *)newGivenType)->isUpshifted())
+  const NAType * newCastType = &castType;
+  if (newCastType->getTypeQualifier() == NA_CHARACTER_TYPE &&
+      ((CharType *)newCastType)->isUpshifted())
     {
-      newGivenType = newGivenType->newCopy(h);
-      ((CharType*)newGivenType)->setUpshifted(FALSE);
+      newCastType = newCastType->newCopy(h);
+      ((CharType*)newCastType)->setUpshifted(FALSE);
     }
 
-  asciiValue = new (h) NATypeToItem(newGivenType->newCopy(h));
-  castValue = new(h) Cast(asciiValue, newGivenType); 
-  if (newGivenType->getTypeQualifier() == NA_INTERVAL_TYPE)
+  asciiValue = new (h) NATypeToItem(asciiType);
+  castValue = new(h) Cast(asciiValue, newCastType); 
+
+  // this is an explicit cast. Do not do implicit casting and return
+  // truncation errors.
+  if (underlyingHiveType)
+    {
+      ((Cast*)castValue)->setTgtCSSpecified(TRUE);
+      ((Cast*)castValue)->setCheckTruncationError(TRUE);
+    }
+
+  if (newCastType->getTypeQualifier() == NA_INTERVAL_TYPE)
     ((Cast*)castValue)->setAllowSignInInterval(TRUE);
   
   if (castValue && asciiValue)
@@ -231,13 +268,8 @@ int HbaseAccess::createAsciiColAndCastExpr(Generator * generator,
                                            const NAType &givenType,
                                            ItemExpr *&asciiValue,
                                            ItemExpr *&castValue,
-                                           NABoolean isOrc,
                                            NABoolean srcIsInt32Varchar)
 {
-  if (isOrc)
-    return createAsciiColAndCastExprNative
-      (generator, givenType, asciiValue, castValue);
-
   int result = 0;
   asciiValue = NULL;
   castValue = NULL;
@@ -928,12 +960,23 @@ short FileScan::codeGenForHive(Generator * generator)
   int numVirtColsUsed = 0;
   convertSkipList = new(space) Int16[allHdfsVals.entries()];
 
+  const NAColumnArray &btHiveColArr = 
+    getTableDesc()->getNATable()->getHiveNAColumnArray();
+  NAList<void*> hiveColTypes(generator->wHeap());
+
   for (CollIndex i = 0; i < allHdfsVals.entries(); i++)
   {
     NAColumn *nac =
       static_cast<IndexColumn *>(allHdfsVals[i].getItemExpr())->getNAColumn();
     NABoolean isPartCol = nac->isHivePartColumn();
     NABoolean isVirtCol = nac->isHiveVirtualColumn();
+
+    if ((isOrc) && 
+        (btHiveColArr.entries() > 0))
+      {
+        NAColumn * hiveNAC = btHiveColArr.getColumn(nac->getColName());
+        hiveColTypes.insert((void*)hiveNAC->getType());
+      }
 
     inProjExpr = outputCols.referencesTheGivenValue(allHdfsVals[i],dummyVal);
     inExecutorPred = executorPred().referencesTheGivenValue(allHdfsVals[i],dummyVal);
@@ -994,10 +1037,10 @@ short FileScan::codeGenForHive(Generator * generator)
       }
   }
 
-  ex_expr *executor_expr = 0;
-  ex_expr *proj_expr = 0;
-  ex_expr *convert_expr = 0;
-  ex_expr *project_convert_expr = 0;
+  ex_expr *executor_expr = 0;        // selectPred in ComTdbHdfsScan
+  ex_expr *proj_expr = 0;            // moveExpr in ComTdbHdfsScan
+  ex_expr *convert_expr = 0;         // convertExpr in ComTdbHdfsScan
+  ex_expr *project_convert_expr = 0; // moveColsConvertExpr in ComTdbHdfsScan
   ex_expr *orcOperExpr = NULL;
   ex_expr *part_elim_expr = NULL;
 
@@ -1127,15 +1170,27 @@ short FileScan::codeGenForHive(Generator * generator)
     ItemExpr *asciiValue = NULL;
     ItemExpr *castValue = NULL;
 
-    res = HbaseAccess::createAsciiColAndCastExpr(
-				    generator,        // for heap
-				    givenType,        // [IN] Actual type of HDFS column
-				    asciiValue,       // [OUT] Returned expression for ascii rep.
-				    castValue,        // [OUT] Returned expression for binary rep.
-                                    isOrc,
-                                    TRUE // max src data len is sizeof(Int32)
-                                    );
-     
+    const NAType *underlyingHiveType = 
+      (hiveColTypes.entries() > 0 ? (NAType*)(hiveColTypes[ii]) : NULL);
+    if (isOrc)
+      res = HbaseAccess::createAsciiColAndCastExprForOrc
+        (
+             generator,        // for heap
+             givenType,        // [IN] Actual type of HDFS column
+             underlyingHiveType,
+             asciiValue,       // [OUT] Returned expression for ascii rep.
+             castValue         // [OUT] Returned expression for binary rep.
+         );
+    else
+      res = HbaseAccess::createAsciiColAndCastExpr
+        (
+             generator,        // for heap
+             givenType,        // [IN] Actual type of HDFS column
+             asciiValue,       // [OUT] Returned expression for ascii rep.
+             castValue,        // [OUT] Returned expression for binary rep.
+             TRUE              // max src data len is sizeof(Int32)
+         );
+    
     GenAssert(res == 1 && asciiValue != NULL && castValue != NULL,
               "Error building expression tree for cast output value");
     asciiValue->synthTypeAndValueId();
@@ -1632,10 +1687,10 @@ if (hTabStats->isOrcFile())
       (
            tablename,
            type,
-           executor_expr,
-           proj_expr,
-           convert_expr,
-           project_convert_expr,
+           executor_expr,         // selectPred in ComTdbHdfsScan
+           proj_expr,             // moveExpr in ComTdbHdfsScan
+           convert_expr,          // convertExpr in ComTdbHdfsScan
+           project_convert_expr,  // moveColsConvertExpr in ComTdbHdfsScan
            part_elim_expr,
            orcOperExpr,
            allHdfsVals.entries(),      // size of convertSkipList
@@ -1686,10 +1741,10 @@ if (hTabStats->isOrcFile())
       (
            tablename,
            type,
-           executor_expr,
-           proj_expr,
-           convert_expr,
-           project_convert_expr,
+           executor_expr,         // selectPred in ComTdbHdfsScan
+           proj_expr,             // moveExpr in ComTdbHdfsScan
+           convert_expr,          // convertExpr in ComTdbHdfsScan
+           project_convert_expr,  // moveColsConvertExpr in ComTdbHdfsScan
            part_elim_expr,
            allHdfsVals.entries(),      // size of convertSkipList
            convertSkipList,

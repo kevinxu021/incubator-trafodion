@@ -1383,8 +1383,9 @@ public:
 
   virtual NABoolean isHbaseScan() { return TRUE; }
 
-  static int createAsciiColAndCastExprNative(Generator * generator,
+  static int createAsciiColAndCastExprForOrc(Generator * generator,
                                              const NAType &givenType,
+                                             const NAType *hiveType,
                                              ItemExpr *&asciiValue,
                                              ItemExpr *&castValue);
 
@@ -1392,7 +1393,6 @@ public:
 				       const NAType &givenType,
 				       ItemExpr *&asciiValue,
 				       ItemExpr *&castValue,
-                                       NABoolean isOrc = FALSE,
                                        NABoolean srcIsInt32Varchar = FALSE);
 
   static int createAsciiColAndCastExpr2(Generator * generator,

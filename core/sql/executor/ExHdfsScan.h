@@ -142,7 +142,7 @@ protected:
   short moveRowToUpQueue(const char * row, Lng32 len, 
                          Lng32 tuppIndex,
                          short * rc, NABoolean isVarchar);
-  short handleError(short &rc);
+  short handleError(short &rc, ComDiagsArea * inDiagsArea);
   short handleDone(ExWorkProcRetcode &rc, Int64 rowsAffected = 0);
 
   short setupError(Lng32 exeError, Lng32 retcode, 

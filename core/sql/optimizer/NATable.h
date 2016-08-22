@@ -463,6 +463,7 @@ public:
   CollIndex getColumnCount() const              { return colcount_; }
   CollIndex getUserColumnCount() const;
   const NAColumnArray &getNAColumnArray() const { return colArray_; }
+  const NAColumnArray &getHiveNAColumnArray() const { return hiveColArray_; }
   Int32 getRecordLength() const                   { return recordLength_; }
   Cardinality getEstRowCount() const
                  { return clusteringIndex_->getEstimatedNumberOfRecords(); }
@@ -1033,6 +1034,12 @@ private:
   // An array of columns belonging to this table
   // ---------------------------------------------------------------------
   NAColumnArray colArray_;
+
+  // if this hive table has an associated external table, then entries in 
+  // colArray_ may be replaced by external table entries. 
+  // Save the original colArray_ in hiveColArray_ before replacing them.
+  // This is done in method NATable::updateExtTableAttrs,
+  NAColumnArray hiveColArray_;
 
   // ---------------------------------------------------------------------
   // Record length.

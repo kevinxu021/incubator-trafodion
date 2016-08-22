@@ -3378,6 +3378,8 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
 
   DDkwd__(TRAF_DEFAULT_COL_CHARSET,            (char *)SQLCHARSETSTRING_ISO88591),
  
+  DD_____(TRAF_DEFAULT_STORAGE_TYPE,            "HBASE"),
+
   DDkwd__(TRAF_ENABLE_ORC_FORMAT,                 "ON"),   
 
   DDkwd__(TRAF_INDEX_ALIGNED_ROW_FORMAT,        "ON"),   

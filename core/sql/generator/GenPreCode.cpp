@@ -6393,8 +6393,11 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
                         {
                           if (nType->isExact())
                             {
+                              // count is non-nullable.
+                              NABoolean nullable = (origAgg->getOperatorType() != ITM_COUNT);
+
                               orcAggrType = 
-                                new(generator->wHeap()) SQLLargeInt(TRUE, TRUE);
+                                new(generator->wHeap()) SQLLargeInt(TRUE, nullable);
                             }
                           else
                             {
