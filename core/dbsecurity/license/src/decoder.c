@@ -19,6 +19,22 @@
 #define RESERVED_FIELD     4
 #define ENC_LEN  (VERSION_LEN+CUSTOMER_LEN+NODENUM_LEN+EXPIRE_LEN+EXPIRE_LEN + PACKAGE_INSTALLED+INSTALL_TYPE+RESERVED_FIELD)*2
 
+//define the enum of package installed
+#define PACKAGE_ENT  1
+#define PACKAGE_ADV  2
+
+#define PACKAGE_ENT_TEXT  "ENT"
+#define PACKAGE_ADV_TEXT  "ADV"
+
+//define the enum of installed type
+#define TYPE_DEMO     1
+#define TYPE_POC      2
+#define TYPE_PRODUCT  3
+
+#define TYPE_DEMO_TEXT "DEMO"
+#define TYPE_POC_TEXT "POC"
+#define TYPE_PRODUCT_TEXT "PRODUCT"
+
 static unsigned char asc2hex[] = {
      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
@@ -77,6 +93,10 @@ int main(int argc, char *argv[])
     int topt=0;
     int popt=0;
     char encstr[ENC_LEN+1];
+    int nodenumber = 0;
+    int exday = 0;
+    int packageinstalled = 0;
+    int installtype=0;
     memset(encstr, 0, sizeof(encstr));
 #if 0
     char version[VERSION_LEN+1];
@@ -146,7 +166,10 @@ int main(int argc, char *argv[])
       exit(1);
 
     int inputlen = strlen(encstr); 
-
+    
+    //decodedbuf contains the DES encryted string
+    //input string is in ASCII format, each encrypted char is represented as 2 bytes in HEX value
+    //strpack transform the HEX into original value
     char decodedbuf[inputlen/2 + 1];
     memset(decodedbuf, 0 , sizeof(decodedbuf) );
     strpack(encstr, sizeof(encstr), (char*) decodedbuf);
@@ -156,31 +179,59 @@ int main(int argc, char *argv[])
     DES_cblock ivec;
     memset((char*)&ivec, 0, sizeof(ivec));
 
+    //decipher
     DES_ncbc_encrypt((const unsigned char *)decodedbuf, output, len, &key_schedule, &ivec, 0);
 
     //parse the encstr
     char display[64]; memset(display, 0, sizeof(display)); 
     if(copt == 1)  //print customer
     {
-        strncpy(display, (char*)output+ VERSION_LEN,  CUSTOMER_LEN);
+        strncpy(display, (char*)output + VERSION_LEN,  CUSTOMER_LEN);
+        printf("%s",  display);
     }
     else if(eopt == 1)  //print expire date
     {
-        strncpy(display, (char*)output+ VERSION_LEN+CUSTOMER_LEN+NODENUM_LEN,  EXPIRE_LEN);
+        memcpy(&exday, (char*)output + VERSION_LEN + CUSTOMER_LEN + NODENUM_LEN,  sizeof(int));
+        printf("%d", exday); 
     }
     else if(nopt == 1)  //print node number
     {
-        strncpy(display, (char*)output + VERSION_LEN+CUSTOMER_LEN,  NODENUM_LEN);
+        memcpy(&nodenumber, (char*)output + VERSION_LEN + CUSTOMER_LEN ,  sizeof(int));
+        printf("%d",  nodenumber);
     }
     else if(topt == 1)  //print node number
     {
-        strncpy(display, (char*)output + VERSION_LEN+CUSTOMER_LEN+NODENUM_LEN+EXPIRE_LEN+PACKAGE_INSTALLED,  INSTALL_TYPE);
+        memcpy(&installtype, (char*)output + VERSION_LEN + CUSTOMER_LEN + NODENUM_LEN + EXPIRE_LEN + PACKAGE_INSTALLED,  sizeof(int));
+        switch(installtype) 
+        {
+          case TYPE_DEMO:
+            printf("%s",TYPE_DEMO_TEXT);
+            break;
+          case TYPE_POC:
+            printf("%s",TYPE_POC_TEXT);
+            break;
+          case TYPE_PRODUCT:
+            printf("%s", TYPE_PRODUCT_TEXT);
+            break;
+          default:
+            printf("UNKNOWN %d", installtype);
+        }
     }
     else if(popt == 1)  //print node number
     {
-        strncpy(display, (char*)output + VERSION_LEN+CUSTOMER_LEN+NODENUM_LEN+EXPIRE_LEN,  PACKAGE_INSTALLED);
+        memcpy(&packageinstalled, (char*)output + VERSION_LEN + CUSTOMER_LEN + NODENUM_LEN + EXPIRE_LEN,  sizeof(int));
+        switch(packageinstalled)
+        {
+          case PACKAGE_ENT:
+            printf("%s",PACKAGE_ENT_TEXT);
+            break;
+          case PACKAGE_ADV:
+            printf("%s",PACKAGE_ADV_TEXT);
+            break;
+          default:
+            printf("UNKNONW");
+        } 
     }
-    printf("%s",  display);
 
     return ret;
 }
