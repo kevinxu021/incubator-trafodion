@@ -59,7 +59,9 @@ define([
 	QUERY_TEXT = '#query-text',
 	EXPLAIN_JSON_DATA=null,
 	IMPORT_QUERY='#importQuery',
-	FILE_SELECT='#jsonFile',
+	QUERY_FILE='#queryFile',
+	IMPORT_WBJ='#importWbj',
+	WBJ_FILE='#wbjFile',
 	EXPORT_QUERY='#exportQuery';
 
 	var _this = null;
@@ -168,8 +170,9 @@ define([
 			$(EXECUTE_BTN).on('click', this.executeQuery);
 			$(CLEAR_BTN).on('click', this.clearAll);
 			$(EXPORT_QUERY).on('click',this.exportQuery);
-			$(FILE_SELECT).on('click',this.importBtnClicked);
-			$(FILE_SELECT).on('change',this.importQuery);
+			$(WBJ_FILE).on('click',this.importBtnClicked);
+			$(QUERY_FILE).on('change',this.importQuery);
+			$(WBJ_FILE).on('change',this.importQuery);
 
 			$(CONTROL_APPLY_BUTTON).on('click', this.controlApplyClicked);
 			$(OPTIONS_BTN).on('click', this.openFilterDialog);

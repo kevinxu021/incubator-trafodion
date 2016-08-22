@@ -594,7 +594,8 @@ define([
 					msg = "Error : Unable to communicate with the server.";
 				}
 			}
-			alert(msg);
+			var msgObj={msg:msg, tag:"danger", shortMsg:"Failed to delete mapping."};
+			_this.popupNotificationMessage(null,msgObj);
 		},
 		displaySLAs: function (result){
 			$(MAPPING_SLA).empty();

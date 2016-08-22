@@ -459,6 +459,9 @@ public:
   void setRestore(NABoolean v)
   {(v ? flags_ |= RESTORE : flags_ &= ~RESTORE); }
   NABoolean restore() { return (flags_ & RESTORE) != 0;}
+  void setDeleteBackup(NABoolean v)
+  {(v ? flags_ |= DELETE_BACKUP : flags_ &= ~DELETE_BACKUP); }
+  NABoolean deleteBackup() { return (flags_ & DELETE_BACKUP) != 0;}
   
   NABoolean ddlXns() { return ddlXns_; }
 
@@ -475,9 +478,10 @@ public:
     CREATE_LIBMGR           = 0x0080,
     DROP_LIBMGR             = 0x0100,
     UPGRADE_LIBMGR          = 0x0200,
-    BACKUP		    		      = 0x0400,
+    BACKUP		    		= 0x0400,
     RESTORE                 = 0x0800,
-    UNLOCK_TRAF             = 0x1000
+    UNLOCK_TRAF             = 0x1000,
+    DELETE_BACKUP           = 0x2000
   };
 
   // see method processSpecialDDL in sqlcomp/parser.cpp

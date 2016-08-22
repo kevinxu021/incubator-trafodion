@@ -2210,6 +2210,7 @@ void NodeMap::assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey)
   Int64 *espDistribution = new(CmpCommon::statementHeap()) Int64[numESPs];
   Int32 numSQNodes = HHDFSMasterHostList::getNumSQNodes();
   Int32 balanceLevel = CmpCommon::getDefaultLong(HIVE_LOCALITY_BALANCE_LEVEL);
+  Int32 nextDefaultPartNum = numESPs/2;
 
   if (numSQNodes == 0)
     {
@@ -2239,6 +2240,7 @@ void NodeMap::assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey)
            numSQNodes,
            numESPs,
            p,
+           nextDefaultPartNum,
            useLocality,
            balanceLevel);
     }
@@ -2273,6 +2275,9 @@ void NodeMap::balanceScanInfos(HivePartitionAndBucketKey *hiveSearchKey,
   Int32 balanceLevel = CmpCommon::getDefaultLong(HIVE_LOCALITY_BALANCE_LEVEL);
   NABoolean logIt = printMsgToLog(DEFAULT_INDENT, "NodeMap before balancing");
 
+  if (logIt)
+    printToLog();
+
   if (balanceLevel < 1 || getNumEntries() <= 1)
     return;
 
@@ -2291,8 +2296,18 @@ void NodeMap::balanceScanInfos(HivePartitionAndBucketKey *hiveSearchKey,
   Int64 ignoreLocality = FALSE;
   Int64 splitBlocks = FALSE;
 
-  if (logIt)
-    printToLog();
+  // several nested loops in this algorithm:
+  //
+  // for (/* each balance level */)
+  //   for (/* each ESP in the node map */)
+  //     if (/* the ESP (donor) has too much work */)
+  //       while (/* loop over potential recipients */)
+  //         for (/* each scan range of the donor ESP */)
+  //           if (/* recipient has some room */)
+  //             for (/* each replica host of the scan range */)
+  //               if (/* the recipient also hosts the scan range
+  //                      or we ignore locality */)
+  //                 /* move work from the donor to the recipient */
 
   // loop over balance levels
   for (Int32 l=0; l<MINOF(balanceLevel, maxBalanceLevel); l++)
@@ -2305,16 +2320,23 @@ void NodeMap::balanceScanInfos(HivePartitionAndBucketKey *hiveSearchKey,
       // keep some stats for debugging
       Int32 numMoves = 0;
       Int32 numChecks = 0;
+      Int32 numSecondChecks = 0;
       Int64 oldMaxBytes = 0;
 
+      // loop over the ESPs in the node map
       for (Int32 e=0; e<numESPs; e++)
         {
-          if (espDistribution[e] > upperThreshold)
+          Int64 reductionTarget = upperThreshold + minMoveSize/2;
+          Int64 recipientTarget = targetBytes - minMoveSize/2;
+
+          if (espDistribution[e] > reductionTarget)
             {
               // we found an over-utilized ESP, get to its list
               // of things to scan
               HiveNodeMapEntry *hne = (HiveNodeMapEntry *) map_[e];
               LIST(HiveScanInfo) &scanInfos = hne->getScanInfo();
+              Int32 numRecipientLoops = 1;
+              NABoolean doneSearchingRecipients = FALSE;
 
               // search for an under-utilized ESP, search
               // in a circular fashion, starting at the opposite
@@ -2325,9 +2347,10 @@ void NodeMap::balanceScanInfos(HivePartitionAndBucketKey *hiveSearchKey,
               if (espDistribution[e] > oldMaxBytes)
                 oldMaxBytes = espDistribution[e];
 
+              // loop over potential recipients
               do
                 {
-                  if (espDistribution[recipient] < targetBytes - minMoveSize)
+                  if (espDistribution[recipient] < recipientTarget)
                     {
                       Int32 recipientHost =
                         getNodeMapEntry(recipient)->getNodeNumber();
@@ -2358,7 +2381,7 @@ void NodeMap::balanceScanInfos(HivePartitionAndBucketKey *hiveSearchKey,
                           // check whether moving this block to the
                           // target ESP would keep the recipient at or below average
                           if (canSplitThisBlock ||
-                              espDistribution[recipient] + span <= targetBytes)
+                              espDistribution[recipient] + span <= recipientTarget)
                             {
                               // yes, whole or partial block move
                               // will not make things worse
@@ -2445,9 +2468,68 @@ void NodeMap::balanceScanInfos(HivePartitionAndBucketKey *hiveSearchKey,
                         } // loop over scan infos of donating ESP
                     } // under-utilized ESP
                   recipient = ++recipient % numESPs;
+
+                  if (recipient == startRecipient)
+                    {
+                      // We have done a full round of searching for
+                      // recipients, take a look at our situation. If
+                      // this is the last level, we want to avoid the
+                      // following situation: ESP e is way above
+                      // average, all the other ESPs have about
+                      // average, so they don't have enough room for
+                      // one of ESP e's ranges (this usually happens
+                      // when splits are limited).
+
+                      // Example: 100 ESPs, 99 have 10 files each, the
+                      // last ESP has 30 files (all same size). Giving
+                      // one file to another ESP would bring the
+                      // recipient above the average of 10.2 files.
+                      // Looking at the global picture, though, an 8%
+                      // overloaded ESP with 11 files would be much
+                      // better than one single ESP with 30 files,
+                      // being at 300% of its target.
+
+                      double overloadOfThisESP =
+                        ((double) espDistribution[e])/MAXOF(targetBytes,1);
+                      Int32 numExtraLoops =
+                        CmpCommon::getDefaultLong(HIVE_LOCALITY_NUM_SECOND_LOOPS);
+                      Int32 maxSecondCheckTgts =
+                        CmpCommon::getDefaultLong(HIVE_LOCALITY_MAX_SECOND_CHECK_TGTS);
+
+                      if (splitBlocks && // last level
+                          overloadOfThisESP >
+                              getDefaultAsDouble(HIVE_LOCALITY_MAX_OVERLOAD))
+                        {
+                          if (numRecipientLoops < numExtraLoops)
+                            {
+                              // Repeat the loop and allow the
+                              // recipients to go above the average to
+                              // reduce the big overload of ESP e.
+                              // Ideally, all the other ESPs take a
+                              // small, equal share of the overload,
+                              // but we are happy if we can give it to
+                              // "maxSecondCheckTgts" others.  Also,
+                              // gradually increase the threshold to
+                              // 1, 3, 6, 10 ... times the initial
+                              // amount.
+                              recipientTarget +=
+                                (Int64) (recipientTarget * (overloadOfThisESP - 1.0) *
+                                         numRecipientLoops / MINOF(numESPs,
+                                                                   maxSecondCheckTgts));
+
+                              numSecondChecks++;
+                            }
+                          else
+                            doneSearchingRecipients = TRUE;
+                        }
+                      else
+                        doneSearchingRecipients = TRUE;
+
+                      numRecipientLoops++;
+                    }
                 } // loop over candidates to give work to
-              while (espDistribution[e] > upperThreshold &&
-                     recipient != startRecipient);
+              while (espDistribution[e] > reductionTarget &&
+                     !doneSearchingRecipients);
             } // espDistribution[e] > upperThreshold
         } // loop over ESPs (node map entries)
 
@@ -2477,8 +2559,8 @@ void NodeMap::balanceScanInfos(HivePartitionAndBucketKey *hiveSearchKey,
 
           snprintf(buf,
                    sizeof(buf),
-                   "After level %d, old max bytes = %ld, num checks = %d, num moves = %d",
-                                l,                  oldMaxBytes,      numChecks, numMoves);
+                   "After level %d, old max bytes = %ld, num checks = %d, num moves = %d, num second checks = %d",
+                   l,               oldMaxBytes,         numChecks,       numMoves, numSecondChecks);
           printToLog(DEFAULT_INDENT, buf);
         }
     } // for each balance level

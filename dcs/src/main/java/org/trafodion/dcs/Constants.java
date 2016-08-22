@@ -82,6 +82,14 @@ public final class Constants {
     /** Default value for DCS master user server affinity */
     public static final boolean DEFAULT_DCS_MASTER_USER_SERVER_AFFINITY = true;
 
+    /** Configuration key DCS master Host Selection Mode */
+    public static final String DCS_MASTER_HOST_SELECTION_MODE = "dcs.master.host.selection.mode";
+
+    /** Default value for DCS server Host Selection Mode */
+    public static final String RESTRICT = "restrict";
+    public static final String PREFERRED = "preferred";
+    public static final String DEFAULT_DCS_MASTER_HOST_SELECTION_MODE = PREFERRED;
+
     /** User program feature is enabled */
     public static final String DCS_SERVER_USER_PROGRAM = "dcs.server.user.program";
 
@@ -641,6 +649,7 @@ public static final String DEFAULT_DCS_SERVER_USER_PROGRAM_STATISTICS_OPENTSDB_E
     public static final String CQD = "cqd";
     public static final String SET = "set";
     public static final String HOST_LIST = "hostList";
+    public static final String HOST_SELECTION_MODE = "hostSelectionMode";
     /** WMS key names for MAPPING */
     public static final String IS_ACTIVE = "isActive";
     public static final String USER_NAME = "userName";

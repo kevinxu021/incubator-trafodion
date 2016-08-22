@@ -1891,6 +1891,9 @@ int Local_IO_To_Monitor::size_of_msg( struct message_def *pp_msg, bool reply) {
             case ReplyType_Get:
                 lv_len = lv_preamble + sizeof(pp_msg->u.reply.u.get);
                 break;
+            case ReplyType_License:
+                lv_len = lv_preamble + sizeof(pp_msg->u.reply.u.license);
+                break;
             case ReplyType_NewProcess:
                 lv_len = lv_preamble + sizeof(pp_msg->u.reply.u.new_process);
                 break;

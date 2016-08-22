@@ -313,6 +313,19 @@ private:
     void populateRequestString( void );
 };
 
+class CExtLicenseReq: public CExternalReq
+{
+public:
+    CExtLicenseReq (reqQueueMsg_t msgType, int pid,
+                     struct message_def *msg );
+    virtual ~CExtLicenseReq();
+
+    void performRequest();
+
+private:
+    void populateRequestString( void );
+};
+
 class CExtNewProcReq: public CExternalReq
 {
 public:
@@ -878,6 +891,44 @@ private:
     string new_name_;
 };
 
+class CIntLicenseReq: public CInternalReq
+{
+public:
+    CIntLicenseReq( int req_nid
+                  , int req_pid
+                  , char *license);
+    virtual ~CIntLicenseReq();
+
+    void performRequest();
+
+private:
+    void populateRequestString( void );
+        
+    int req_nid_;
+    int req_pid_;
+    char license_[LICENSE_NUM_BYTES];
+};
+
+class CIntLicenseVerifiedReq: public CInternalReq
+{
+public:
+    CIntLicenseVerifiedReq( int req_nid
+                  , int req_pid
+                  , char *license
+                  , bool success);
+    virtual ~CIntLicenseVerifiedReq();
+
+    void performRequest();
+
+private:
+    void populateRequestString( void );
+        
+    int req_nid_;
+    int req_pid_;
+    char license_[LICENSE_NUM_BYTES];
+    bool success_;
+};
+
 class CIntDownReq: public CInternalReq
 {
 public:
@@ -1048,6 +1099,8 @@ class CReqQueue
     void enqueueDeviceReq( char *ldevName );
     void enqueueExitReq( struct exit_def *exitDef );
     void enqueueKillReq( struct kill_def *killDef );
+    void enqueueLicenseReq( int req_nid, int req_pid, char* license);
+    void enqueueLicenseVerifiedReq( int req_nid, int req_pid, char* license, bool success);
     void enqueueNewProcReq( struct process_def *procDef );
     void enqueueOpenReq( struct open_def *openDef );
     void enqueueProcInitReq( struct process_init_def *procInitDef );
@@ -1132,7 +1185,8 @@ private:
 /* CRequest eyecatcher_ assignments:
 
    CInternalReq:
-
+      RQI0   CIntLicenseReq
+      RQI1   CIntLicenseVerifiedReq
       RQIA   CIntAttachedDeathReq
       RQIB   CPostQuiesceReq
       RQIC   CIntChildDeathReq
@@ -1161,6 +1215,7 @@ private:
       RQIZ   (unused)
 
    CExternalReq:
+      RQE0   CExtLicenseReq
       RQEA   CExtAttachStartupReq
       RQEB   CExtDumpReq
       RQEC   CExtEventReq

@@ -100,6 +100,27 @@
 #define MAX_VALUE_SIZE   512
 #define MAX_VALUE_SIZE_INT 4096
 
+#define LICENSE_VERSION_OFFSET 0
+#define LICENSE_NAME_OFFSET 2
+#define LICENSE_NODES_OFFSET 12
+#define LICENSE_EXPIRE_OFFSET 16
+#define LICENSE_PACKAGE_OFFSET 20
+#define LICENSE_TYPE_OFFSET 24
+#define LICENSE_RESERVED_OFFSET 28
+#define LICENSE_NUM_BYTES 32
+
+#define LICENSE_VERSION_SIZE 2
+#define LICENSE_NAME_SIZE 10
+#define LICENSE_NODES_SIZE 4
+#define LICENSE_EXPIRE_SIZE 4
+#define LICENSE_PACKAGE_SIZE 4
+#define LICENSE_TYPE_SIZE 4
+#define LICENSE_RESERVED_SIZE 4
+
+#define LICENSE_ONE_DAY 86400
+#define LICENSE_SEVEN_DAYS 604800
+
+
 // Use STRCPY when the size of the source string is variable and unknown.
 // Safe strcpy - checks that destination has enough capacity to hold
 // source string.  If not, source string is truncated.
@@ -258,7 +279,7 @@ typedef enum {
     ReqType_MonStats,                       // get monitor statistics
     ReqType_ZoneInfo,                       // zone information request 
     ReqType_NodeName,                       // change node name request
-
+    ReqType_License,                        // Get license and validate it
     ReqType_Invalid                         // marks the end of the request
                                             // types, add any new request types 
                                             // before this one
@@ -287,7 +308,7 @@ typedef enum {
     ReplyType_MonStats,                     // reply with monitor statistics
     ReplyType_ZoneInfo,                     // reply with info on list of zones
     ReplyType_NodeName,                     // reply with results
-
+    ReplyType_License,                      // reply with License Info
 
     ReplyType_Invalid                       // marks the end of the reply types,
                                             // add any new reply types before
@@ -458,6 +479,19 @@ struct Get_reply_def
         char key[MAX_KEY_NAME];             // name of the configured item
         char value[MAX_VALUE_SIZE];         // value currently assigned to the name
     } list[MAX_KEY_LIST];
+};
+
+struct License_def
+{
+    int  nid;                               // requesting process's node id
+    int  pid;                               // requesting process id
+};
+
+struct License_reply_def
+{     
+    char  license[LICENSE_NUM_BYTES];        // valid if success == true
+    int   return_code;                       // MPI error returned to sender
+    bool  success;                           // status of license
 };
 
 struct Kill_def
@@ -1043,6 +1077,7 @@ struct request_def
         struct Event_Notice_def      event_notice;
         struct Exit_def              exit;
         struct Get_def               get;
+        struct License_def           license;
         struct Mount_def             mount;
         struct Kill_def              kill;
         struct NewProcess_def        new_process;
@@ -1086,6 +1121,7 @@ struct reply_def
         struct Dump_reply_def          dump;
         struct Generic_reply_def       generic;
         struct Get_reply_def           get;
+        struct License_reply_def       license;
         struct Mount_reply_def         mount;
         struct NewProcess_reply_def    new_process;
         struct NodeInfo_reply_def      node_info;

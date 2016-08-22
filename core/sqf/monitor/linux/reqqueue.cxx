@@ -1623,6 +1623,152 @@ void CIntShutdownReq::performRequest()
     TRACE_EXIT;
 }
 
+CIntLicenseReq::CIntLicenseReq( int req_nid
+                              , int req_pid
+                              , char* license)
+                : CInternalReq()
+                , req_nid_(req_nid)
+                , req_pid_(req_pid)
+{
+    // Add eyecatcher sequence as a debugging aid
+    memcpy(&eyecatcher_, "RQI0", 4);
+    memcpy (license_, license, 32);
+}
+
+CIntLicenseReq::~CIntLicenseReq()
+{
+    // Alter eyecatcher sequence as a debugging aid to identify deleted object
+    memcpy(&eyecatcher_, "rqi0", 4);
+}
+
+void CIntLicenseReq::populateRequestString( void )
+{
+    char strBuf[MON_STRING_BUF_SIZE/2];
+    snprintf( strBuf, sizeof(strBuf), 
+              "IntReq(%s) req #=%ld "
+            , CReqQueue::intReqType[InternalType_License]
+            , getId());
+    requestString_.assign( strBuf );
+}
+
+void CIntLicenseReq::performRequest()
+{
+    const char method_name[] = "CIntLicenseReq::performRequest";
+    TRACE_ENTRY;
+    
+    char  myLicense[LICENSE_NUM_BYTES];
+    FILE *pFile;
+    bool  success = true;
+    
+    char *licenseFile = getenv("SQ_MON_LICENSE_FILE");
+    if (licenseFile)
+    {
+        pFile = fopen( licenseFile, "r" );
+        if ( pFile )
+        {
+           int bytesRead = fread (myLicense,sizeof(char), LICENSE_NUM_BYTES,pFile);
+           if (bytesRead != LICENSE_NUM_BYTES)
+           {
+                if (trace_settings & (TRACE_REQUEST | TRACE_INIT))
+                    trace_printf("%s@%d - License did not pass validation check.", method_name, __LINE__);  
+
+                char buf[MON_STRING_BUF_SIZE];
+                sprintf(buf, "License did not pass validation check.\n");
+                mon_log_write(MON_REQQUEUE_LICENSE_INVALID, SQ_LOG_ERR, buf); 
+                success = false;
+           }      
+           fclose(pFile);
+    
+          if (strncmp(myLicense, license_,LICENSE_NUM_BYTES)!=0)
+          {
+              success = false;
+          }
+        }
+        else
+        {
+            if (trace_settings & (TRACE_REQUEST | TRACE_INIT))
+                 trace_printf("%s@%d - License did not pass validation check.", method_name, __LINE__);  
+
+            success = false;
+        }
+    }
+    else
+      success = false;
+
+    if (success == false)
+    {
+        char buf[MON_STRING_BUF_SIZE];
+        sprintf(buf, "License did not pass validation check.\n");
+        mon_log_write(MON_REQQUEUE_LICENSE_INVALID, SQ_LOG_ERR, buf);
+    }
+    CReplLicenseVerified *repl = new CReplLicenseVerified( req_pid_, req_nid_, license_, success);
+    if (repl)
+    {
+         Replicator.addItem(repl);
+    }
+    TRACE_EXIT;
+}
+
+CIntLicenseVerifiedReq::CIntLicenseVerifiedReq( int req_nid
+                              , int req_pid
+                              , char* license
+                              , bool success)
+                : CInternalReq()
+                , req_nid_(req_nid)
+                , req_pid_(req_pid)
+                , success_(success)
+{
+    // Add eyecatcher sequence as a debugging aid
+    memcpy(&eyecatcher_, "RQI1", 4);
+    memcpy (license_, license, LICENSE_NUM_BYTES);
+}
+
+CIntLicenseVerifiedReq::~CIntLicenseVerifiedReq()
+{
+    // Alter eyecatcher sequence as a debugging aid to identify deleted object
+    memcpy(&eyecatcher_, "rqi1", 4);
+}
+
+void CIntLicenseVerifiedReq::populateRequestString( void )
+{
+    char strBuf[MON_STRING_BUF_SIZE/2];
+    snprintf( strBuf, sizeof(strBuf), 
+              "IntReq(%s) req #=%ld "
+            , CReqQueue::intReqType[InternalType_LicenseVerified]
+            , getId());
+    requestString_.assign( strBuf );
+}
+
+void CIntLicenseVerifiedReq::performRequest()
+{
+    const char method_name[] = "CIntLicenseVerifiedReq::performRequest";
+    TRACE_ENTRY;
+
+    CProcess *requester = NULL;
+    int myPid = getpid();
+    
+    // monitor initiated
+    if (req_pid_ == myPid)
+    {
+      // pull out the expire date in seconds, convert into days and pass it along
+      long expireDate;
+      memcpy ((void*)&expireDate, &(license_[LICENSE_EXPIRE_OFFSET]), LICENSE_EXPIRE_SIZE);
+      MyNode->CompleteLicenseRequest(success_, expireDate); 
+    }
+    // shell initiated
+    else
+    {
+        requester = MyNode->GetProcess( req_pid_ );
+        // This should respond back to the original local monitor
+        if (requester)
+        {
+            // Reply to requester
+            requester->CompleteLicenseRequest( success_, license_ );
+        }
+    }
+    TRACE_EXIT;
+}
+
 CIntNodeNameReq::CIntNodeNameReq( const char *current_name, const char *new_name  ) 
     : CInternalReq()
 {
@@ -2667,6 +2813,11 @@ CExternalReq *CReqQueue::prepExternalReq(CExternalReq::reqQueueMsg_t msgType,
             request->setConcurrent(reqConcurrent[msg->u.request.type]);
             break;
 
+        case ReqType_License:
+            request = new CExtLicenseReq(msgType, pid, msg);
+            request->setConcurrent(reqConcurrent[msg->u.request.type]);
+            break;
+	    
         case ReqType_NewProcess:
             request = new CExtNewProcReq(msgType, pid, msg);
             request->setConcurrent(reqConcurrent[msg->u.request.type]);
@@ -2943,6 +3094,36 @@ void CReqQueue::enqueuePostQuiesceReq ()
     enqueueReq ( request );
 }
 
+void CReqQueue::enqueueLicenseReq( int req_nid
+                                 , int req_pid
+                                 , char *license)
+{
+    CInternalReq * request;
+
+    request = new CIntLicenseReq( req_nid
+                                , req_pid
+                                , license);
+
+    request->setPriority(CRequest::High);
+
+    enqueueReq ( request );
+}
+void CReqQueue::enqueueLicenseVerifiedReq( int req_nid
+                                 , int req_pid
+                                 , char *license
+                                 , bool success)
+{
+    CInternalReq * request;
+
+    request = new CIntLicenseVerifiedReq( req_nid
+                                , req_pid
+                                , license
+                                , success);
+
+    request->setPriority(CRequest::High);
+
+    enqueueReq ( request );
+}
 void CReqQueue::enqueueDeviceReq ( char *ldevName )
 {
     CInternalReq * request;
@@ -3622,7 +3803,8 @@ const bool CReqQueue::reqConcurrent[] = {
    false,    // ReqType_TransInfo
    true,     // ReqType_MonStats
    true,     // ReqType_ZoneInfo
-   false     // ReqType_NodeName
+   false,    // ReqType_NodeName
+   false     // ReqType_License 
 };
 #endif
 
@@ -3660,6 +3842,7 @@ const bool CReqQueue::reqConcurrent[] = {
    false,    // ReqType_MonStats
    false,    // ReqType_ZoneInfo
    false,    // ReqType_NodeName 
+   false,    // ReqType_License 
    false     // ReqType_Invalid
 };
 

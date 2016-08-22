@@ -4248,6 +4248,9 @@ void TableAnalysis::computeTableStats()
 
   statsOfBaseTable_ = appStatMan->getStatsForCANodeId(id,(*GLOBAL_EMPTY_INPUT_LOGPROP),&emptySet);
 
+  statsAfterLocalPreds_ = appStatMan->
+           getStatsForLocalPredsOnGivenCols(id, getLocalPreds(), (*GLOBAL_EMPTY_INPUT_LOGPROP));
+
   statsAfterLocalPredsOnCKPrefix_ =
     appStatMan->getStatsForLocalPredsOnCKPOfJBBC(id); // should change ASM method name
 
@@ -4422,6 +4425,40 @@ CostScalar TableAnalysis::computeDataAccessCostForTable(
                             sizeOfRowReturnedFromTable);
 
   return costForTable;
+}
+
+void 
+TableAnalysis::computeConnectedTables(const ValueIdSet& vegPreds, 
+                                            CANodeIdSet& connectedTables)
+{
+  ValueIdSet connectedCols;
+  computeConnectedTables(vegPreds, connectedTables, connectedCols);
+}
+
+void 
+TableAnalysis::computeConnectedTables(const ValueIdSet& vegPreds, 
+                                            CANodeIdSet& connectedTables,
+                                            ValueIdSet& connectedCols)
+{
+  connectedCols.clear();
+  for (ValueId pred = vegPreds.init();
+       vegPreds.next(pred);
+       vegPreds.advance(pred))
+  {
+    connectedCols += pred.predAnalysis()->getVegConnectedCols();
+  }
+  // remove self and cols from same table
+  connectedCols -= getUsedCols();
+
+  // Now compute connectedTables_;
+  connectedTables.clear();
+  for (ValueId c= connectedCols.init();
+       connectedCols.next(c);
+       connectedCols.advance(c) )
+  {
+    connectedTables += c.colAnalysis()->
+        getTableAnalysis()->getNodeAnalysis()->getId();
+  }
 }
 
 ////////////////////////////////////////
@@ -9914,6 +9951,8 @@ const NAString ColAnalysis::getText() const
 
 void ColAnalysis::finishAnalysis()
 {
+  table_->computeConnectedTables(vegPreds_, connectedTables_, connectedCols_); 
+/*
   connectedCols_.clear();
 
   for (ValueId pred = vegPreds_.init();
@@ -9935,6 +9974,7 @@ void ColAnalysis::finishAnalysis()
         getTableAnalysis()->getNodeAnalysis()->getId();
   }
   // assert self is not there
+ */
 
   return;
 }
