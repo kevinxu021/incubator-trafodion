@@ -265,25 +265,14 @@ short ExHdfsAccessTcb::moveRowToUpQueue(const char * row, Lng32 len,
   return 0;
 }
 
-short ExHdfsAccessTcb::handleError(short &rc)
+short ExHdfsAccessTcb::handleError(short &rc,
+                                   ComDiagsArea *inDiagsArea)
 {
-  if (qparent_.up->isFull())
+  if (ex_tcb::handleError(&qparent_, inDiagsArea))
     {
-      rc = WORK_OK;
+      rc =  WORK_OK;
       return -1;
     }
-
-  if (qparent_.up->isFull())
-    return WORK_OK;
-  
-  ex_queue_entry *pentry_down = qparent_.down->getHeadEntry();
-  ex_queue_entry *up_entry = qparent_.up->getTailEntry();
-  up_entry->copyAtp(pentry_down);
-  up_entry->upState.parentIndex =
-    pentry_down->downState.parentIndex;
-  up_entry->upState.downIndex = qparent_.down->getHeadIndex();
-  up_entry->upState.status = ex_queue::Q_SQLERROR;
-  qparent_.up->insert();
 
   return 0;
 }

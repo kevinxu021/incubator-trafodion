@@ -3708,7 +3708,8 @@ NAType* getSQColTypeForHive(const char* hiveType, NAMemory* heap)
   if ( !strcmp(hiveType, "date"))
     return new (heap) SQLDate(TRUE /* allow NULL */ , heap);
 
-  if ( !strncmp(hiveType, "varchar", 7) )
+  if ( (!strncmp(hiveType, "varchar", 7)) ||
+       (!strncmp(hiveType, "char", 4)))
   {
     char maxLen[32];
     memset(maxLen, 0, 32);
@@ -3750,7 +3751,18 @@ NAType* getSQColTypeForHive(const char* hiveType, NAMemory* heap)
        maxNumChars = len;
        storageLen = len * CharInfo::maxBytesPerChar(hiveCharsetEnum);
     }
-    return new (heap) SQLVarChar(CharLenInfo(maxNumChars, storageLen),
+
+    if (!strncmp(hiveType, "char", 4))
+      return new (heap) SQLChar(CharLenInfo(maxNumChars, storageLen),
+                                TRUE, // allow NULL
+                                FALSE, // not upshifted
+                                FALSE, // not case-insensitive
+                                FALSE, // not varchar
+                                CharInfo::getCharSetEnum(hiveCharset),
+                                CharInfo::DefaultCollation,
+                                CharInfo::IMPLICIT);
+    else
+      return new (heap) SQLVarChar(CharLenInfo(maxNumChars, storageLen),
                                    TRUE, // allow NULL
                                    FALSE, // not upshifted
                                    FALSE, // not case-insensitive
@@ -5385,6 +5397,7 @@ NATable::NATable(BindWA *bindWA,
     clusteringIndex_(NULL),
     colcount_(0),
     colArray_(heap),
+    hiveColArray_(heap),
     recordLength_(0),
     indexes_(heap),
     vertParts_(heap),
@@ -6135,6 +6148,7 @@ NATable::NATable(BindWA *bindWA,
     clusteringIndex_(NULL),
     colcount_(0),
     colArray_(heap),
+    hiveColArray_(heap),
     recordLength_(0),
     indexes_(heap),
     vertParts_(heap),
@@ -8372,6 +8386,15 @@ short NATable::updateExtTableAttrs(NATable *etTable)
 
   if (numUserCols != etTable->getUserColumnCount())
     return -1;
+
+  // save the original colArray_
+  for (CollIndex i = 0; i < colArray_.entries(); i++)
+    {
+      NAColumn * nac =
+        new(heap_) NAColumn(*colArray_[i], heap_);
+                            
+      hiveColArray_.insert(nac);
+    }
 
   // save the virtual columns, those are not contained in the
   // external table
