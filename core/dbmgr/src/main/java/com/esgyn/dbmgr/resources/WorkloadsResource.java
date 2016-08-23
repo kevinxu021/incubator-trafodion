@@ -374,7 +374,7 @@ public class WorkloadsResource {
 			rs = stmt.executeQuery();
 			while(rs.next()){
 				HashMap<String, String> queryInfo = new HashMap<String, String>();
-				queryInfo.put("query_id", rs.getString("query_id"));
+				queryInfo.put("query_id", rs.getString("query_id").trim());
 				queryInfo.put("max_mem_used", rs.getString("max_mem_used"));
 				queryInfo.put("start_time", rs.getString("exec_start_utc_ts"));
 				queryInfo.put("end_time", rs.getString("exec_end_utc_ts"));
@@ -416,7 +416,7 @@ public class WorkloadsResource {
 			rs = stmt.executeQuery();
 			while(rs.next()){
 				HashMap<String, String> queryInfo = new HashMap<String, String>();
-				queryInfo.put("query_id", rs.getString("query_id"));
+				queryInfo.put("query_id", rs.getString("query_id").trim());
 				queryInfo.put("cpu_time", rs.getString("cpu_time"));
 				queryInfo.put("start_time", rs.getString("exec_start_utc_ts"));
 				queryInfo.put("end_time", rs.getString("exec_end_utc_ts"));
@@ -458,7 +458,7 @@ public class WorkloadsResource {
 			rs = stmt.executeQuery();
 			while(rs.next()){
 				HashMap<String, String> queryInfo = new HashMap<String, String>();
-				queryInfo.put("query_id", rs.getString("query_id"));
+				queryInfo.put("query_id", rs.getString("query_id").trim());
 				queryInfo.put("query_elapsed_time", rs.getString("query_elapsed_time"));
 				queryInfo.put("start_time", rs.getString("exec_start_utc_ts"));
 				queryInfo.put("end_time", rs.getString("exec_end_utc_ts"));
@@ -500,7 +500,7 @@ public class WorkloadsResource {
 			rs = stmt.executeQuery();
 			while(rs.next()){
 				HashMap<String, String> queryInfo = new HashMap<String, String>();
-				queryInfo.put("query_id", rs.getString("query_id"));
+				queryInfo.put("query_id", rs.getString("query_id").trim());
 				queryInfo.put("disk_ios", rs.getString("disk_ios"));
 				queryInfo.put("start_time", rs.getString("exec_start_utc_ts"));
 				queryInfo.put("end_time", rs.getString("exec_end_utc_ts"));

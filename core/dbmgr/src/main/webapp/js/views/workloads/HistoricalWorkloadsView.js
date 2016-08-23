@@ -59,30 +59,39 @@ define([
 				container:"topN-memory-chart",
 				spinner:"#memory-spinner",
 				error:"#topN-memory-error-text",
+				column : 8,	//index of column used for trigger sort
+				type : "top_memory",
 				value:"max_mem_used" //key to get value from return data
 			},
 			"TopN_CPU_Time":{
 				container:"topN-cpu-chart",
 				spinner:"#cpu-spinner",
 				error:"#topN-cpu-error-text",
+				column : 9,
+				type : "top_cpu",
 				value:"cpu_time"
 			},
 			"TopN_Total_Runtime":{
 				container:"topN-runtime-chart",
 				spinner:"#runtime-spinner",
 				error:"#topN-runtime-error-text",
+				column : 7,
+				type : "top_runtime",
 				value:"query_elapsed_time"
 			},
 			"TopN_Disk_IO":{
 				container:"topN-diskio-chart",
 				spinner:"#diskio-spinner",
 				error:"#topN-diskio-error-text",
+				column : 10,
+				type : "top_diskio",
 				value:"disk_ios"
 			},
 	}
 	var FLOT_OPTIONS = {
 			grid :{
 				hoverable: true,
+				clickable: true,
 				borderColor: "#f3f3f3",
 				borderWidth: {top:0, right: 0, bottom: 1, left: 1},
 				tickColor: "#737373"
@@ -664,6 +673,8 @@ define([
 		},
 		displayTopCharts: function(data,chartConfig){
 			var data = data;
+			var type = chartConfig.type;
+			var column = chartConfig.column;
 			var container = chartConfig.container;
 			var spinner = chartConfig.spinner;
 			var x_start = _this.getTimerange().startTime.unix() * 1000;
@@ -693,25 +704,54 @@ define([
 						"value": value,
 						"index":y,
 						"status":status,
+						"type": type,
+						"column": column,
 						"data": [[start_time,y],[end_time,y]]
 				}
 				lines.push(line);
 				count--;
 			}
 			$.plot("#"+container ,lines,options);
-			$("#"+container).bind("plothover", function (event, pos, item) {
+			$("#"+container).bind("plotclick", function (event, pos, item) {
 				if (item) {
-					$("#"+container + '-tooltip').remove();
+					//tooltip
+					$(".even").css("background-color","")
+					$(".odd").css("background-color","")
+					for(var i in CHART_CONFIG){
+						$("#"+ CHART_CONFIG[i].type + '-tooltip').remove();
+					}
+					var type = item.series.type;
+					var column = item.series.column;
 					var query_id = item.series.query_id;
 					var start_time = item.series.start_time;
 					var end_time = item.series.end_time;
 					var index = item.series.index;
 					var value = item.series.value;
 					var status = item.series.status;
-					var content = "Status:" + status + "</br>Value:" + value +"</br>StartTime:"+start_time+"</br>EndTime:"+end_time;
-					common.showTooltip(pos.pageX, pos.pageY, content, container+'-tooltip');
+					var content = "QueryID:" + query_id + "</br>Status:" + status + "</br>Value:" + value +"</br>StartTime:"+start_time+"</br>EndTime:"+end_time;
+					common.showTooltip(pos.pageX, pos.pageY, content, type+'-tooltip');
+					$(".tooltip-inner").css("max-width","600px");
+					$("#"+type+'-tooltip').width(600);
+					//sort
+					var table = $(".dbmgr-table").dataTable();
+					table.fnSort([[column,"desc"]]);
+					//highlight
+					var data = $(".dbmgr-table").DataTable();
+					var indexes = data.rows().indexes();
+					for(var i = 0;i<indexes.length;i++){
+						if(query_id == data.row(indexes[i]).data()[0]){
+							data.row(indexes[i]).nodes().to$().css('background-color','yellow');
+							break;
+						}
+					}
+					
 				} else {
-					$("#"+container + '-tooltip').remove();
+					//$("#"+container + '-tooltip').remove();
+					for(var i in CHART_CONFIG){
+						$("#"+ CHART_CONFIG[i].type + '-tooltip').remove();
+					}
+					$(".even").css("background-color","")
+					$(".odd").css("background-color","")
 				}
 
 			});

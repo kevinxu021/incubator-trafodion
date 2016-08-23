@@ -525,8 +525,7 @@ public class ServerResource {
 			int port = uri.getPort();
 
 			scriptsInterface = new ScriptsInterface();
-			scriptsInterface.openConnection(userName, password, "", host, String.valueOf(port), "",
-					SessionDefaults.PRUNI);
+			scriptsInterface.openConnection(userName, password, "", host, String.valueOf(port), "");
 
 			_LOG.debug("Adding script interface with key " + userName + timestamp);
 			SessionModel.putScriptsObject(userName + timestamp, scriptsInterface);
@@ -567,7 +566,7 @@ public class ServerResource {
 		ScriptsInterface scriptsInterface = SessionModel.getScriptsObject(soc.getUsername() + timestamp);
 		if (scriptsInterface != null) {
 			_LOG.debug("Found script interface in cache");
-			scriptsInterface.interrupt();
+			//scriptsInterface.interrupt();
 			try {
 				scriptsInterface.disconnect();
 			} catch (Exception e) {
