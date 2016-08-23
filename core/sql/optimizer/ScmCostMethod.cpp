@@ -1277,8 +1277,7 @@ SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbes()
 Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
 {
 
-NAString tname((getIndexDesc()->getPrimaryTableDesc()->getNATable()->getTableName()).getQualifiedNameAsAnsiString());
-
+// NAString tname((getIndexDesc()->getPrimaryTableDesc()->getNATable()->getTableName()).getQualifiedNameAsAnsiString());
 //if ( tname == "HIVE.HIVE.STORE_SALES_SORTED_ORC") {
 // int x = 1;
 // int y = 1;
@@ -1444,6 +1443,18 @@ NAString tname((getIndexDesc()->getPrimaryTableDesc()->getNATable()->getTableNam
   CostScalar seqIORowSizeFactor = scmRowSizeFactor(rowSize, SEQ_IO_ROWSIZE_FACTOR);
    numBlocks *= seqIORowSizeFactor;
   */
+
+/*
+  const ReqdPhysicalProperty* rppForMe = getContext().getReqdPhysicalProperty();
+  PartitioningRequirement *partReq = rppForMe->getPartitioningRequirement();
+
+  if ( partReq->isRequirementApproximatelyN() ) {
+     Lng32 partCount = partReq->getCountOfPartitions();
+
+     if ( numProbes / partCount <=  )
+  }
+*/
+
   
   Cost* scanCost = scmCost(tuplesProcessed, tuplesProduced, csZero, csZero, numBlocks, numProbes,
 	    rowSize, csZero, outputRowSize, probeRowSize);

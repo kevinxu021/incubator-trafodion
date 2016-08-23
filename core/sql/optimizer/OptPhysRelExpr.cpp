@@ -5055,7 +5055,6 @@ Context* NestedJoin::createContextForAChild(Context* myContext,
           ValueIdSet partKey(equiJoinExprFromChild0);
 */
 
-
           float deviation = CURRSTMT_OPTDEFAULTS->numberOfPartitionsDeviation();
           Lng32 dop = rppForMe->getCountOfPipelines();
           partReqForChild = new(CmpCommon::statementHeap()) 
@@ -6385,32 +6384,34 @@ NABoolean NestedJoin::OCRJoinIsFeasible(const Context* myContext)  const
           
 NABoolean NestedJoin::JoinPredicateCoversChild1PartKey() const
 {
-   PartitioningFunction *rightPartFunc =
-         getClusteringIndexPartFuncForRightChild();
+   const NATable* nt = getNATableForRightChild();
 
-   ValueIdSet child1PartKey;
+   if ( nt && nt->isHiveTable() ) {
 
-   if ( rightPartFunc ) {
-      child1PartKey.insert(rightPartFunc->getPartitioningKey());
-   } else {
-      const NATable* nt = getNATableForRightChild();
+      const IndexDesc* idesc = getClusteringIndexIndexDescForRightChild();
 
-      if ( nt && nt->isHiveTable() ) {
-
-         const IndexDesc* idesc = getClusteringIndexIndexDescForRightChild();
-
-         if ( idesc )  {
-            ValueIdSet partCols(idesc->getHivePartCols());
-            child1PartKey.insert(partCols);
-         }
-      }
+      if ( idesc && JoinPredicateCoversChild1PartKey(idesc->getHivePartCols()) )
+         return TRUE;
    } 
 
-   if ( child1PartKey.isEmpty() )
-      return FALSE;
+   PartitioningFunction *rightPartFunc = getClusteringIndexPartFuncForRightChild();
 
+   if ( rightPartFunc &&
+        JoinPredicateCoversChild1PartKey(rightPartFunc->getPartitioningKey())) 
+      return TRUE;
+
+   // We may need to worry about a combined case of hive partition columns plus
+   // hive bucket key column later. For now, return FALSE.
+   return FALSE;
+}
+
+NABoolean NestedJoin::JoinPredicateCoversChild1PartKey(const ValueIdSet& child1PartKey) const
+{
    const ValueIdSet& equiJoinExprFromChild1AsSet =
         getOriginalEquiJoinExpressions().getBottomValues();
+
+   if ( equiJoinExprFromChild1AsSet.contains(child1PartKey) ) 
+      return TRUE;
 
   // The equi-join predicate should contain the part key for OCR
   // to guarantee the correct result. This is because each row from
@@ -6420,8 +6421,6 @@ NABoolean NestedJoin::JoinPredicateCoversChild1PartKey() const
   // will not be partitioned, this implies that the row can go to an
   // incorrect partition.
 
-  if ( equiJoinExprFromChild1AsSet.contains(child1PartKey) ) 
-      return TRUE;
   
 
   // check the set of index columns referenced in the join
