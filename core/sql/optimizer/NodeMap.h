@@ -376,7 +376,8 @@ public:
   static NABoolean useLocalityForHiveScanInfo();
 
   // For Hive tables, assign scan ranges to each partition
-  void assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey);
+  void assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey,
+                       int balanceLevel);
 
   // For Hive tables, assign every file to each partition 
   // (repartition without broadcast) 
@@ -385,7 +386,8 @@ public:
   // balance out the assigned scan ranges to distribute work more evenly
   void balanceScanInfos(HivePartitionAndBucketKey *hiveSearchKey,
                         Int64 totalBytesToRead,
-                        Int64 *&espDistribution);
+                        Int64 *&espDistribution,
+                        int balanceLevel);
 
   //------------------
   //  Generator methods
