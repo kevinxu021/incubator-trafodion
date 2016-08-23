@@ -1279,10 +1279,10 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
 
 NAString tname((getIndexDesc()->getPrimaryTableDesc()->getNATable()->getTableName()).getQualifiedNameAsAnsiString());
 
-if ( tname == "HIVE.HIVE.STORE_SALES_SORTED_ORC") {
- int x = 1;
- int y = 1;
-}
+//if ( tname == "HIVE.HIVE.STORE_SALES_SORTED_ORC") {
+// int x = 1;
+// int y = 1;
+//}
 
 
   // define some variables used locally
@@ -1395,8 +1395,10 @@ if ( tname == "HIVE.HIVE.STORE_SALES_SORTED_ORC") {
   setEstRowsAccessed(tuplesProduced);
   setNumberOfBlocksToReadPerAccess(numBlocks);
 
-  tuplesProduced  /= numActivePartitions;
-  tuplesProcessed /= numActivePartitions;
+  if ( partitionsEliminated ) {
+     tuplesProduced  /= numActivePartitions;
+     tuplesProcessed /= numActivePartitions;
+  }
 
   if ( CmpCommon::getDefault(NCM_ORC_COSTING_DEBUG) == DF_ON  &&
        getIndexDesc()->getPrimaryTableDesc()->getNATable()->isORC() )

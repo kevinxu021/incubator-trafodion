@@ -1312,8 +1312,9 @@ private:
   virtual 
   PartitioningFunction * getClusteringIndexPartFuncForRightChild() const;
 
-  virtual
-  const NATable* getNATableForRightChild() const;
+  virtual const NATable* getNATableForRightChild() const;
+
+  virtual const IndexDesc* getClusteringIndexIndexDescForRightChild() const;
 
   NABoolean JoinPredicateCoversChild1PartKey() const;
 
