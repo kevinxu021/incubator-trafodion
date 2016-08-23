@@ -348,7 +348,7 @@ TRAFODION                                                                       
 >>invoke hive.sch_t009.t009t1;
 
 -- Definition of hive table T009T1
--- Definition current  Fri Jul 15 14:36:16 2016
+-- Definition current  Wed Aug 17 03:44:15 2016
 
   (
     A                                INT
@@ -417,7 +417,7 @@ _HB__CELL__
 >>invoke trafodion."_HB__ROW__"."baseball";
 
 -- Definition of Trafodion external table TRAFODION."_HB__ROW__"."baseball"
--- Definition current  Fri Jul 15 14:36:22 2016
+-- Definition current  Wed Aug 17 03:44:20 2016
 
   (
     ROW_ID                           VARCHAR(100) CHARACTER SET ISO88591
@@ -430,7 +430,7 @@ _HB__CELL__
 >>invoke trafodion."_HB__CELL__"."baseball";
 
 -- Definition of Trafodion external table TRAFODION."_HB__CELL__"."baseball"
--- Definition current  Fri Jul 15 14:36:24 2016
+-- Definition current  Wed Aug 17 03:44:21 2016
 
   (
     ROW_ID                           VARCHAR(100) CHARACTER SET ISO88591
@@ -519,7 +519,7 @@ ROW_ID      COLS
 >>invoke hive.hive.store_sales;
 
 -- Definition of hive table STORE_SALES
--- Definition current  Fri Jul 15 14:36:36 2016
+-- Definition current  Wed Aug 17 03:44:33 2016
 
   (
     SS_SOLD_DATE_SK                  INT
@@ -563,9 +563,9 @@ ROW_ID      COLS
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212335353396915122
+PLAN_ID .................. 212338165473536608
 ROWS_OUT ............. 1,709
-EST_TOTAL_COST ........... 0.07
+EST_TOTAL_COST ........... 0.05
 STATEMENT ................ select * from store_sales where ss_item_sk = 1;
 
 
@@ -574,7 +574,7 @@ ROOT ======================================  SEQ_NO 3        ONLY CHILD 2
 REQUESTS_IN .............. 1
 ROWS_OUT ............. 1,709
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 0.07
+EST_TOTAL_COST ........... 0.05
 DESCRIPTION
   max_card_est ........... 2.77461e+06
   fragment_id ............ 0
@@ -582,7 +582,7 @@ DESCRIPTION
   fragment_type .......... master
   statement_index ........ 0
   affinity_value ......... 0
-  est_memory_per_cpu ..... 30 KB
+  est_memory_per_cpu ..... 28 KB
   max_max_cardinality  1,709
   total_overflow_size .... 0.00 KB
   esp_2_node_map ......... (\NSK:-1:-1:-1:-1:-1:-1)
@@ -627,13 +627,13 @@ ESP_EXCHANGE ==============================  SEQ_NO 2        ONLY CHILD 1
 REQUESTS_IN .............. 1
 ROWS_OUT ............. 1,709
 EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 0.07
+EST_TOTAL_COST ........... 0.05
 DESCRIPTION
   max_card_est ........... 2.77461e+06
   fragment_id ............ 2
   parent_frag ............ 0
   fragment_type .......... esp
-  est_memory_per_cpu ..... 30 KB
+  est_memory_per_cpu ..... 28 KB
   buffer_size ....... 12,500
   record_length ........ 176
   parent_processes ....... 1
@@ -647,8 +647,8 @@ HIVE_SCAN =================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.STORE_SALES
 REQUESTS_IN .............. 1
 ROWS_OUT ............. 1,709
-EST_OPER_COST ............ 0.07
-EST_TOTAL_COST ........... 0.07
+EST_OPER_COST ............ 0.05
+EST_TOTAL_COST ........... 0.05
 DESCRIPTION
   max_card_est ........... 2.77461e+06
   fragment_id ............ 2
@@ -695,9 +695,9 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212335353397801568
+PLAN_ID .................. 212338165474101903
 ROWS_OUT ......... 2,920,643
-EST_TOTAL_COST ...... 28,735.03
+EST_TOTAL_COST ...... 28,723.07
 STATEMENT ................ select *
                            from customer, store_sales
                            where store_sales.ss_item_sk =
@@ -710,7 +710,7 @@ ROOT ======================================  SEQ_NO 4        ONLY CHILD 3
 REQUESTS_IN .............. 1
 ROWS_OUT ......... 2,920,643
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ...... 28,735.03
+EST_TOTAL_COST ...... 28,723.07
 DESCRIPTION
   max_card_est ........... 2.92064e+06
   fragment_id ............ 0
@@ -778,7 +778,7 @@ NESTED_JOIN ===============================  SEQ_NO 3        CHILDREN 1, 2
 REQUESTS_IN .............. 1
 ROWS_OUT ......... 2,920,642
 EST_OPER_COST ............ 0.5
-EST_TOTAL_COST ...... 28,735.03
+EST_TOTAL_COST ...... 28,723.07
 DESCRIPTION
   max_card_est ........... 2.92064e+06
   fragment_id ............ 0
@@ -792,8 +792,8 @@ HIVE_SCAN =================================  SEQ_NO 2        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.STORE_SALES
 REQUESTS_IN ........ 104,843
 ROWS/REQUEST ............ 27.86
-EST_OPER_COST ....... 28,734.5
-EST_TOTAL_COST ...... 28,734.5
+EST_OPER_COST ....... 28,722.54
+EST_TOTAL_COST ...... 28,722.54
 DESCRIPTION
   max_card_est ........... 2.92064e+06
   fragment_id ............ 0
@@ -866,7 +866,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim;
 
 -- Definition of hive table DATE_DIM
--- Definition current  Fri Jul 15 14:36:40 2016
+-- Definition current  Wed Aug 17 03:44:36 2016
 
   (
     D_DATE_SK                        INT
@@ -1007,7 +1007,7 @@ CREATE EXTERNAL TABLE DATE_DIM
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212335353403587807
+PLAN_ID .................. 212338165478632899
 ROWS_OUT ............... 284
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1102,7 +1102,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim;
 
 -- Definition of hive table DATE_DIM
--- Definition current  Fri Jul 15 14:36:48 2016
+-- Definition current  Wed Aug 17 03:44:43 2016
 
   (
     D_DATE_SK                        INT
@@ -1243,7 +1243,7 @@ CREATE EXTERNAL TABLE DATE_DIM
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212335353411477239
+PLAN_ID .................. 212338165484761384
 ROWS_OUT ............... 284
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *

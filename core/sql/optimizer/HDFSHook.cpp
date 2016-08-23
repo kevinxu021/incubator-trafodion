@@ -121,6 +121,7 @@ NABoolean HHDFSMasterHostList::initializeWithSeaQuestNodes()
    if(OSIM_runningSimulation()){
        try{
            OSIM_restoreHHDFSMasterHostList();
+           return TRUE;
        }
       catch(OsimLogException & e)
       {//table is not referred in capture mode, issue osim error
@@ -225,6 +226,13 @@ NABoolean HHDFSMasterHostList::initializeWithSeaQuestNodes()
       result = (getHosts()->entries() > 0);
     }
   return result;
+}
+
+static void HHDFSMasterHostList::reset()
+{
+  getHosts()->clear();
+  CmpCommon::context()->setHasVirtualSQNodes(FALSE);
+  CmpCommon::context()->setNumSQNodes(0);
 }
 
 void HHDFSDiags::recordError(const char *errMsg,
@@ -1616,13 +1624,13 @@ Int64 HHDFSFileStats::assignToESPs(Int64 *espDistribution,
                                    Int32 numSQNodes,
                                    Int32 numESPs,
                                    HHDFSListPartitionStats *partition,
+                                   Int32 &nextDefaultPartNum,
                                    NABoolean useLocality,
                                    Int32 balanceLevel)
 {
    Int64 totalBytesAssigned = 0;
    Int64 offset = 0;
    Int64 hdfsBlockSize = getBlockSize();
-   Int32 nextDefaultPartNum = numESPs/2;
 
    // the number of blocks, stripes, file, etc we have
    PrimarySplitUnit su = getSplitUnitType(balanceLevel);
@@ -1634,7 +1642,6 @@ Int64 HHDFSFileStats::assignToESPs(Int64 *espDistribution,
        // the host id is also the SQ node id
        Int32 partNum = -1;
        Int64 bytesToRead = 0;
-       NABoolean isLocal = TRUE;
        Int32 hdfsBlockNum;
 
        getSplitUnit(b, offset, bytesToRead, su);
@@ -1649,22 +1656,35 @@ Int64 HHDFSFileStats::assignToESPs(Int64 *espDistribution,
 
        if (partNum < 0 || partNum >= numESPs /*tbd:remove*/ || partNum >= numSQNodes)
          {
-           // we don't have ESPs covering this node,
-           // assign a default partition
-           // NOTE: If we have fewer ESPs than SQ nodes
-           // we should really be doing AS, using affinity
-           // TBD later.
+           // We don't use locality or don't have ESPs covering this
+           // node, assign a default partition.
+           // NOTE: If we have fewer ESPs than SQ nodes we should
+           // really be doing AS, using affinity - TBD later.
            partNum = nextDefaultPartNum++;
            if (nextDefaultPartNum >= numESPs)
              nextDefaultPartNum = 0;
-           isLocal = FALSE;
+
+           // we are not using locality for this block/range,
+           // note that it may still be local by chance
+           hdfsBlockNum = -1;
          }
 
-       // if we have multiple ESPs per SQ node, pick the one with the
-       // smallest load so far
-       for (Int32 c=partNum; c < numESPs; c += numSQNodes)
-         if (espDistribution[c] < espDistribution[partNum])
-           partNum = c;
+       // If we have multiple ESPs per SQ node, pick the one with the
+       // smallest load so far. ESPs with   ESP# % numSQNodes == n
+       // will run on node n.
+       Int32 startPartNum = partNum;
+       Int32 currPartNum = startPartNum;
+
+       do
+         {
+           if (espDistribution[currPartNum] < espDistribution[partNum])
+             partNum = currPartNum;
+
+           currPartNum += numSQNodes;
+           if (currPartNum >= numESPs)
+             currPartNum = startPartNum % numSQNodes;
+         }
+       while (currPartNum != startPartNum);
 
        HiveNodeMapEntry *e = (HiveNodeMapEntry*) (nodeMap->getNodeMapEntry(partNum));
        e->addScanInfo(HiveScanInfo(this, offset, bytesToRead, hdfsBlockNum, partition));

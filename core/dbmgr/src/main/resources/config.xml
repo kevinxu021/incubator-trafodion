@@ -69,4 +69,7 @@
 	<!-- Enable/Disable WMS Features-->
 	<entry key="enableWMS">true</entry>
 
+	<!--HTTP read timeout in seconds for external REST calls issued by dbmgr server-->
+	<entry key="httpReadTimeOutSeconds">120</entry>
+
 </properties>

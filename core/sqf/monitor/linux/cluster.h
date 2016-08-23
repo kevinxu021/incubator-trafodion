@@ -108,6 +108,8 @@ public:
     void ArmWakeUpSignal (void);
 #endif
     void AssignTmLeader( int pnid );
+    void CheckLicenseVerifier ( int pnid ); 
+    inline int GetNumVerifiers() {return numVerifiers_;}
     long AssignTmSeqNumber( void );
     void stats();
     void CompleteSyncCycle()
@@ -316,6 +318,8 @@ private:
 
     Verifier_t verifierNum_; // part of phandle that uniquely identifies a process 
 
+    int numVerifiers_;
+    
     int Allgather(int nbytes, void *sbuf, char *rbuf, int tag, MPI_Status *stats);
     int AllgatherIB(int nbytes, void *sbuf, char *rbuf, int tag, MPI_Status *stats);
     int AllgatherSock(int nbytes, void *sbuf, char *rbuf, int tag, MPI_Status *stats);

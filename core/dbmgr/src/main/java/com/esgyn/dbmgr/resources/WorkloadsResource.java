@@ -785,7 +785,8 @@ public class WorkloadsResource {
 			throw new EsgynDBMgrException("Error : WMS features are currently disabled.");
 		}
 
-		List<String> colNames = Arrays.asList("name", "cqd", "set", "hostList", "lastUpdate", "isDefault");
+		List<String> colNames = Arrays.asList("name", "cqd", "set", "hostList", "hostSelectionMode", "lastUpdate",
+				"isDefault");
 
 		TabularResult result = new TabularResult();
 		try {
@@ -893,10 +894,14 @@ public class WorkloadsResource {
 			if (obj.has("nodes")) {
 				nodes = obj.get("nodes").textValue();
 			}
+			String hostSelectionMode = "";
+			if (obj.has("hostSelectionMode")) {
+				hostSelectionMode = obj.get("hostSelectionMode").textValue();
+			}
 
 			if (trafRestUri != null && trafRestUri.length() > 0) {
 				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_ADD_ALTER_PROFILE);
-				uri = String.format(queryText, trafRestUri, profileName, cqds, sets, nodes);
+				uri = String.format(queryText, trafRestUri, profileName, cqds, sets, nodes, hostSelectionMode);
 			}
 			_LOG.debug(uri);
 

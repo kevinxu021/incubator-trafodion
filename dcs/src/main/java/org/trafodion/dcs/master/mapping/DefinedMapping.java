@@ -185,6 +185,7 @@ public class DefinedMapping  {
         String throughput = "";
         // Profile
         String hostList = "";
+        String hostSelectionMode = Constants.PREFERRED;
         String lastUpdate = "";
         // searching attributes
         String attribute;
@@ -338,7 +339,12 @@ public class DefinedMapping  {
                               if(tkn.length()>0)
                                 hostList = tkn;
                               break;
-                          }
+                          case Constants.HOST_SELECTION_MODE:
+                            tkn = tokens[i + 1].trim();
+                            if(tkn.length()>0)
+                              hostSelectionMode = tkn;
+                            break;
+                         }
                       }
                   }
               } catch(Exception e){
@@ -356,6 +362,7 @@ public class DefinedMapping  {
         cc.setDisconnectProfile(dprofile);
         cc.setLastUpdate(lastUpdate);
         cc.setHostList(hostList);
+        cc.setProfHostSelectionMode(hostSelectionMode);
         if(LOG.isDebugEnabled())
             LOG.debug("Profile znode :" + znode + ", sla :" + sla + ", priority :" + priority + ", limit :" + limit + ", throughput :" + throughput + ", connect profile :" + cprofile + ", disconnect profile :" + dprofile +  ", hostList :" + hostList + ", lastUpdate :" + lastUpdate);
     }

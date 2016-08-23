@@ -831,7 +831,7 @@
 		</query>
 		<query>
 			<name>WMS_ADD_ALTER_PROFILE</name>
-			<text><![CDATA[{"url":"%1$s/v1/wms/profiles", "method":"POST", "jsonParameter":{"%2$s":{"cqd":"%3$s","set":"%4$s","hostList":"%5$s","isDefault":"no","lastUpdate":""}}, "contentType":"application/json"}]]></text>
+			<text><![CDATA[{"url":"%1$s/v1/wms/profiles", "method":"POST", "jsonParameter":{"%2$s":{"cqd":"%3$s","set":"%4$s","hostList":"%5$s","hostSelectionMode":"%6$s","isDefault":"no","lastUpdate":""}}, "contentType":"application/json"}]]></text>
 		</query>
 		<query>
 			<name>WMS_DELETE_PROFILE</name>

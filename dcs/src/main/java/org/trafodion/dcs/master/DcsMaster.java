@@ -249,11 +249,8 @@ public class DcsMaster implements Runnable {
             int selectorTimeout = conf.getInt(
                     Constants.DCS_MASTER_LISTENER_SELECTOR_TIMEOUT,
                     Constants.DEFAULT_LISTENER_SELECTOR_TIMEOUT);
-            boolean userAffinity = conf.getBoolean(
-                    Constants.DCS_MASTER_USER_SERVER_AFFINITY,
-                    Constants.DEFAULT_DCS_MASTER_USER_SERVER_AFFINITY);
             ls = new ListenerService(zkc, netConf, port, portRange,
-                    requestTimeout, selectorTimeout, metrics, parentZnode, userAffinity);
+                    requestTimeout, selectorTimeout, metrics, parentZnode, conf);
             LOG.info("Listening for clients on port [" + port + "]");
             serverName = netConf.getHostName();
 

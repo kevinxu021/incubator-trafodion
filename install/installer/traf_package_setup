@@ -79,7 +79,7 @@ if [[ $SUSE_LINUX == "false" ]]; then
          do
             scp -q $LOCAL_WORKDIR/$epel_rpm $(whoami)@$node:$HOME
             if [[ $? -gt 1 ]]; then
-               echo "***ERROR: Unable to find $EPEL_RPM or unable to copy."
+               echo "***ERROR: Unable to copy."
                exit -1
             fi
          done
@@ -94,7 +94,7 @@ if [[ $SUSE_LINUX == "false" ]]; then
      if [[ $EPEL_INSTALLED == 0 ]]; then
         ssh -q -n $node sudo rpm -Uvh $HOME/epel* 2>> $YUM_LOG >> $YUM_LOG
         if [ $? != 0 ]; then
-           echo "***ERROR: Can't install EPEL rpm $EPEL_RPM"
+           echo "***ERROR: Can't install EPEL rpm"
            exit -1
         fi
      fi

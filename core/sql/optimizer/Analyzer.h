@@ -1247,6 +1247,13 @@ public:
     return connectedTables_;
   }
 
+  // The two methods Compute the connected tables based on the passed-in preds
+  // This version returns the connected tables only
+  void computeConnectedTables(const ValueIdSet& preds, CANodeIdSet& connectedTables);
+
+  // This version returns the connected tables and connected cols
+  void computeConnectedTables(const ValueIdSet& preds, CANodeIdSet& connectedTables, ValueIdSet& connectedCols);
+
   inline const ValueIdSet & getReferencingPreds() const
   {
     return referencingPreds_;
@@ -1519,6 +1526,11 @@ public:
 	      const char * prefix = DEFAULT_INDENT,
 	      const char * suffix = "") const;
 
+  EstLogPropSharedPtr getBaseStats() { return statsOfBaseTable_; }// No predicates
+
+  // after applying local predicates
+  EstLogPropSharedPtr getStatsAfterLocalPreds() { return statsAfterLocalPreds_; }
+
 private:
 
   // construct a TableAnalysis. Called only by QueryAnalysis
@@ -1531,6 +1543,7 @@ private:
   statsOfBaseTable_(NULL),
   recordSizeOfBaseTable_(0),
   statsAfterLocalPredsOnCKPrefix_(NULL),
+  statsAfterLocalPreds_(NULL),
   heap_(outHeap),
   accessPaths_(outHeap),
   indexOnlyAccessPaths_(outHeap),
@@ -1587,6 +1600,8 @@ private:
   EstLogPropSharedPtr           statsOfBaseTable_; // No predicates
   RowSize                       recordSizeOfBaseTable_;
   EstLogPropSharedPtr           statsAfterLocalPredsOnCKPrefix_; // No predicates
+
+  EstLogPropSharedPtr           statsAfterLocalPreds_; // after applying local predicates
 
   // data access cost in case this is the fact table and is under nested join
   CostScalar                    factTableNJAccessCost_;

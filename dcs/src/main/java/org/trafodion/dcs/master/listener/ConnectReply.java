@@ -64,6 +64,9 @@ class ConnectReply {
     private String clusterName = "";
     private ListenerService listener = null;
     private boolean userAffinity = true;
+    private String hostSelectionMode = Constants.PREFERRED;
+    private String hostConfSelectionMode = Constants.PREFERRED;
+    private String hostProfSelectionMode = Constants.PREFERRED;
     private Random random = null;
     
     ConnectReply(ListenerService listener){
@@ -125,7 +128,7 @@ class ConnectReply {
 
         if(LOG.isDebugEnabled())
             LOG.debug("ConnectedReply entry " );
-         
+      
         listener.getMapping().findProfile( cc);
         if(LOG.isDebugEnabled())
             LOG.debug("ConnectedReply after getMapping().findProfile " );
@@ -135,34 +138,45 @@ class ConnectReply {
             LOG.debug("ConnectedReply after getRegisteredServers().getServers " );
         
         try {
+            hostConfSelectionMode = listener.getConfHostSelectionMode();
+            hostProfSelectionMode = cc.getProfHostSelectionMode();
+            if(hostProfSelectionMode.equals(Constants.PREFERRED))
+              hostSelectionMode = hostConfSelectionMode;
+            else
+              hostSelectionMode = hostProfSelectionMode;
+
+            if(LOG.isDebugEnabled())
+                LOG.debug("hostSelectionMode :" + hostSelectionMode );
 
             String nodeRegisteredPath = "";
 
-            HashMap<String, HashMap<String,Object>> reusedSlaServers = cc.getReusedSlaServers();
+            HashMap<String, HashMap<String,Object>> reusedUserServers = cc.getReusedUserServers();
             HashMap<String, HashMap<String,Object>> reusedOtherServers = cc.getReusedOtherServers();
             HashMap<String, HashMap<String,Object>> idleServers = cc.getIdleServers();
+            HashMap<String, HashMap<String,Object>> allAvailableServers = cc.getAllAvailableServers();
 
             if (userAffinity == false){
                 if(idleServers.size() > 0){
-                    reusedSlaServers.putAll(idleServers);
+                    reusedUserServers.putAll(idleServers);
                 } else if(reusedOtherServers.size() > 0){
-                    reusedSlaServers.putAll(reusedOtherServers);
+                    reusedUserServers.putAll(reusedOtherServers);
                 }
                 idleServers.clear();
                 reusedOtherServers.clear();
              }
             if(LOG.isDebugEnabled()){
                 LOG.debug("ConnectedReply userAffinity :" + userAffinity );
-                LOG.debug("ConnectedReply reusedSlaServers.size() :" + reusedSlaServers.size() );
+                LOG.debug("ConnectedReply reusedSlaServers.size() :" + reusedUserServers.size() );
                 LOG.debug("ConnectedReply idleServers.size() :" + idleServers.size() );
                 LOG.debug("ConnectedReply reusedOtherServers.size() " + reusedOtherServers.size() );
-            }
+                LOG.debug("ConnectedReply allAvailableServers.size() " + allAvailableServers.size() );
+             }
 
             while (true) {
-                if(reusedSlaServers.size() > 0){
-                  server = randEntryKey(reusedSlaServers);
-                  attributes = reusedSlaServers.get(server);
-                  reusedSlaServers.remove(server);
+                if(reusedUserServers.size() > 0){
+                  server = randEntryKey(reusedUserServers);
+                  attributes = reusedUserServers.get(server);
+                  reusedUserServers.remove(server);
                   if(LOG.isDebugEnabled())
                         LOG.debug("reusedSlaServers server: " + server );
                 } else if(idleServers.size() > 0){
@@ -177,50 +191,70 @@ class ConnectReply {
                   reusedOtherServers.remove(server);
                   if(LOG.isDebugEnabled())
                         LOG.debug("reusedOtherServers server: " + server );
-                } else {
-                  server = "";
+                } else if(allAvailableServers.size() > 0 && hostSelectionMode.equals(Constants.PREFERRED)){
+                  server = randEntryKey(allAvailableServers);
+                  attributes = allAvailableServers.get(server);
+                  allAvailableServers.remove(server);
                   if(LOG.isDebugEnabled())
-                      LOG.debug("There are no servers in HashTables - start looking directly in zk " );
-                  String znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED;
+                        LOG.debug("reusedOtherServers server: " + server );
+                }
+                if (server.length()==0)
+                  throw new IOException("No Available Servers ");
+                else{
+                  String znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED + "/" + server;
                   zkc.sync(znode,null,null);
-                  List<String> children = zkc.getChildren(znode,null);
-                  if( ! children.isEmpty()){ 
-                      for(String child : children) {
+                  stat = zkc.exists(znode, false);
+                  if(stat != null) {
+                    zkc.sync(znode,null,null);
+                    data = zkc.getData(znode, null, stat);
+                    sdata = new String(data);
+                    if(sdata.startsWith(Constants.AVAILABLE)){
+                      if(LOG.isDebugEnabled())
+                        LOG.debug("Exit while loop with zk server " + server );
+                      break;
+                    }
+                  }
+               }
+/*------------- this part can be used for searching for AVAILABLE servers directly in ZooKeeper
+                } else {
+
+                    server = "";
+                    if(LOG.isDebugEnabled())
+                      LOG.debug("There are no servers in HashTables - start looking directly in zk " );
+                    String znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED;
+                    zkc.sync(znode,null,null);
+                    List<String> children = zkc.getChildren(znode,null);
+                    if( ! children.isEmpty()){ 
+                        for(String child : children) {
                           if(LOG.isDebugEnabled())
                                 LOG.debug("Checking directly zk server path [" + znode + "/" + child + "]" );
                           stat = zkc.exists(znode + "/" + child, false);
                           if(stat != null) {
+                              zkc.sync(znode + "/" + child,null,null);
                               data = zkc.getData(znode + "/" + child, null, stat);
                               sdata = new String(data);
-                              if (sdata.startsWith(Constants.AVAILABLE) || sdata.startsWith(Constants.STARTING)){
-                                  if(LOG.isDebugEnabled())
-                                      LOG.debug("Found Available zk server " + child );
-                                  server = child;
-                                  break;
-                              }
-                        }
-                    }
-                  }
-                  if (server.length()==0)
+                              if(sdata.startsWith(Constants.AVAILABLE)){
+                                 if(LOG.isDebugEnabled())
+                                    LOG.debug("Found Available zk server " + child );
+                                 server = child;
+                                 attributes = cc.buildAttributeHashMap(server, sdata);
+                                 break;
+                              }//if(sdata.startsWith(Constants.AVAILABLE))
+                          } // if(stat != null)
+                        } // for loop
+                        if(LOG.isDebugEnabled())
+                            LOG.debug("Exit for loop with zk server " + server );
+                    }//if( ! children.isEmpty())
+                    if (server.length()==0)
                       throw new IOException("No Available Servers ");
-                  else
+                    else{
+                      if(LOG.isDebugEnabled())
+                            LOG.debug("Exit while loop with zk server " + server );
                       break;
-              }
-              nodeRegisteredPath = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED + "/" + server;
-              if(LOG.isDebugEnabled())
-                  LOG.debug("Checking server path [" + nodeRegisteredPath + "]" );
-              zkc.sync(nodeRegisteredPath,null,null);
-              stat = zkc.exists(nodeRegisteredPath, false);
-              if(stat != null) {
-                  data = zkc.getData(nodeRegisteredPath, null, stat);
-                  sdata = new String(data);
-                  if(LOG.isDebugEnabled())
-                      LOG.debug("Checking server [" + server + "] data [" + sdata + "]" );
-                  if (sdata.startsWith(Constants.AVAILABLE) || sdata.startsWith(Constants.STARTING))
-                      break;
-               }
-             }
-          
+                    }
+                }// else {
+-----------------*/
+            }//while (true)
             serverHostName=(String)attributes.get(Constants.HOST_NAME);
             serverInstance=(Integer)attributes.get(Constants.INSTANCE);
             
@@ -324,7 +358,6 @@ class ConnectReply {
         }
     return replyException;
     }
-
     static <K, V> Entry<K, V> randEntry(Iterator<Entry<K, V>> it, int count) {
         int index = (int) (Math.random() * count);
 
