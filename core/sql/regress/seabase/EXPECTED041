@@ -31,6 +31,74 @@
 
 --- SQL operation complete.
 >>
+>>cqd traf_default_storage_type 'MONARCH';
+
+--- SQL operation complete.
+>>create table t041t2 (a int not null primary key, b int);
+
+--- SQL operation complete.
+>>invoke t041t2;
+
+-- Definition of Monarch table TRAFODION.TEST041_SCH.T041T2
+-- Definition current  Tue Jul 12 01:39:35 2016
+
+  (
+    A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
+  , B                                INT DEFAULT NULL
+  )
+  PRIMARY KEY (A ASC)
+
+--- SQL operation complete.
+>>create index t041t2i1 on t041t2 (b);
+
+--- SQL operation complete.
+>>invoke t041t2;
+
+-- Definition of Monarch table TRAFODION.TEST041_SCH.T041T2
+-- Definition current  Tue Jul 12 01:39:36 2016
+
+  (
+    A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
+  , B                                INT DEFAULT NULL
+  )
+  PRIMARY KEY (A ASC)
+
+--- SQL operation complete.
+>>
+>>create table t041t3 (a int not null primary key, b int)
++>  attribute storage hbase;
+
+--- SQL operation complete.
+>>invoke t041t3;
+
+-- Definition of Trafodion table TRAFODION.SCH.T041T3
+-- Definition current  Mon Aug 22 18:01:57 2016
+
+  (
+    A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
+      SERIALIZED
+  , B                                INT DEFAULT NULL SERIALIZED
+  )
+  PRIMARY KEY (A ASC)
+
+--- SQL operation complete.
+>>create index t041t3i1 on t041t3 (b);
+
+--- SQL operation complete.
+>>invoke t041t3;
+
+-- Definition of Trafodion table TRAFODION.SCH.T041T3
+-- Definition current  Mon Aug 22 18:02:07 2016
+
+  (
+    A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
+      SERIALIZED
+  , B                                INT DEFAULT NULL SERIALIZED
+  )
+  PRIMARY KEY (A ASC)
+
+--- SQL operation complete.
+>>
 >>obey TEST041(inserts);
 >>explain options 'f' insert into t041t1 values (1,2);
 

@@ -67,6 +67,18 @@ invoke t041t1;
 create index t041t1i1 on t041t1 (b);
 invoke t041t1;
 
+cqd traf_default_storage_type 'MONARCH';
+create table t041t2 (a int not null primary key, b int);
+invoke t041t2;
+create index t041t2i1 on t041t2 (b);
+invoke t041t2;
+
+create table t041t3 (a int not null primary key, b int)
+  attribute storage hbase;
+invoke t041t3;
+create index t041t3i1 on t041t3 (b);
+invoke t041t3;
+
 ?section inserts
 explain options 'f' insert into t041t1 values (1,2);
 insert into t041t1 values (1,2);

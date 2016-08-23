@@ -293,6 +293,9 @@ public:
 
   inline ComStorageType storageType() const;
 
+  void setStorageType(ComStorageType st)
+  { storageType_ = st; }
+
   // mutators
   void setFileAttr(ElemDDLFileAttr * pFileAttrParseNode);
   inline void setIsBuffered(NABoolean setting);
@@ -546,6 +549,9 @@ ParDDLFileAttrsCreateIndex::isStorageTypeSpecified() const
 
 inline ComStorageType ParDDLFileAttrsCreateIndex::storageType() const 
 { return storageType_; }
+
+//void ParDDLFileAttrsCreateIndex::setStorageType(ComStorageType st)
+//{ storageType_ = st; }
 
 inline NABoolean
 ParDDLFileAttrsCreateIndex::isDCompress() const
