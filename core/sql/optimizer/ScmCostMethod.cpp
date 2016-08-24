@@ -1277,12 +1277,11 @@ SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbes()
 Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
 {
 
-NAString tname((getIndexDesc()->getPrimaryTableDesc()->getNATable()->getTableName()).getQualifiedNameAsAnsiString());
-
-if ( tname == "HIVE.HIVE.STORE_SALES_SORTED_ORC") {
- int x = 1;
- int y = 1;
-}
+// NAString tname((getIndexDesc()->getPrimaryTableDesc()->getNATable()->getTableName()).getQualifiedNameAsAnsiString());
+//if ( tname == "HIVE.HIVE.STORE_SALES_SORTED_ORC") {
+// int x = 1;
+// int y = 1;
+//}
 
 
   // define some variables used locally
@@ -1395,8 +1394,10 @@ if ( tname == "HIVE.HIVE.STORE_SALES_SORTED_ORC") {
   setEstRowsAccessed(tuplesProduced);
   setNumberOfBlocksToReadPerAccess(numBlocks);
 
-  tuplesProduced  /= numActivePartitions;
-  tuplesProcessed /= numActivePartitions;
+  if ( partitionsEliminated ) {
+     tuplesProduced  /= numActivePartitions;
+     tuplesProcessed /= numActivePartitions;
+  }
 
   if ( CmpCommon::getDefault(NCM_ORC_COSTING_DEBUG) == DF_ON  &&
        getIndexDesc()->getPrimaryTableDesc()->getNATable()->isORC() )
@@ -1442,6 +1443,18 @@ if ( tname == "HIVE.HIVE.STORE_SALES_SORTED_ORC") {
   CostScalar seqIORowSizeFactor = scmRowSizeFactor(rowSize, SEQ_IO_ROWSIZE_FACTOR);
    numBlocks *= seqIORowSizeFactor;
   */
+
+/*
+  const ReqdPhysicalProperty* rppForMe = getContext().getReqdPhysicalProperty();
+  PartitioningRequirement *partReq = rppForMe->getPartitioningRequirement();
+
+  if ( partReq->isRequirementApproximatelyN() ) {
+     Lng32 partCount = partReq->getCountOfPartitions();
+
+     if ( numProbes / partCount <=  )
+  }
+*/
+
   
   Cost* scanCost = scmCost(tuplesProcessed, tuplesProduced, csZero, csZero, numBlocks, numProbes,
 	    rowSize, csZero, outputRowSize, probeRowSize);
