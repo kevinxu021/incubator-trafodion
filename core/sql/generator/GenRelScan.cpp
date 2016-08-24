@@ -414,27 +414,26 @@ int HbaseAccess::createAsciiColAndCastExpr2(Generator * generator,
   return 1;
 }
 
-short FileScan::genForTextAndSeq(Generator * generator,
-                                 Queue * &hdfsFileInfoList,
-                                 Queue * &hdfsFileRangeBeginList,
-                                 Queue * &hdfsFileRangeNumList,
-                                 char* &hdfsHostName,
-                                 Int32 &hdfsPort,
-                                 NABoolean &useCursorMulti,
-                                 NABoolean &doSplitFileOpt,
-                                 ComCompressionInfo *&genCompressionTypes,
-                                 Int16 &numCompressionTypes,
-                                 ExpTupleDesc *partCols,
-                                 int partColValuesLen,
-                                 const HivePartitionAndBucketKey *hiveSearchKey)
+short FileScan::genScanRanges(Generator * generator,
+                              const HHDFSTableStats* hTabStats,
+                              const PartitioningFunction * mypart,
+                              Queue * &hdfsFileInfoList,
+                              Queue * &hdfsFileRangeBeginList,
+                              Queue * &hdfsFileRangeNumList,
+                              char* &hdfsHostName,
+                              Int32 &hdfsPort,
+                              NABoolean &useCursorMulti,
+                              NABoolean &doSplitFileOpt,
+                              ComCompressionInfo *&genCompressionTypes,
+                              Int16 &numCompressionTypes,
+                              ExpTupleDesc *partCols,
+                              int partColValuesLen,
+                              const HivePartitionAndBucketKey *hiveSearchKey,
+                              NABoolean isORC)
 {
   Space * space          = generator->getSpace();
 
-  const HHDFSTableStats* hTabStats = 
-    getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
   LIST(ComCompressionInfo) compressionTypes;
-
-  const NABoolean isSequenceFile = hTabStats->isSequenceFile();
 
   HiveFileIterator hfi;
   hdfsPort = 0;
@@ -453,16 +452,13 @@ short FileScan::genForTextAndSeq(Generator * generator,
   hdfsFileRangeNumList = new(space) Queue(space);
 
   useCursorMulti = FALSE;
-  if (CmpCommon::getDefault(HDFS_USE_CURSOR_MULTI) == DF_ON)
+  if (!isORC && CmpCommon::getDefault(HDFS_USE_CURSOR_MULTI) == DF_ON)
     useCursorMulti = TRUE;
     
-  PartitioningFunction * mypart =
-    getPhysicalProperty()->getPartitioningFunction();
-  
   const NodeMap* nmap = (mypart ? mypart->getNodeMap() : NULL);
 
   doSplitFileOpt = 
-    (useCursorMulti ? FALSE : TRUE);
+    ((useCursorMulti || isORC) ? FALSE : TRUE);
 
   if  ((nmap && nmap->type() == NodeMap::HIVE) &&
        (mypart))
@@ -488,9 +484,6 @@ short FileScan::genForTextAndSeq(Generator * generator,
 		space->allocateAndCopyToAlignedSpace
 		(fname, strlen(fname), 0);
 	      
-	      NABoolean fileIsSplitEnd = 
-                (offset + span != file->getTotalSize());
-
 	      HdfsFileInfo hfi;
 	      hfi.flags_ = 0;
 	      hfi.entryNum_ = entryNum;
@@ -499,10 +492,10 @@ short FileScan::genForTextAndSeq(Generator * generator,
 	      if (scanInfo[j].localBlockNum_ >= 0)
 		hfi.setFileIsLocal(TRUE);
 
-	      if (offset > 0)
+	      if (!isORC && offset > 0)
 		hfi.setFileIsSplitBegin(TRUE);
 
-	      if (fileIsSplitEnd)
+	      if (!isORC && (offset + span != file->getTotalSize()))
 		hfi.setFileIsSplitEnd(TRUE);
 
 	      hfi.startOffset_ = offset;
@@ -518,19 +511,24 @@ short FileScan::genForTextAndSeq(Generator * generator,
                          partColValuesLen);
                 }
 
-              CollIndex compressionTypeIx = 
-                compressionTypes.index(file->getCompressionInfo());
-
-              if (compressionTypeIx == NULL_COLL_INDEX)
+              if (isORC)
+                hfi.compressionTypeIx_ = -1; // not used for ORC
+              else
                 {
-                  compressionTypes.insert(file->getCompressionInfo());
-                  compressionTypeIx = 
+                  CollIndex compressionTypeIx = 
                     compressionTypes.index(file->getCompressionInfo());
+
+                  if (compressionTypeIx == NULL_COLL_INDEX)
+                    {
+                      compressionTypes.insert(file->getCompressionInfo());
+                      compressionTypeIx = 
+                        compressionTypes.index(file->getCompressionInfo());
+                    }
+                  GenAssert(compressionTypeIx != NULL_COLL_INDEX &&
+                            compressionTypeIx < 1000,
+                            "Wrong compression type or too many compression types");
+                  hfi.compressionTypeIx_ = (Int16) compressionTypeIx;
                 }
-              GenAssert(compressionTypeIx != NULL_COLL_INDEX &&
-                        compressionTypeIx < 1000,
-                        "Wrong compression type or too many compression types");
-              hfi.compressionTypeIx_ = (Int16) compressionTypeIx;
 
 	      char * hfiInList = space->allocateAndCopyToAlignedSpace
 		((char*)&hfi, sizeof(HdfsFileInfo));
@@ -549,6 +547,10 @@ short FileScan::genForTextAndSeq(Generator * generator,
 	  hdfsFileRangeBeginList->insert(beginRangeInList);
 	  hdfsFileRangeNumList->insert(numRangeInList);
 
+	} // for nodemap
+
+      if (!isORC)
+        {
           // generate a list of compression info objects
           numCompressionTypes = compressionTypes.entries();
           genCompressionTypes = reinterpret_cast<ComCompressionInfo *>(
@@ -556,10 +558,13 @@ short FileScan::genForTextAndSeq(Generator * generator,
                     numCompressionTypes * sizeof(ComCompressionInfo)));
 
           for (int i=0; i<numCompressionTypes; i++)
-            // use memcpy, not the assignment operator, since the target is uninitialized
-            // (e.g. missing the virtual table pointer)
-            memcpy(&genCompressionTypes[i], &compressionTypes[i], sizeof(ComCompressionInfo));
-	} // for nodemap
+            // use memcpy, not the assignment operator, since the
+            // target is uninitialized (e.g. missing the virtual
+            // table pointer)
+            memcpy(&genCompressionTypes[i],
+                   &compressionTypes[i],
+                   sizeof(ComCompressionInfo));
+        }
     } // if hive
   else
     {
@@ -571,197 +576,12 @@ short FileScan::genForTextAndSeq(Generator * generator,
   return 0;
 }
 
-short FileScan::genForOrc(Generator * generator,
-                          const HHDFSTableStats* hTabStats,
-                          const PartitioningFunction * mypart,
+short FileScan::genOrcPPI(Generator * generator,
                           NAList<OrcPushdownPredInfo> *listOfOrcPPI,
-                          Queue * &hdfsFileInfoList,
-                          Queue * &hdfsFileRangeBeginList,
-                          Queue * &hdfsFileRangeNumList,
                           Queue * &tdbListOfOrcPPI,
-                          ValueIdList &orcOperVIDlist,
-                          char* &hdfsHostName,
-                          Int32 &hdfsPort,
-                          ExpTupleDesc *partCols,
-                          int partColValuesLen,
-                          const HivePartitionAndBucketKey *hiveSearchKey,
-                          Int32 isForFastAggr)
+                          ValueIdList &orcOperVIDlist)
 {
   Space * space          = generator->getSpace();
-
-  const NABoolean isSequenceFile = hTabStats->isSequenceFile();
-
-  hdfsPort = 0;
-  hdfsHostName = NULL;
-
-  // determine host and port from dir name
-  NAString dummy, hostName;
-  NABoolean result = ((HHDFSTableStats*)hTabStats)->splitLocation
-    (hTabStats->tableDir().data(), hostName, hdfsPort, dummy) ;
-  GenAssert(result, "Invalid Hive directory name");
-  hdfsHostName = 
-        space->AllocateAndCopyToAlignedSpace(hostName, 0);
-
-  hdfsFileInfoList = new(space) Queue(space);
-  hdfsFileRangeBeginList = new(space) Queue(space);
-  hdfsFileRangeNumList = new(space) Queue(space);
- 
-  const NodeMap* nmap = (mypart ? mypart->getNodeMap() : NULL);
-
-  NABoolean emptyScan = FALSE;
-
-  if ((! nmap) || (! mypart))
-    emptyScan = TRUE;
-  else 
-    {
-      int zeroCt = 0;
-      for (CollIndex i=0; i < nmap->getNumEntries(); i++ ) {
-        HiveNodeMapEntry* hEntry = (HiveNodeMapEntry*)(nmap->getNodeMapEntry(i));
-        LIST(HiveScanInfo)& scanInfo = hEntry->getScanInfo();
-        if (scanInfo.entries() == 0 )
-          zeroCt++;
-      }
-      
-      if ( zeroCt && zeroCt == nmap->getNumEntries() )
-        emptyScan = TRUE;
-    }
-
-  char * beginRangeInList = NULL;
-  char * numRangeInList = NULL;
-  Lng32 beginRangeNum = 0;
-  Lng32 numRanges = 0;
-
-
-  // If no scanInfo entries are specified, then scan all rows.
-  if (emptyScan)
-    {
-      const char * fname = hTabStats->tableDir();
-      HiveFileIterator it;
-
-      while (hiveSearchKey->getNextFile(it))
-        {
-          const HHDFSListPartitionStats * ps = it.getPartStats();
-          const HHDFSFileStats * fs = it.getFileStats();
-
-          char * fnameInList = 
-            space->allocateAndCopyToAlignedSpace
-            (fs->getFileName().data(), fs->getFileName().length(), 0);
-
-          HdfsFileInfo hfi;
-          hfi.flags_ = 0;
-          hfi.entryNum_ = 0;
-
-          hfi.startOffset_ = 0;         // start at offset 0.
-          hfi.bytesToRead_ = LLONG_MAX; // stop at maximal possible length.
-          hfi.fileName_ = fnameInList;
-
-          if (partColValuesLen > 0)
-            {
-              hfi.partColValues_ =
-                space->allocateAndCopyToAlignedSpace(
-                     hiveSearchKey->getExplodedPartColValues(ps->getPartIndex()),
-                     partColValuesLen);
-            }
-
-          hfi.compressionTypeIx_ = -1; // not used for ORC
-
-          char * hfiInList = space->allocateAndCopyToAlignedSpace
-            ((char*)&hfi, sizeof(HdfsFileInfo));
-
-          hdfsFileInfoList->insert((char*)hfiInList);
-
-          beginRangeNum = 0;
-          numRanges = 1;
-
-          beginRangeInList = 
-            space->allocateAndCopyToAlignedSpace
-            ((char *)&beginRangeNum, sizeof(beginRangeNum), 0);
-
-          numRangeInList = 
-            space->allocateAndCopyToAlignedSpace
-            ((char *)&numRanges, sizeof(numRanges), 0);
-
-          hdfsFileRangeBeginList->insert(beginRangeInList);
-          hdfsFileRangeNumList->insert(numRangeInList);
-        } // while
-    }
-
-  if  ((NOT emptyScan) &&
-       ((nmap && nmap->type() == NodeMap::HIVE) &&
-        (mypart)))
-    {
-      Lng32 entryNum = 0;
-
-      NASet<NAString> stripeUsageMap(generator->wHeap(), 101);
-      stripeUsageMap.clear();
-
-      for (CollIndex i=0; i < nmap->getNumEntries(); i++ )
-	{
-	  HiveNodeMapEntry* hEntry = (HiveNodeMapEntry*)(nmap->getNodeMapEntry(i));
-	  LIST(HiveScanInfo)&  scanInfo = hEntry->getScanInfo();
-
-	  beginRangeNum = entryNum;
-	  numRanges = 0;
-
-	  for (CollIndex j=0; j<scanInfo.entries(); j++ ) 
-	    {
-	      HHDFSFileStats* file = scanInfo[j].file_;
-	      const char * fname = file->getFileName();
-
-              if ( isForFastAggr ) {
-                if (stripeUsageMap.contains(file->getFileName()) ) 
-                   continue;
-                else 
-                  stripeUsageMap.insert(file->getFileName());
-              }
-
-	      Int64 startRowNum = scanInfo[j].offset_; // start row num
-	      Int64 numRows = scanInfo[j].span_;    // num rows
-
-	      numRanges++;
-
-	      char * fnameInList = 
-		space->allocateAndCopyToAlignedSpace
-		(fname, strlen(fname), 0);
-	      
-	      HdfsFileInfo hfi;
-	      hfi.flags_ = 0;
-	      hfi.entryNum_ = entryNum;
-	      entryNum++;
-
-	      hfi.startOffset_ = startRowNum; // used to be 1 to scan all rows
-	      hfi.bytesToRead_ = numRows;     // used to be -1 to scan all rows
-	      hfi.fileName_ = fnameInList;
-	      
-              if (partColValuesLen > 0)
-                {
-                  hfi.partColValues_ =
-                    space->allocateAndCopyToAlignedSpace(
-                         hiveSearchKey->getExplodedPartColValues(
-                              scanInfo[j].partition_->getPartIndex()),
-                         partColValuesLen);
-                }
-	      
-              hfi.compressionTypeIx_ = -1; // not used for ORC
-
-	      char * hfiInList = space->allocateAndCopyToAlignedSpace
-		((char*)&hfi, sizeof(HdfsFileInfo));
-	      
-	      hdfsFileInfoList->insert((char*)hfiInList);
-	    } // for
-
-	  beginRangeInList = 
-	    space->allocateAndCopyToAlignedSpace
-	    ((char *)&beginRangeNum, sizeof(beginRangeNum), 0);
-
-	  numRangeInList = 
-	    space->allocateAndCopyToAlignedSpace
-	    ((char *)&numRanges, sizeof(numRanges), 0);
-
-	  hdfsFileRangeBeginList->insert(beginRangeInList);
-	  hdfsFileRangeNumList->insert(numRangeInList);
-	} // for nodemap
-    } // if hive
 
   tdbListOfOrcPPI = NULL;
   if (listOfOrcPPI && (listOfOrcPPI->entries() > 0))
@@ -1468,27 +1288,33 @@ short FileScan::codeGenForHive(Generator * generator)
 
 
   Queue * tdbListOfOrcPPI = NULL;
-  if ((hTabStats->isTextFile()) || (hTabStats->isSequenceFile()))
+  if (hTabStats->isTextFile() || hTabStats->isSequenceFile() || isOrc)
     {
-      genForTextAndSeq(generator, 
-                       hdfsFileInfoList, hdfsFileRangeBeginList, hdfsFileRangeNumList,
-                       hdfsHostName, hdfsPort,
-                       useCursorMulti, doSplitFileOpt,
-                       genCompressionTypes, numCompressionTypes,
-                       part_cols_desc, partColRowLen, hiveSearchKey_);
+      genScanRanges(generator,
+                    getIndexDesc()->getNAFileSet()->getHHDFSTableStats(),
+                    getPhysicalProperty()->getPartitioningFunction(),
+                    hdfsFileInfoList,
+                    hdfsFileRangeBeginList,
+                    hdfsFileRangeNumList,
+                    hdfsHostName,
+                    hdfsPort,
+                    useCursorMulti,
+                    doSplitFileOpt,
+                    genCompressionTypes,
+                    numCompressionTypes,
+                    part_cols_desc,
+                    partColRowLen,
+                    hiveSearchKey_,
+                    isOrc);
     }
-  else if (isOrc)
+
+  if (isOrc)
     {
       ValueIdList orcOperVIDlist;
-      genForOrc(generator, 
-                hTabStats,
-                getPhysicalProperty()->getPartitioningFunction(),
+      genOrcPPI(generator, 
                 &orcListOfPPI(),
-                hdfsFileInfoList, hdfsFileRangeBeginList, hdfsFileRangeNumList,
                 tdbListOfOrcPPI,
-                orcOperVIDlist,
-                hdfsHostName, hdfsPort,
-                part_cols_desc, partColRowLen, hiveSearchKey_);
+                orcOperVIDlist);
 
       hdfsColInfoList = new(space) Queue(space);
       for (int i = 0; i < neededHdfsVals.entries(); i++)
