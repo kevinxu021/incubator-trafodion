@@ -248,7 +248,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 4    2    5    hybrid_hash_join                                      1.00E+003
 3    .    4    esp_exchange                    4(hash2):2(hash2)     1.00E+002
 .    .    3    hive_scan                       HIVEPI                1.00E+002
-1    .    2    esp_exchange                    4(rep-b):1            2.00E+001
+1    .    2    esp_exchange                    4(rep-b):2(hash2)     2.00E+001
 .    .    1    hive_scan                       HIVENONP              2.00E+001
 
 --- SQL operation complete.
@@ -273,12 +273,12 @@ HYBRID_HASH_JOIN
 ID           ID           P1           P1         
 -----------  -----------  -----------  -----------
 
+          2            2            2            2
+          2           22            2            2
          22            2            2            2
          22           22            2            2
         222            2            2            2
         222           22            2            2
-          2            2            2            2
-          2           22            2            2
 
 --- 6 row(s) selected.
 >>
@@ -305,7 +305,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 4    2    5    hybrid_hash_join                                      1.00E+003
 3    .    4    esp_exchange                    4(hash2):2(hash2)     1.00E+002
 .    .    3    hive_scan                       HIVEPI                1.00E+002
-1    .    2    esp_exchange                    4(hash2):1            2.00E+001
+1    .    2    esp_exchange                    4(hash2):2(hash2)     2.00E+001
 .    .    1    hive_scan                       HIVENONP              2.00E+001
 
 --- SQL operation complete.
@@ -325,12 +325,12 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ID           ID           P1           P1         
 -----------  -----------  -----------  -----------
 
-        222            2            2            2
-        222           22            2            2
           2            2            2            2
           2           22            2            2
          22            2            2            2
          22           22            2            2
+        222            2            2            2
+        222           22            2            2
 
 --- 6 row(s) selected.
 >>
@@ -951,11 +951,11 @@ ID           COL2         P1T                         P2
 ID           COL2         P1         
 -----------  -----------  -----------
 
+          1            1            1
+         11           11            1
           2            2            2
          22           22            2
         222          222            2
-          1            1            1
-         11           11            1
           3            3            3
          34           34            3
 
@@ -965,13 +965,13 @@ ID           COL2         P1
 ID           COL2         P1D       
 -----------  -----------  ----------
 
-          2            2  2020-02-29
-         22           22  2020-02-29
-        222          222  2020-02-29
           1            1  2001-01-01
          11           11  2001-01-01
           3            3  2003-03-31
          34           34  2004-04-04
+          2            2  2020-02-29
+         22           22  2020-02-29
+        222          222  2020-02-29
 
 --- 7 row(s) selected.
 >>select * from hivepiso;
@@ -979,13 +979,13 @@ ID           COL2         P1D
 ID           COL2         P1           P2                              
 -----------  -----------  -----------  --------------------------------
 
+          1            1            1  one                             
+         11           11            1  one                             
           2            2            2  two                             
          22           22            2  two                             
         222          222            2  two                             
-          1            1            1  one                             
-         11           11            1  one                             
-          3            3            3  three                           
          34           34            3  four                            
+          3            3            3  three                           
 
 --- 7 row(s) selected.
 >>
@@ -1118,11 +1118,11 @@ INPUT__RANGE__NUMBER  ROW__NUMBER__IN__RANGE  BLOCK__OFFSET__INSIDE__FILE
 ID           COL2         P1         
 -----------  -----------  -----------
 
+          1            1            1
+         11           11            1
           2            2            2
          22           22            2
         222          222            2
-          1            1            1
-         11           11            1
           3            3            3
          34           34            3
 
@@ -1132,13 +1132,13 @@ ID           COL2         P1
 ID           COL2         P1           P2                              
 -----------  -----------  -----------  --------------------------------
 
+          1            1            1  one                             
+         11           11            1  one                             
           2            2            2  two                             
          22           22            2  two                             
         222          222            2  two                             
-          1            1            1  one                             
-         11           11            1  one                             
-          3            3            3  three                           
          34           34            3  four                            
+          3            3            3  three                           
 
 --- 7 row(s) selected.
 >>
@@ -1185,11 +1185,11 @@ AccessedRows                         4
 ID           COL2         P1D       
 -----------  -----------  ----------
 
+          3            3  2003-03-31
+         34           34  2004-04-04
           2            2  2020-02-29
          22           22  2020-02-29
         222          222  2020-02-29
-         34           34  2004-04-04
-          3            3  2003-03-31
 
 --- 5 row(s) selected.
 >>execute display_rows_accessed;
@@ -1208,9 +1208,9 @@ AccessedRows                         5
 ID           COL2         P1         
 -----------  -----------  -----------
 
-          2            2            2
           1            1            1
          11           11            1
+          2            2            2
           3            3            3
 
 --- 4 row(s) selected.
@@ -1651,7 +1651,7 @@ t005part.a	t005part.b	t005part.c
 >>invoke hive.hive.thive_insert_smallint;
 
 -- Definition of hive table THIVE_INSERT_SMALLINT
--- Definition current  Fri Jul 15 00:09:07 2016
+-- Definition current  Wed Aug 24 02:44:06 2016
 
   (
     A                                SMALLINT
@@ -1756,7 +1756,7 @@ A
 >>invoke hive.hive.thive_insert_varchar;
 
 -- Definition of hive table THIVE_INSERT_VARCHAR
--- Definition current  Fri Jul 15 00:09:14 2016
+-- Definition current  Wed Aug 24 02:44:10 2016
 
   (
     A                                VARCHAR(1 CHAR) CHARACTER SET UTF8 COLLATE
