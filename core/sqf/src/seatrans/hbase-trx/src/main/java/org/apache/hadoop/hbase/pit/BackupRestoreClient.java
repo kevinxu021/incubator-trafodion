@@ -22,6 +22,7 @@
 //package org.apache.hadoop.hbase.client.transactional;
 package org.trafodion.pit;
 
+import org.apache.hadoop.hbase.snapshot.SnapshotDoesNotExistException;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTm;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTmException;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTmId;
@@ -245,11 +246,18 @@ public class BackupRestoreClient
               if (logger.isDebugEnabled())
                  logger.debug("deleteRecoveryRecord got path " + snapshotPath);
               System.out.println("deleteRecoveryRecord got path " + snapshotPath);
-    
-              admin.deleteSnapshot(snapshotPath);
-              if (logger.isDebugEnabled())
-                 logger.debug("deleteRecoveryRecord snapshot deleted");
-              System.out.println("deleteRecoveryRecord snapshot deleted");
+
+              try{
+                 admin.deleteSnapshot(snapshotPath);
+                 if (logger.isDebugEnabled())
+                    logger.debug("deleteRecoveryRecord snapshot deleted");
+                 System.out.println("deleteRecoveryRecord snapshot deleted");
+              }
+              catch(SnapshotDoesNotExistException se){
+                  if (logger.isDebugEnabled())
+                      logger.debug("deleteRecoveryRecord snapshot does not exist, ignoring");
+                   System.out.println("deleteRecoveryRecord snapshot does not exist, ignoring");
+              }
 
               if (logger.isDebugEnabled())
                  logger.debug("deleteRecoveryRecord deleting snapshotRecord");
