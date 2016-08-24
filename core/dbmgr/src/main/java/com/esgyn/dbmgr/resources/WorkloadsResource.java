@@ -360,7 +360,7 @@ public class WorkloadsResource {
 			@PathParam("endTime") String endTime) throws EsgynDBMgrException {
 		ArrayList<HashMap<String,String>> result = new ArrayList<HashMap<String,String>>();
 		
-		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.TOP_N_MEM_USED),startTime,endTime,startTime,endTime);
+		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.TOP_N_MEM_USED),startTime,endTime);
 		_LOG.debug(sqlText);
 
 		Connection connection = null;
@@ -375,7 +375,7 @@ public class WorkloadsResource {
 			while(rs.next()){
 				HashMap<String, String> queryInfo = new HashMap<String, String>();
 				queryInfo.put("query_id", rs.getString("query_id").trim());
-				queryInfo.put("max_mem_used", rs.getString("max_mem_used"));
+				queryInfo.put("memory_used", rs.getString("memory_used"));
 				queryInfo.put("start_time", rs.getString("exec_start_utc_ts"));
 				queryInfo.put("end_time", rs.getString("exec_end_utc_ts"));
 				result.add(queryInfo);
@@ -402,7 +402,7 @@ public class WorkloadsResource {
 			@Context HttpServletResponse servletResponse,@PathParam("startTime") String startTime, 
 			@PathParam("endTime") String endTime) throws EsgynDBMgrException {
 		ArrayList<HashMap<String,String>> result = new ArrayList<HashMap<String,String>>();
-		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.TOP_N_CPU_TIME),startTime,endTime,startTime,endTime);
+		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.TOP_N_CPU_TIME),startTime,endTime);
 		_LOG.debug(sqlText);
 
 		Connection connection = null;
@@ -444,7 +444,7 @@ public class WorkloadsResource {
 			@Context HttpServletResponse servletResponse,@PathParam("startTime") String startTime, 
 			@PathParam("endTime") String endTime) throws EsgynDBMgrException {
 		ArrayList<HashMap<String,String>> result = new ArrayList<HashMap<String,String>>();
-		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.TOP_N_TOTAL_RUN_TIME),startTime,endTime,startTime,endTime);
+		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.TOP_N_TOTAL_RUN_TIME),startTime,endTime);
 		_LOG.debug(sqlText);
 
 		Connection connection = null;
@@ -486,7 +486,7 @@ public class WorkloadsResource {
 			@Context HttpServletResponse servletResponse,@PathParam("startTime") String startTime, 
 			@PathParam("endTime") String endTime) throws EsgynDBMgrException {
 		ArrayList<HashMap<String,String>> result = new ArrayList<HashMap<String,String>>();
-		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.TOP_N_DISK_IO),startTime,endTime,startTime,endTime);
+		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.TOP_N_DISK_IO),startTime,endTime);
 		_LOG.debug(sqlText);
 
 		Connection connection = null;

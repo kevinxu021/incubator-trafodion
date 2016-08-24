@@ -61,7 +61,8 @@ define([
 				error:"#topN-memory-error-text",
 				column : 8,	//index of column used for trigger sort
 				type : "top_memory",
-				value:"max_mem_used" //key to get value from return data
+				valueFormat: common.bytesToSize,
+				value:"memory_used" //key to get value from return data
 			},
 			"TopN_CPU_Time":{
 				container:"topN-cpu-chart",
@@ -69,6 +70,7 @@ define([
 				error:"#topN-cpu-error-text",
 				column : 9,
 				type : "top_cpu",
+				valueFormat: common.microsecondsToString,
 				value:"cpu_time"
 			},
 			"TopN_Total_Runtime":{
@@ -77,6 +79,7 @@ define([
 				error:"#topN-runtime-error-text",
 				column : 7,
 				type : "top_runtime",
+				valueFormat: common.microsecondsToString,
 				value:"query_elapsed_time"
 			},
 			"TopN_Disk_IO":{
@@ -85,6 +88,7 @@ define([
 				error:"#topN-diskio-error-text",
 				column : 10,
 				type : "top_diskio",
+				valueFormat: common.formatNumberWithCommas,
 				value:"disk_ios"
 			},
 	}
@@ -679,6 +683,7 @@ define([
 			var spinner = chartConfig.spinner;
 			var x_start = _this.getTimerange().startTime.unix() * 1000;
 			var x_end = _this.getTimerange().endTime.unix() * 1000;
+			var valueFormat = chartConfig.valueFormat;
 			var options = FLOT_OPTIONS;
 			options.xaxis.min = x_start;
 			options.xaxis.max = x_end;
@@ -696,16 +701,20 @@ define([
 				}
 				var y = count;
 				var value = data[i][chartConfig.value];
+				if(type == 'top_memory'){
+					value = value *1024;
+				}
 				var query_id = data[i].query_id;
 				var line = {
 						"query_id":query_id,
 						"start_time":data[i].start_time,
 						"end_time":data[i].end_time,
-						"value": value,
+						"value": valueFormat(value),
 						"index":y,
 						"status":status,
 						"type": type,
 						"column": column,
+						"color":"#3c8dbc",
 						"data": [[start_time,y],[end_time,y]]
 				}
 				lines.push(line);
