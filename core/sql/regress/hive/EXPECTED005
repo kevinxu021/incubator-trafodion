@@ -275,10 +275,10 @@ ID           ID           P1           P1
 
          22            2            2            2
          22           22            2            2
-        222            2            2            2
-        222           22            2            2
           2            2            2            2
           2           22            2            2
+        222            2            2            2
+        222           22            2            2
 
 --- 6 row(s) selected.
 >>
@@ -325,12 +325,12 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ID           ID           P1           P1         
 -----------  -----------  -----------  -----------
 
-        222            2            2            2
-        222           22            2            2
           2            2            2            2
           2           22            2            2
          22            2            2            2
          22           22            2            2
+        222            2            2            2
+        222           22            2            2
 
 --- 6 row(s) selected.
 >>
@@ -496,7 +496,18 @@ Y                                                11878
 --- SQL command prepared.
 >>execute s1;
 
---- 0 row(s) selected.
+*** WARNING[8597] Statement was automatically retried 1 time(s). Delay before each retry was 0 seconds. See next entry for the error that caused this retry. 
+
+*** WARNING[8436] Mismatch detected between compiletime and runtime hive table definitions.
+
+C_PREFERRED_CUST_FLAG             (EXPR)              
+--------------------------------  --------------------
+
+                                                   699
+N                                                 9842
+Y                                                 9459
+
+--- 3 row(s) selected.
 >>-- because we don't invalidate in the executor,
 >>-- this should still return 0 rows
 >>
@@ -516,7 +527,17 @@ Y                                                11878
 >>
 >>execute s1part;
 
---- 0 row(s) selected.
+*** WARNING[8597] Statement was automatically retried 1 time(s). Delay before each retry was 0 seconds. See next entry for the error that caused this retry. 
+
+*** WARNING[8436] Mismatch detected between compiletime and runtime hive table definitions.
+
+C_PREFERRED_CUST_FLAG             (EXPR)              
+--------------------------------  --------------------
+
+N                                                 9789
+Y                                                 9525
+
+--- 2 row(s) selected.
 >>-- because we don't invalidate in the executor,
 >>-- this should still return 0 rows
 >>
@@ -617,7 +638,14 @@ xyz
 --- SQL command prepared.
 >>execute s1;
 
---- 0 row(s) selected.
+C_PREFERRED_CUST_FLAG             (EXPR)              
+--------------------------------  --------------------
+
+                                                   699
+N                                                 9842
+Y                                                 9459
+
+--- 3 row(s) selected.
 >>-- s1 should still return 0 rows - for now
 >>execute s2;
 
@@ -639,7 +667,17 @@ Y                                                11878
 --- 1 row(s) selected.
 >>execute s1part;
 
---- 0 row(s) selected.
+*** WARNING[8597] Statement was automatically retried 1 time(s). Delay before each retry was 0 seconds. See next entry for the error that caused this retry. 
+
+*** WARNING[8436] Mismatch detected between compiletime and runtime hive table definitions.
+
+C_PREFERRED_CUST_FLAG             (EXPR)              
+--------------------------------  --------------------
+
+N                                                12265
+Y                                                11878
+
+--- 2 row(s) selected.
 >>-- s1 should still return 0 rows - for now
 >>execute s2part;
 
@@ -951,11 +989,11 @@ ID           COL2         P1T                         P2
 ID           COL2         P1         
 -----------  -----------  -----------
 
+          1            1            1
+         11           11            1
           2            2            2
          22           22            2
         222          222            2
-          1            1            1
-         11           11            1
           3            3            3
          34           34            3
 
@@ -965,13 +1003,13 @@ ID           COL2         P1
 ID           COL2         P1D       
 -----------  -----------  ----------
 
-          2            2  2020-02-29
-         22           22  2020-02-29
-        222          222  2020-02-29
           1            1  2001-01-01
          11           11  2001-01-01
           3            3  2003-03-31
          34           34  2004-04-04
+          2            2  2020-02-29
+         22           22  2020-02-29
+        222          222  2020-02-29
 
 --- 7 row(s) selected.
 >>select * from hivepiso;
@@ -979,13 +1017,13 @@ ID           COL2         P1D
 ID           COL2         P1           P2                              
 -----------  -----------  -----------  --------------------------------
 
+          1            1            1  one                             
+         11           11            1  one                             
           2            2            2  two                             
          22           22            2  two                             
         222          222            2  two                             
-          1            1            1  one                             
-         11           11            1  one                             
-          3            3            3  three                           
          34           34            3  four                            
+          3            3            3  three                           
 
 --- 7 row(s) selected.
 >>
@@ -1118,11 +1156,11 @@ INPUT__RANGE__NUMBER  ROW__NUMBER__IN__RANGE  BLOCK__OFFSET__INSIDE__FILE
 ID           COL2         P1         
 -----------  -----------  -----------
 
+          1            1            1
+         11           11            1
           2            2            2
          22           22            2
         222          222            2
-          1            1            1
-         11           11            1
           3            3            3
          34           34            3
 
@@ -1132,13 +1170,13 @@ ID           COL2         P1
 ID           COL2         P1           P2                              
 -----------  -----------  -----------  --------------------------------
 
+          1            1            1  one                             
+         11           11            1  one                             
           2            2            2  two                             
          22           22            2  two                             
         222          222            2  two                             
-          1            1            1  one                             
-         11           11            1  one                             
-          3            3            3  three                           
          34           34            3  four                            
+          3            3            3  three                           
 
 --- 7 row(s) selected.
 >>
@@ -1185,11 +1223,11 @@ AccessedRows                         4
 ID           COL2         P1D       
 -----------  -----------  ----------
 
+          3            3  2003-03-31
+         34           34  2004-04-04
           2            2  2020-02-29
          22           22  2020-02-29
         222          222  2020-02-29
-         34           34  2004-04-04
-          3            3  2003-03-31
 
 --- 5 row(s) selected.
 >>execute display_rows_accessed;
@@ -1208,9 +1246,9 @@ AccessedRows                         5
 ID           COL2         P1         
 -----------  -----------  -----------
 
-          2            2            2
           1            1            1
          11           11            1
+          2            2            2
           3            3            3
 
 --- 4 row(s) selected.
@@ -1651,7 +1689,7 @@ t005part.a	t005part.b	t005part.c
 >>invoke hive.hive.thive_insert_smallint;
 
 -- Definition of hive table THIVE_INSERT_SMALLINT
--- Definition current  Fri Jul 15 00:09:07 2016
+-- Definition current  Thu Aug 25 01:26:47 2016
 
   (
     A                                SMALLINT
@@ -1756,7 +1794,7 @@ A
 >>invoke hive.hive.thive_insert_varchar;
 
 -- Definition of hive table THIVE_INSERT_VARCHAR
--- Definition current  Fri Jul 15 00:09:14 2016
+-- Definition current  Thu Aug 25 01:26:53 2016
 
   (
     A                                VARCHAR(1 CHAR) CHARACTER SET UTF8 COLLATE

@@ -615,6 +615,8 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	    hdfsOffset_ = 0;
             checkRangeDelimiter_ = FALSE;
 
+            dataModCheckDone_ = FALSE;
+
 	    if (hdfsScanTdb().getHdfsFileInfoList()->isEmpty())
 	      {
                 step_ = CHECK_FOR_DATA_MOD_AND_DONE;
@@ -644,8 +646,6 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 
 	    hdfsScanBufMaxSize_ = hdfsScanTdb().hdfsBufSize_;
 
-            dataModCheckDone_ = FALSE;
-
 	    if (numRanges_ > 0)
               step_ = CHECK_FOR_DATA_MOD;
             else
@@ -663,6 +663,8 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 
             if (NOT dataModCheckDone_)
               {
+                dataModCheckDone_ = TRUE;
+
                 Int64 modTS = hdfsScanTdb().modTSforDir_;
                 Lng32 numOfPartLevels = hdfsScanTdb().numOfPartCols_;
 
@@ -707,8 +709,6 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                     step_ = HANDLE_ERROR_AND_DONE;
                     break;
                   }
-
-                dataModCheckDone_ = TRUE;
               }
 
             if (step_ == CHECK_FOR_DATA_MOD_AND_DONE)
