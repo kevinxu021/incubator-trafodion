@@ -115,6 +115,8 @@ public:
   const ValueIdList & getOrderOfHiveSortKeyValues() const 
                                     { return orderOfHiveSortKeyValues_; }
 
+  const ValueIdList& getHivePartCols() { return  hivePartCols_; }
+
   void setIndexLevels(Lng32 indexLevels) { indexLevels_ = indexLevels ; }
   void setOrderOfKeyValues(const ValueIdList &no) { orderOfKeyValues_ = no; }
 
@@ -238,6 +240,11 @@ private:
   // same as hiveSortKey_, but with indicators for descending order
   // ---------------------------------------------------------------------
   ValueIdList orderOfHiveSortKeyValues_;
+
+  // ---------------------------------------------------------------------
+  // hive partition columns 
+  // ---------------------------------------------------------------------
+  ValueIdList hivePartCols_;
 
   // ---------------------------------------------------------------------
   // The value ids of the IndexColumn exprs that form the clustering key

@@ -192,14 +192,23 @@ short ExOrcScanTcb::extractAndTransformOrcSourceToSqlRow(
             {
               copyLen = MINOF(currColLen, attr->getLength());
 
+              str_cpy_all((char*)&hdfsAsciiSourceData_[attr->getOffset()],
+                          sourceData, copyLen);
+              
               char * vcLenLoc = 
                 &hdfsAsciiSourceData_[attr->getVCLenIndOffset()];
               attr->setVarLength(copyLen, vcLenLoc);
             }
-         
-          str_cpy_all((char*)&hdfsAsciiSourceData_[attr->getOffset()],
-                     sourceData, copyLen);
- 
+          else if (DFS2REC::isSQLFixedChar(attr->getDatatype()))
+            {
+              byte_str_cpy((char*)&hdfsAsciiSourceData_[attr->getOffset()],
+                           attr->getLength(), sourceData, copyLen, ' ');
+            }
+          else
+            {
+              str_cpy_all((char*)&hdfsAsciiSourceData_[attr->getOffset()],
+                          sourceData, copyLen);
+            }
           sourceData += currColLen;
         } // currColLen >= 0
     }
@@ -706,7 +715,7 @@ ExWorkProcRetcode ExOrcScanTcb::work()
           
 	case HANDLE_ERROR:
 	  {
-	    if (handleError(rc))
+	    if (handleError(rc, (workAtp_ ? workAtp_->getDiagsArea() : NULL)))
 	      return rc;
 
 	    step_ = DONE;
@@ -1153,7 +1162,7 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
 
 	case HANDLE_ERROR:
 	  {
-	    if (handleError(rc))
+	    if (handleError(rc, (workAtp_ ? workAtp_->getDiagsArea() : NULL)))
 	      return rc;
 
 	    step_ = DONE;

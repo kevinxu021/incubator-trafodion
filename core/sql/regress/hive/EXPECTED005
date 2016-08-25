@@ -248,7 +248,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 4    2    5    hybrid_hash_join                                      1.00E+003
 3    .    4    esp_exchange                    4(hash2):2(hash2)     1.00E+002
 .    .    3    hive_scan                       HIVEPI                1.00E+002
-1    .    2    esp_exchange                    4(rep-b):1            2.00E+001
+1    .    2    esp_exchange                    4(rep-b):2(hash2)     2.00E+001
 .    .    1    hive_scan                       HIVENONP              2.00E+001
 
 --- SQL operation complete.
@@ -273,10 +273,10 @@ HYBRID_HASH_JOIN
 ID           ID           P1           P1         
 -----------  -----------  -----------  -----------
 
-         22            2            2            2
-         22           22            2            2
           2            2            2            2
           2           22            2            2
+         22            2            2            2
+         22           22            2            2
         222            2            2            2
         222           22            2            2
 
@@ -305,7 +305,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 4    2    5    hybrid_hash_join                                      1.00E+003
 3    .    4    esp_exchange                    4(hash2):2(hash2)     1.00E+002
 .    .    3    hive_scan                       HIVEPI                1.00E+002
-1    .    2    esp_exchange                    4(hash2):1            2.00E+001
+1    .    2    esp_exchange                    4(hash2):2(hash2)     2.00E+001
 .    .    1    hive_scan                       HIVENONP              2.00E+001
 
 --- SQL operation complete.
@@ -1689,7 +1689,7 @@ t005part.a	t005part.b	t005part.c
 >>invoke hive.hive.thive_insert_smallint;
 
 -- Definition of hive table THIVE_INSERT_SMALLINT
--- Definition current  Thu Aug 25 01:26:47 2016
+-- Definition current  Wed Aug 24 02:44:06 2016
 
   (
     A                                SMALLINT
@@ -1794,7 +1794,7 @@ A
 >>invoke hive.hive.thive_insert_varchar;
 
 -- Definition of hive table THIVE_INSERT_VARCHAR
--- Definition current  Thu Aug 25 01:26:53 2016
+-- Definition current  Wed Aug 24 02:44:10 2016
 
   (
     A                                VARCHAR(1 CHAR) CHARACTER SET UTF8 COLLATE

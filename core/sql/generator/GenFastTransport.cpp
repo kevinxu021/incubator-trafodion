@@ -355,7 +355,10 @@ static short ft_codegen(Generator *generator,
   Queue * orcColNameList = new(space) Queue(space);
   if (fastExtract->getHiveNATable())
   {
-    naColArray = &(fastExtract->getHiveNATable()->getNAColumnArray());
+    if (fastExtract->getHiveNATable()->getHiveNAColumnArray().entries() > 0)
+      naColArray = &(fastExtract->getHiveNATable()->getHiveNAColumnArray());
+    else
+      naColArray = &(fastExtract->getHiveNATable()->getNAColumnArray());
 
     if (fastExtract->getHiveNATable()->isORC())
       orcColNameList = new(space) Queue(space);
@@ -376,7 +379,10 @@ static short ft_codegen(Generator *generator,
       ((hiveInsertErrMode = CmpCommon::getDefaultNumeric(HIVE_INSERT_ERROR_MODE)) > 0))
     {
       hiveNATable = fastExtract->getHiveTableDesc()->getNATable();
-      hiveNAColArray = &hiveNATable->getNAColumnArray();
+      if (hiveNATable->getHiveNAColumnArray().entries() > 0)
+        hiveNAColArray = &hiveNATable->getHiveNAColumnArray();
+      else
+        hiveNAColArray = &hiveNATable->getNAColumnArray();
     }
 
   for (i = 0; i < childVals.entries(); i++)
