@@ -496,7 +496,18 @@ Y                                                11878
 --- SQL command prepared.
 >>execute s1;
 
---- 0 row(s) selected.
+*** WARNING[8597] Statement was automatically retried 1 time(s). Delay before each retry was 0 seconds. See next entry for the error that caused this retry. 
+
+*** WARNING[8436] Mismatch detected between compiletime and runtime hive table definitions.
+
+C_PREFERRED_CUST_FLAG             (EXPR)              
+--------------------------------  --------------------
+
+                                                   699
+N                                                 9842
+Y                                                 9459
+
+--- 3 row(s) selected.
 >>-- because we don't invalidate in the executor,
 >>-- this should still return 0 rows
 >>
@@ -516,7 +527,17 @@ Y                                                11878
 >>
 >>execute s1part;
 
---- 0 row(s) selected.
+*** WARNING[8597] Statement was automatically retried 1 time(s). Delay before each retry was 0 seconds. See next entry for the error that caused this retry. 
+
+*** WARNING[8436] Mismatch detected between compiletime and runtime hive table definitions.
+
+C_PREFERRED_CUST_FLAG             (EXPR)              
+--------------------------------  --------------------
+
+N                                                 9789
+Y                                                 9525
+
+--- 2 row(s) selected.
 >>-- because we don't invalidate in the executor,
 >>-- this should still return 0 rows
 >>
@@ -617,7 +638,14 @@ xyz
 --- SQL command prepared.
 >>execute s1;
 
---- 0 row(s) selected.
+C_PREFERRED_CUST_FLAG             (EXPR)              
+--------------------------------  --------------------
+
+                                                   699
+N                                                 9842
+Y                                                 9459
+
+--- 3 row(s) selected.
 >>-- s1 should still return 0 rows - for now
 >>execute s2;
 
@@ -639,7 +667,17 @@ Y                                                11878
 --- 1 row(s) selected.
 >>execute s1part;
 
---- 0 row(s) selected.
+*** WARNING[8597] Statement was automatically retried 1 time(s). Delay before each retry was 0 seconds. See next entry for the error that caused this retry. 
+
+*** WARNING[8436] Mismatch detected between compiletime and runtime hive table definitions.
+
+C_PREFERRED_CUST_FLAG             (EXPR)              
+--------------------------------  --------------------
+
+N                                                12265
+Y                                                11878
+
+--- 2 row(s) selected.
 >>-- s1 should still return 0 rows - for now
 >>execute s2part;
 
