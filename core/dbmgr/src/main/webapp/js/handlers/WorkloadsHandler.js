@@ -45,6 +45,15 @@ define(['handlers/EventDispatcher'],
 				this.DELETE_MAPPING_SUCCESS = 'DELETE_MAPPING_SUCCESS';
 				this.DELETE_MAPPING_ERROR = 'DELETE_MAPPING_ERROR';
 				
+				this.FETCH_TOPN_MAX_MEM_USED_SUCCESS = 'FETCH_TOPN_MAX_MEM_USED_SUCCESS';
+				this.FETCH_TOPN_MAX_MEM_USED_ERROR = 'FETCH_TOPN_MAX_MEM_USED_ERROR';
+				this.FETCH_TOPN_CPU_TIME_SUCCESS = 'FETCH_TOPN_CPU_TIME_SUCCESS';
+				this.FETCH_TOPN_CPU_TIME_ERROR = 'FETCH_TOPN_CPU_TIME_ERROR';
+				this.FETCH_TOPN_Rumtime_SUCCESS = 'FETCH_TOPN_Rumtime_SUCCESS';
+				this.FETCH_TOPN_Rumtime_ERROR = 'FETCH_TOPN_Rumtime_ERROR';
+				this.FETCH_TOPN_DiskIO_SUCCESS = 'FETCH_TOPN_DiskIO_SUCCESS';
+				this.FETCH_TOPN_DiskIO_ERROR = 'FETCH_TOPN_DiskIO_SUCCESS';
+				
 				this.sessionTimeout = function() {
 					window.location.hash = '/stimeout';
 				};
@@ -176,6 +185,102 @@ define(['handlers/EventDispatcher'],
 						},
 						error:function(jqXHR, res, error){
 							dispatcher.fire(_this.FETCH_ACTIVE_QUERY_DETAIL_ERROR, jqXHR, res, error);
+						}
+					});
+				};
+				
+				this.fetchTopMemUsed = function(startTime,endTime){
+					var xhr = xhrs["topN_mem_used"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["topN_mem_used"] = $.ajax({
+						cache: false,
+						url: 'resources/workloads/repo/top_mem_used/'+startTime+"/"+endTime,
+						type:'GET',
+						dataType:"json",
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success: function(data){
+							dispatcher.fire(_this.FETCH_TOPN_MAX_MEM_USED_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.FETCH_TOPN_MAX_MEM_USED_ERROR, jqXHR, res, error);
+						}
+					});
+				};
+				
+				this.fetchTopCPUTime = function(startTime,endTime){
+					var xhr = xhrs["topcpu"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["topcpu"] = $.ajax({
+						cache: false,
+						url: 'resources/workloads/repo/topcpu/'+startTime+"/"+endTime,
+						type:'GET',
+						dataType:"json",
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success: function(data){
+							dispatcher.fire(_this.FETCH_TOPN_CPU_TIME_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.FETCH_TOPN_CPU_TIME_ERROR, jqXHR, res, error);
+						}
+					});
+				};
+				
+				this.fetchTopRuntime = function(startTime,endTime){
+					var xhr = xhrs["topruntime"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["topruntime"] = $.ajax({
+						cache: false,
+						url: 'resources/workloads/repo/topruntime/'+startTime+"/"+endTime,
+						type:'GET',
+						dataType:"json",
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success: function(data){
+							dispatcher.fire(_this.FETCH_TOPN_Rumtime_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.FETCH_TOPN_Rumtime_ERROR, jqXHR, res, error);
+						}
+					});
+				};
+
+				this.fetchTopDiskIO = function(startTime,endTime){
+					var xhr = xhrs["topdiskio"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["topdiskio"] = $.ajax({
+						cache: false,
+						url: 'resources/workloads/repo/topdiskio/'+startTime+"/"+endTime,
+						type:'GET',
+						dataType:"json",
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success: function(data){
+							dispatcher.fire(_this.FETCH_TOPN_DiskIO_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.FETCH_TOPN_DiskIO_ERROR, jqXHR, res, error);
 						}
 					});
 				};

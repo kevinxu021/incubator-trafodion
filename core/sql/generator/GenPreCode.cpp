@@ -4473,7 +4473,9 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
             assignScanInfosRepN(hiveSearchKey_);
         else {
           ((NodeMap *) getPartFunc()->getNodeMap()) ->
-              assignScanInfos(hiveSearchKey_);
+            assignScanInfos(
+                 hiveSearchKey_,
+                 CmpCommon::getDefaultLong(HIVE_LOCALITY_BALANCE_LEVEL));
         }
       }
 
@@ -6258,6 +6260,8 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
        (childRelExpr->getOperatorType() == REL_HBASE_ACCESS)))
     {
       scan = (FileScan*)childRelExpr;
+      const HivePartitionAndBucketKey *hiveSearchKey =
+        hiveSearchKey = scan->getHiveSearchKey();
 
       if ((NOT aggregateExpr().isEmpty()) &&
           (groupExpr().isEmpty()) &&
@@ -6268,7 +6272,9 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
           ((scan->getTableName().getSpecialType() == ExtendedQualName::NORMAL_TABLE) ||
            (scan->getTableName().getSpecialType() == ExtendedQualName::INDEX_TABLE)) &&
           !scan->getTableName().isPartitionNameSpecified() &&
-          !scan->getTableName().isPartitionRangeSpecified())
+          !scan->getTableName().isPartitionRangeSpecified() &&
+          (hiveSearchKey == NULL ||
+           hiveSearchKey->getPartAndVirtColPreds().entries() == 0))
         {
           aggrPushdown = TRUE;
         }
@@ -6310,40 +6316,46 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
 	   aggregateExpr().advance(valId)) 
         {
           ItemExpr * ae = valId.getItemExpr();
+
           if ((isSeabase) &&
               (ae->getOperatorType() == ITM_COUNT) &&
               (ae->origOpType() == ITM_COUNT_STAR__ORIGINALLY) &&
               (NOT generator->preCodeGenParallelOperator()))
             continue;
 
-          if ((isOrc) &&
-              (NOT (((ae->getOperatorType() == ITM_COUNT) ||
-                     (ae->getOperatorType() == ITM_MIN) ||
-                     (ae->getOperatorType() == ITM_MAX) ||
-                     (ae->getOperatorType() == ITM_SUM) ||
-                     (ae->getOperatorType() == ITM_ORC_MAX_NV) ||
-                     (ae->getOperatorType() == ITM_ORC_SUM_NV) ||
-                     (ae->getOperatorType() == ITM_COUNT_NONULL)))
-               ) ||
-              (generator->preCodeGenParallelOperator())
-             )
-            {
-              aggrPushdown = FALSE;
-              continue;
-            }
-
-          // ORC either returns count of all rows or count of column values
-          // after removing null and duplicate values.
-          // It doesn't return a count with only null values removed.
-          if (ae->getOperatorType() == ITM_COUNT_NONULL)
-            {
-              aggrPushdown = FALSE;
-              continue;
-            }
-
-          const NAType &aggrType = valId.getType();
           if (isOrc)
             {
+              const NAType &aggrType = valId.getType();
+
+              // test operator type and child
+              switch (ae->getOperatorType())
+                {
+                case ITM_COUNT:
+                  break;
+
+                case ITM_MIN:
+                case ITM_MAX:
+                case ITM_SUM:
+                case ITM_ORC_MAX_NV:
+                case ITM_ORC_SUM_NV:
+                  {
+                    // the child must be an ORC column
+                    const NAColumn *nac =
+                      ae->child(0)->getValueId().getNAColumn(TRUE);
+
+                    if (!nac ||
+                        nac->isHivePartColumn() ||
+                        nac->isHiveVirtualColumn())
+                      aggrPushdown = FALSE;
+                  }
+                  break;
+
+                default:
+                  // other aggregate functions not supported
+                  aggrPushdown = FALSE;
+                  break;
+                }
+
               if (aggrType.getTypeQualifier() == NA_CHARACTER_TYPE)
                 continue;
               
@@ -6353,8 +6365,10 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
 
               if (aggrType.getTypeQualifier() == NA_DATETIME_TYPE)
                 continue;
-             }
+            }
 
+          // to be valid, we have to hit at least one of the continue
+          // statements above
           aggrPushdown = FALSE;
         }
     }
@@ -6454,9 +6468,8 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
         }
       else
         {
-          FileScan* fScan = dynamic_cast<FileScan*>(scan);
           eue = new(CmpCommon::statementHeap())
-            OrcPushdownAggr(aggregateExpr(), scan->getTableDesc(), fScan->getHiveSearchKey());
+            OrcPushdownAggr(aggregateExpr(), scan->getTableDesc(), scan->getHiveSearchKey());
           if (NOT selectionPred().isEmpty())
             {
               eue->setSelectionPredicates(selectionPred());
@@ -6468,6 +6481,43 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
       eue->setInputCardinality(getInputCardinality());
       eue->setPhysicalProperty(scan->getPhysicalProperty());
       eue->setGroupAttr(getGroupAttr());
+
+      PartitioningFunction *partFunc =
+        scan->getPhysicalProperty()->getPartitioningFunction();
+
+      if (isSeabase)
+        eue->setPhysicalProperty(scan->getPhysicalProperty());
+      else
+        {
+          // replace the node map with one that does not split
+          // ORC files, since we want to read the file-level aggregates
+          PhysicalProperty *newPhysProp = NULL;
+          NodeMap *newNodeMap = new(CmpCommon::statementHeap()) NodeMap(
+               CmpCommon::statementHeap(),
+               partFunc->getCountOfPartitions(),
+               NodeMapEntry::ACTIVE,
+               NodeMap::HIVE);
+
+          // assign files of the table to scan to the node map,
+          // but don't split any files (balance level -1),
+          // note that the locality decision is still made based
+          // on the HIVE_LOCALITY_BALANCE_LEVEL CQD
+          newNodeMap->assignScanInfos(scan->getHiveSearchKey(), -1);
+
+          // replace the node map with the newly generated one...
+          partFunc = partFunc->copy();
+          partFunc->replaceNodeMap(newNodeMap);
+
+          // ...and replace the partitioning function in the physical
+          // properties with this new one
+          newPhysProp = new(CmpCommon::statementHeap()) PhysicalProperty(
+               *scan->getPhysicalProperty(),
+               scan->getPhysicalProperty()->getSortKey(),
+               scan->getPhysicalProperty()->getSortOrderType(),
+               NULL,
+               partFunc);
+          eue->setPhysicalProperty(newPhysProp);
+        }
 
       newNode = eue->bindNode(generator->getBindWA());
       if (generator->getBindWA()->errStatus())

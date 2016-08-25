@@ -2194,7 +2194,8 @@ NABoolean NodeMap::printMsgToLog(const char* indent, const char* msg) const
 //                              OFF: Keep HDFS hosts for blocks randomized
 //
 // ------------------------------------------------------------------------
-void NodeMap::assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey)
+void NodeMap::assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey,
+                              int balanceLevel)
 {
   Int32 numESPs = (Int32) getNumEntries();
   NABoolean useLocality = useLocalityForHiveScanInfo();
@@ -2209,7 +2210,6 @@ void NodeMap::assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey)
   Int64 totalBytesAssigned = 0;
   Int64 *espDistribution = new(CmpCommon::statementHeap()) Int64[numESPs];
   Int32 numSQNodes = HHDFSMasterHostList::getNumSQNodes();
-  Int32 balanceLevel = CmpCommon::getDefaultLong(HIVE_LOCALITY_BALANCE_LEVEL);
   Int32 nextDefaultPartNum = numESPs/2;
 
   if (numSQNodes == 0)
@@ -2250,13 +2250,15 @@ void NodeMap::assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey)
       // balance things more by using 2nd and further replicas
       balanceScanInfos(hiveSearchKey,
                        totalBytesAssigned,
-                       espDistribution);
+                       espDistribution,
+                       balanceLevel);
     }
 }
 
 void NodeMap::balanceScanInfos(HivePartitionAndBucketKey *hiveSearchKey,
                                Int64 totalBytesToRead,
-                               Int64 *&espDistribution)
+                               Int64 *&espDistribution,
+                               int balanceLevel)
 {
   // Balance levels:
   // -1: Don't split HDFS files (no locality)
@@ -2272,7 +2274,6 @@ void NodeMap::balanceScanInfos(HivePartitionAndBucketKey *hiveSearchKey,
   //
   // Note that unlike assignScanInfos(), this method looks at primary as well
   // as alternate hosts of the involved HDFS blocks.
-  Int32 balanceLevel = CmpCommon::getDefaultLong(HIVE_LOCALITY_BALANCE_LEVEL);
   NABoolean logIt = printMsgToLog(DEFAULT_INDENT, "NodeMap before balancing");
 
   if (logIt)

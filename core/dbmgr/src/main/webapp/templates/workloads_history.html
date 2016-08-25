@@ -30,20 +30,6 @@
 			<h3 class="page-header">Historical Workloads</h3>
 		</div>
 	</div>
-	<div class="row">
-		<div class="col-lg-12">
-			<div class="panel panel-default">
-				<div class="panel-heading">
-					Queries in Repository<img id="loadingImg" src="img/ajax-loader.gif" />
-
-				</div>
-				<div class="panel-body">
-					<div id="repo-result-container" class="table-responsive"></div>
-					<label id="repo-error-text" class="dbmgr-error-text"></label>
-				</div>
-			</div>
-		</div>
-	</div>
 	<div class="modal fade" id="filterDialog" tabindex="-1" role="dialog"
 		aria-labelledby="filterDialogLabel" data-backdrop="static" data-keyboard="false">
 		<div class="modal-dialog" role="document" style="overflow:auto;height:800px;font-size:13px">
@@ -145,6 +131,80 @@
 					<input id="filterApplyButton" class="submit btn btn-primary"
 						type="submit" value="Apply">
 					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="row row-eq-height">
+		<div class="col-md-6 dbmgr-ent">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<div class="btn-toolbar">
+						<i class="fa fa-bar-chart-o fa-fw"></i> Top N Memory Used<img
+							id="memory-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />	
+					</div>	
+				</div>
+				<div class="panel-body">
+					<div id="topN-memory-chart" class="dbmgr-graph"></div>
+					<label id="topN-memory-error-text" class="dbmgr-error-text" style="display:none;"></label>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-6 dbmgr-ent">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<div class="btn-toolbar">
+						<i class="fa fa-bar-chart-o fa-fw"></i> Top N CPU Time<img
+							id="cpu-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />
+					</div>	
+				</div>
+				<div class="panel-body">
+					<div id="topN-cpu-chart" class="dbmgr-graph"></div>
+					<label id="topN-cpu-error-text" class="dbmgr-error-text" style="display:none;"></label>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="row row-eq-height">
+		<div class="col-md-6 dbmgr-ent">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<div class="btn-toolbar">
+						<i class="fa fa-bar-chart-o fa-fw"></i> Top N Disk IO<img
+							id="diskio-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />	
+					</div>	
+				</div>
+				<div class="panel-body">
+					<div id="topN-diskio-chart" class="dbmgr-graph"></div>
+					<label id="topN-diskio-error-text" class="dbmgr-error-text" style="display:none;"></label>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-6 dbmgr-ent">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<div class="btn-toolbar">
+						<i class="fa fa-bar-chart-o fa-fw"></i> Top N Total Run Time<img
+							id="runtime-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />
+					</div>					
+				</div>
+				<div class="panel-body">
+					<div id="topN-runtime-chart" class="dbmgr-graph"></div>
+					<label id="topN-runtime-error-text" class="dbmgr-error-text" style="display:none;"></label>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-lg-12">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					Queries in Repository<img id="loadingImg" src="img/ajax-loader.gif" />
+
+				</div>
+				<div class="panel-body">
+					<div id="repo-result-container" class="table-responsive"></div>
+					<label id="repo-error-text" class="dbmgr-error-text"></label>
 				</div>
 			</div>
 		</div>
