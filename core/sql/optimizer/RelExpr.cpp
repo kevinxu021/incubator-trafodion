@@ -6636,6 +6636,23 @@ const NAString Intersect::getText() const
 }
 
 // -----------------------------------------------------------------------
+// // member functions for class Except
+// // -----------------------------------------------------------------------
+Except::Except(RelExpr *leftChild,
+             RelExpr *rightChild)
+: RelExpr(REL_EXCEPT, leftChild, rightChild)
+{ setNonCacheable(); }
+
+Except::~Except() {}
+
+Int32 Except::getArity() const { return 2; }
+
+const NAString Except::getText() const
+{
+  return "except";
+}
+
+// -----------------------------------------------------------------------
 // member functions for class Union
 // -----------------------------------------------------------------------
 Union::Union(RelExpr *leftChild,
@@ -10059,12 +10076,12 @@ void FileScan::addLocalExpr(LIST(ExprNode *) &xlist,
       llist.insert("part_key_predicates");
     }
 
-  if (NOT getBeginKeyPred().isEmpty())
+  if (NOT getBeginKeyPred().isEmpty() && NOT isHiveTable())
     {
       xlist.insert(getBeginKeyPred().rebuildExprTree());
       llist.insert("begin_key");
     }
-  if (NOT getEndKeyPred().isEmpty())
+  if (NOT getEndKeyPred().isEmpty() && NOT isHiveTable())
     {
       xlist.insert(getEndKeyPred().rebuildExprTree());
       llist.insert("end_key");
@@ -14851,11 +14868,10 @@ void Scan::computeMyRequiredResources(RequiredResources & reqResources, EstLogPr
                 computeCpuResourceForIndexJoinScans(tableId);
 
   CostScalar cpuResourcesRequired = cpuCostIndexOnlyScan;
-  if ( getTableDesc()->getNATable()->isHbaseTable()) 
-  {
-     if ( cpuCostIndexJoinScan < cpuResourcesRequired )
-       cpuResourcesRequired = cpuCostIndexJoinScan;
-  } 
+
+
+  if ( cpuCostIndexJoinScan < cpuResourcesRequired )
+    cpuResourcesRequired = cpuCostIndexJoinScan;
 
   CostScalar dataAccessCost = tAnalysis->getFactTableNJAccessCost();
   if(dataAccessCost < 0)
@@ -14871,6 +14887,11 @@ void Scan::computeMyRequiredResources(RequiredResources & reqResources, EstLogPr
       tAnalysis->computeDataAccessCostForTable(numOfProbes, rowsToScan);
   }
 
+  if ( getTableDesc()->getNATable()->isHbaseTable()) 
+    reqResources.incrementNumOfHBaseTables();
+
+  if ( getTableDesc()->getNATable()->isHiveTable()) 
+    reqResources.incrementNumOfHiveTables();
 
   CostScalar myMaxCard = getGroupAttr()->getResultMaxCardinalityForInput(inLP);
   reqResources.accumulate(csZero, cpuResourcesRequired, 
@@ -15030,7 +15051,22 @@ Lng32 FileScan::getTotalColumnWidthForExecPreds() const
   const TableAnalysis* tAnalysis = tdesc->getTableAnalysis();
   const ValueIdSet & usedCols = tAnalysis->getUsedCols() ;
 
-  return usedCols.getRowLength();
+  if ( isHiveOrcTable() ) {
+     Lng32 lengthForNonChars = usedCols.getRowLengthOfNonCharColumns();
+     Lng32 numOfcharCols = usedCols.getNumOfCharColumns();
+
+     const HHDFSTableStats* hdfsStats =
+             getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
+
+     const NAColumnArray &nac = 
+          getIndexDesc()->getNAFileSet()->getAllColumns();
+
+     Lng32 avgLengthPerRow = hdfsStats->getAvgStringLengthPerRow();
+
+     return lengthForNonChars + avgLengthPerRow * (numOfcharCols / nac.entries());
+  }
+  else
+     return usedCols.getRowLength();
 }
 
 // This function checks if the passed RelExpr is a UDF rule created by a CQS
@@ -15750,3 +15786,4 @@ NABoolean GroupByAgg::decideFeasibleToTransformForAggrPushdown()
 
   return aggrPushdown;
 }
+

@@ -3614,8 +3614,26 @@ ex_expr::exp_return_type ex_expr::evalPCode(PCodeBinary* pCode32,
      break;
     }
 
+    case PCIT::MOVE_MBIN16S_MBIN8S:
+      MOVE_INSTR( Int16, Int8 );
+
+    case PCIT::MOVE_MBIN16U_MBIN8U:
+      MOVE_INSTR( UInt16, UInt8 );
+
     case PCIT::MOVE_MBIN16U_MBIN8:
       MOVE_INSTR( UInt16, UInt8 );
+
+    case PCIT::MOVE_MBIN32S_MBIN8S:
+      MOVE_INSTR( Int32, Int8 );
+
+    case PCIT::MOVE_MBIN32U_MBIN8U:
+      MOVE_INSTR( UInt32, UInt8 );
+
+    case PCIT::MOVE_MBIN64S_MBIN8S:
+      MOVE_INSTR( Int64, Int8 );
+
+    case PCIT::MOVE_MBIN64U_MBIN8U:
+      MOVE_INSTR( UInt64, UInt8 );
 
     case PCIT::MOVE_MBIN32U_MBIN16U:
       MOVE_INSTR( UInt32, UInt16 );
@@ -3652,6 +3670,15 @@ ex_expr::exp_return_type ex_expr::evalPCode(PCodeBinary* pCode32,
       
     case PCIT::MOVE_MBIN64S_MBIN64S:
       MOVE_INSTR( Int64 , Int64 );
+
+    case PCIT::MOVE_MBIN64S_MBIN64U:
+      MOVE_INSTR( Int64 , UInt64 );
+
+    case PCIT::MOVE_MBIN64U_MBIN64S:
+      MOVE_INSTR( UInt64 , Int64 );
+
+    case PCIT::MOVE_MBIN64U_MBIN64U:
+      MOVE_INSTR( UInt64 , UInt64 );
 
     case PCIT::MOVE_MBIN64S_MDECS_IBIN32S:
       {
@@ -5350,6 +5377,153 @@ ex_expr::exp_return_type ex_expr::evalPCode(PCodeBinary* pCode32,
     }
 
   
+    case PCIT::EQ_MBIN32S_MBIN8S_MBIN8S:
+    {
+      PTR_DEF_ASSIGN(Int32, result, 0 );
+      PTR_DEF_ASSIGN(Int8, x, 2 );
+      PTR_DEF_ASSIGN(Int8, y, 4 );
+
+      *result = (*x == *y);
+
+      pCode += 6;
+      break;
+    }
+
+    case PCIT::NE_MBIN32S_MBIN8S_MBIN8S:
+    {
+      PTR_DEF_ASSIGN(Int32, result, 0 );
+      PTR_DEF_ASSIGN(Int8, x, 2 );
+      PTR_DEF_ASSIGN(Int8, y, 4 );
+
+      *result = (*x != *y);
+
+      pCode += 6;
+      break;
+    }
+
+    case PCIT::LT_MBIN32S_MBIN8S_MBIN8S:
+    {
+      PTR_DEF_ASSIGN(Int32, result, 0 );
+      PTR_DEF_ASSIGN(Int8, x, 2 );
+      PTR_DEF_ASSIGN(Int8, y, 4 );
+
+      *result = (*x < *y);
+
+      pCode += 6;
+      break;
+    }
+
+    case PCIT::GT_MBIN32S_MBIN8S_MBIN8S:
+    {
+      PTR_DEF_ASSIGN(Int32, result, 0 );
+      PTR_DEF_ASSIGN(Int8, x, 2 );
+      PTR_DEF_ASSIGN(Int8, y, 4 );
+
+      *result = (*x > *y);
+
+      pCode += 6;
+      break;
+    }
+
+    case PCIT::LE_MBIN32S_MBIN8S_MBIN8S:
+    {
+      PTR_DEF_ASSIGN(Int32, result, 0 );
+      PTR_DEF_ASSIGN(Int8, x, 2 );
+      PTR_DEF_ASSIGN(Int8, y, 4 );
+
+      *result = (*x <= *y);
+
+      pCode += 6;
+      break;
+    }
+
+    case PCIT::GE_MBIN32S_MBIN8S_MBIN8S:
+    {
+      PTR_DEF_ASSIGN(Int32, result, 0 );
+      PTR_DEF_ASSIGN(Int8, x, 2 );
+      PTR_DEF_ASSIGN(Int8, y, 4 );
+
+      *result = (*x >= *y);
+
+      pCode += 6;
+      break;
+    }
+
+
+    case PCIT::EQ_MBIN32S_MBIN8U_MBIN8U:
+    {
+      PTR_DEF_ASSIGN(Int32, result, 0 );
+      PTR_DEF_ASSIGN(UInt8, x, 2 );
+      PTR_DEF_ASSIGN(UInt8, y, 4 );
+
+      *result = (*x == *y);
+
+      pCode += 6;
+      break;
+    }
+
+    case PCIT::NE_MBIN32S_MBIN8U_MBIN8U:
+    {
+      PTR_DEF_ASSIGN(Int32, result, 0 );
+      PTR_DEF_ASSIGN(UInt8, x, 2 );
+      PTR_DEF_ASSIGN(UInt8, y, 4 );
+
+      *result = (*x != *y);
+
+      pCode += 6;
+      break;
+    }
+
+    case PCIT::LT_MBIN32S_MBIN8U_MBIN8U:
+    {
+      PTR_DEF_ASSIGN(Int32, result, 0 );
+      PTR_DEF_ASSIGN(UInt8, x, 2 );
+      PTR_DEF_ASSIGN(UInt8, y, 4 );
+
+      *result = (*x < *y);
+
+      pCode += 6;
+      break;
+    }
+
+    case PCIT::GT_MBIN32S_MBIN8U_MBIN8U:
+    {
+      PTR_DEF_ASSIGN(Int32, result, 0 );
+      PTR_DEF_ASSIGN(UInt8, x, 2 );
+      PTR_DEF_ASSIGN(UInt8, y, 4 );
+
+      *result = (*x > *y);
+
+      pCode += 6;
+      break;
+    }
+
+    case PCIT::LE_MBIN32S_MBIN8U_MBIN8U:
+    {
+      PTR_DEF_ASSIGN(Int32, result, 0 );
+      PTR_DEF_ASSIGN(UInt8, x, 2 );
+      PTR_DEF_ASSIGN(UInt8, y, 4 );
+
+      *result = (*x <= *y);
+
+      pCode += 6;
+      break;
+    }
+
+    case PCIT::GE_MBIN32S_MBIN8U_MBIN8U:
+    {
+      PTR_DEF_ASSIGN(Int32, result, 0 );
+      PTR_DEF_ASSIGN(UInt8, x, 2 );
+      PTR_DEF_ASSIGN(UInt8, y, 4 );
+
+      *result = (*x >= *y);
+
+      pCode += 6;
+      break;
+    }
+
+
+
     case PCIT::EQ_MBIN32S_MBIN16U_MBIN16S:
     {
       PTR_DEF_ASSIGN(Int32, result, 0 );
@@ -6077,6 +6251,40 @@ ex_expr::exp_return_type ex_expr::evalPCode(PCodeBinary* pCode32,
       break;
     }
 
+    case PCIT::ENCODE_MASCII_MBIN8S_IBIN32S:
+      {
+	PTR_DEF_ASSIGN(Int8, outputPtr, 0 );
+	PTR_DEF_ASSIGN(Int8, resultPtr, 2 );
+	DEF_ASSIGN(Int32, bitwiseNOT,   4 );
+	Int8 result = *resultPtr;
+
+	result ^= 0x80;
+
+	if ( bitwiseNOT ) 
+          result = ~result;
+
+	* outputPtr = result ;
+
+	pCode += 5;
+      }
+      break;
+
+    case PCIT::ENCODE_MASCII_MBIN8U_IBIN32S:
+      {
+	PTR_DEF_ASSIGN(Int8, outputPtr, 0 );
+	PTR_DEF_ASSIGN(Int8, resultPtr, 2 );
+	DEF_ASSIGN(Int32, bitwiseNOT , 4 );
+	UInt8 result = *resultPtr;
+
+	if ( bitwiseNOT ) 
+          result = ~result;
+
+	* outputPtr = result ;
+
+	pCode += 5;
+      }
+      break;
+
     case PCIT::ENCODE_MASCII_MBIN16S_IBIN32S:
       {
 	PTR_DEF_ASSIGN(Int16, outputPtr, 0 );
@@ -6594,6 +6802,41 @@ ex_expr::exp_return_type ex_expr::evalPCode(PCodeBinary* pCode32,
       pCode += RANGE_INST_LEN;
       break;
     }
+    case PCIT::RANGE_LOW_S8S64:
+    {
+      DEF_ASSIGN(Lng32, op, RANGE_INST_LEN );  // the next op
+      PTR_DEF_ASSIGN(Int8, valPtr, 0 );
+      PTR_TO_PCODE(Int64, minvalPtr, 2 );
+
+      if ( *valPtr < *minvalPtr )
+	{
+	  goto Error1_;
+	}
+
+      pCode += RANGE_INST_LEN;
+
+      if (op != PCIT::RANGE_HIGH_S8S64) {
+        break;
+      }
+
+      pCode++;
+      //
+      // Do NOT break here...
+      // The next instruction is a matching RANGE_HIGH
+    }
+
+    case PCIT::RANGE_HIGH_S8S64:
+    {
+      PTR_DEF_ASSIGN(Int8, valPtr, 0 );
+      PTR_TO_PCODE(Int64, maxvalPtr, 2 );
+      if ( *valPtr > *maxvalPtr )
+        {
+          goto Error1_;
+        }
+      pCode += RANGE_INST_LEN;
+      break;
+    }  
+
     case PCIT::RANGE_LOW_S16S64:
     {
       DEF_ASSIGN(Lng32, op, RANGE_INST_LEN );  // the next op
@@ -6664,6 +6907,43 @@ ex_expr::exp_return_type ex_expr::evalPCode(PCodeBinary* pCode32,
       pCode += RANGE_INST_LEN;
       break;
     }
+
+    case PCIT::RANGE_LOW_U8S64:
+    {
+      DEF_ASSIGN(Lng32, op, RANGE_INST_LEN );  // the next op
+      PTR_DEF_ASSIGN(UInt8, valPtr, 0 );
+      PTR_TO_PCODE(Int64, minvalPtr, 2 );
+
+      if ( *valPtr < *minvalPtr )
+        {
+	  goto Error1_;
+        }
+
+      pCode += RANGE_INST_LEN;
+
+      if (op != PCIT::RANGE_HIGH_U8S64) {
+        break;
+      }
+
+      pCode++;
+      //
+      // Do NOT break here...
+      // The next instruction is a matching RANGE_HIGH
+    }
+
+    case PCIT::RANGE_HIGH_U8S64:
+    {
+      PTR_DEF_ASSIGN(UInt8, valPtr, 0 );
+      PTR_TO_PCODE(Int64, maxvalPtr, 2 );
+
+      if ( *valPtr > *maxvalPtr )
+        {
+	  goto Error1_;
+        }
+      pCode += RANGE_INST_LEN;
+      break;
+    }
+
     case PCIT::REPLACE_NULL_MATTR3_MBIN32S:
     case PCIT::REPLACE_NULL_MATTR3_MBIN32U:
     case PCIT::REPLACE_NULL_MATTR3_MBIN16S: 
@@ -6760,6 +7040,18 @@ ex_expr::exp_return_type ex_expr::evalPCode(PCodeBinary* pCode32,
       break;
     }
     
+    case PCIT::NEGATE_MASCII_MASCII:
+    {
+      PTR_DEF_ASSIGN(char, result, 0 );
+      PTR_DEF_ASSIGN(char, op1, 2 );
+      if (*(Int8*)op1 == 1)
+        *(Int8*)result = 0;
+      else 
+        *(Int8*)result = 1;
+      pCode += 4;
+      break;
+    }
+
     case PCIT::RANGE_MFLT64:
     {
       double flt64_1;
@@ -8058,7 +8350,7 @@ ex_expr::exp_return_type ex_expr::evalPCode(PCodeBinary* pCode32,
     };
   };
   
-					    Error1_:
+ Error1_:
   return reportOverflowError(atp1, pCodeOpcPtr, pCode, stack);
 					    
 					    Error2_:
@@ -8189,19 +8481,6 @@ ex_expr::exp_return_type ex_expr_base::reportOverflowError(
 
       break;
 
-    case PCIT::RANGE_LOW_U32S64:
-    case PCIT::RANGE_LOW_U16S64:
-    case PCIT::RANGE_HIGH_S64S64:
-    case PCIT::RANGE_HIGH_S32S64:
-    case PCIT::RANGE_HIGH_U32S64:
-    case PCIT::RANGE_HIGH_S16S64:
-    case PCIT::RANGE_HIGH_U16S64:
-      op1 = ((char*)(stack[pCode[0]] + pCode[1]));
-      op2 = (char*)(&pCode[2]);
-      ovfl = EXE_NUMERIC_OVERFLOW;
-
-      break;
-
     case PCIT::RANGE_LOW_S16S64:
       op1 = ((char*)(stack[pCode[0]] + pCode[1]));
       op2 = (char*)(&pCode[2]);
@@ -8214,6 +8493,37 @@ ex_expr::exp_return_type ex_expr_base::reportOverflowError(
       else {
         ovfl = EXE_NUMERIC_OVERFLOW;
       }
+
+      break;
+
+    case PCIT::RANGE_LOW_S8S64:
+      op1 = ((char*)(stack[pCode[0]] + pCode[1]));
+      op2 = (char*)(&pCode[2]);
+
+      if (((*((Int8*)(stack[pCode[0]]+pCode[1]))) < 0) &&
+          ((*(Int64*)&pCode[2]) >= 0))
+      { // conversion of -ve num to unsigned field
+        ovfl = EXE_UNSIGNED_OVERFLOW;
+      }
+      else {
+        ovfl = EXE_NUMERIC_OVERFLOW;
+      }
+
+      break;
+
+    case PCIT::RANGE_LOW_U32S64:
+    case PCIT::RANGE_LOW_U16S64:
+    case PCIT::RANGE_LOW_U8S64:
+    case PCIT::RANGE_HIGH_S64S64:
+    case PCIT::RANGE_HIGH_S32S64:
+    case PCIT::RANGE_HIGH_U32S64:
+    case PCIT::RANGE_HIGH_S16S64:
+    case PCIT::RANGE_HIGH_U16S64:
+    case PCIT::RANGE_HIGH_S8S64:
+    case PCIT::RANGE_HIGH_U8S64:
+      op1 = ((char*)(stack[pCode[0]] + pCode[1]));
+      op2 = (char*)(&pCode[2]);
+      ovfl = EXE_NUMERIC_OVERFLOW;
 
       break;
 
@@ -8238,9 +8548,10 @@ ex_expr::exp_return_type ex_expr_base::reportOverflowError(
       break;
 
     case PCIT::GENFUNC_MATTR5_MATTR5_MBIN32S_IBIN32S:
-      op1 = ((char*)(stack[pCode[10]] + pCode[11]));
-      op2 = ((char*)(stack[pCode[10]] + pCode[11]));
-      ovfl = EXE_NUMERIC_OVERFLOW;
+      ExRaiseFunctionSqlError(getHeap(), &diagsArea, EXE_STRING_OVERFLOW,FALSE);
+      if(diagsArea != atp1->getDiagsArea())
+        atp1->setDiagsArea(diagsArea);
+      return ex_expr::EXPR_ERROR;
       break;
 
     case PCIT::CONCAT_MATTR5_MATTR5_MATTR5:

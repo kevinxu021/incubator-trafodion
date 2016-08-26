@@ -86,6 +86,7 @@ public:
   //
   Cost* scmComputeCostForSingleSubset();
 
+  NABoolean canEliminatePartitionsForHive();
 
 private:
 
@@ -136,8 +137,11 @@ private:
   //
   NABoolean isLogicalSubPartitioned() const;
 
-  // does leading key column has predicate?
+  // is the leading key column covered by the single subset predicate?
   NABoolean isLeadingKeyColCovered();
+
+  // is the leading hive sort key column covered by the single subset predicate?
+  NABoolean isLeadingHiveSortKeyColCovered();
   
   // Get any extra key predicates from the partitioning function.  The
   // partitioning function will provide extra key predicates when it
@@ -564,6 +568,7 @@ private:
   CostScalar getProbeCacheCostAdjFactor() const;
   NABoolean  isProbeCacheApplicable() const;
 
+private:
   // Private Data members -
   // Cache these values from IndexDesc in this class.
   //
@@ -589,6 +594,11 @@ private:
   SearchKey *searchKey_;
 
   
+  // 
+  // Is the leading non-constant, non-salt, or non-divisioning key 
+  // column covered by the single subset predicate?
+  NABoolean isLeadingKeyColCovered(const ValueIdList *Keys);
+
   // Private inline accessors to local datamembers
   // For Multiprobe scans
   //

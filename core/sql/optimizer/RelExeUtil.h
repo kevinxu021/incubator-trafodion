@@ -122,7 +122,7 @@ public:
 
   virtual NABoolean producesOutput() { return FALSE; }
   virtual const char 	*getVirtualTableName() { return NULL;};
-  virtual desc_struct 	*createVirtualTableDesc() { return NULL;};
+  virtual TrafDesc 	*createVirtualTableDesc() { return NULL;};
   TableDesc * getVirtualTableDesc() const
   {
     return virtualTabId_;
@@ -230,6 +230,7 @@ public:
     isCreate_(FALSE), isCreateLike_(FALSE), isVolatile_(FALSE), 
     isDrop_(FALSE), isAlter_(FALSE), isCleanup_(FALSE),
     isTable_(FALSE), isIndex_(FALSE), isMV_(FALSE), isView_(FALSE),
+    isSchema_(FALSE),
     isLibrary_(FALSE), isRoutine_(FALSE),
     isUstat_(FALSE),
     isHbase_(FALSE),
@@ -242,6 +243,7 @@ public:
     dropAuthorization_(FALSE),
     addSeqTable_(FALSE),
     addSchemaObjects_(FALSE),
+    minimal_(FALSE),
     returnStatus_(FALSE),
     backupTagTimeStamp_(FALSE),
     flags_(0)
@@ -256,6 +258,7 @@ public:
 	 NABoolean createMDviews, NABoolean dropMDviews,
          NABoolean initAuthorization, NABoolean dropAuthorization,
 	 NABoolean addSeqTable, NABoolean updateVersion, NABoolean addSchemaObjects,
+         NABoolean minimal,
 	 char * ddlStmtText,
 	 CharInfo::CharSet ddlStmtTextCharSet,
 	  CollHeap *oHeap = CmpCommon::statementHeap())
@@ -269,6 +272,7 @@ public:
     isCreate_(FALSE), isCreateLike_(FALSE), isVolatile_(FALSE), 
     isDrop_(FALSE), isAlter_(FALSE), isCleanup_(FALSE),
     isTable_(FALSE), isIndex_(FALSE), isMV_(FALSE), isView_(FALSE),
+    isSchema_(FALSE),
     isLibrary_(FALSE), isRoutine_(FALSE),
     isUstat_(FALSE),
     isHbase_(FALSE),
@@ -281,6 +285,7 @@ public:
     dropAuthorization_(dropAuthorization),
     addSeqTable_(addSeqTable),
     addSchemaObjects_(addSchemaObjects),
+    minimal_(minimal),
     returnStatus_(FALSE),
     backupTagTimeStamp_(FALSE),
     flags_(0)
@@ -309,6 +314,7 @@ public:
     isCreate_(FALSE), isCreateLike_(FALSE), isVolatile_(FALSE), 
     isDrop_(FALSE), isAlter_(FALSE), isCleanup_(FALSE),
     isTable_(FALSE), isIndex_(FALSE), isMV_(FALSE), isView_(FALSE),
+    isSchema_(FALSE),
     isUstat_(FALSE),
     isHbase_(FALSE),
     isNative_(FALSE),
@@ -320,6 +326,7 @@ public:
     dropAuthorization_(FALSE),
     addSeqTable_(FALSE),
     addSchemaObjects_(FALSE),
+    minimal_(FALSE),
     returnStatus_(FALSE),
     backupTagTimeStamp_(FALSE),
     flags_(0)
@@ -354,7 +361,7 @@ public:
 
   virtual NABoolean producesOutput() { return returnStatus_;}
   virtual const char 	*getVirtualTableName();
-  virtual desc_struct 	*createVirtualTableDesc();
+  virtual TrafDesc 	*createVirtualTableDesc();
 
   ExprNode * getDDLNode(){return getExprNode();};
 
@@ -393,6 +400,7 @@ public:
   NABoolean dropAuthorization() { return dropAuthorization_; }
   NABoolean addSeqTable() { return addSeqTable_; }
   NABoolean addSchemaObjects() { return addSchemaObjects_; }
+  NABoolean minimal() { return minimal_; }
 
   short ddlXnsInfo(NABoolean &ddlXns, NABoolean &xnCanBeStarted);
 
@@ -451,6 +459,9 @@ public:
   void setRestore(NABoolean v)
   {(v ? flags_ |= RESTORE : flags_ &= ~RESTORE); }
   NABoolean restore() { return (flags_ & RESTORE) != 0;}
+  void setDeleteBackup(NABoolean v)
+  {(v ? flags_ |= DELETE_BACKUP : flags_ &= ~DELETE_BACKUP); }
+  NABoolean deleteBackup() { return (flags_ & DELETE_BACKUP) != 0;}
   
   NABoolean ddlXns() { return ddlXns_; }
 
@@ -467,9 +478,10 @@ public:
     CREATE_LIBMGR           = 0x0080,
     DROP_LIBMGR             = 0x0100,
     UPGRADE_LIBMGR          = 0x0200,
-    BACKUP		    		      = 0x0400,
+    BACKUP		    		= 0x0400,
     RESTORE                 = 0x0800,
-    UNLOCK_TRAF             = 0x1000
+    UNLOCK_TRAF             = 0x1000,
+    DELETE_BACKUP           = 0x2000
   };
 
   // see method processSpecialDDL in sqlcomp/parser.cpp
@@ -490,6 +502,7 @@ public:
   NABoolean isCreate_;
   NABoolean isCreateLike_;
   NABoolean isVolatile_;
+  NABoolean isSchema_;
   NABoolean isTable_;
   NABoolean isIndex_;
   NABoolean isMV_;
@@ -509,6 +522,8 @@ public:
   NABoolean dropAuthorization_;
   NABoolean addSeqTable_;
   NABoolean addSchemaObjects_;
+  NABoolean minimal_;  // meaningful only when initHbase_ is true; if this is true,
+                       // means create the metadata tables only (and not repository etc.)
 
   // if set, this ddl cannot run under a user transaction. It must run in autocommit
   // mode.
@@ -622,7 +637,7 @@ public:
 
   virtual NABoolean producesOutput() { return FALSE; }
   virtual const char 	*getVirtualTableName();
-  virtual desc_struct 	*createVirtualTableDesc();
+  virtual TrafDesc 	*createVirtualTableDesc();
 
   // exeutil statements whose query type need to be returned as 
   // SQL_EXE_UTIL. Set during RelRoot::codeGen in ComTdbRoot class.
@@ -696,7 +711,7 @@ public:
   virtual short codeGen(Generator*);
 
   virtual const char 	*getVirtualTableName();
-  virtual desc_struct 	*createVirtualTableDesc();
+  virtual TrafDesc 	*createVirtualTableDesc();
 
   virtual NABoolean producesOutput() { return TRUE; }
 
@@ -1764,15 +1779,24 @@ public:
                      NABoolean summaryOnly,
                      NABoolean isIndex,
                      NABoolean forDisplay,
-                     RelExpr * child = NULL,
+                     NABoolean clusterView,
+                     RelExpr * child,
                      CollHeap *oHeap = CmpCommon::statementHeap());
   
   ExeUtilRegionStats():
        summaryOnly_(FALSE),
        isIndex_(FALSE),
-       displayFormat_(FALSE)
+       displayFormat_(FALSE),
+       clusterView_(FALSE)
   {}
- 
+
+  ExeUtilRegionStats(NABoolean clusterView):
+       summaryOnly_(FALSE),
+       isIndex_(FALSE),
+       displayFormat_(FALSE),
+       clusterView_(clusterView)
+  {}
+
   virtual RelExpr * bindNode(BindWA *bindWAPtr);
 
   // a method used for recomputing the outer references (external dataflow
@@ -1788,13 +1812,17 @@ public:
   virtual const char 	*getVirtualTableName();
   static const char * getVirtualTableNameStr() 
   { return "EXE_UTIL_REGION_STATS__";}
-  virtual desc_struct 	*createVirtualTableDesc();
+
+  virtual TrafDesc 	*createVirtualTableDesc();
+
+  static const char * getVirtualTableClusterViewNameStr() 
+  { return "EXE_UTIL_CLUSTER_STATS__"; }
 
   virtual NABoolean producesOutput() { return TRUE; }
 
   virtual int getArity() const { return ((child(0) == NULL) ? 0 : 1); }
 
- virtual NABoolean aqrSupported() { return TRUE; }
+  virtual NABoolean aqrSupported() { return TRUE; }
 
 private:
   ItemExpr * inputColList_;
@@ -1804,6 +1832,8 @@ private:
   NABoolean isIndex_;
 
   NABoolean displayFormat_;
+
+  NABoolean clusterView_;
 
   NABoolean errorInParams_;
 };
@@ -1835,7 +1865,7 @@ public:
   virtual const char 	*getVirtualTableName();
   static const char * getVirtualTableNameStr() 
   { return "EXE_UTIL_LOB_INFO__";}
-  virtual desc_struct 	*createVirtualTableDesc();
+  virtual TrafDesc 	*createVirtualTableDesc();
 
   virtual NABoolean producesOutput() { return TRUE; }
 
@@ -1964,7 +1994,7 @@ public:
   virtual short codeGen(Generator*);
 
   virtual const char 	*getVirtualTableName();
-  virtual desc_struct 	*createVirtualTableDesc();
+  virtual TrafDesc 	*createVirtualTableDesc();
 
 private:
   // using this enum from MaintainObject class as it serves the
@@ -1993,7 +2023,7 @@ public:
   virtual short codeGen(Generator*);
 
   virtual const char 	*getVirtualTableName();
-  virtual desc_struct 	*createVirtualTableDesc();
+  virtual TrafDesc 	*createVirtualTableDesc();
 
 private:
   NAString statement_;
@@ -2017,7 +2047,7 @@ class ExeUtilBackupRestore : public ExeUtilExpr
     virtual short codeGen(Generator*);
 
     virtual const char  *getVirtualTableName();
-    virtual desc_struct   *createVirtualTableDesc();
+    virtual TrafDesc   *createVirtualTableDesc();
 
   private:
     

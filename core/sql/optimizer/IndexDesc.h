@@ -110,6 +110,13 @@ public:
   const ValueIdList & getOrderOfPartitioningKeyValues() const 
                                     { return orderOfPartitioningKeyValues_; }
 
+  const ValueIdList & getHiveSortKey() const  { return hiveSortKey_; }
+
+  const ValueIdList & getOrderOfHiveSortKeyValues() const 
+                                    { return orderOfHiveSortKeyValues_; }
+
+  const ValueIdList& getHivePartCols() { return  hivePartCols_; }
+
   void setIndexLevels(Lng32 indexLevels) { indexLevels_ = indexLevels ; }
   void setOrderOfKeyValues(const ValueIdList &no) { orderOfKeyValues_ = no; }
 
@@ -214,6 +221,7 @@ private:
 
   // ---------------------------------------------------------------------
   // the value ids that comprise the partitioning key of the index file
+  // (for Hive tables these are the bucketing columns)
   // ---------------------------------------------------------------------
   ValueIdList partitioningKey_;
 
@@ -222,6 +230,21 @@ private:
   // usually same as partitioningKey_, except for descending order
   // ---------------------------------------------------------------------
   ValueIdList orderOfPartitioningKeyValues_;
+
+  // ---------------------------------------------------------------------
+  // the value ids that comprise the Hive SORT BY columns
+  // ---------------------------------------------------------------------
+  ValueIdList hiveSortKey_;
+
+  // ---------------------------------------------------------------------
+  // same as hiveSortKey_, but with indicators for descending order
+  // ---------------------------------------------------------------------
+  ValueIdList orderOfHiveSortKeyValues_;
+
+  // ---------------------------------------------------------------------
+  // hive partition columns 
+  // ---------------------------------------------------------------------
+  ValueIdList hivePartCols_;
 
   // ---------------------------------------------------------------------
   // The value ids of the IndexColumn exprs that form the clustering key

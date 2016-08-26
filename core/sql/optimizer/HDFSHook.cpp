@@ -36,10 +36,9 @@
 #include "orc/HdfsOrcFile.hh"
 // for DNS name resolution
 #include <netdb.h>
-
+#include "Globals.h"
+#include "Context.h"
 // Initialize static variables
-THREAD_P CollIndex HHDFSMasterHostList::numSQNodes_(0);
-THREAD_P NABoolean HHDFSMasterHostList::hasVirtualSQNodes_(FALSE);
 
 HHDFSMasterHostList::~HHDFSMasterHostList()
 {
@@ -63,7 +62,7 @@ CollIndex HHDFSMasterHostList::getNumSQNodes()
      CMPASSERT(result);
   }
 
-   return numSQNodes_; 
+  return CmpCommon::context()->getNumSQNodes(); 
 }
 
 CollIndex HHDFSMasterHostList::getNumNonSQNodes()
@@ -73,7 +72,7 @@ CollIndex HHDFSMasterHostList::getNumNonSQNodes()
      CMPASSERT(result);
   }
 
-  return getHosts()->entries()-numSQNodes_;
+  return getHosts()->entries() - getNumSQNodes();
 }
 
 NABoolean HHDFSMasterHostList::hasVirtualSQNodes()          
@@ -83,7 +82,7 @@ NABoolean HHDFSMasterHostList::hasVirtualSQNodes()
      CMPASSERT(result);
   }
 
-   return hasVirtualSQNodes_; 
+  return CmpCommon::context()->getHasVirtualSQNodes();
 }
 
 CollIndex HHDFSMasterHostList::entries()                 
@@ -122,6 +121,7 @@ NABoolean HHDFSMasterHostList::initializeWithSeaQuestNodes()
    if(OSIM_runningSimulation()){
        try{
            OSIM_restoreHHDFSMasterHostList();
+           return TRUE;
        }
       catch(OsimLogException & e)
       {//table is not referred in capture mode, issue osim error
@@ -153,8 +153,8 @@ NABoolean HHDFSMasterHostList::initializeWithSeaQuestNodes()
               if (line == NULL)
                 {
                   // if we inserted anything without encountering an error, consider that success
-                  numSQNodes_ = getHosts()->entries();
-                  result = (numSQNodes_ > 0);
+                  CmpCommon::context()->setNumSQNodes(getHosts()->entries());
+                  result = (getHosts()->entries() > 0);
                   break;
                 }
               char *nodeNum = strstr(line, "Node[");
@@ -195,7 +195,7 @@ NABoolean HHDFSMasterHostList::initializeWithSeaQuestNodes()
                           break; // again, not expecting to get here
                         // remember that we mave multiple SQ nodes
                         // on the same physical node
-                        hasVirtualSQNodes_ = TRUE;
+                        CmpCommon::context()->setHasVirtualSQNodes(TRUE);
                       }
                   nextHostId++;
                 }
@@ -222,10 +222,17 @@ NABoolean HHDFSMasterHostList::initializeWithSeaQuestNodes()
         }
       while (*nodeEnd != 0);
       
-      numSQNodes_ = getHosts()->entries();
-      result = (numSQNodes_ > 0);
+      CmpCommon::context()->setNumSQNodes(getHosts()->entries());
+      result = (getHosts()->entries() > 0);
     }
   return result;
+}
+
+static void HHDFSMasterHostList::reset()
+{
+  getHosts()->clear();
+  CmpCommon::context()->setHasVirtualSQNodes(FALSE);
+  CmpCommon::context()->setNumSQNodes(0);
 }
 
 void HHDFSDiags::recordError(const char *errMsg,
@@ -353,6 +360,17 @@ static void sortHostArray(HostId *blockHosts,
     } // replication between 2 and 10
 } // sortHostArray
 
+HostId HHDFSFileStats::getHostId(Int32 replicate, Int64 blockNum) const
+{
+  DCMPASSERT(replicate >= 0 && replicate < replication_ &&
+             blockNum >= -1 && blockNum < numBlocks_);
+
+  if (blockHosts_ && blockNum >= 0)
+    return blockHosts_[replicate*numBlocks_+blockNum];
+  else
+    return HHDFSMasterHostList::InvalidHostId;
+}
+
 void HHDFSFileStats::populate(hdfsFS fs, hdfsFileInfo *fileInfo, 
                               Int32& samples,
                               HHDFSDiags &diags,
@@ -406,7 +424,12 @@ void HHDFSFileStats::populate(hdfsFS fs, hdfsFileInfo *fileInfo,
                         "HHDFSFileStats::populate");
     }
 
-  if ( NodeMap::useLocalityForHiveScanInfo() && totalSize_ > 0 && diags.isSuccess())
+  if (HHDFSMasterHostList::hasVirtualSQNodes())
+    {
+      if (CmpCommon::getDefault(HIVE_SIMULATE_REAL_NODEMAP) == DF_ON)
+        fakeHostIdsOnVirtualSQNodes();
+    }
+  else if ( NodeMap::useLocalityForHiveScanInfo() && totalSize_ > 0 && diags.isSuccess())
     {
 
       blockHosts_ = new(heap_) HostId[replication_*numBlocks_];
@@ -770,6 +793,19 @@ void HHDFSFileStats::sampleFileWithLibhdfs(hdfsFS fs,
 
 }
 
+void HHDFSFileStats::fakeHostIdsOnVirtualSQNodes()
+{
+  // to be able to test on a single node development system
+  // with two virtual nodes, make a fake list of block hosts
+  // and pretend that we have a replication factor of 2
+  replication_ = 2;
+  blockHosts_ = new(heap_) HostId[replication_*numBlocks_];
+
+  for (Int64 blockNum=0; blockNum < numBlocks_; blockNum++)
+    for (int r=0; r<replication_; r++)
+      blockHosts_[r*numBlocks_+blockNum] = (blockNum+r % 2);
+}
+
 void HHDFSFileStats::print(FILE *ofd)
 {
   fprintf(ofd,"-----------------------------------\n");
@@ -888,7 +924,7 @@ void HHDFSListPartitionStats::populate(hdfsFS fs,
   // to avoid a crash, due to lacking permissions, check the directory
   // itself first
   hdfsFileInfo *dirInfo = hdfsGetPathInfo(fs, dir.data());
-
+  
   if (!dirInfo)
     {
       diags.recordError(NAString("Could not access HDFS directory ") + dir,
@@ -939,6 +975,7 @@ void HHDFSListPartitionStats::populate(hdfsFS fs,
           }
 
       hdfsFreeFileInfo(fileInfos, numFiles);
+      hdfsFreeFileInfo(dirInfo,1);
 
       // aggregate statistics over all buckets
       for (Int32 b=0; b<=defaultBucketIdx_; b++)
@@ -1086,7 +1123,7 @@ NABoolean HHDFSListPartitionStats::validateAndRefresh(hdfsFS fs, HHDFSDiags &dia
       } // loop over actual files in the directory
 
   hdfsFreeFileInfo(fileInfos, numFiles);
-
+  hdfsFreeFileInfo(dirInfo,1);
   // check for file stats that we did not visit at the end of each bucket
   for (CollIndex i=0; i<=getLastValidBucketIndx() && result; i++)
     if (bucketStatsList_.used(i) &&
@@ -1464,7 +1501,7 @@ void HHDFSTableStats::initLOBInterface()
   lobGlob_ = NULL;
 
   ExpLOBinterfaceInit
-    (lobGlob_, heap_, TRUE);
+    (lobGlob_, heap_, GetCliGlobals()->currContext(), TRUE);
 }
 
 void HHDFSTableStats::releaseLOBInterface()
@@ -1477,17 +1514,11 @@ NABoolean HHDFSTableStats::connectHDFS(const NAString &host, Int32 port)
 {
   NABoolean result = TRUE;
 
-  // establish connection to HDFS if needed
-  if (fs_ == NULL ||
-      currHdfsHost_ != host ||
-      currHdfsPort_ != port)
-    {
-      if (fs_)
-        {
-          hdfsDisconnect(fs_);
-          fs_ = NULL;
-        }
-      fs_ = hdfsConnect(host, port);
+  // establish connection to HDFS . Conect to the connection cached in the context.
+ 
+  
+  fs_ = ((GetCliGlobals()->currContext())->getHdfsServerConnection((char *)host.data(),port));
+     
       
       if (fs_ == NULL)
         {
@@ -1501,26 +1532,16 @@ NABoolean HHDFSTableStats::connectHDFS(const NAString &host, Int32 port)
         }
       currHdfsHost_ = host;
       currHdfsPort_ = port;
-    }
+      //  }
   return result;
 }
 
 void HHDFSTableStats::disconnectHDFS()
 {
-  if (fs_)
-    hdfsDisconnect(fs_);
-  fs_ = NULL;
+  // No op. The disconnect happens at the context level wehn the session 
+  // is dropped or the thread exits.
 }
 
-
-NABoolean HHDFSFileStats::splitsAllowed() const 
-{
-  Int32 balanceLevel = CmpCommon::getDefaultLong(HIVE_LOCALITY_BALANCE_LEVEL);
-  if (balanceLevel == -1 || !compressionInfo_.splitsAllowed())
-    return FALSE ;
-  else
-    return TRUE;
-}
 
 OsimHHDFSStatsBase* HHDFSTableStats::osimSnapShot()
 {
@@ -1535,144 +1556,152 @@ OsimHHDFSStatsBase* HHDFSTableStats::osimSnapShot()
     return stats;
 }
 
+HHDFSFileStats::PrimarySplitUnit HHDFSFileStats::getSplitUnitType(Int32 balanceLevel) const
+{
+  if (!compressionInfo_.isCompressed() && balanceLevel >= 0)
+    return SPLIT_AT_HDFS_BLOCK_LEVEL_;
+  else
+    return SPLIT_AT_FILE_LEVEL_;
+
+  // return another value here, once splittable compression is enabled
+}
+
+Int32 HHDFSFileStats::getNumOFSplitUnits(HHDFSFileStats::PrimarySplitUnit su) const
+{
+  if (su == SPLIT_AT_HDFS_BLOCK_LEVEL_)
+    // size in blocks, rounded up to the next full block
+    return (getTotalSize() + getBlockSize() - 1) / getBlockSize();
+  else
+    // whole file is one unit
+    return 1;
+}
+
+void HHDFSFileStats::getSplitUnit(Int32 ix, Int64 &offset, Int64 &length,
+                                  HHDFSFileStats::PrimarySplitUnit su) const
+{
+  if (su == SPLIT_AT_HDFS_BLOCK_LEVEL_)
+    {
+      length = getBlockSize();
+      offset = ix * getBlockSize();
+
+      // check for a partial block at the end
+      if (offset + length > getTotalSize())
+        length = getTotalSize() - offset;
+    }
+  else
+    {
+      offset = 0;
+      length = getTotalSize();
+    }
+}
+
+Int32 HHDFSFileStats::getHDFSBlockNumForSplitUnit(
+     Int32 ix,
+     HHDFSFileStats::PrimarySplitUnit su) const
+{
+  if (su == SPLIT_AT_HDFS_BLOCK_LEVEL_)
+    {
+      // split unit is the same as HDFS blocks
+      return ix;
+    }
+  else
+    if (getTotalSize() > 2*getBlockSize())
+      // entire file is too large to use locality
+      return -1;
+    else
+      // first HDFS block is a significant portion of the file
+      return 0;
+}
+
+NABoolean HHDFSFileStats::splitsOfPrimaryUnitsAllowed(HHDFSFileStats::PrimarySplitUnit su) const
+{
+  return (su == SPLIT_AT_HDFS_BLOCK_LEVEL_);
+}
+
 // Assign all blocks in this to ESPs, considering locality
 Int64 HHDFSFileStats::assignToESPs(Int64 *espDistribution,
                                    NodeMap* nodeMap,
                                    Int32 numSQNodes,
                                    Int32 numESPs,
-                                   Int32 numOfBytesToReadPerRow,
-                                   HHDFSListPartitionStats *partition)
+                                   HHDFSListPartitionStats *partition,
+                                   Int32 &nextDefaultPartNum,
+                                   NABoolean useLocality,
+                                   Int32 balanceLevel)
 {
    Int64 totalBytesAssigned = 0;
    Int64 offset = 0;
-   Int64 blockSize = getBlockSize();
-   Int32 nextDefaultPartNum = numESPs/2;
+   Int64 hdfsBlockSize = getBlockSize();
 
-   for (Int64 b=0; b<getNumBlocks(); b++)
+   // the number of blocks, stripes, file, etc we have
+   PrimarySplitUnit su = getSplitUnitType(balanceLevel);
+   Int64 numOfSplitUnits = getNumOFSplitUnits(su);
+
+   for (Int64 b=0; b<numOfSplitUnits; b++)
      {
        // find the host for the first replica of this block,
        // the host id is also the SQ node id
-       HostId h = getHostId(0,b);
-       Int32 nodeNum = h;
-       Int32 partNum = nodeNum;
-       Int64 bytesToRead = MINOF(getTotalSize() - offset, blockSize);
-       NABoolean isLocal = TRUE;
+       Int32 partNum = -1;
+       Int64 bytesToRead = 0;
+       Int32 hdfsBlockNum;
 
-       if (partNum >= numESPs || partNum > numSQNodes)
+       getSplitUnit(b, offset, bytesToRead, su);
+       hdfsBlockNum = getHDFSBlockNumForSplitUnit(b, su);
+
+       if (useLocality && hdfsBlockNum >= 0)
          {
-           // we don't have ESPs covering this node,
-           // assign a default partition
-           // NOTE: If we have fewer ESPs than SQ nodes
-           // we should really be doing AS, using affinity
-           // TBD later.
+           HostId h = getHostId(0, hdfsBlockNum);
+
+           partNum = h;
+         }
+
+       if (partNum < 0 || partNum >= numESPs /*tbd:remove*/ || partNum >= numSQNodes)
+         {
+           // We don't use locality or don't have ESPs covering this
+           // node, assign a default partition.
+           // NOTE: If we have fewer ESPs than SQ nodes we should
+           // really be doing AS, using affinity - TBD later.
            partNum = nextDefaultPartNum++;
            if (nextDefaultPartNum >= numESPs)
              nextDefaultPartNum = 0;
-           isLocal = FALSE;
+
+           // we are not using locality for this block/range,
+           // note that it may still be local by chance
+           hdfsBlockNum = -1;
          }
 
-       // if we have multiple ESPs per SQ node, pick the one with the
-       // smallest load so far
-       for (Int32 c=partNum; c < numESPs; c += numSQNodes)
-         if (espDistribution[c] < espDistribution[partNum])
-           partNum = c;
+       // If we have multiple ESPs per SQ node, pick the one with the
+       // smallest load so far. ESPs with   ESP# % numSQNodes == n
+       // will run on node n.
+       Int32 startPartNum = partNum;
+       Int32 currPartNum = startPartNum;
+
+       do
+         {
+           if (espDistribution[currPartNum] < espDistribution[partNum])
+             partNum = currPartNum;
+
+           currPartNum += numSQNodes;
+           if (currPartNum >= numESPs)
+             currPartNum = startPartNum % numSQNodes;
+         }
+       while (currPartNum != startPartNum);
 
        HiveNodeMapEntry *e = (HiveNodeMapEntry*) (nodeMap->getNodeMapEntry(partNum));
-       e->addScanInfo(HiveScanInfo(this, offset, bytesToRead, isLocal, partition));
+       e->addScanInfo(HiveScanInfo(this, offset, bytesToRead, hdfsBlockNum, partition));
 
        // do bookkeeping
        espDistribution[partNum] += bytesToRead;
        totalBytesAssigned += bytesToRead;
-
-       // increment offset for next block
-       offset += bytesToRead;
      }
 
    return totalBytesAssigned;
 }
 
-// Assign all blocks in this to ESPs, without considering locality
-void HHDFSFileStats::assignToESPs(NodeMapIterator* nmi,
-                                  HiveNodeMapEntry*& entry,
-                                  Int64 totalBytesPerESP,
-                                  Int32 numOfBytesToReadPerRow, // unused
-                                  HHDFSListPartitionStats *partition,
-                                  Int64& filled) // # of bytes filled in the current split
+void HHDFSFileStats::assignFileToESP(HiveNodeMapEntry*& entry,
+                                     const HHDFSListPartitionStats* p)
 {
-   Int64 available = getTotalSize(); // # of bytes available from the current file
-   Int64 offset = 0;                 // offset in the current file
-   while ( available > 0 ) 
-   {
-      if ( filled + available <= totalBytesPerESP ) 
-        {
-          // The current file's contribution is not enough to 
-          // make a new split. Add it to the current split.
-          // 
-          // get the file name index into the fileStatsList array
-          // in bucket stats
-   
-          entry->addScanInfo(HiveScanInfo(this, offset, available, FALSE, partition));
-	  filled += available;
-          available = 0;
-   
-          if ( filled == totalBytesPerESP ) 
-            {
-              // The contribution is just right for the split. Need
-              // to take all the and add it to the current node map entry, 
-              // and start a new split.
-              entry = (HiveNodeMapEntry*)(nmi->advanceAndGetEntry());
-   
-              filled = 0;
-            }
-        }
-      else if (!splitsAllowed())
-	{
-	  // assign more bytes for this esp than what will give perfect balance
-	  // we are forced to do this since we don't want to split this file
-	  // with splits disallowed esps will be unbalanced, sometimes 
-	  // seriously so. To be used with certain compression types and
-	  // as a fall back option when split files produce incorrect results
-	  entry->addScanInfo(HiveScanInfo(this, offset, available, FALSE, partition));
-	  entry = (HiveNodeMapEntry*)(nmi->advanceAndGetEntry());
-	  filled = 0;
-	  available = 0; // go through while loop just once for such files
-	}
-      else
-        {
-    
-          // The contribution is more than what the current split can take.
-          // Add a portion of the contribution to the current split.
-          // Start a new split. Never get here when splits are not allowed.
-   
-          Int64 portion = totalBytesPerESP - filled;
-   
-          entry -> addScanInfo(HiveScanInfo(this, offset, portion, FALSE, partition));
-     
-          offset += portion;
-   
-          entry = (HiveNodeMapEntry*)(nmi->advanceAndGetEntry());
-
-          filled = 0;
-          available -= portion;
-       
-        }
-   }
-}
-
-void HHDFSFileStats::assignToESPsRepN(HiveNodeMapEntry*& entry,
-                                      const HHDFSListPartitionStats* p)
-{
-   Int64 filled = getTotalSize();
-   HiveScanInfo info(this, 0, (filled > 0) ? filled-1 : 0, FALSE, p);
-   entry->addScanInfo(info, filled);
-}
-
-void HHDFSFileStats::assignToESPsNoSplit(HiveNodeMapEntry*& entry,
-                                         const HHDFSListPartitionStats* p)
-{
-   Int64 filled = getTotalSize();
-   HiveScanInfo info(this, 0, (filled > 0) ? filled-1 : 0, FALSE, p);
-   entry->addScanInfo(info, filled);
+   HiveScanInfo info(this, 0, getTotalSize(), -1, p);
+   entry->addScanInfo(info);
 }
 
 OsimHHDFSStatsBase* HHDFSFileStats::osimSnapShot()
@@ -1682,113 +1711,94 @@ OsimHHDFSStatsBase* HHDFSFileStats::osimSnapShot()
     return stats;
 }
 
-Int64 HHDFSORCFileStats::findBlockForStripe(Int64 offset)
+HHDFSORCFileStats::PrimarySplitUnit HHDFSORCFileStats::getSplitUnitType(Int32 balanceLevel) const
 {
-   Int64 y = offset % getBlockSize();
-   
-   return (offset - y) / getBlockSize();
+  if (hasStripeInfo() && balanceLevel >= 0)
+    return SPLIT_AT_ORC_STRIPE_LEVEL_;
+  else
+    return SPLIT_AT_FILE_LEVEL_;
 }
 
-// Assign all stripes in this to ESPs, considering locality
-Int64 HHDFSORCFileStats::assignToESPs(Int64 *espDistribution,
-                                      NodeMap* nodeMap,
-                                      Int32 numSQNodes,
-                                      Int32 numESPs,
-                                      Int32 numOfBytesToReadPerRow,
-                                      HHDFSListPartitionStats *partition)
+Int32 HHDFSORCFileStats::getNumOFSplitUnits(HHDFSFileStats::PrimarySplitUnit su) const
 {
-   Int64 totalBytesAssigned = 0;
-   Int64 offset = 0;
-   Int64 length = 0;
-   Int64 bytesToRead = 0;
-   Int32 nextDefaultPartNum = numESPs/2;
-
-   for (Int32 i=0; i<offsets_.entries(); i++)
-     {
-       offset = offsets_[i];
-       length = totalBytes_[i];
-       bytesToRead = numOfRows_[i] * numOfBytesToReadPerRow;
-
-       Int64 b = findBlockForStripe(offset);
-       // find the host for the first replica of this block,
-       // the host id is also the SQ node id
-       HostId h = getHostId(0,b);
-       Int32 nodeNum = h;
-       Int32 partNum = nodeNum;
-       NABoolean isLocal = TRUE;
-
-       if (partNum >= numESPs || partNum > numSQNodes)
-         {
-           // we don't have ESPs covering this node,
-           // assign a default partition
-           // NOTE: If we have fewer ESPs than SQ nodes
-           // we should really be doing AS, using affinity
-           // TBD later.
-           partNum = nextDefaultPartNum++;
-           if (nextDefaultPartNum >= numESPs)
-             nextDefaultPartNum = 0;
-           isLocal = FALSE;
-         }
-
-       // if we have multiple ESPs per SQ node, pick the one with the
-       // smallest load so far
-       for (Int32 c=partNum; c < numESPs; c += numSQNodes)
-         if (espDistribution[c] < espDistribution[partNum])
-           partNum = c;
-
-       HiveNodeMapEntry *e = (HiveNodeMapEntry*) (nodeMap->getNodeMapEntry(partNum));
-       e->addScanInfo(HiveScanInfo(this, offset, length, isLocal, partition));
-
-       // do bookkeeping
-       espDistribution[partNum] += bytesToRead;
-       totalBytesAssigned += bytesToRead;
-     }
-
-   return totalBytesAssigned;
+  if (su == SPLIT_AT_ORC_STRIPE_LEVEL_ && hasStripeInfo())
+    return offsets_.entries();
+  else
+    return 1;
 }
-// Assign all strpes in this to ESPs, without considering locality
-void HHDFSORCFileStats::assignToESPs(NodeMapIterator* nmi,
-                                     HiveNodeMapEntry*& entry,
-                                     Int64 totalBytesPerESP,
-                                     Int32 numOfBytesToReadPerRow,
-                                     HHDFSListPartitionStats *partition,
-				     Int64& filled) // unused
+
+void HHDFSORCFileStats::getSplitUnit(Int32 ix, Int64 &offset, Int64 &length,
+                                     HHDFSFileStats::PrimarySplitUnit su) const
 {
-  CMPASSERT(numOfBytesToReadPerRow > 0);
+  if (ix == 0 && su == SPLIT_AT_FILE_LEVEL_)
+    {
+      // reading entire file, no stripe infos
+      offset = 0;
+      length = getTotalSize();
+    }
+  else
+    {
+      // return stripe ix (also checks for parameter errors)
+      offset = offsets_[ix];
+      length = totalBytes_[ix];
+    }
+}
 
-   Int64 available = 0;  // # of bytes to read from the stripe
-   Int64 offset = 0;     // offset in the current stripe 
-   Int64 length = 0;     // length of the current stripe 
+Int32 HHDFSORCFileStats::getHDFSBlockNumForSplitUnit(
+     Int32 stripeNum,
+     HHDFSFileStats::PrimarySplitUnit su) const
+{
+  if (su == SPLIT_AT_FILE_LEVEL_)
+    {
+      if (getTotalSize() <= 2*getBlockSize())
+        return 0; // use first HDFS block to represent the file
+      else
+        return -1; // indicate not to attempt locality
+    }
 
+  // Try to find an HDFS block that will maximize the benefit of a local scan
+  // for this stripe. This method differentiates 3 main cases for a stripe:
+  //
+  //                                   n-1        n        n+1
+  // HDFS blocks:                  +---------+---------+---------+
+  // a) stripe contains block(s):          |<-------------->|
+  // b) block contains stripe                  |<--->|
+  // c) stripe straddles 2 blocks:       |<----->|
 
-   // traverse all the stripes in ORC file and assign each to some ESP.
-   for (Int32 i=0; i<offsets_.entries(); i++ )
-   {
-      available = numOfRows_[i] * numOfBytesToReadPerRow;
-      offset = offsets_[i];
-      length = totalBytes_[i];
+  Int64 offset              = offsets_[stripeNum];
+  Int32 firstBndryFromLeft  = (offset + getBlockSize() - 1) / getBlockSize();
+  Int32 firstBndryFromRight = (offset + totalBytes_[stripeNum]) / getBlockSize();
 
-      // The current stripe contribution is guaranteed to fit
-      // the current split (with content), or the will not fit even
-      // an empty split. Add it.
-      // 
-      // get the file name index into the fileStatsList array
-      // in bucket stats. Note that we use the entire length
-      // of the stripe as requried by ORC file read API.
-      entry->addOrUpdateScanInfo(HiveScanInfo(this, offset, length, FALSE, partition),
-                                 available);
+  if (firstBndryFromRight > firstBndryFromLeft+2)
+    // stripe is longer than 2 HDFS blocks, don't use locality
+    return -1;
 
-      if ( entry->getFilled() > totalBytesPerESP ) 
-        {
-          // The contribution is just right for the split. Need
-          // to take all the and add it to the current node map entry, 
-          // and start a new split.
-          
-          entry = (HiveNodeMapEntry*)(nmi->advanceAndGetEntry());
- 
-        }
-   }
-} 
+  if (firstBndryFromLeft < firstBndryFromRight)
+    // a) stripe contains at least one complete HDFS block,
+    //    return the first one of these
+    return firstBndryFromLeft;
+
+  else if (firstBndryFromLeft > firstBndryFromRight)
+    // b) stripe is fully contained in one HDFS block
+    return firstBndryFromRight;
+
+  else
+    // c) return the block that contains at least half of the stripe
+    //    (note that some cases of b) also get here, if a stripe
+    //    ends on a block boundary)
+    if ((firstBndryFromLeft*getBlockSize() - offset) >= totalBytes_[stripeNum]/2)
+      return firstBndryFromLeft-1;
+    else
+      return firstBndryFromRight;
+}
+
+NABoolean HHDFSORCFileStats::splitsOfPrimaryUnitsAllowed(
+     HHDFSFileStats::PrimarySplitUnit su) const
+{
+  // do not split ORC files any further than the primary
+  // units (stripes or file) returned by the methods above
+  return FALSE;
+}
 
 THREAD_P Int64 HHDFSORCFileStats::totalAccumulatedRows_ = 0;
 THREAD_P Int64 HHDFSORCFileStats::totalAccumulatedTotalSize_ = 0;
@@ -1855,7 +1865,7 @@ void HHDFSORCFileStats::populateWithCplus(HHDFSDiags &diags, hdfsFS fs, hdfsFile
            }
 
 	   
-	   if ( readNumRows ) {
+	   if ( readNumRows || readStripeInfo ) {
 	   	totalRows_ = cppReader->getNumberOfRows();
 	   	totalStringLengths_ = cppReader->getSumStringLengths();
                 totalAccumulatedRows_ += totalRows_;
@@ -2005,3 +2015,9 @@ OsimHHDFSStatsBase* HHDFSORCFileStats::osimSnapShot()
     return stats;
 }
 
+Lng32 HHDFSTableStats::getAvgStringLengthPerRow()
+{
+   Int64 estimatedRC = getTotalRows();
+   Int64 totalStringLengths = getTotalStringLengths();
+   return (estimatedRC > 0) ? Lng32(totalStringLengths / estimatedRC) : 0;
+}

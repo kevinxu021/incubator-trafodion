@@ -303,6 +303,8 @@ Int32 PCodeOperand::getAlign()
 
   switch (getType()) {
     case PCIT::MBIN8:
+    case PCIT::MBIN8S:
+    case PCIT::MBIN8U:
     case PCIT::MASCII:
       return 1;
 
@@ -1192,6 +1194,8 @@ NABoolean PCodeInst::isIntEqComp()
   Int32 opc = getOpcode();
 
   switch (opc) {
+    case PCIT::EQ_MBIN32S_MBIN8S_MBIN8S:
+    case PCIT::EQ_MBIN32S_MBIN8U_MBIN8U:
     case PCIT::EQ_MBIN32S_MBIN16S_MBIN16S:
     case PCIT::EQ_MBIN32S_MBIN16S_MBIN32S:
     case PCIT::EQ_MBIN32S_MBIN32S_MBIN32S:
@@ -1242,6 +1246,10 @@ NABoolean PCodeInst::isRange()
     case PCIT::RANGE_HIGH_S16S64:
     case PCIT::RANGE_LOW_U16S64:
     case PCIT::RANGE_HIGH_U16S64:
+    case PCIT::RANGE_LOW_S8S64:
+    case PCIT::RANGE_HIGH_S8S64:
+    case PCIT::RANGE_LOW_U8S64:
+    case PCIT::RANGE_HIGH_U8S64:
     case PCIT::RANGE_MFLT64:
       return TRUE;
   }
@@ -1254,6 +1262,8 @@ NABoolean PCodeInst::isEncode()
   Int32 opc = getOpcode();
 
   switch (opc) {
+    case PCIT::ENCODE_MASCII_MBIN8S_IBIN32S:
+    case PCIT::ENCODE_MASCII_MBIN8U_IBIN32S:
     case PCIT::ENCODE_MASCII_MBIN16S_IBIN32S:
     case PCIT::ENCODE_MASCII_MBIN16U_IBIN32S:
     case PCIT::ENCODE_MASCII_MBIN32S_IBIN32S:
@@ -1271,6 +1281,8 @@ NABoolean PCodeInst::isDecode()
   Int32 opc = getOpcode();
 
   switch (opc) {
+    case PCIT::DECODE_MASCII_MBIN8S_IBIN32S:
+    case PCIT::DECODE_MASCII_MBIN8U_IBIN32S:
     case PCIT::DECODE_MASCII_MBIN16S_IBIN32S:
     case PCIT::DECODE_MASCII_MBIN16U_IBIN32S:
     case PCIT::DECODE_MASCII_MBIN32S_IBIN32S:
@@ -3993,6 +4005,9 @@ void PCodeCfg::inlining()
       return;
 
   switch (inst->getOpcode()) {
+    case PCIT::EQ_MBIN32S_MBIN8S_MBIN8S:
+    case PCIT::EQ_MBIN32S_MBIN8U_MBIN8U:
+
     case PCIT::EQ_MBIN32S_MBIN16S_MBIN16S:
     case PCIT::EQ_MBIN32S_MBIN32S_MBIN32S:
     case PCIT::EQ_MBIN32S_MBIN16U_MBIN16U:
@@ -4465,12 +4480,12 @@ NABoolean PCodeCfg::localCSE(INSTLIST** parent, PCodeBlock* tailBlock,
         switch (clauseHead->getClassID()) {
           case ex_clause::CONV_TYPE:
             match =
-              ((((ex_conv_clause*)clauseHead)->get_case_index() ==
-               ((ex_conv_clause*)clauseTail)->get_case_index()) &&
+              ((((ex_conv_clause*)clauseHead)->getInstruction() ==
+               ((ex_conv_clause*)clauseTail)->getInstruction()) &&
               (((ex_conv_clause*)clauseHead)->treatAllSpacesAsZero() ==
                ((ex_conv_clause*)clauseTail)->treatAllSpacesAsZero()));
             if ( match ) {
-               if ( ((ex_conv_clause*)clauseHead)->get_case_index() ==
+               if ( ((ex_conv_clause*)clauseHead)->getInstruction() ==
                     CONV_DATETIME_DATETIME )
                {
                   Attributes *tgtH = ((ex_conv_clause*)clauseHead)->getOperand(0);
@@ -4491,8 +4506,8 @@ NABoolean PCodeCfg::localCSE(INSTLIST** parent, PCodeBlock* tailBlock,
 
           case ex_clause::ARITH_TYPE:
             match =
-              (((ex_arith_clause*)clauseHead)->get_case_index() ==
-               ((ex_arith_clause*)clauseTail)->get_case_index());
+              (((ex_arith_clause*)clauseHead)->getInstruction() ==
+               ((ex_arith_clause*)clauseTail)->getInstruction());
             break;
         }
 
@@ -4659,12 +4674,16 @@ NABoolean PCodeCfg::localCSE(INSTLIST** parent, PCodeBlock* tailBlock,
             match = (head->code[1] == tail->code[1]);
             break;
 
+          case PCIT::ENCODE_MASCII_MBIN8S_IBIN32S:
+          case PCIT::ENCODE_MASCII_MBIN8U_IBIN32S:
           case PCIT::ENCODE_MASCII_MBIN32S_IBIN32S:
           case PCIT::ENCODE_MASCII_MBIN32U_IBIN32S:
           case PCIT::ENCODE_MASCII_MBIN16S_IBIN32S:
           case PCIT::ENCODE_MASCII_MBIN16U_IBIN32S:
           case PCIT::ENCODE_MASCII_MBIN64S_IBIN32S:
           case PCIT::ENCODE_NXX:
+          case PCIT::DECODE_MASCII_MBIN8S_IBIN32S:
+          case PCIT::DECODE_MASCII_MBIN8U_IBIN32S:
           case PCIT::DECODE_MASCII_MBIN32S_IBIN32S:
           case PCIT::DECODE_MASCII_MBIN32U_IBIN32S:
           case PCIT::DECODE_MASCII_MBIN16S_IBIN32S:
@@ -7674,9 +7693,59 @@ void PCodeCfg::loadOperandsOfInst (PCodeInst* newInst)
       addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MPTR32, pcode[4]);
       break;
 
-    case PCIT::MOVE_MBIN16U_MBIN8:
+    case PCIT::MOVE_MBIN16S_MBIN8S:
+      addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN16S, 2);
+      addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MBIN8S, 1);
+      break;
+
+    case PCIT::MOVE_MBIN16U_MBIN8U:
+      addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN16U, 2);
+      addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MBIN8U, 1);
+      break;
+
+     case PCIT::MOVE_MBIN16U_MBIN8:
       addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN16U, 2);
       addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MBIN8, 1);
+      break;
+
+    case PCIT::MOVE_MBIN8S_MBIN16S:
+      addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN8S, 1);
+      addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MBIN16S, 2);
+      break;
+
+    case PCIT::MOVE_MBIN8U_MBIN16U:
+      addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN8U, 1);
+      addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MBIN16U, 2);
+      break;
+
+    case PCIT::MOVE_MBIN8U_MBIN16S:
+      addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN8U, 1);
+      addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MBIN16S, 2);
+      break;
+
+    case PCIT::MOVE_MBIN8S_MBIN16U:
+      addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN8S, 1);
+      addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MBIN16U, 2);
+      break;
+
+    case PCIT::MOVE_MBIN32S_MBIN8S:
+      addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN32S, 4);
+      addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MBIN8S, 1);
+      break;
+
+    case PCIT::MOVE_MBIN32U_MBIN8U:
+      addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN32U, 4);
+      addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MBIN8U, 1);
+      break;
+
+    case PCIT::MOVE_MBIN64S_MBIN8S:
+      addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN64S, 8);
+      addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MBIN8S, 1);
+      break;
+
+    case PCIT::MOVE_MBIN64U_MBIN8U:
+      addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN64U, 8);
+      addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MBIN8U, 1);
       break;
 
     case PCIT::MOVE_MBIN32U_MBIN16U:
@@ -7719,7 +7788,22 @@ void PCodeCfg::loadOperandsOfInst (PCodeInst* newInst)
       addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MBIN32S, 4);
       break;
 
-    case PCIT::MOVE_MBIN64S_MDECS_IBIN32S:
+    case PCIT::MOVE_MBIN64S_MBIN64U:
+      addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN64S, 8);
+      addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MBIN64U, 8);
+      break;
+
+    case PCIT::MOVE_MBIN64U_MBIN64S:
+      addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN64U, 8);
+      addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MBIN64S, 8);
+      break;
+
+    case PCIT::MOVE_MBIN64U_MBIN64U:
+      addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN64U, 8);
+      addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MBIN64U, 8);
+      break;
+
+     case PCIT::MOVE_MBIN64S_MDECS_IBIN32S:
       addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN64S, 8);
       addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MDECS, pcode[4]);
       break;
@@ -7800,14 +7884,34 @@ void PCodeCfg::loadOperandsOfInst (PCodeInst* newInst)
     }
 
 
-
-
     case PCIT::ZERO_MBIN32S_MBIN32U:
     case PCIT::NOTZERO_MBIN32S_MBIN32U:
       addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN32S, 4);
       addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MBIN32U, 4);
       break;
 
+
+    case PCIT::EQ_MBIN32S_MBIN8S_MBIN8S:
+    case PCIT::NE_MBIN32S_MBIN8S_MBIN8S:
+    case PCIT::LT_MBIN32S_MBIN8S_MBIN8S:
+    case PCIT::GT_MBIN32S_MBIN8S_MBIN8S:
+    case PCIT::LE_MBIN32S_MBIN8S_MBIN8S:
+    case PCIT::GE_MBIN32S_MBIN8S_MBIN8S:
+      addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN32S, 4);
+      addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MBIN8S, 1);
+      addOperand(pcode, newInst->getROps(), 4, 5, -1, PCIT::MBIN8S, 1);
+      break;
+
+    case PCIT::EQ_MBIN32S_MBIN8U_MBIN8U:
+    case PCIT::NE_MBIN32S_MBIN8U_MBIN8U:
+    case PCIT::LT_MBIN32S_MBIN8U_MBIN8U:
+    case PCIT::GT_MBIN32S_MBIN8U_MBIN8U:
+    case PCIT::LE_MBIN32S_MBIN8U_MBIN8U:
+    case PCIT::GE_MBIN32S_MBIN8U_MBIN8U:
+      addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN32S, 4);
+      addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MBIN8U, 1);
+      addOperand(pcode, newInst->getROps(), 4, 5, -1, PCIT::MBIN8U, 1);
+      break;
 
 
     case PCIT::EQ_MBIN32S_MBIN16S_MBIN16S:
@@ -8050,6 +8154,11 @@ void PCodeCfg::loadOperandsOfInst (PCodeInst* newInst)
       break;
 
 
+    case PCIT::NEGATE_MASCII_MASCII:
+      addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MASCII, 2);
+      addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MASCII, 2);
+      break;
+
 
     case PCIT::SUM_MBIN32S_MBIN32S:
       addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN32S, 4);
@@ -8078,11 +8187,19 @@ void PCodeCfg::loadOperandsOfInst (PCodeInst* newInst)
 
 
 
+    case PCIT::ENCODE_MASCII_MBIN8S_IBIN32S:
+    case PCIT::ENCODE_MASCII_MBIN8U_IBIN32S:
+    case PCIT::DECODE_MASCII_MBIN8S_IBIN32S:
+    case PCIT::DECODE_MASCII_MBIN8U_IBIN32S:
+      addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN8S, 1);
+      addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MBIN8S, 1);
+      break;
+
     case PCIT::ENCODE_MASCII_MBIN16S_IBIN32S:
     case PCIT::ENCODE_MASCII_MBIN16U_IBIN32S:
     case PCIT::DECODE_MASCII_MBIN16S_IBIN32S:
     case PCIT::DECODE_MASCII_MBIN16U_IBIN32S:
-       addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN16S, 2);
+      addOperand(pcode, newInst->getWOps(), 0, 1, -1, PCIT::MBIN16S, 2);
       addOperand(pcode, newInst->getROps(), 2, 3, -1, PCIT::MBIN16S, 2);
       break;
 
@@ -8138,6 +8255,16 @@ void PCodeCfg::loadOperandsOfInst (PCodeInst* newInst)
     case PCIT::RANGE_LOW_U16S64:
     case PCIT::RANGE_HIGH_U16S64:
       addOperand(pcode, newInst->getROps(), 0, 1, -1, PCIT::MBIN16U, 2);
+      break;
+
+    case PCIT::RANGE_LOW_S8S64:
+    case PCIT::RANGE_HIGH_S8S64:
+      addOperand(pcode, newInst->getROps(), 0, 1, -1, PCIT::MBIN8S, 2);
+      break;
+
+    case PCIT::RANGE_LOW_U8S64:
+    case PCIT::RANGE_HIGH_U8S64:
+      addOperand(pcode, newInst->getROps(), 0, 1, -1, PCIT::MBIN8U, 2);
       break;
 
     case PCIT::CLAUSE_EVAL:

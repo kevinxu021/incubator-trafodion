@@ -355,7 +355,10 @@ static short ft_codegen(Generator *generator,
   Queue * orcColNameList = new(space) Queue(space);
   if (fastExtract->getHiveNATable())
   {
-    naColArray = &(fastExtract->getHiveNATable()->getNAColumnArray());
+    if (fastExtract->getHiveNATable()->getHiveNAColumnArray().entries() > 0)
+      naColArray = &(fastExtract->getHiveNATable()->getHiveNAColumnArray());
+    else
+      naColArray = &(fastExtract->getHiveNATable()->getNAColumnArray());
 
     if (fastExtract->getHiveNATable()->isORC())
       orcColNameList = new(space) Queue(space);
@@ -376,7 +379,10 @@ static short ft_codegen(Generator *generator,
       ((hiveInsertErrMode = CmpCommon::getDefaultNumeric(HIVE_INSERT_ERROR_MODE)) > 0))
     {
       hiveNATable = fastExtract->getHiveTableDesc()->getNATable();
-      hiveNAColArray = &hiveNATable->getNAColumnArray();
+      if (hiveNATable->getHiveNAColumnArray().entries() > 0)
+        hiveNAColArray = &hiveNATable->getHiveNAColumnArray();
+      else
+        hiveNAColArray = &hiveNATable->getNAColumnArray();
     }
 
   for (i = 0; i < childVals.entries(); i++)
@@ -396,7 +402,7 @@ static short ft_codegen(Generator *generator,
 
     // Hive insert converts child data into string format and inserts
     // it into target table.
-    // If child type can into an error during conversion, then
+    // If child type can run into an error during conversion, then
     // add a Cast to convert from child type to target type before
     // converting to string format to be inserted.
     if (hiveNAColArray)
@@ -476,6 +482,7 @@ static short ft_codegen(Generator *generator,
         // a Hive partitioning column, those go into a separate expression
         NAString partString((*naColArray)[i]->getColName());
         NAString colExpr;
+        const NAType &hpcType = lmExpr->getValueId().getType();
 
         // get the first part of the part string ready, 'partcolname=', plus a
         // concatenation operator for what comes next
@@ -485,11 +492,15 @@ static short ft_codegen(Generator *generator,
 
         // now get the value to use ready, start with an @An, a symbol for
         // the parser to replace with lmExpr2 later (note the n is 1-based)
-        partColValsVids.insert(lmExpr2->getValueId());
-        colExpr.format("@A%d", partColValsVids.entries());
+        if (lmExpr2)
+          {
+            lmExpr2->bindNode(generator->getBindWA());
+            partColValsVids.insert(lmExpr2->getValueId());
+            colExpr.format("@A%d", partColValsVids.entries());
+          }
 
         // some special handling for certain data types
-        switch (lmExpr->getValueId().getType().getTypeQualifier())
+        switch (hpcType.getTypeQualifier())
           {
           case NA_DATETIME_TYPE:
             // Hive removes the fraction when it's zero, so we do that, too
@@ -499,6 +510,14 @@ static short ft_codegen(Generator *generator,
 
           default:
             break;
+          }
+
+        if (hpcType.supportsSQLnull())
+          {
+            // NULLs get sent to a partition called
+            // __HIVE_DEFAULT_PARTITION__
+            colExpr.prepend("COALESCE(");
+            colExpr.append(",'__HIVE_DEFAULT_PARTITION__')");
           }
         
         // put the whole partition string together

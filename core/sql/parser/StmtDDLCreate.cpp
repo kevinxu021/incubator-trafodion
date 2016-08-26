@@ -1993,6 +1993,15 @@ StmtDDLCreateIndex::synthesize()
   //
 
   const ParDDLFileAttrsCreateIndex & fileAttrs = getFileAttributes();
+
+  if (NOT fileAttrs.isStorageTypeSpecified())
+    {
+      NAString st = CmpCommon::getDefaultString(TRAF_DEFAULT_STORAGE_TYPE);
+      fileAttrs.setStorageType
+        (st == "HBASE" ? COM_STORAGE_HBASE 
+         : (st == "MONARCH" ? COM_STORAGE_MONARCH : COM_STORAGE_UNKNOWN));
+    }
+
   if (fileAttrs.isMaxSizeSpecified())
   {
     pSystemPart->setIsMaxSizeSpecified(fileAttrs.isMaxSizeSpecified());
@@ -4329,6 +4338,7 @@ StmtDDLCreateTable::synthesize()
 		REC_BIN16_UNSIGNED,
 		REC_BIN32_SIGNED,
 		REC_BIN32_UNSIGNED,
+		REC_BIN64_UNSIGNED,
 		REC_BIN64_SIGNED
 	      };
 
@@ -4673,6 +4683,13 @@ StmtDDLCreateTable::synthesize()
   // ---------------------------------------------------------------------
   // Updates information about file attributes if necessary
   // ---------------------------------------------------------------------
+  if (NOT getFileAttributes().isStorageTypeSpecified())
+    {
+      NAString st = CmpCommon::getDefaultString(TRAF_DEFAULT_STORAGE_TYPE);
+      getFileAttributes().setStorageType
+        (st == "HBASE" ? COM_STORAGE_HBASE 
+         : (st == "MONARCH" ? COM_STORAGE_MONARCH : COM_STORAGE_UNKNOWN));
+    }
 
   //
   // If Buffered phrase does not appeared, sets its default value

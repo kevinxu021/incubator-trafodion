@@ -222,8 +222,8 @@ do
    echo
    echo "********************************************************************"
   
-   sudo sed -i -e "s/$oldNODENAME/$node/g" $SQ_ROOT/tmp/cluster.conf
-   sudo sed -i -e "s/$oldNODENAME/$node/g" $SQ_ROOT/sql/scripts/sqconfig
+   sudo sed -i -e "s/\<$oldNODENAME\>/$node/g" $SQ_ROOT/tmp/cluster.conf
+   sudo sed -i -e "s/\<$oldNODENAME\>/$node/g" $SQ_ROOT/sql/scripts/sqconfig
    sudo rm -rf $SQ_ROOT/tmp/se*
    sudo rm -rf $SQ_ROOT/sql/scripts/se*
    sudo chmod 777 $TRAF_CONFIG

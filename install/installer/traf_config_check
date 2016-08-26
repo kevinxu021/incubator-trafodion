@@ -35,7 +35,12 @@ function majorErrorFound {
       echo
       echo
       echo "******************************************" 
+      cat $TRAF_CONFIG
+      echo
+      echo
+      echo "******************************************"
       cat $ERROR_LOG
+      echo "******************************************"
       echo
       echo
       echo "******************************************" 
@@ -220,7 +225,7 @@ else
           TRAF_EXCLUDE_LIST="$TRAF_EXCLUDE_LIST extranode$node_id"
           ((node_id++))
       done
-      
+
       sudo chmod 777 $TRAF_CONFIG
       sed -i '/TRAF_EXCLUDE_LIST\=/d' $TRAF_CONFIG
       echo "export TRAF_EXCLUDE_LIST=\"$TRAF_EXCLUDE_LIST\"" >> $TRAF_CONFIG
@@ -399,91 +404,42 @@ if [[ -z "$JAVA_HOME" ]]; then
    echo "***ERROR: JAVA_HOME variable not set in config file." >> $ERROR_LOG   
 else
 
-   REQ_VER="1.7.0_65" 
-   JAVA7="7"
-   JAVA8="8"
-   JAVA65="65"
    error=""
-
-   for node in $NODE_LIST
-   do
-      THIS_JVM_VER="$(ssh -q -n $node $JAVA_HOME/bin/java -version 2>&1 > /dev/null)"
-      if [[ "$THIS_JVM_VER" == *"No such file"* ]]; then
-         errorFound=1
+   REQ_VER="1.7.0_65"
+   #Only checking on 1 node for now. This will change.
+   if [[ "$JAVA_8_SUPPORT" == "Y" ]]; then
+      $LOCAL_WORKDIR/checkJava8.py 
+      if [[ $? != 0 ]]; then
          error=1
-         echo "JAVA HOME" >> $ERROR_LOG
-         echo "***ERROR: Unable to find Java version on node $node" >> $ERROR_LOG
-         echo "***ERROR: Must enter a specific Java version (example: /usr/java/jdk1.7.0_67)"  >> $ERROR_LOG
-         echo "***ERROR: Please check for typos and that directory exists"  >> $ERROR_LOG
-         
-      fi      
-    done
+      fi
+   else
+      $LOCAL_WORKDIR/checkJava.py
+      if [[ $? != 0 ]]; then
+         error=1
+      fi
+   fi
 
-    if [[ -z $error ]]; then 
-       for node in $NODE_LIST
-       do
-         javaType="$(ssh -q -n $node $JAVA_HOME/bin/javac -version 2>&1 > /dev/null | grep "No such file" | wc -l)"
-         if [[ $javaType -eq "1" ]]; then
-            errorFound=1
-            echo "JAVA HOME" >> $ERROR_LOG
-            echo "***ERROR: Java version on node $node is of type JRE"  >> $ERROR_LOG
-            echo "***ERROR: Java version needed on all nodes must be a JDK"  >> $ERROR_LOG
-         fi
 
-         temp_JAVA=`echo "${THIS_JVM_VER:15:2}" | sed 's/.*\.//'`
+   if [[ -n $error ]]; then
+       errorFound=1
+       echo "JAVA HOME" >> $ERROR_LOG
+       if [[ "$JAVA_8_SUPPORT" == "Y" ]]; then
+          #Get used to this error. You are going to see it alot. 
+          echo "***ERROR: Your existing JAVA_HOME is not JAVA 8"  >> $ERROR_LOG
+          echo "***ERROR: Required java version is JAVA 8, any other version is not supported"  >> $ERROR_LOG 
+       else
+          echo "***ERROR: Your existing JAVA_HOME is less than $REQ_VER"  >> $ERROR_LOG
+          echo "***ERROR: Required java version should be greater than $REQ_VER"  >> $ERROR_LOG
+       fi
+  fi
+    
 
-         #Check if using something less than Java 7
-         if [[ "$temp_JAVA" -lt "$JAVA7" ]]; then
-            error="true"
-         fi
-
-         if [[ "$JAVA_8_SUPPORT" == "Y" ]]; then
-            if [[ "$temp_JAVA" -ne "$JAVA8" ]]; then
-               error="true"
-            fi
-
-         fi
-
-         #Checking if using 1.7.0_n
-         if [[ "${THIS_JVM_VER:18:1}" -eq "0" ]] && [[ "$temp_JAVA" -eq "$JAVA7" ]]; then
-            if [[ "${THIS_JVM_VER:20:1}" -eq "0" ]] || [[ "${THIS_JVM_VER:20:2}" -lt $JAVA65 ]]; then
-               #If Java is **less** than than 1.7.0_65 the next command will fail.
-               #Install will fail anyways if less than 1.7.0_65
-               #Will not fail if Java is 1.7.0_100 or greater
-               #Temporary fix to support Java 7 upgrades greater than 100
-               if [[ "${THIS_JVM_VER:20:3}" -lt $JAVA_65 ]]; then
-                  error="true"
-               fi
-            fi
-         fi
-
-         if [[ -n $error ]]; then
-            errorFound=1
-            echo "JAVA HOME" >> $ERROR_LOG
-            if [[ "$JAVA_8_SUPPORT" == "Y" ]]; then
-               #Get used to this error. You are going to see it alot. 
-               echo "***ERROR: Your existing JAVA_HOME on $node is not JAVA 8"  >> $ERROR_LOG
-               echo "***ERROR: Your Java Version on $node = $THIS_JVM_VER"  >> $ERROR_LOG
-               echo "***ERROR: Required java version is JAVA 8, any other version is not supported"  >> $ERROR_LOG 
-            else
-               echo "***ERROR: Your existing JAVA_HOME on $node is less than $REQ_VER"  >> $ERROR_LOG
-               echo "***ERROR: Your Java Version on $node = $THIS_JVM_VER"  >> $ERROR_LOG
-               echo "***ERROR: Required java version on $node should be greater than $REQ_VER"  >> $ERROR_LOG
-            fi
-         fi
-       done
-    fi
-    hadoopPath="$HADOOP_PATH"
-    hadoopBinPath="$HADOOP_BIN_PATH"
-
-    export PATH="$JAVA_HOME/bin:$PATH"
-    sudo chmod 777 $TRAF_CONFIG
-    sed -i '/PATH\=/d' $TRAF_CONFIG
-    echo "export PATH=\"$PATH\"" >>$TRAF_CONFIG
-    echo "export HADOOP_BIN_PATH=\"$hadoopBinPath\"" >>$TRAF_CONFIG
-    echo "export HADOOP_PATH=\"$hadoopPath\"" >>$TRAF_CONFIG
-    sudo chmod 777 $TRAF_CONFIG
-    source $TRAF_CONFIG
+   export PATH="$JAVA_HOME/bin:$PATH"
+   sudo chmod 777 $TRAF_CONFIG
+   sed -i '/\<PATH\>\=/d' $TRAF_CONFIG
+   echo "export PATH=\"$PATH\"" >>$TRAF_CONFIG
+   sudo chmod 777 $TRAF_CONFIG
+   source $TRAF_CONFIG
 fi
 
 }
@@ -522,23 +478,6 @@ source $TRAF_CONFIG
 
 }
 
-function checkEPEL {
-
-if [[ "$SUSE_LINUX" != "true" ]]; then 
-   if [[ ! -z $EPEL_RPM ]]; then
-      if [[ ! -f $EPEL_RPM ]]; then
-         errorFound=1
-         echo "EPEL REPO PATH" >> $ERROR_LOG
-         echo "***ERROR: File not found. Please check path for existence and typos." >> $ERROR_LOG
-      fi
-      if [[ "$EPEL_RPM" != *"rpm"* ]]; then
-         errorFound=1
-         echo "***ERROR: File enter is not an RPM. Check file is of type epel***.rpm"
-      fi
-   fi
-fi
-}
-
 function checkBackupUser {
 
 TRAF_CONFIG="/etc/trafodion/trafodion_config"
@@ -546,7 +485,7 @@ TRAF_CONFIG="/etc/trafodion/trafodion_config"
 source $TRAF_CONFIG
 
 if [ -z $BACKUP_USER ]; then
-   echo "***ERROR: BACKUP_USER variable not set in config file."
+   echo "***WARNING: BACKUP_USER variable not set in config file."
    echo "***WARNING: BACKUP_USER will be set to trafodion."
    sudo chmod 777 $TRAF_CONFIG
    sudo echo "export BACKUP_USER=\"trafodion\"" >> $TRAF_CONFIG
@@ -662,8 +601,19 @@ source $TRAF_CONFIG
 }
 
 function setHBaseDistro {
+if [[ "$HADOOP_TYPE" == "mapr" ]]; then
+   HBASE_DISTRO="MAPR"
+fi
 
-export HBASE_DISTRO="APACHE" 
+if [[ $HADOOP_TYPE == "apache" ]]; then
+   HBASE_DISTRO="APACHE"$APACHE_VERSION
+elif [[ $HADOOP_TYPE == "hortonworks" ]]; then
+   HBASE_DISTRO="HDP"$HDP_VERSION
+elif [[ $HADOOP_TYPE == "cloudera" ]]; then
+   HBASE_DISTRO="CDH"$CDH_VERSION
+fi
+
+export HBASE_DISTRO 
 
 sudo chmod 777 $TRAF_CONFIG
 sed -i '/HBASE_DISTRO\=/d' $TRAF_CONFIG
@@ -677,10 +627,12 @@ function getHadoopNodes {
 
 echo "***INFO: Getting list of all $HADOOP_TYPE nodes"
 
-if [[ $MULTI_CLUSTER == "N" ]] && [[ $HADOOP_TYPE != "apache" ]]; then
+if [[ "$HADOOP_TYPE" == "mapr" ]]; then
+   HADOOP_TYPE="apache"
+fi
+
+if [[ $MULTI_CLUSTER == "N" ]]; then
    $LOCAL_WORKDIR/traf_getHadoopNodes
-else
-   $LOCAL_WORKDIR/traf_getMultiHadoopNodes
 fi
 
 
@@ -702,7 +654,11 @@ source $TRAF_CONFIG
 
 for node in $HADOOP_NODES;
 do
-   ssh -q -n $node 'echo "exit" | hbase shell &> $HOME/hbaseVersion.txt'
+   if [[ $HADOOP_TYPE == "apache" ]]; then
+      ssh -q -n $node 'echo "exit" | '$HBASE_HOME'/bin/hbase shell &> $HOME/hbaseVersion.txt'
+   else
+      ssh -q -n $node 'echo "exit" | hbase shell &> $HOME/hbaseVersion.txt'
+   fi
    count=$[$count+1]
    foundFile=$(ssh -q -n $node ls $HOME/hbaseVersion.txt | wc -l)
    if [[ $foundFile -eq "0" ]]; then
@@ -721,6 +677,11 @@ do
          checkClouderaVersion
          checkRoleGroups
       fi
+
+      if [[ $HADOOP_TYPE == "apache" ]]; then
+         checkApacheVersion
+      fi
+   
       break;
    fi
 done
@@ -742,13 +703,17 @@ function checkRoleGroups {
 
 function checkClouderaVersion {
 
+hbaseVersion=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | awk {'print$2'} | sed 's/,.*//' )
+cdhVersion=$(echo $hbaseVersion | grep -o "cdh[0-9]\.[0-9]\.[0-9]")
+#get cdh version,eg:5.5 or 5.7
+CDH_VERSION=${cdhVersion:3:3}
 if [[ $CDH_5_3_HDP_2_2_SUPPORT == "N" ]]; then
    #Check that Cloudera 5.2 or 5.3 are not installed.
-   if [[ "$CDH_5_4_SUPPORT" == "Y" ]] || [[ "$CDH_5_5_SUPPORT" == "Y" ]]; then
-      nameOfVersion=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | sed 's/,.*//' | sed 's/.*\-//' | grep cdh5.[4-6].*)
+   if [[ "$CDH_5_4_SUPPORT" == "Y" ]] || [[ "$CDH_5_5_SUPPORT" == "Y" ]] || [[ "$CDH_5_7_SUPPORT" == "Y" ]]; then
+      nameOfVersion=$( echo $hbaseVersion | grep cdh5.[4-7].*)
       #Check that Cloudera 5.[n>4].* is not installed.
       if [[ -z $nameOfVersion ]]; then
-         versionInstalled=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | sed 's/,.*//' | sed 's/.*\-//' | grep cdh[5-9].[7-9].* | wc -l)
+         versionInstalled=$( echo $hbaseVersion | grep cdh[5-9].[7-9].* | wc -l)
          if [[ $versionInstalled -gt "0" ]]; then
             errorFound=1
             echo "HADOOP VERSION" >> $ERROR_LOG
@@ -758,8 +723,8 @@ if [[ $CDH_5_3_HDP_2_2_SUPPORT == "N" ]]; then
          fi
       fi
    else
-      versionInstalled=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | sed 's/,.*//' | sed 's/.*\-//' | grep cdh5.[0-1].* | wc -l)
-      nameOfVersion=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | sed 's/,.*//' | sed 's/.*\-//' | grep cdh5.[0-1].*)
+      versionInstalled=$( echo $cdhVersion | grep cdh5.[0-1].* | wc -l)
+      nameOfVersion=$( echo $cdhVersion | grep cdh5.[0-1].*)
       if [[ $versionInstalled -eq "0" ]]; then
          errorFound=1
          echo "HADOOP VERSION" >> $ERROR_LOG
@@ -769,87 +734,119 @@ if [[ $CDH_5_3_HDP_2_2_SUPPORT == "N" ]]; then
       fi
    fi
 else
-   nameOfVersion=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | sed 's/,.*//' | sed 's/.*\-//' | grep cdh5.[2-3].*)
+   nameOfVersion=$( echo $cdhVersion | grep cdh5.[2-3].*)
    #Check that Cloudera 5.[n>3].* is not installed.
    if [[ -z $nameOfVersion ]]; then
-      versionInstalled=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | sed 's/,.*//' | sed 's/.*\-//' | grep cdh[4-6].[0-9].* | wc -l)
-       if [[ $versionInstalled -gt "0" ]]; then
-          errorFound=1
-          echo "HADOOP VERSION" >> $ERROR_LOG
-          echo "***ERROR: Trafodion and Cloudera versions may not be compatible" >> $ERROR_LOG
-          echo "***ERROR: Detected Cloudera version:" >> $ERROR_LOG
-          ssh -q -n $node cat hbaseVersion.txt >> $ERROR_LOG
-       fi
+      versionInstalled=$( echo $cdhVersion | grep cdh[4-6].[0-9].* | wc -l)
+      if [[ $versionInstalled -gt "0" ]]; then
+         errorFound=1
+         echo "HADOOP VERSION" >> $ERROR_LOG
+         echo "***ERROR: Trafodion and Cloudera versions may not be compatible" >> $ERROR_LOG
+         echo "***ERROR: Detected Cloudera version:" >> $ERROR_LOG
+         ssh -q -n $node cat hbaseVersion.txt >> $ERROR_LOG
+      fi
    fi
 fi
 
+
 echo "***INFO: nameOfVersion=$nameOfVersion"
 sudo chmod 777 $TRAF_CONFIG
+sed -i '/hbaseVersion\=/d' $TRAF_CONFIG
+echo "export hbaseVersion=\"$hbaseVersion\"" >> $TRAF_CONFIG
+sed -i '/CDH_VERSION\=/d' $TRAF_CONFIG
+echo "export CDH_VERSION=\"$CDH_VERSION\"" >> $TRAF_CONFIG
 source $TRAF_CONFIG
 
 }
 
 function checkHDPVersion {
- 
+hbaseVersion=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | sed 's/,.*//' | awk {'print$2'})
+#get hdp version,eg:2.1 or 2.3
+HDP_VERSION=${hbaseVersion:6:3}
 if [[ $CDH_5_3_HDP_2_2_SUPPORT == "N" ]]; then
    if [[ $HDP_2_3_SUPPORT == "N" ]]; then
-      #Check that Hortonworks 2.2 is not installed
-      versionInstalled=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | sed 's/,.*//' | sed 's/-.*//' | grep 2.1.* | wc -l)
-      if [[ $versionInstalled -eq "0" ]]; then
-         errorFound=1
-         echo "HADOOP VERSION" >> $ERROR_LOG
-         echo "***ERROR: Trafodion and Hortoonworks versions may not be compatible." >> $ERROR_LOG
-         echo "***ERROR: Detected Hortonworks version:" >> $ERROR_LOG
-         ssh -q -n $node cat $HOME/hbaseVersion.txt >> $ERROR_LOG
-      fi
-      nameOfVersion=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | sed 's/,.*//' | sed 's/-.*//' | grep 2.1.*)
+      #Check that Hortonworks 2.1 is not installed
+      nameOfVersion=$( echo ${HDP_VERSION} | grep 2.1)
       if [[ -z $nameOfVersion ]]; then
-         versionInstalled=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | sed 's/,.*//' | sed 's/-.*//' | sed 's/Version [0-9]*.[0-9]*.[0-9].//g' | grep [1-3].[3-9].* | wc -l)
+         versionInstalled=$( echo ${HDP_VERSION} | grep [1-3].[3-9].* | wc -l)
          if [[ $versionInstalled -gt "0" ]]; then
             errorFound=1
             echo "HADOOP VERSION" >> $ERROR_LOG
             echo "***ERROR: Trafodion and Hortonworks versions may not be compatible" >> $ERROR_LOG
             echo "***ERROR: Detected Hortonworks version:" >> $ERROR_LOG
-            ssh -q -n $node cat hbaseVersion.txt >> $ERROR_LOG
+            ssh -q -n $node cat $HOME/hbaseVersion.txt >> $ERROR_LOG
          fi
        fi
    else
-       nameOfVersion=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | sed 's/,.*//' | sed 's/-.*//' | grep 2.[3-4].*)
-       #Check that HDP 2.[n>3].* is not installed.
-       if [[ -z $nameOfVersion ]]; then
-          versionInstalled=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | sed 's/,.*//' | sed 's/-.*//' | sed 's/Version [0-9]*.[0-9]*.[0-9].//g' | grep [1-3].[0-9].* | wc -l)
-          if [[ $versionInstalled -gt "0" ]]; then
-             errorFound=1
-             echo "HADOOP VERSION" >> $ERROR_LOG
-             echo "***ERROR: Trafodion and Hortonworks versions may not be compatible" >> $ERROR_LOG
-             echo "***ERROR: Detected Hortonworks version:" >> $ERROR_LOG
-             ssh -q -n $node cat hbaseVersion.txt >> $ERROR_LOG
-          fi
-       fi
+      nameOfVersion=$( echo ${HDP_VERSION} | grep 2.[3-4])
+      #Check that HDP 2.[n>3].* is not installed.
+      if [[ -z $nameOfVersion ]]; then
+         versionInstalled=$( echo ${HDP_VERSION} | grep [1-3].[0-9].* | wc -l)
+         if [[ $versionInstalled -gt "0" ]]; then
+            errorFound=1
+            echo "HADOOP VERSION" >> $ERROR_LOG
+            echo "***ERROR: Trafodion and Hortonworks versions may not be compatible" >> $ERROR_LOG
+            echo "***ERROR: Detected Hortonworks version:" >> $ERROR_LOG
+            ssh -q -n $node cat $HOME/hbaseVersion.txt >> $ERROR_LOG
+         fi
+      fi
    fi
 else
-   nameOfVersion=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | sed 's/,.*//' | sed 's/-.*//' | grep 2.2.*)
-fi
-
-#Check that HDP 2.[n>2].* is not installed.
-if [[ -z $nameOfVersion ]]; then
-   versionInstalled=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | sed 's/,.*//' | sed 's/-.*//' | sed 's/Version 0.[0-9]*.[0-9].//g' | grep [1-3].[0-9].* | wc -l)
-   if [[ $versionInstalled -gt "0" ]]; then
-      errorFound=1
-      echo "HADOOP VERSION" >> $ERROR_LOG
-      echo "***ERROR: Trafodion and Hortonworks versions may not be compatible" >> $ERROR_LOG
-      echo "***ERROR: Detected Hortonworks version:" >> $ERROR_LOG
-      ssh -q -n $node cat hbaseVersion.txt >> $ERROR_LOG
+   nameOfVersion=$( echo ${HDP_VERSION} | grep 2.2)
+   #Check that HDP 2.[n>2].* is not installed.
+   if [[ -z $nameOfVersion ]]; then
+      versionInstalled=$( echo ${HDP_VERSION} | grep [1-3].[0-9].* | wc -l)
+      if [[ $versionInstalled -gt "0" ]]; then
+         errorFound=1
+         echo "HADOOP VERSION" >> $ERROR_LOG
+         echo "***ERROR: Trafodion and Hortonworks versions may not be compatible" >> $ERROR_LOG
+         echo "***ERROR: Detected Hortonworks version:" >> $ERROR_LOG
+         ssh -q -n $node cat $HOME/hbaseVersion.txt >> $ERROR_LOG
+      fi
    fi
 fi
+
 
 echo "***INFO: nameOfVersion=$nameOfVersion"
 echo "***INFO: HADOOP_PATH=$HADOOP_PATH"
+
+sudo chmod 777 $TRAF_CONFIG
+sed -i '/hbaseVersion\=/d' $TRAF_CONFIG
+echo "export hbaseVersion=\"$hbaseVersion\"" >> $TRAF_CONFIG
+sed -i '/HDP_VERSION\=/d' $TRAF_CONFIG
+echo "export HDP_VERSION=\"$HDP_VERSION\"" >> $TRAF_CONFIG
 source $TRAF_CONFIG
 
 }
 
+function checkApacheVersion {
+hbaseVersion=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | awk {'print$2'} | sed s/,//g)
+#get apache hbase version,eg:1.0 or 1.1 or 1.2
+APACHE_VERSION=${hbaseVersion:0:3}
+if [[ $APACHE_1_0_X_SUPPORT=="Y" || $APACHE_1_1_X_SUPPORT=="Y" || $APACHE_1_2_X_SUPPORT=="Y" ]]; then
+   nameOfVersion=$( echo ${hbaseVersion} | grep 1.[0-2].*)
+   #Check that hbase 1.x.x is not installed.
+   if [[ -z $nameOfVersion ]]; then
+      versionInstalled=$( echo ${hbaseVersion} | grep [0-9].[0-9].* | wc -l)
+      if [[ $versionInstalled -gt "0" ]]; then
+         errorFound=1
+         echo "HADOOP VERSION" >> $ERROR_LOG
+         echo "***ERROR: Trafodion and apache hbase versions may not be compatible" >> $ERROR_LOG
+         echo "***ERROR: Detected apache hbase version:" >> $ERROR_LOG
+         ssh -q -n $node cat $HOME/hbaseVersion.txt >> $ERROR_LOG
+      fi
+   fi
+fi
 
+echo "***INFO: nameOfVersion=$nameOfVersion"
+sudo chmod 777 $TRAF_CONFIG
+sed -i '/hbaseVersion\=/d' $TRAF_CONFIG
+echo "export hbaseVersion=\"$hbaseVersion\"" >> $TRAF_CONFIG
+sed -i '/APACHE_VERSION\=/d' $TRAF_CONFIG
+echo "export APACHE_VERSION=\"$APACHE_VERSION\"" >> $TRAF_CONFIG
+source $TRAF_CONFIG
+
+}
 function checkHadoopNames {
 if [[ -z "$HDFS_USER" ]]; then
    errorFound=1
@@ -1021,6 +1018,7 @@ else
 
 fi
 
+install_features_path=$(tar -tf $TRAF_BUILD_PATH | grep "install_features")
 
 if [[ ! -z $install_features_path ]]; then
    if [[ "$ONE_TAR_INSTALL" == "N" ]]; then
@@ -1042,6 +1040,15 @@ if [[ ! -z $install_features_path ]]; then
    sudo chmod 777 $TRAF_CONFIG
    echo "export CDH_5_3_HDP_2_2_SUPPORT=\"$CDH_5_3_HDP_2_2_SUPPORT\"" >> $TRAF_CONFIG
    sudo chmod 777 $TRAF_CONFIG
+   if [[ -z $CDH_5_7_SUPPORT ]]; then
+      sudo chmod 777 $TRAF_CONFIG
+      echo "export CDH_5_7_SUPPORT=\"N\"" >> $TRAF_CONFIG
+      sudo chmod 777 $TRAF_CONFIG
+   else
+      sudo chmod 777 $TRAF_CONFIG
+      echo "export CDH_5_7_SUPPORT=\"$CDH_5_7_SUPPORT\"" >> $TRAF_CONFIG
+      sudo chmod 777 $TRAF_CONFIG
+   fi
    if [[ -z $CDH_5_5_SUPPORT ]]; then
       sudo chmod 777 $TRAF_CONFIG
       echo "export CDH_5_5_SUPPORT=\"N\"" >> $TRAF_CONFIG
@@ -1082,12 +1089,14 @@ else
    CDH_5_3_HDP_2_2_SUPPORT="N"
    CDH_5_4_SUPPORT="N"
    CDH_5_5_SUPPORT="N"
+   CDH_5_7_SUPPORT="N"
    HDP_2_3_SUPPORT="N"
    APACHE_1_0_X_SUPPORT="N"
    sudo chmod 777 $TRAF_CONFIG
    echo "export CDH_5_3_HDP_2_2_SUPPORT=\"$CDH_5_3_HDP_2_2_SUPPORT\"" >> $TRAF_CONFIG
    echo "export CDH_5_4_SUPPORT=\"$CDH_5_4_SUPPORT\"" >> $TRAF_CONFIG
    echo "export CDH_5_5_SUPPORT=\"$CDH_5_5_SUPPORT\"" >> $TRAF_CONFIG
+   echo "export CDH_5_7_SUPPORT=\"$CDH_5_7_SUPPORT\"" >> $TRAF_CONFIG
    echo "export HDP_2_3_SUPPORT=\"$HDP_2_3_SUPPORT\"" >> $TRAF_CONFIG
    echo "export APACHE_1_0_X_SUPPORT=\"$APACHE_1_0_X_SUPPORT\"" >> $TRAF_CONFIG
    sudo chmod 777 $TRAF_CONFIG
@@ -1127,11 +1136,9 @@ checkJavaVersion
 
 checkHomeDir
 
-checkEPEL
-
 checkHadoopSupport
 
-if [[ "$HADOOP_TYPE" != "apache" ]]; then
+if [[ "$HADOOP_TYPE" != "apache" ]] && [[ "$HADOOP_TYPE" != "mapr" ]]; then
    checkBackupUser
 
    checkHadoopUserPass
@@ -1140,14 +1147,17 @@ if [[ "$HADOOP_TYPE" != "apache" ]]; then
 
 fi
 
-if [[ "$HADOOP_TYPE" == "apache" ]]; then
+if [[ "$HADOOP_TYPE" == "apache" ]] && [[ "$HADOOP_TYPE" != "mapr" ]]; then
    setPath
-   setHBaseDistro
 fi
 
 getHadoopNodes
 
-checkHadoopNames
+setHBaseDistro
+
+if [[ "$HADOOP_TYPE" != "mapr" ]]; then
+   checkHadoopNames
+fi
 
 checkSQROOT
 

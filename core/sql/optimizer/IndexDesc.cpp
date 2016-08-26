@@ -239,6 +239,60 @@ IndexDesc::IndexDesc(TableDesc *tdesc,
     }
 
   // ---------------------------------------------------------------------
+  // make the list of Hive sort columns in the index and make a list
+  // of the order that the sort order columns provide
+  // ---------------------------------------------------------------------
+  const NAColumnArray & hiveSortKeyColumns 
+                                    = fileSet_->getHiveSortKeyColumns();
+  for (i = 0; i < hiveSortKeyColumns.entries(); i++)
+    {
+
+      NAColumn* s = hiveSortKeyColumns[i];
+      // which column of the index is this 
+      ixColNumber = 
+        allColumns.getColumnPosition(hiveSortKeyColumns[i]->getColName());
+
+      found = (ixColNumber != NULL_COLL_INDEX);
+
+      // insert the value id of the index column into the hiveSortKey_ column
+      // value id list
+      keyValueId = indexColumns_[ixColNumber];
+      hiveSortKey_.insert(keyValueId);
+
+      // insert the same value id into the order list, if the column
+      // is in ascending order, otherwise insert the inverse of the
+      // column
+      if (hiveSortKeyColumns.isAscending(i))
+	{
+	  orderOfHiveSortKeyValues_.insert(keyValueId);
+	}
+      else
+	{
+	  InverseOrder *invExpr = new(wHeap())
+	    InverseOrder(keyValueId.getItemExpr());
+	  invExpr->synthTypeAndValueId();
+	  orderOfHiveSortKeyValues_.insert(invExpr->getValueId());
+	}
+    }
+
+
+  const NAColumnArray &allColsArray = tdesc->getNATable()->getNAColumnArray();
+  const ValueIdList &allCols = tdesc->getColumnVEGList();
+
+  // make lists of the Hive partition columns in order of appearance, 
+  // expressed in ValueIds of the index columns.
+  for (int colNum=0; colNum<allColsArray.entries(); colNum++)
+  {
+     NAColumn *nac = allColsArray[colNum];
+     if (nac->isHivePartColumn()) {
+       ixColNumber = allColsArray.getColumnPosition(nac->getColName());
+       ValueId id = indexColumns_[ixColNumber];
+       hivePartCols_.insert(id);
+     }
+  }
+  
+
+  // ---------------------------------------------------------------------
   // If this index is partitioned, find the partitioning key columns
   // and build a partitioning function.
   // ---------------------------------------------------------------------
@@ -867,7 +921,7 @@ IndexProperty::compareIndexPromise(const IndexProperty *ixProp) const
 NABoolean IndexDesc::isSortedORCHive() const
 {
    return getPartitioningKey().entries() > 0 &&
-          getIndexKey().entries() > 0 &&
+          getHiveSortKey().entries() > 0 &&
           getPrimaryTableDesc()->getNATable()->isORC();
 }
 // eof

@@ -82,16 +82,17 @@ if [ -z "$traf_gid" ]; then
             found=$($TRAF_PDSH "cat /etc/group | sed -e 's@^.*:x:\([0-9]*\):.*@\1@' | grep ^$traf_gid$ " 2>/dev/null | wc -l)
         fi
     done
-    $TRAF_PDSH sudo /usr/sbin/groupadd --gid $traf_gid $TRAF_GROUP
-    if [ $? -ne 0 ]; then
-       if [ $? -ne 9]; then
+    $TRAF_PDSH sudo /usr/sbin/groupadd --gid $traf_gid $TRAF_GROUP 2>/dev/null
+    return_code=$?
+    if [ $return_code -ne 0 ]; then
+       if [ $return_code -ne 9]; then
           echo "***ERROR: unable to create Trafodion group: $TRAF_GROUP"
           exit -1
        fi
     fi
 else
     # Make sure Trafodion group exists on all nodes and create it if it is not
-    $TRAF_PDSH sudo /usr/sbin/groupadd --gid $traf_gid $TRAF_GROUP
+    $TRAF_PDSH sudo /usr/sbin/groupadd --gid $traf_gid $TRAF_GROUP 2>/dev/null
     return_code=$?
     if [ $return_code -ne 0 ]; then
         # if it is not a duplicate group error then we have a problem
@@ -101,6 +102,15 @@ else
         fi
     fi
 fi
+for node in $NODE_LIST
+do
+    trafCreated=$(ssh -q -n $node sudo grep "$TRAF_USER:" /etc/group | wc -l)
+    if [[ "$trafCreated" -ne "1" ]]; then
+       echo "***ERROR: Unable to create Trafodion group  on node $node"
+       exit -1
+    fi
+done
+
 #=================================================
 # Create Trafodion user, if not already created
 found=1
@@ -126,8 +136,8 @@ $TRAF_PDSH sudo /usr/sbin/useradd \
     --gid $traf_gid \
     --password "$(openssl passwd $TRAF_USER_PASSWORD)" \
     --uid $traf_uid \
-    $TRAF_USER
-return_code=$?
+    $TRAF_USER 2>/dev/null
+return_code=${PIPESTATUS[0]}
 if [ $return_code -ne 0 ]; then
     if [ $return_code -eq 9 ]; then
         echo "***WARNING: username already exists, will use existing userid, $TRAF_USER..."
@@ -137,6 +147,16 @@ if [ $return_code -ne 0 ]; then
         exit -1
     fi
 fi
+
+for node in $NODE_LIST
+do 
+    trafCreated=$(ssh -q -n $node sudo grep "$TRAF_USER:" /etc/passwd | wc -l)
+    if [[ "$trafCreated" -ne "1" ]]; then
+       echo "***ERROR: Unable to create Trafodion userid on node $node"
+       exit -1
+    fi
+done
+
 
 #=================================================
 
@@ -155,12 +175,6 @@ fi
     sudo chmod 600 $TRAF_USER_DIR/.ssh/config
 #fi
 
-# Create .bashrc for this user
-echo "***INFO: creating .bashrc file"
-sed -e "s@export NODE_LIST=.*@export NODE_LIST=\"$NODE_LIST\"@" <$TRAF_WORKDIR/installer/bashrc_default >$TRAF_WORKDIR/bashrc_${TRAF_USER}_temp1
-sed -e "s@export MY_NODES=.*@export MY_NODES=\"$MY_NODES\"@" <$TRAF_WORKDIR/bashrc_${TRAF_USER}_temp1 >$TRAF_WORKDIR/bashrc_${TRAF_USER}_temp2
-sed -e "s@export JAVA_HOME=.*@export JAVA_HOME=\"$JAVA_HOME\"@" <$TRAF_WORKDIR/bashrc_${TRAF_USER}_temp2 >$TRAF_WORKDIR/bashrc_${TRAF_USER}_temp3
-
 if [ "$userid_already_exists" == "Y" ]; then
     if [ -f $TRAF_USER_DIR/bashrc_backup ]; then
         echo "***INFO: preserving bashrc_backup"
@@ -169,15 +183,12 @@ if [ "$userid_already_exists" == "Y" ]; then
         sudo chown $TRAF_USER.$TRAF_GROUP $TRAF_USER_DIR/bashrc_backup
     fi
 fi
-sudo cp $TRAF_WORKDIR/bashrc_${TRAF_USER}_temp3 $TRAF_USER_DIR/.bashrc
+sudo cp $LOCAL_WORKDIR/bashrc_default $TRAF_USER_DIR/.bashrc
 if [[ -f $TRAF_WORKDIR/installer/sqenvcom.sh ]]; then
    sudo cp $TRAF_WORKDIR/installer/sqenvcom.sh $TRAF_USER_DIR
    sudo chown $TRAF_USER.$TRAF_GROUP $TRAF_USER_DIR/sqenvcom.sh
 fi
 sudo chown $TRAF_USER.$TRAF_GROUP $TRAF_USER_DIR/.bashrc
-rm $TRAF_WORKDIR/bashrc_${TRAF_USER}_temp1
-rm $TRAF_WORKDIR/bashrc_${TRAF_USER}_temp2
-rm $TRAF_WORKDIR/bashrc_${TRAF_USER}_temp3
 
 #=================================================
 # copy TRAF_USER_DIR to all other nodes if more than one
@@ -201,8 +212,6 @@ echo "***INFO: Creating known_hosts file for all nodes"
 NODES_SHORT=""
 for node in $ALL_NODE_LIST
 do 
-   echo $node
-   echo $ALL_NODE_LIST
    newNode=$(ssh -q -n $node hostname -s) 
 
    NODES_SHORT="$NODES_SHORT $newNode"

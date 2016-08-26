@@ -610,6 +610,7 @@
 #define MON_REQQUEUE_REVIVE_5               101180505
 #define MON_REQQUEUE_REVIVE_6               101180506
 #define MON_REQQUEUE_REQUEST_1              101180601
+#define MON_REQQUEUE_LICENSE_INVALID        101180701
 
 /* Module: clio.cxx = 19 */
 #define MON_CLIO_ACQUIRE_MSG_1              101190101
@@ -661,6 +662,9 @@
 #define MON_HEALTHCHECK_WAKEUP_1            101230401
 #define MON_HEALTHCHECK_WAKEUP_2            101230402
 #define MON_HEALTHCHECK_Q_BLOCK             101230501
+#define MON_HEALTHCHECK_LICENSE_WARN        101230601
+#define MON_HEALTHCHECK_LICENSE_EXPIRE      101230602
+#define MON_HEALTHCHECK_LICENSE_INVALID     101230603
 
 /* Module: sdtimer.cxx = 24 */
 #define MON_SDTIMER_SOFTDOG_TH_1            101240101
@@ -1041,7 +1045,8 @@
 #define DTM_BEGINTX_PROC_NOTEXIST 103005308
 #define DTM_ROLLOVER_CP_ERROR 103005309
 #define DTM_TMRESTARTED 103005310
-#define DTM_TMLOCKTHREAD_FAILED 103005311
+#define DTM_TM_JNI_ERROR  103005311
+#define DTM_TMLOCKTHREAD_FAILED 103005312
 
 /**********************************************/
 /**********************************************/

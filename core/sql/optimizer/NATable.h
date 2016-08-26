@@ -45,6 +45,7 @@
 #include "ExpLOBexternal.h"
 #include "ComSecurityKey.h"
 #include "ExpHbaseDefs.h"
+#include "ComViewColUsage.h"
 
 //forward declaration(s)
 // -----------------------------------------------------------------------
@@ -54,13 +55,14 @@ class NATable;
 class NATableDB;
 class HistogramCache;
 class HistogramsCacheEntry;
+
 // -----------------------------------------------------------------------
 // forward references
 // -----------------------------------------------------------------------
 class BindWA;
 class MVInfoForDML;
 class NATableDB;
-struct desc_struct;
+struct TrafDesc;
 class HbaseCreateOption;
 class PrivMgrUserPrivs;
 class ExpHbaseInterface;
@@ -384,10 +386,10 @@ public:
   // ---------------------------------------------------------------------
 
   NATable(BindWA *bindWA, const CorrName &corrName, NAMemory *heap,
-          desc_struct *inTableDesc = NULL);
+          TrafDesc *inTableDesc = NULL);
 
   NATable(BindWA *bindWA, const CorrName &corrName, NAMemory *heap,
-          struct hive_tbl_desc*, desc_struct *extTableDesc = NULL);
+          struct hive_tbl_desc*, TrafDesc *extTableDesc = NULL);
 
   virtual ~NATable();
 
@@ -462,6 +464,7 @@ public:
   CollIndex getColumnCount() const              { return colcount_; }
   CollIndex getUserColumnCount() const;
   const NAColumnArray &getNAColumnArray() const { return colArray_; }
+  const NAColumnArray &getHiveNAColumnArray() const { return hiveColArray_; }
   Int32 getRecordLength() const                   { return recordLength_; }
   Cardinality getEstRowCount() const
                  { return clusteringIndex_->getEstimatedNumberOfRecords(); }
@@ -489,7 +492,7 @@ public:
 				       NABoolean *isPkey = NULL,
                                        NAList<int> *reorderList = NULL);
     
-  const desc_struct * getPartnsDesc() const { return partnsDesc_; }
+  const TrafDesc * getPartnsDesc() const { return partnsDesc_; }
 
   // A not-found partition is an offline partition.
   NABoolean containsPartition(const NAString &partitionName) const
@@ -567,6 +570,7 @@ public:
   Int32   getViewTextLenInNAWchars() const   { return viewTextInNAWchars_.length(); }
 
   const char *getViewCheck() const              { return viewCheck_; }
+  const NAList<ComViewColUsage*> *getViewColUsages() const  { return viewColUsages_; }
 
   NABoolean hasSaltedColumn(Lng32 * saltColPos = NULL) const;
   NABoolean hasDivisioningColumn(Lng32 * divColPos = NULL);
@@ -842,7 +846,7 @@ public:
 
   NABoolean insertMissingStatsWarning(CollIndexSet colsSet) const;
 
-  const desc_struct * getTableDesc() const { return tableDesc_; }
+  const TrafDesc * getTableDesc() const { return tableDesc_; }
   NAList<HbaseCreateOption*> * hbaseCreateOptions()
     { return clusteringIndex_->hbaseCreateOptions();}
 
@@ -914,7 +918,9 @@ private:
   NATable (const NATable & orig, NAMemory * h=0) ; //not written
 
   void setRecordLength(Int32 recordLength) { recordLength_ = recordLength; }
-  void setupPrivInfo();
+
+  void getPrivileges(TrafDesc * priv_desc);
+  void readPrivileges();
 
   ExpHbaseInterface* getHBaseInterface() const;
   static ExpHbaseInterface* getHBaseInterfaceRaw(NABoolean isMonarch);
@@ -1032,6 +1038,12 @@ private:
   // ---------------------------------------------------------------------
   NAColumnArray colArray_;
 
+  // if this hive table has an associated external table, then entries in 
+  // colArray_ may be replaced by external table entries. 
+  // Save the original colArray_ in hiveColArray_ before replacing them.
+  // This is done in method NATable::updateExtTableAttrs,
+  NAColumnArray hiveColArray_;
+
   // ---------------------------------------------------------------------
   // Record length.
   // ---------------------------------------------------------------------
@@ -1105,6 +1117,7 @@ private:
   NAWString viewTextInNAWchars_;
   CharInfo::CharSet viewTextCharSet_;
   char *viewCheck_;
+  NAList<ComViewColUsage *> *viewColUsages_;
 
   // transaction replication across multiple clusters
   ComReplType xnRepl_;
@@ -1171,9 +1184,9 @@ private:
 
   ComSecurityKeySet secKeySet_ ;
 
-  desc_struct *partnsDesc_;
+  TrafDesc *partnsDesc_;
 
-  desc_struct *tableDesc_;
+  TrafDesc *tableDesc_;
 
   // hash table to store all the column positions for which missing
   // stats warning has been generated. We are not storing ValueIdSet
@@ -1282,7 +1295,7 @@ public:
 
   NATable * get(const ExtendedQualName* key, BindWA * bindWA = NULL, NABoolean findInCacheOnly = FALSE);
   NATable * get(CorrName& corrName, BindWA * bindWA,
-                desc_struct *inTableDescStruct);
+                TrafDesc *inTableDescStruct);
 
   void removeNATable2(CorrName &corrName, ComQiScope qiScope, 
                       ComObjectType ot);

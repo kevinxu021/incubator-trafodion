@@ -697,6 +697,7 @@ SQLRETURN CConnect::Connect(SQLCHAR *ServerName,
 	inContext.inContextOptions2 = 0;
 
 	//wms_mapping
+	inContext.sessionName[0] = '\0';
 	if(m_QueryID_SessionName[0] != '\0')
 	{
 		inContext.inContextOptions1 = inContext.inContextOptions1 | INCONTEXT_OPT1_SESSIONNAME;

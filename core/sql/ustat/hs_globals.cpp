@@ -293,6 +293,7 @@ Lng32 MCWrapper::setupMCColumnIterator (HSColGroupStruct *group, MCIterator** it
         iter[currentLoc] = new (STMTHEAP) MCNonCharIterator<char>((char *)group->mcis_data);
         break;
 
+      case REC_BOOLEAN:
       case REC_BIN8_UNSIGNED:
         iter[currentLoc] = new (STMTHEAP) MCNonCharIterator<unsigned char>((unsigned char *)group->mcis_data);
         break;
@@ -315,6 +316,10 @@ Lng32 MCWrapper::setupMCColumnIterator (HSColGroupStruct *group, MCIterator** it
 
       case REC_BIN64_SIGNED:
         iter[currentLoc] = new (STMTHEAP) MCNonCharIterator<Int64>((Int64 *)group->mcis_data);
+        break;
+
+      case REC_BIN64_UNSIGNED:
+        iter[currentLoc] = new (STMTHEAP) MCNonCharIterator<UInt64>((UInt64 *)group->mcis_data);
         break;
 
       case REC_IEEE_FLOAT32:
@@ -2872,6 +2877,8 @@ HSGlobalsClass::HSGlobalsClass(ComDiagsArea &diags)
     iusSampleDeletedInMem(NULL),
     iusSampleInsertedInMem(NULL),
     sampleIExists_(FALSE),
+    PST_IUSrequestedSampleRows_(NULL),
+    PST_IUSactualSampleRows_(NULL),
     sampleRateAsPercetageForIUS(0),
     minRowCtPerPartition_(-1),
     sample_I_generated(FALSE),
@@ -2911,6 +2918,10 @@ HSGlobalsClass::~HSGlobalsClass()
   // longer in progress.
   if (PSRowUpdated)
     end_IUS_work();
+
+  // Used in end_IUS_work(), must call it first.
+  NADELETEBASIC(PST_IUSrequestedSampleRows_, STMTHEAP);
+  NADELETEBASIC(PST_IUSactualSampleRows_, STMTHEAP);
 
   // reset the parser flags that were set in the constructor
   SQL_EXEC_ResetParserFlagsForExSqlComp_Internal(savedParserFlags);
@@ -3635,7 +3646,99 @@ void HSGlobalsClass::startJitLogging(const char* checkPointName, Int64 elapsedSe
     }
 }
 
+// The optimal degree of parallelism for a LOAD or UPSERT is the number of
+// partitions of the source table. This forces that by setting the cqd
+// PARALLEL_NUM_ESPS. Note that when the default for AGGRESSIVE_ESP_ALLOCATION_PER_CORE
+// is permanently changed to 'ON', we may be able to remove this.
+// tblDef -- ptr to HSTableDef from which to get the catalog and schema name of
+//           the source table.
+// tblName -- unqualified name of the source table. If NULL, then the source
+//            table is the one represented by tblDef.
+// Returns TRUE if the cqd was successfully set, FALSE otherwise. If TRUE is returned,
+// then resetEspParallelism() may be called to reset the cqd.
+static NABoolean setEspParallelism(HSTableDef* tblDef, const char* tblName = NULL)
+{
+  HSLogMan *LM = HSLogMan::Instance();
+  Lng32 retcode = 0;
+  Lng32 numPartitions = 0;
+  if (!tblName)
+    numPartitions = tblDef->getNumPartitions();
+  else
+    {
+      HSCursor cursor;
+      NAString numPartitionsQuery;
+      numPartitionsQuery.append("select t.num_salt_partns from \"_MD_\".OBJECTS O, \"_MD_\".TABLES T where o.catalog_name = '")
+                        .append(tblDef->getCatName())
+                        .append("' and o.schema_name = '")
+                        .append(tblDef->getSchemaName())
+                        .append("' and o.object_name = '")
+                        .append(tblName)
+                        .append("' and o.object_uid = t.table_uid");
+      retcode = cursor.fetchNumColumn(numPartitionsQuery, &numPartitions, NULL);
+      if (retcode != 0)
+        {
+          if (LM->LogNeeded())
+            {
+              sprintf(LM->msg, "PARALLEL_NUM_ESPS not set; query to get # partitions received sqlcode %d", retcode);
+              LM->Log(LM->msg);
+            }
+          return FALSE;
+        }
+    }
 
+  NABoolean espCQDUsed = FALSE;
+  if (numPartitions > 1)
+    {
+      char temp[25];
+      sprintf(temp, "'%d'", numPartitions);
+      NAString espsCQD = "CONTROL QUERY DEFAULT PARALLEL_NUM_ESPS ";
+      espsCQD += temp;
+      retcode = HSFuncExecQuery(espsCQD);
+      if (retcode < 0)
+        {
+          if (LM->LogNeeded())
+            {
+              sprintf(LM->msg, "cqd statement to set PARALLEL_NUM_ESPS failed with %d", retcode);
+              LM->Log(LM->msg);
+            }
+        }
+      else
+        {
+          espCQDUsed = TRUE;
+          if (LM->LogNeeded())
+            {
+              sprintf(LM->msg, "PARALLEL_NUM_ESPS was set to %d", numPartitions);
+              LM->Log(LM->msg);
+            }
+        }
+    }
+  else if (LM->LogNeeded())
+    {
+      sprintf(LM->msg, "PARALLEL_NUM_ESPS not set; # partitions reported as %d", numPartitions);
+      LM->Log(LM->msg);
+    }
+
+  return espCQDUsed;
+}
+
+// Reset the cqd PARALLEL_NUM_ESPS. This is the other bookend for setEspParallelism(),
+// which returns TRUE if the cqd is actually set within that function. If so, this
+// function can be called to reset it.
+static void resetEspParallelism()
+{
+  HSLogMan *LM = HSLogMan::Instance();
+  Lng32 retcode = HSFuncExecQuery("CONTROL QUERY DEFAULT PARALLEL_NUM_ESPS RESET");
+  if (retcode)
+  {
+    HSLogMan *LM = HSLogMan::Instance();
+    if (LM->LogNeeded())
+      {
+        HSLogMan *LM = HSLogMan::Instance();
+        sprintf(LM->msg, "cqd statement to reset PARALLEL_NUM_ESPS returned %d", retcode);
+        LM->Log(LM->msg);
+      }
+  }
+}
 
 /**********************************************/
 /* METHOD: createSampleOption()               */
@@ -3860,19 +3963,7 @@ Lng32 HSSample::make(NABoolean rowCountIsEstimate, // input
     // For Hive tables the sample table used is a Trafodion table
     if (hs_globals->isHbaseTable || hs_globals->isHiveTable)
       {
-        // The optimal degree of parallelism for the LOAD or UPSERT is
-        // the number of partitions of the original table. Force that.
-        // Note that when the default for AGGRESSIVE_ESP_ALLOCATION_PER_CORE
-        // is permanently changed to 'ON', we may be able to remove this CQD.
-        if (hs_globals->objDef->getNumPartitions() > 1)
-          {
-            char temp[40];  // way more space than needed, but it's safe
-            sprintf(temp,"'%d'",hs_globals->objDef->getNumPartitions());
-            NAString EspsCQD = "CONTROL QUERY DEFAULT PARALLEL_NUM_ESPS ";
-            EspsCQD += temp;
-            HSFuncExecQuery(EspsCQD);
-            EspCQDUsed = TRUE;  // remember to reset later
-          }
+        EspCQDUsed = setEspParallelism(hs_globals->objDef);
 
         // Set CQDs controlling HBase cache size (number of rows returned by HBase
         // in a batch) to avoid scanner timeout. Reset these after the sample query
@@ -4029,7 +4120,7 @@ Lng32 HSSample::make(NABoolean rowCountIsEstimate, // input
       }
     if (EspCQDUsed)
       {
-        HSFuncExecQuery("CONTROL QUERY DEFAULT PARALLEL_NUM_ESPS RESET");
+        resetEspParallelism();
       }
 
     if (retcode) TM->Rollback();
@@ -4879,6 +4970,7 @@ void HSGlobalsClass::getMemoryRequirementsForOneGroup(HSColGroupStruct* group, I
   
       switch (group->ISdatatype)
         {
+          case REC_BOOLEAN:
           case REC_BIN8_SIGNED:
           case REC_BIN8_UNSIGNED:
             elementSize = 1;
@@ -4896,6 +4988,7 @@ void HSGlobalsClass::getMemoryRequirementsForOneGroup(HSColGroupStruct* group, I
             break;
 
           case REC_BIN64_SIGNED:
+          case REC_BIN64_UNSIGNED:
           case REC_IEEE_FLOAT64:
             elementSize = 8;
             break;
@@ -5642,7 +5735,7 @@ Lng32 HSGlobalsClass::doIUS(NABoolean& done)
   else if (iusOption == DF_SAMPLE)
     // Leave 'done' FALSE; prepareToUsePersistentSample() updates the persistent sample
     // table in preparation for use by RUS.
-    return prepareToUsePersistentSample(currentSampleSize);
+    return prepareToUsePersistentSample(currentSampleSize, futureSampleSize);
   else
     {
       // Exception will be thrown, ~HSGlobalsClass will call end_IUS_work().
@@ -5853,7 +5946,7 @@ Lng32 HSGlobalsClass::doFullIUS(Int64 currentSampleSize,
   // The _I table can be dropped after using it to update the persistent sample
   // table, which must be done before doing RUS on any unprocessed columns (RUS
   // will use the updated persistent sample).
-  retcode = UpdateIUSPersistentSampleTable(currentSampleSize, sampleRowCount);
+  retcode = UpdateIUSPersistentSampleTable(currentSampleSize, futureSampleSize, sampleRowCount);
   HSHandleErrorIUS(retcode);
   if (sampleIExists_) {
     retcode = drop_I(*hssample_table);
@@ -5897,10 +5990,11 @@ Lng32 HSGlobalsClass::doFullIUS(Int64 currentSampleSize,
 // This function makes all preparations for doing RUS using an updated IUS
 // persistent sample table. The sample table is updated, and obsolete CBFs
 // are discarded,
-Lng32 HSGlobalsClass::prepareToUsePersistentSample(Int64 currentSampleSize)
+Lng32 HSGlobalsClass::prepareToUsePersistentSample(Int64 currentSampleSize,
+                                                   Int64 futureSampleSize)
 {
   Lng32 retcode = 0;
-  retcode = UpdateIUSPersistentSampleTable(currentSampleSize, sampleRowCount);
+  retcode = UpdateIUSPersistentSampleTable(currentSampleSize, futureSampleSize, sampleRowCount);
   HSHandleErrorIUS(retcode);
 
   // If there are existing CBFs, they will be obsolete once the current operation
@@ -6141,7 +6235,9 @@ Lng32 HSGlobalsClass::end_IUS_work()
      sampleList->updIUSUpdateInfo(objDef,
                                   (char*)"",
                                   (char*)updTimestampStr.data(),
-                                  getWherePredicateForIUS());
+                                  getWherePredicateForIUS(),
+                                  PST_IUSrequestedSampleRows_,
+                                  PST_IUSactualSampleRows_);
    HSHandleError(retcode);
 
    return 0;
@@ -6428,9 +6524,14 @@ Lng32 HSGlobalsClass::generateSampleI(Int64 currentSampleSize,
                         currentSampleSize, futureSampleSize,
                         deleteSetSize, actualRowCount);
 
+    NABoolean needEspParReset = setEspParallelism(objDef);
     retcode = HSFuncExecQuery(insertSelectIQuery, -UERR_INTERNAL_ERROR, &xRows,
                               "IUS data set I creation",
-                              NULL, NULL, TRUE/*doRetry*/ );
+                              NULL, NULL, TRUE/*doRetry*/,
+                              0, TRUE);  // check for MDAM usage
+
+    if (needEspParReset)
+      resetEspParallelism();
 
     if (retcode) TM->Rollback();
 
@@ -6600,6 +6701,20 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
   return retcode;
 }
 
+// Returns the table component of the fully qualified name passed in, using the
+// catalog and schema name from tblDef to determine where it starts (the table
+// is in the same schema as the one referenced by tblDef). This avoids problems
+// in parsing the fully qualified name posed by the possibility of periods within
+// delimited identifiers.
+static const char* extractTblName(const NAString& fullyQualifiedName,
+		                          HSTableDef* tblDef)
+{
+  Lng32 tblNameOffset = tblDef->getCatName().length() +
+                        tblDef->getSchemaName().length() +
+                        2;  // 2 dot separators
+  return fullyQualifiedName.data() + tblNameOffset;
+}
+
 // Update the persistent sample table and determine its new cardinality.
 //   1) Delete rows in the persistent sample satisfying the IUS predicate.
 //   2) Insert the rows from <sampleTblName>_I into the persistent sample
@@ -6618,6 +6733,7 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
 // table to indicate that IUS is no longer in progress on the source table.
 // The persistent sample table itself is only modified if IUS is successful.
 Lng32 HSGlobalsClass::UpdateIUSPersistentSampleTable(Int64 oldSampleSize,
+                                                     Int64 requestedSampleSize,
                                                      Int64& newSampleSize)
 {
   Lng32 retcode = 0;
@@ -6665,21 +6781,34 @@ Lng32 HSGlobalsClass::UpdateIUSPersistentSampleTable(Int64 oldSampleSize,
   }
 
   rowsAffected = 0;
+  const char* insSourceTblName = extractTblName(*hssample_table + "_I", objDef);
+  NABoolean needEspParReset = setEspParallelism(objDef, insSourceTblName);
   retcode = HSFuncExecQuery(selectInsertQuery, -UERR_INTERNAL_ERROR,
                             &rowsAffected,
                             "IUS insert into PS (select from _I)",
-                            NULL, NULL, TRUE/*doRetry*/ );
+                            NULL, NULL, TRUE/*doRetry*/, 0,
+                            // check mdam usage if reading incremental sample directly from source table
+                            CmpCommon::getDefault(USTAT_INCREMENTAL_UPDATE_STATISTICS) == DF_SAMPLE);  //checkMdam
   if (LM->LogNeeded()) {
     LM->StopTimer();
     sprintf(LM->msg, PF64 " rows inserted into persistent sample table.", rowsAffected);
     LM->Log(LM->msg);
   }
+  if (needEspParReset)
+    resetEspParallelism();
   HSHandleError(retcode);
   newSampleSize += rowsAffected;
+
+  // Save sample count values to update row in SB_PERSISTENT_SAMPLES table.
+  PST_IUSrequestedSampleRows_ = new(STMTHEAP) Int64;
+  *PST_IUSrequestedSampleRows_ = requestedSampleSize;
+  PST_IUSactualSampleRows_ = new(STMTHEAP) Int64;
+  *PST_IUSactualSampleRows_ = newSampleSize;
 
   HSFuncExecQuery("CONTROL QUERY DEFAULT ALLOW_DML_ON_NONAUDITED_TABLE reset");
 
   checkTime("after updating persistent sample table for IUS");
+  return retcode;
 }
 
 // Read in CBFs for groups that are PENDING and delayedRead flag is TRUE 
@@ -6938,6 +7067,7 @@ Lng32 HSGlobalsClass::selectIUSBatch(Int64 currentRows, Int64 futureRows, NABool
     LM->StartTimer("IUS: selectIUSBatch()");
 
   colsSelected = 0;
+  Int32 colsSuggested = 0;  // number of cols we try to allocate
   iusSampleDeletedInMem->depopulate();
   iusSampleInsertedInMem->depopulate();
   Int64 memAllowed = getMaxMemory();
@@ -7079,7 +7209,7 @@ Lng32 HSGlobalsClass::selectIUSBatch(Int64 currentRows, Int64 futureRows, NABool
            insGroup->state = PENDING;
 
 
-           colsSelected++;
+           colsSuggested++;
            memLeft -= totMemNeeded;
 
          } else {
@@ -7089,7 +7219,7 @@ Lng32 HSGlobalsClass::selectIUSBatch(Int64 currentRows, Int64 futureRows, NABool
            delete group->groupHist;
            group->groupHist = NULL;
            if (LM->LogNeeded()) {
-              sprintf(LM->msg, "Not enough memory: memLeft=" PF64 "totMemNeeded=", memLeft);
+              sprintf(LM->msg, "Not enough memory for %s: memLeft=" PF64 " totMemNeeded=", group->colNames->data(), memLeft);
               formatFixedNumeric((Int64)totMemNeeded, 0, LM->msg+strlen(LM->msg));
               LM->Log(LM->msg);
               sprintf(LM->msg, "group->memNeeded="PF64"", group->memNeeded); 
@@ -7137,15 +7267,13 @@ Lng32 HSGlobalsClass::selectIUSBatch(Int64 currentRows, Int64 futureRows, NABool
        insGroup = insGroup->next;
     }
 
-  // Now allocate memory for singleGroup, inMemDelete and inMemInsert table, 
-  // for each column in PENDING state.
-   allocateMemoryForColumns(singleGroup, futureRows, NULL);
-
-   allocateMemoryForColumns(iusSampleDeletedInMem->getColumns(), 
-                            iusSampleDeletedInMem->getNumRows(), NULL);
-
-   allocateMemoryForColumns(iusSampleInsertedInMem->getColumns(), 
-                            iusSampleInsertedInMem->getNumRows(), NULL);
+   // Now allocate memory for singleGroup, inMemDelete and inMemInsert table,
+   // for each column in PENDING state.
+   colsSelected = allocateMemoryForIUSColumns(singleGroup, futureRows,
+                               iusSampleDeletedInMem->getColumns(),
+                               iusSampleDeletedInMem->getNumRows(),
+                               iusSampleInsertedInMem->getColumns(),
+                               iusSampleInsertedInMem->getNumRows());
 
    if (LM->LogNeeded())
     {
@@ -7162,7 +7290,8 @@ Lng32 HSGlobalsClass::selectIUSBatch(Int64 currentRows, Int64 futureRows, NABool
             }
           group = group->next;
         }
-     sprintf(LM->msg, "return from selectIUSBatch(): count=%d", colsSelected); 
+     sprintf(LM->msg, "return from selectIUSBatch(): columns originally selected = %d, "
+                      "columns able to allocate = %d", colsSuggested, colsSelected);
      LM->Log(LM->msg);
      LM->StopTimer();
     }
@@ -7227,6 +7356,7 @@ Int32 HSGlobalsClass::processIUSColumn(HSColGroupStruct* smplGroup,
       case REC_BIN8_SIGNED:
         return processIUSColumn((Int8*)smplGroup->data, L"%hd", smplGroup, delGroup, insGroup);
         break;
+      case REC_BOOLEAN:
       case REC_BIN8_UNSIGNED:
         return processIUSColumn((UInt8*)smplGroup->data, L"%hu", smplGroup, delGroup, insGroup);
         break;
@@ -7245,6 +7375,9 @@ Int32 HSGlobalsClass::processIUSColumn(HSColGroupStruct* smplGroup,
         break;
       case REC_BIN64_SIGNED:
         return processIUSColumn((Int64*)smplGroup->data, L"%lld", smplGroup, delGroup, insGroup);
+        break;
+      case REC_BIN64_UNSIGNED:
+        return processIUSColumn((UInt64*)smplGroup->data, L"%llu", smplGroup, delGroup, insGroup);
         break;
       case REC_FLOAT32:
         return processIUSColumn((Float32*)smplGroup->data, L"%f", smplGroup, delGroup, insGroup);
@@ -10257,6 +10390,7 @@ Lng32 HSGlobalsClass::processInternalSortNulls(Lng32 rowsRead, HSColGroupStruct 
             processNullsForColumn(group, rowsRead, (Int8*)NULL);
             break;
 
+          case REC_BOOLEAN:
           case REC_BIN8_UNSIGNED:
             processNullsForColumn(group, rowsRead, (UInt8*)NULL);
             break;
@@ -10279,6 +10413,10 @@ Lng32 HSGlobalsClass::processInternalSortNulls(Lng32 rowsRead, HSColGroupStruct 
 
           case REC_BIN64_SIGNED:
             processNullsForColumn(group, rowsRead, (Int64*)NULL);
+            break;
+
+          case REC_BIN64_UNSIGNED:
+            processNullsForColumn(group, rowsRead, (UInt64*)NULL);
             break;
 
           case REC_IEEE_FLOAT32:
@@ -10424,6 +10562,7 @@ bool isInternalSortType(HSColumnStruct &col)
 
   switch (col.datatype)
     {
+      case REC_BOOLEAN:
       case REC_BIN8_SIGNED:
       case REC_BIN8_UNSIGNED:
       case REC_BIN16_SIGNED:
@@ -10431,6 +10570,7 @@ bool isInternalSortType(HSColumnStruct &col)
       case REC_BIN32_SIGNED:
       case REC_BIN32_UNSIGNED:
       case REC_BIN64_SIGNED:
+      case REC_BIN64_UNSIGNED:
       case REC_DECIMAL_LSE:
       case REC_DECIMAL_UNSIGNED:
       case REC_DECIMAL_LS:
@@ -10788,10 +10928,27 @@ Int32 HSGlobalsClass::selectSortBatch(Int64 rows,
   return count;
 }
 
+// Reduce the percentage of physical memory to limit internal sort to, following
+// an allocation failure that proved our previous estimate too high. We arbitrarily
+// reduce it to 90% of what it was. We could get smarter about this, and base the
+// reduction on how much of what we recommended was successfully allocated before
+// the failure.
+void HSGlobalsClass::memReduceAllowance()
+{
+  HSLogMan *LM = HSLogMan::Instance();
+
+  ISMemPercentage_ *= .9f;
+
+  if (LM->LogNeeded())
+    {
+      sprintf(LM->msg, "Reducing ISMemPercentage_ to %f", ISMemPercentage_);
+      LM->Log(LM->msg);
+    }
+}
+
 // Takes corrective action when a memory allocation for internal sort could not
 // be made. Remove the offending column and remaining unallocated columns from
-// the current internal sort batch, and reduce the percentage of available memory
-// to request.
+// the current internal sort batch.
 //
 // Parameters:
 //   failedGroup - The single-col group which could not be allocated for.
@@ -10809,8 +10966,8 @@ void HSGlobalsClass::memRecover(HSColGroupStruct* failedGroup,
   if (LM->LogNeeded())
     {
       LM->Log("<<<Recovering from failed memory allocation for internal sort");
-      sprintf(LM->msg, "Memory allocation failed for %s",
-                       failedGroup->colSet[0].colname->data());
+      sprintf(LM->msg, "Memory allocation failed for %s (" PF64 " rows)",
+                       failedGroup->colSet[0].colname->data(), rows);
       LM->Log(LM->msg);
     }
 
@@ -10882,19 +11039,127 @@ void HSGlobalsClass::memRecover(HSColGroupStruct* failedGroup,
     }
   while (grp = grp->next);
 
-  // Reduce the percentage of physical memory to limit internal sort to, since
-  // our previous estimate was obviously too high. We arbitrarily reduce it to
-  // 90% of what it was. We could get smarter about this, and base the reduction
-  // on how much of what we recommended was successfully allocated before the
-  // failure.
-  ISMemPercentage_ *= .9f;
+  if (LM->LogNeeded())
+    LM->Log(">>>Finished recovery from failed memory allocation for internal sort");
+}
+
+// The data read into memory for IUS consists not only of the primary data
+// (from the existing persistent sample), but also the data for the rows to
+// be removed from the sample, and those to be inserted into the sample. The
+// allocation of memory for these three sets of data for a column must be
+// kept consistent, such that on a given pass, the three data sets for a
+// column should either all be in memory, or none of them.
+//
+// This function attempts to allocate the needed memory for all three data
+// sets for a given column selected for an IUS batch. If an allocation failure
+// occurs for one of the data sets, it ensures that any prior allocation for
+// a corresponding data set is undone, and that the state of corresponding
+// groups are all the same (typically removing the column from the current
+// batch by changing its state from PENDING to UNPROCESSED).
+Int32 HSGlobalsClass::allocateMemoryForIUSColumns(HSColGroupStruct* group,
+                                                  Int64 rows,
+                                                  HSColGroupStruct* delGroup,
+                                                  Int64 delRows,
+                                                  HSColGroupStruct* insGroup,
+                                                  Int64 insRows)
+{
+  HSLogMan *LM = HSLogMan::Instance();
+  if (LM->LogNeeded())
+    LM->StartTimer("Allocate storage for IUS columns");
+
+  Int32 numCols = 0;
+  HSColGroupStruct* firstPendingGroup = NULL;
+
+  // To simplify the logic of keeping the three groups in sync, place them
+  // and their row counts in arrays. On each iteration the array elements
+  // are updated to point to the next group in the respective list.
+  HSColGroupStruct* groupArr[] = {group, delGroup, insGroup};
+  Int64 rowsArr[] = {rows, delRows, insRows};
+
+  NABoolean gotMemory = TRUE;
+
+  // Create storage for query results.
+  do
+  {
+    if (groupArr[0]->state != PENDING)
+      {
+    	// Skip column not selected for this batch by advancing all 3 groups.
+        for (Int16 i=0; i<3; i++)
+          groupArr[i] = groupArr[i]->next;
+        continue;
+      }
+
+    if (!firstPendingGroup)
+      firstPendingGroup = groupArr[0];
+
+    // Allocate all memory needed for storing values of each group. If unable
+    // to do so for all groups, make necessary adjustments to group states and
+    // set flag indicating memory shortfall.
+    for (Int16 i=0; i<3 && gotMemory; i++)
+      {
+        if (!groupArr[i]->allocateISMemory(rowsArr[i]))
+          {
+        	// Recover from failed allocation (free any partial allocation and
+        	// reset the group's state to UNPROCESSED). Also do this for any
+        	// groups already allocated, e.g., if the allocation fails for
+        	// delGroup, back out the allocation for the primary group for the
+        	// column in question.
+            Int16 j;
+            HSColGroupStruct *grpi, *grpj;
+            for (j=i; j>=0; j--)
+              {
+                memRecover(groupArr[j], groupArr[0] == firstPendingGroup, rowsArr[j], NULL);
+                if (j < i)                     // free memory for groups in this set
+                  groupArr[j]->freeISMemory(); //   that were already allocated
+              }
+
+            // For groups not allocated yet, don't need to free anything, but
+            // make sure the states of corresponding groups are the same.
+            // memRecover() will have changed the PENDING state of some of the
+            // columns, and if the corresponding delGroup and/or insGroup are
+            // not changed, they will be part of the queries to read the sample
+            // decrement/increment, for columns that are not being processed in
+            // this batch.
+            for (j=i+1; j<3; j++)
+              {
+                grpi = groupArr[i];
+                grpj = groupArr[j];
+                while (grpi)
+                {
+                  grpj->state = grpi->state;
+                  grpi = grpi->next;
+                  grpj = grpj->next;
+                }
+              }
+            gotMemory = FALSE;
+            memReduceAllowance();
+          }
+        else
+          {
+        	// Allocation was successful.
+            groupArr[i]->nextData = groupArr[i]->data;
+            groupArr[i]->mcis_nextData = groupArr[i]->mcis_data;
+          }
+      }
+
+    // If the allocation was successful, increment the count of columns for
+    // which memory was allocated, and advance to the next element in each
+    // sequence of groups (primary, delete, and insert). If the allocation
+    // was not successful, the loop will exit (recovery from the allocation
+    // failure has been performed within the loop).
+    if (gotMemory)
+      {
+        for (Int16 i=0; i<3; i++)
+          groupArr[i] = groupArr[i]->next;
+        numCols++;
+      }
+
+  } while (gotMemory && groupArr[0]);
 
   if (LM->LogNeeded())
-    {
-      sprintf(LM->msg, "Reducing ISMemPercentage_ to %f", ISMemPercentage_);
-      LM->Log(LM->msg);
-      LM->Log(">>>Finished recovery from failed memory allocation for internal sort");
-    }
+    LM->StopTimer();
+
+  return numCols;
 }
 
 // Allocates memory needed for internal sort for all columns marked as PENDING.
@@ -10930,6 +11195,7 @@ Int32 HSGlobalsClass::allocateMemoryForColumns(HSColGroupStruct* group,
      if (!group->allocateISMemory(rows))
        {
          memRecover(group, group == firstPendingGroup, rows, mgr);
+         memReduceAllowance();
          break;
        }
 
@@ -11142,6 +11408,7 @@ Lng32 doSort(HSColGroupStruct *group)
                   (Int8*)group->nextData - (Int8*)group->data - 1);
         break;
 
+      case REC_BOOLEAN:
       case REC_BIN8_UNSIGNED:
         quicksort((UInt8*)group->data, 0,
                   (UInt8*)group->nextData - (UInt8*)group->data - 1);
@@ -11170,6 +11437,11 @@ Lng32 doSort(HSColGroupStruct *group)
       case REC_BIN64_SIGNED:
         quicksort((Int64*)group->data, 0,
                        (Int64*)group->nextData - (Int64*)group->data - 1);
+        break;
+
+      case REC_BIN64_UNSIGNED:
+        quicksort((UInt64*)group->data, 0,
+                       (UInt64*)group->nextData - (UInt64*)group->data - 1);
         break;
 
       case REC_IEEE_FLOAT32:
@@ -11657,6 +11929,7 @@ Lng32 HSGlobalsClass::createStatsForColumn(HSColGroupStruct *group, Int64 rowsAl
         createHistogram(group, intCount, sampleRowCount, samplingUsed, (Int8*)NULL);
         break;
 
+      case REC_BOOLEAN:
       case REC_BIN8_UNSIGNED:
         createHistogram(group, intCount, sampleRowCount, samplingUsed, (UInt8*)NULL);
         break;
@@ -11679,6 +11952,10 @@ Lng32 HSGlobalsClass::createStatsForColumn(HSColGroupStruct *group, Int64 rowsAl
 
       case REC_BIN64_SIGNED:
         createHistogram(group, intCount, sampleRowCount, samplingUsed, (Int64*)NULL);
+        break;
+
+      case REC_BIN64_UNSIGNED:
+        createHistogram(group, intCount, sampleRowCount, samplingUsed, (UInt64*)NULL);
         break;
 
       case REC_BYTE_F_ASCII:
@@ -11925,7 +12202,7 @@ NABoolean HSGlobalsClass::getPersistentSampleTableForIUS(NAString& tableName,
                                                       objDef->getSchemaName());
   if ( !sampleList ) return FALSE;
 
-  Lng32 retcode = sampleList->find(objDef, tableName,
+  Lng32 retcode = sampleList->find(objDef, 'I', tableName,
                                    requestedRows, sampleRows, sampleRate
                                   );
 
@@ -12079,6 +12356,7 @@ Int32 computeKeyLengthInfo(Lng32 datatype)
         return ExHDPHash::SWAP_FOUR;
 
       case REC_BIN64_SIGNED:
+      case REC_BIN64_UNSIGNED:
       case REC_FLOAT64:
         return ExHDPHash::SWAP_EIGHT;
 
@@ -12110,9 +12388,14 @@ Int32 HSGlobalsClass::processIUSColumn(T* ptr,
   Lng32 numNonNullIntervals = hist->hasNullInterval()
                                     ? numIntervals - 1
                                     : numIntervals;
+
+  // If the existing histogram is all nulls, and the incremental sample contains
+  // any non-nulls, fall back to RUS so new intervals can be created correctly.
+  if (numNonNullIntervals == 0 &&
+      iusSampleInsertedInMem->getNumRows() > insGroup->nullCount)
+    return UERR_WARNING_IUS_NO_LONGER_ALL_NULL;
+
   Int64 insertFailCount = 0;   // count attempted insertions into CBF that fail
-
-
   char title[100];
 
   HSLogMan *LM = HSLogMan::Instance();
@@ -12133,13 +12416,20 @@ Int32 HSGlobalsClass::processIUSColumn(T* ptr,
   smplGroup->boundaryValues = boundaryValues;
   smplGroup->MFVValues = MFVValues;
 
-  for (Lng32 i=0; i<=numNonNullIntervals; i++)
-    {
-      convertBoundaryOrMFVValue(hist->getIntBoundary(i), smplGroup,
-                                i, boundaryValues, format);
-      convertBoundaryOrMFVValue(hist->getIntMFV(i), smplGroup,
-                                i, MFVValues, format);
+  // If there is only a null interval, the code to extract the boundary value of
+  // the low-value interval (which is "(NULL)") as an instance of type T will get
+  // an assertion failure. So skip this code if that is the case; these 2 arrays
+  // won't be used anyway in this case because the existing sample contains no
+  // non-nulls to place in intervals, and if there are non-nulls in _I, we will
+  // have returned above with UERR_WARNING_IUS_NO_LONGER_ALL_NULL.
+  if (numNonNullIntervals > 0) {
+    for (Lng32 i=0; i<=numNonNullIntervals; i++) {
+        convertBoundaryOrMFVValue(hist->getIntBoundary(i), smplGroup,
+                                  i, boundaryValues, format);
+        convertBoundaryOrMFVValue(hist->getIntMFV(i), smplGroup,
+                                  i, MFVValues, format);
     }
+  }
 
   if (LM->LogNeeded()) {
      LM->StopTimer();
@@ -12315,7 +12605,7 @@ Int32 HSGlobalsClass::processIUSColumn(T* ptr,
         }
      }
 
-  } else {
+  } else { // cbf already exists
      // 1 more bucket than interval so that interval# maps to bucket# directly
      HS_ASSERT(cbf->numBuckets() == hist->getNumIntervals() + 1);
      cbf->setKenLengthInfo( computeKeyLengthInfo(smplGroup->ISdatatype) );
@@ -13040,6 +13330,7 @@ Lng32 HSGlobalsClass::mergeDatasetsForIUS(
         return mergeDatasetsForIUS((Int8*)smplGroup->data, (Int8*)NULL,
                                    smplGroup, smplrows, delGroup, delrows, insGroup, insrows);
         break;
+      case REC_BOOLEAN:
       case REC_BIN8_UNSIGNED:
         return mergeDatasetsForIUS((UInt8*)smplGroup->data, (UInt8*)NULL,
                                    smplGroup, smplrows, delGroup, delrows, insGroup, insrows);
@@ -13063,6 +13354,10 @@ Lng32 HSGlobalsClass::mergeDatasetsForIUS(
         break;
       case REC_BIN64_SIGNED:
         return mergeDatasetsForIUS((Int64*)smplGroup->data, (Int64*)NULL,
+                                   smplGroup, smplrows, delGroup, delrows, insGroup, insrows);
+        break;
+      case REC_BIN64_UNSIGNED:
+        return mergeDatasetsForIUS((UInt64*)smplGroup->data, (UInt64*)NULL,
                                    smplGroup, smplrows, delGroup, delrows, insGroup, insrows);
         break;
       case REC_FLOAT32:
@@ -13119,7 +13414,7 @@ Int32 HSGlobalsClass::mergeDatasetsForIUS(T_IUS* ptr, T_IS* dummyPtr,
                        HSColGroupStruct* delGroup, Int64 delrows,
                        HSColGroupStruct* insGroup, Int64 insrows)
 {
-
+  HSLogMan *LM = HSLogMan::Instance();
   HSHistogram* hist = smplGroup->groupHist;
   Lng32 numIntervals = hist->getNumIntervals();
   Lng32 numNonNullIntervals = hist->hasNullInterval()
@@ -13151,12 +13446,19 @@ Int32 HSGlobalsClass::mergeDatasetsForIUS(T_IUS* ptr, T_IS* dummyPtr,
 
   IUSValueIterator<T_IUS> valIter(ptr);
 
-  HSLogMan *LM = HSLogMan::Instance();
+  // If there is only a null interval in the existing histogram, calculate the
+  // null count for the updated histogram, and set up buffer and ct using I alone.
+  //
+  if (numNonNullIntervals == 0) {
+     smplGroup->nullCount -= delGroup->nullCount;
+     smplGroup->nullCount += insGroup->nullCount;
+     buffer = (T_IS*)(insGroup->data);
+     ct = insrows - insGroup->nullCount;
 
-  // If we may very well have not processed all keys from I, we have to clear the CBF
-  // and reload the CBF with (S(i-1) - D), and insert I into the buffer directly.
-  if ( smplGroup->allKeysInsertedIntoCBF == FALSE ) {
+  } else if ( smplGroup->allKeysInsertedIntoCBF == FALSE ) {
 
+     // Since we have not processed all keys from I, we have to clear the CBF
+     // and reload it with (S(i-1) - D), and insert I into the buffer directly.
      smplGroup->cbf->clear();
 
      // Insert S(i-1)
@@ -13228,7 +13530,7 @@ Int32 HSGlobalsClass::mergeDatasetsForIUS(T_IUS* ptr, T_IS* dummyPtr,
 
   } else {
 
-    // All keys inserted case (i.e., IUS fails becaues of shape test failures)
+    // All keys inserted case (i.e., IUS fails because of shape test failures)
 
      valIter.init(smplGroup);
    
@@ -13694,6 +13996,15 @@ Int32 copyValue(Int64 value, char *valueBuff, const HSColumnStruct &colDesc, sho
                     (Int32)(value % 60));             // seconds
           break;
 
+        case REC_BOOLEAN:
+          {
+            if (value)
+              strcpy(valueBuff,"TRUE");
+            else
+              strcpy(valueBuff,"FALSE");
+          }
+          break;
+
 #pragma warning(default:4146)
 
         // LCOV_EXCL_START :rfi
@@ -14001,6 +14312,7 @@ Lng32 setBufferValue(MCWrapper& value,
              case REC_BIN8_SIGNED:
                 retcode = copyValue(*((MCNonCharIterator<Int8>*)(value.allCols_[i]))->getContent(value.index_), valueBuff, mgroup->colSet[i], len);
                 break;
+             case REC_BOOLEAN:
              case REC_BIN8_UNSIGNED:
                 retcode = copyValue(*((MCNonCharIterator<UInt8>*)(value.allCols_[i]))->getContent(value.index_), valueBuff, mgroup->colSet[i], len);
                 break;
@@ -14018,6 +14330,9 @@ Lng32 setBufferValue(MCWrapper& value,
                 break;
              case REC_BIN64_SIGNED:
                 retcode = copyValue(*((MCNonCharIterator<Int64>*)(value.allCols_[i]))->getContent(value.index_), valueBuff, mgroup->colSet[i], len);
+                break;
+             case REC_BIN64_UNSIGNED:
+                retcode = copyValue(*((MCNonCharIterator<UInt64>*)(value.allCols_[i]))->getContent(value.index_), valueBuff, mgroup->colSet[i], len);
                 break;
              case REC_IEEE_FLOAT32:
                 retcode = copyValue(*((MCNonCharIterator<float>*)(value.allCols_[i]))->getContent(value.index_), valueBuff, mgroup->colSet[i], len);
@@ -15187,7 +15502,8 @@ Lng32 doubleToHSDataBuffer(const double dbl, HSDataBuffer& dbf)
 /**********************************************************************/
 /* METHOD:  managePersistentSamples()                                 */
 /* PURPOSE: Create or delete persistent sample tables from update     */
-/*          statistics command line.                                  */
+/*          statistics command line. These are NOT the automatically  */
+/*          managed persistent samples used by IUS.                   */
 /* RETCODE:  0 - successful                                           */
 /*          -1 - failure                                              */
 /**********************************************************************/
@@ -15201,7 +15517,7 @@ Lng32 managePersistentSamples()
   {
     NAString table;
     Int64 sampleRows, tableRows;
-    NABoolean isEstimate = FALSE, isManual = TRUE;
+    NABoolean isEstimate = FALSE;
 
     tableRows = hs_globals->objDef->getRowCount(isEstimate);
 
@@ -15248,7 +15564,8 @@ Lng32 managePersistentSamples()
       {
         if (sampleList->createAndInsert(hs_globals->objDef, table, 
                                         sampleRows, tableRows, 
-                                        isEstimate, isManual))
+                                        isEstimate,
+                                        'M'))  // manually created persistent sample table
           retcode = -1;
         if (LM->LogNeeded())
           {
@@ -15394,6 +15711,19 @@ NAString HSColGroupStruct::generateTextForColumnCast()
         }
       if(isMCGroup)
         textForColumnCast.append(replaceFuncLastPart);
+    }
+  else if (colSet[i].datatype == REC_BOOLEAN)
+    {
+      // CAST of boolean to VARCHAR UCS2 isn't supported in the 
+      // engine yet (you get error 8414 at run-time if you try it),
+      // so work around this by CASTing to ISO88591 then CASTing
+      // to UCS2. Once the engine supports this cast we can
+      // delete this code and just use the "else" case below.
+      textForColumnCast.append("TRIM(TRAILING FROM CAST (CAST (");
+      textForColumnCast.append(columnName.data());
+      textForColumnCast.append(" AS CHAR(10)) AS VARCHAR(");
+      textForColumnCast.append(LongToNAString(maxCharBoundaryLen));
+      textForColumnCast.append(") CHARACTER SET UCS2))");
     }
   else
     {
@@ -15839,6 +16169,7 @@ Lng32 HSGlobalsClass::processFastStatsBatch(CollIndex numCols, HSColGroupStruct*
           group->fastStatsHist = new(STMTHEAP) FastStatsHist<Int8>(group, cbf);
           break;
 
+        case REC_BOOLEAN:
         case REC_BIN8_UNSIGNED:
           group->fastStatsHist = new(STMTHEAP) FastStatsHist<UInt8>(group, cbf);
           break;
@@ -15861,6 +16192,10 @@ Lng32 HSGlobalsClass::processFastStatsBatch(CollIndex numCols, HSColGroupStruct*
 
         case REC_BIN64_SIGNED:
           group->fastStatsHist = new(STMTHEAP) FastStatsHist<Int64>(group, cbf);
+          break;
+
+        case REC_BIN64_UNSIGNED:
+          group->fastStatsHist = new(STMTHEAP) FastStatsHist<UInt64>(group, cbf);
           break;
 
         case REC_IEEE_FLOAT32:

@@ -1300,12 +1300,8 @@ enum DefaultConstants
   // For Scratch files
   // -------------------------------------------------------------------------
 
-  SCRATCH_DISKS,
-  SCRATCH_DISKS_EXCLUDED,
-  SCRATCH_DISKS_PREFERRED,
-  SCRATCH_DRIVE_LETTERS,
-  SCRATCH_DRIVE_LETTERS_EXCLUDED,
-  SCRATCH_DRIVE_LETTERS_PREFERRED,
+  SCRATCH_DIRS,
+  
 
   // -------------------------------------------------------------------------
   // For SortGroupBy.
@@ -1443,10 +1439,6 @@ enum DefaultConstants
   RECOMPILATION_WARNINGS,
 
   SHOWCONTROL_SHOW_ALL,
-  MP_CATALOG,
-  MP_SUBVOLUME,
-  MP_SYSTEM,
-  MP_VOLUME,
   NAMETYPE,
 
 
@@ -2601,13 +2593,11 @@ enum DefaultConstants
 
 
  PARTIAL_SORT_ADJST_FCTR,
-
   SCRATCH_MAX_OPENS_HASH,
   SCRATCH_MAX_OPENS_SORT,
-
+  SCRATCH_DISK_LOGGING,
   SCRATCH_MGMT_OPTION,
   SCRATCH_PREALLOCATE_EXTENTS,
-  SCRATCH_DISK_LOGGING,
   SCRATCH_IO_BLOCKSIZE_SORT,
   SCRATCH_IO_VECTOR_SIZE_HASH,
   SCRATCH_IO_VECTOR_SIZE_SORT,
@@ -3841,7 +3831,6 @@ enum DefaultConstants
   FAST_EXTRACT_MAX_PARTITIONS,
 
   HIVE_USE_PERSISTENT_KEY,
-  HIVE_USE_SORT_COLS_IN_KEY,
 
   ORC_READ_STRIPE_INFO,
   //if 0, regular scanner is used. From 0.x to 1.0, percentage of regions that need to be scanned that will be done in parallel.
@@ -3883,6 +3872,12 @@ enum DefaultConstants
   NCM_ORC_COSTING_APPLY_SKIP_RATIO,
   NCM_ORC_COSTING_DEBUG,
 
+  // When set to a value >= 0, the Hbase scan DoP will be set to 
+  // that of # of partitions of the table if the scan size is over
+  // this threshold value. 
+  // When set to a value less than 0, turn off the feature.
+  HBASE_SCAN_DOP_AS_PARTITIONS_THRESHOLD,
+
   // TINYINT cqds are added until all components can handle this datatype
   // for various actions (listed below).
 
@@ -3914,6 +3909,37 @@ enum DefaultConstants
   // if 3, null inserted if conversion error, and processing continues.
   HIVE_INSERT_ERROR_MODE,
   
+  // If ON, largeint unsigned is supported as returned datatype for a select
+  // stmt, and for input params.
+  // Otherwise typed as bignum
+  TRAF_LARGEINT_UNSIGNED_IO,
+
+  // If ON, boolean is supported as returned datatype for a select
+  // stmt, and for input params.
+  // Otherwise typed as char
+  TRAF_BOOLEAN_IO,
+
+  // if TRUE, create signed numeric literal for both +ve and -ve numbers.
+  // if FALSE, create unsigned literal for +ve and signed literal for -ve nums.
+  TRAF_CREATE_SIGNED_NUMERIC_LITERAL,
+
+  // if TRUE, create tinyint literal insteadl of smallint.
+  TRAF_CREATE_TINYINT_LITERAL,
+  HIVE_SIMULATE_REAL_NODEMAP,
+
+  // if ON, generate object descriptor during DDL and store it in metadata.
+  TRAF_STORE_OBJECT_DESC,
+
+  // if ON, read object descriptor from metadata, if it was stored.
+  TRAF_READ_OBJECT_DESC,
+
+  HIVE_LOCALITY_MAX_OVERLOAD,
+  HIVE_LOCALITY_MAX_SECOND_CHECK_TGTS,
+  HIVE_LOCALITY_NUM_SECOND_LOOPS,
+
+  // format of  traf tables:  "HBASE" or "MONARCH"
+  TRAF_DEFAULT_STORAGE_TYPE,
+
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!
   __NUM_DEFAULT_ATTRIBUTES

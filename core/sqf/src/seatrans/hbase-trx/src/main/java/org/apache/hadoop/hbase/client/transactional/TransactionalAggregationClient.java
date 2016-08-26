@@ -41,6 +41,7 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.transactional.TransactionalTable;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -81,13 +82,15 @@ public class TransactionalAggregationClient {
 
   private static final Log log = LogFactory.getLog(TransactionalAggregationClient.class);
   Configuration conf;
+  Connection connection;
 
   /**
    * Constructor with Conf object
    * @param cfg
    */
-  public TransactionalAggregationClient(Configuration cfg) {
+  public TransactionalAggregationClient(Configuration cfg, Connection conn) {
     this.conf = cfg;
+    this.connection = conn;
   }
 
   /**
@@ -109,7 +112,7 @@ public class TransactionalAggregationClient {
       throws Throwable {
     TransactionalTable table = null;
     try {
-      table = new TransactionalTable(tableName.getName());
+      table = new TransactionalTable(tableName.getName(), connection);
       return max(transactionId, startId, table, ci, scan);
     } finally {
       if (table != null) {
@@ -209,7 +212,7 @@ public class TransactionalAggregationClient {
       throws Throwable {
     TransactionalTable table = null;
     try {
-      table = new TransactionalTable(tableName.getName());
+      table = new TransactionalTable(tableName.getName(), connection);
       return min(transactionId, startId, table, ci, scan);
     } finally {
       if (table != null) {
@@ -298,7 +301,7 @@ public class TransactionalAggregationClient {
       throws Throwable {
     TransactionalTable table = null;
     try {
-      table = new TransactionalTable(tableName.getName());
+      table = new TransactionalTable(tableName.getName(), connection);
       return rowCount(transactionId, startId, table, ci, scan);
     } finally {
       if (table != null) {
@@ -377,7 +380,7 @@ public class TransactionalAggregationClient {
       throws Throwable {
     TransactionalTable table = null;
     try {
-      table = new TransactionalTable(tableName.getName());
+      table = new TransactionalTable(tableName.getName(), connection);
       return sum(transactionId, startId, table, ci, scan);
     } finally {
       if (table != null) {
@@ -455,7 +458,7 @@ public class TransactionalAggregationClient {
       throws Throwable {
     TransactionalTable table = null;
     try {
-      table = new TransactionalTable(tableName.getName());
+      table = new TransactionalTable(tableName.getName(), connection);
       return getAvgArgs(transactionId, startId, table, ci, scan);
     } finally {
       if (table != null) {
@@ -656,7 +659,7 @@ public class TransactionalAggregationClient {
       Scan scan) throws Throwable {
     TransactionalTable table = null;
     try {
-      table = new TransactionalTable(tableName.getName());
+      table = new TransactionalTable(tableName.getName(), connection);
       return std(transactionId, startId, table, ci, scan);
     } finally {
       if (table != null) {
@@ -774,7 +777,7 @@ public class TransactionalAggregationClient {
       Scan scan) throws Throwable {
     TransactionalTable table = null;
     try {
-      table = new TransactionalTable(tableName.getName());
+      table = new TransactionalTable(tableName.getName(), connection);
       return median(transactionId, startId, table, ci, scan);
     } finally {
       if (table != null) {

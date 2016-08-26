@@ -22,6 +22,7 @@ under the License.
  */
 package org.trafodion.dcs.master.listener;
 
+import java.io.File;
 import java.io.*;
 import java.nio.*;
 import java.nio.channels.*;
@@ -47,6 +48,8 @@ import org.trafodion.dcs.Constants;
 import org.trafodion.dcs.util.DcsConfiguration;
 import org.trafodion.dcs.util.DcsNetworkConfiguration;
 import org.trafodion.dcs.master.Metrics;
+import org.trafodion.dcs.master.mapping.DefinedMapping;
+import org.trafodion.dcs.master.registeredServers.RegisteredServers;
 
 public class ListenerService extends Thread{
     private static  final Log LOG = LogFactory.getLog(ListenerService.class);
@@ -65,12 +68,27 @@ public class ListenerService extends Thread{
     private ListenerWorker worker=null;
     private List<PendingRequest> pendingChanges = new LinkedList<PendingRequest>();	//list of PendingRequests instances
     private HashMap<SelectionKey, Long> timeouts = new HashMap<SelectionKey, Long>(); // hash map of timeouts
+    private DefinedMapping mapping = null;
+    private RegisteredServers registeredServers = null;
+    private boolean userAffinity = true;
+    private String hostSelectionMode = "";
+    private long timeStamp;
+    private String fullPath;
+    private File file;
 
     private void init(){
-        if(metrics != null)metrics.initListenerMetrics(System.nanoTime());
-        worker = new ListenerWorker(zkc,parentZnode);
-        worker.start();
-        this.start();
+        try {
+            fileConfFile();
+            mapping = new DefinedMapping(this);
+            registeredServers = new RegisteredServers(this);
+            if(metrics != null)metrics.initListenerMetrics(System.nanoTime());
+            worker = new ListenerWorker(this);
+            worker.start();
+            this.start();
+        } catch (Exception e){
+            LOG.error("Cannot create Profile object: " + e.getMessage());
+            System.exit(1);
+        }
     }
 
     public ListenerService(String[] args) {
@@ -91,7 +109,9 @@ public class ListenerService extends Thread{
             this.selectorTimeout = conf.getInt(Constants.DCS_MASTER_LISTENER_SELECTOR_TIMEOUT,Constants.DEFAULT_LISTENER_SELECTOR_TIMEOUT);
             this.port = conf.getInt(Constants.DCS_MASTER_PORT,Constants.DEFAULT_DCS_MASTER_PORT);
             this.portRange = conf.getInt(Constants.DCS_MASTER_PORT_RANGE,Constants.DEFAULT_DCS_MASTER_PORT_RANGE);
-            this.parentZnode = conf.get(Constants.ZOOKEEPER_ZNODE_PARENT,Constants.DEFAULT_ZOOKEEPER_ZNODE_PARENT);	   	
+            this.parentZnode = conf.get(Constants.ZOOKEEPER_ZNODE_PARENT,Constants.DEFAULT_ZOOKEEPER_ZNODE_PARENT);
+            this.userAffinity = conf.getBoolean(Constants.DCS_MASTER_USER_SERVER_AFFINITY,Constants.DEFAULT_DCS_MASTER_USER_SERVER_AFFINITY);
+            this.hostSelectionMode = conf.get(Constants.DCS_MASTER_HOST_SELECTION_MODE,Constants.DEFAULT_DCS_MASTER_HOST_SELECTION_MODE);
             this.metrics = null;
             this.zkc = new ZkClient(3000,0,0);
             zkc.connect();
@@ -109,7 +129,7 @@ public class ListenerService extends Thread{
         }
     }
 
-    public ListenerService(ZkClient zkc,DcsNetworkConfiguration netConf,int port,int portRange,int requestTimeout, int selectorTimeout, Metrics metrics, String parentZnode) {
+    public ListenerService(ZkClient zkc,DcsNetworkConfiguration netConf,int port,int portRange,int requestTimeout, int selectorTimeout, Metrics metrics, String parentZnode, Configuration conf) {
         this.zkc = zkc;
         while (zkc.getZk() == null || zkc.getZk().getState() != ZooKeeper.States.CONNECTED) {
             try {
@@ -119,13 +139,20 @@ public class ListenerService extends Thread{
         }
         LOG.info("Connected to ZooKeeper");
         this.netConf = netConf;
+        this.conf = conf;
         this.port = port;
         this.portRange = portRange;
         this.requestTimeout = requestTimeout;
         this.selectorTimeout = selectorTimeout;
         this.metrics = metrics;
         this.parentZnode = parentZnode;
-        init();
+        userAffinity = this.conf.getBoolean(
+                    Constants.DCS_MASTER_USER_SERVER_AFFINITY,
+                    Constants.DEFAULT_DCS_MASTER_USER_SERVER_AFFINITY);
+        hostSelectionMode = this.conf.get(
+                    Constants.DCS_MASTER_HOST_SELECTION_MODE,
+                    Constants.DEFAULT_DCS_MASTER_HOST_SELECTION_MODE);
+       init();
     }
 
     public void send(PendingRequest preq) {
@@ -354,6 +381,8 @@ public class ListenerService extends Thread{
             if (clientData.total_read > (clientData.hdr.getTotalLength() + ListenerConstants.HEADER_SIZE)){
                 throw new IOException("Wrong total length in read Header : total_read " + clientData.total_read + ", hdr_total_length + hdr_size " + clientData.hdr.getTotalLength() +  + ListenerConstants.HEADER_SIZE);
             }
+            Util.toHexString("Client buf", clientData.buf[1]);
+
             key.attach(clientData);
             this.worker.processData(this, key);
             if(LOG.isDebugEnabled())
@@ -429,6 +458,59 @@ public class ListenerService extends Thread{
             key.cancel();
             if(metrics != null)metrics.listenerRequestRejected();
         }
+    }
+    public ZkClient getZkc(){
+        return zkc;
+    }
+    public String getParentZnode(){
+        return parentZnode;
+    }
+    public DefinedMapping getMapping(){
+        return mapping;
+    }
+    public RegisteredServers getRegisteredServers(){
+        return registeredServers;
+    }
+    private void fileConfFile() {
+        fullPath = System.getenv("DCS_INSTALL_DIR") + "/conf/dcs-site.xml";
+        if(LOG.isDebugEnabled())
+          LOG.debug("Conf file path :" + fullPath);
+        file = new File(fullPath);
+        timeStamp = file.lastModified();
+    }
+    private boolean isConfFileUpdated() {
+        long timeStamp = file.lastModified();
+        if( this.timeStamp != timeStamp ) {
+          this.timeStamp = timeStamp;
+          //Yes, file is updated
+          if(LOG.isDebugEnabled())
+            LOG.debug("Conf file is updated");
+          return true;
+        }
+        //No, file is not updated
+        return false;
+    }
+    public String getConfHostSelectionMode(){
+        if(isConfFileUpdated()){
+          this.conf = DcsConfiguration.create();
+          hostSelectionMode = this.conf.get(
+                    Constants.DCS_MASTER_HOST_SELECTION_MODE,
+                    Constants.DEFAULT_DCS_MASTER_HOST_SELECTION_MODE);
+        }
+        if(LOG.isDebugEnabled())
+          LOG.debug("Conf hostSelectionMode :" + hostSelectionMode);
+        return hostSelectionMode;
+    }
+    public boolean getUserAffinity(){
+        if(isConfFileUpdated()){
+          this.conf = DcsConfiguration.create();
+          userAffinity = this.conf.getBoolean(
+                    Constants.DCS_MASTER_USER_SERVER_AFFINITY,
+                    Constants.DEFAULT_DCS_MASTER_USER_SERVER_AFFINITY);
+        }
+        if(LOG.isDebugEnabled())
+          LOG.debug("Conf userAffinity :" + userAffinity);
+        return userAffinity;
     }
 
     public static void main(String [] args) {

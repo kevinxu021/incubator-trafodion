@@ -5,6 +5,8 @@ USAGE="usage: load.ed.sh
     [ -s|--streams|streams <<streams>> ] 
     [ -p|--partitions|partitions <<partitions>> ] 
     [ -c|--compress|compress ]
+    [ -a|--aligned|aligned ]
+    [ -m|--monarch|monarch ]
     [ -d|--debug|debug ]
     [ -id|--testid|testid <<testid>> ]
     [ -o|--options|options <<options>> ]
@@ -19,6 +21,8 @@ TESTID=$(date +%y%m%d.%H%M)
 SCALE=$MAX_ED_SCALE
 if (( $MAX_MXOSRVR < 32 )) ; then STREAMS=$MAX_MXOSRVR; else STREAMS=32; fi
 OPTION_COMPRESS=FALSE
+OPTION_ALIGNED=""
+OPTION_MONARCH=""
 PARTITIONS=$SYSTEM_DEFAULT_PARTITIONS
 
 while [[ $# > 0 ]] ; do
@@ -30,6 +34,8 @@ case ${key,,} in
     -s|--streams|streams)		STREAMS="$1"; shift;;
     -p|--partitions|partitions)		PARTITIONS="$1"; shift;; 
     -c|--compress|compress)		OPTION_COMPRESS="TRUE";;
+    -a|--aligned|aligned)               OPTION_ALIGNED="aligned"; shift;;
+    -m|--monarch|monarch)               OPTION_MONARCH="monarch"; shift;;
     -id|--testid|testid)		export TESTID="$1"; shift;;
     -o|--options|options)		OPTIONS="$1"; shift;;
     -d|--debug|debug)			OPTION_DEBUG="TRUE";;
@@ -67,6 +73,8 @@ $0
             STREAMS = ${STREAMS}
              TESTID = ${TESTID}
         COMPRESSION = ${OPTION_COMPRESS}
+            ALIGNED = ${OPTION_ALIGNED}
+            MONARCH = ${OPTION_MONARCH}
             OPTIONS = ${OPTIONS}
        OPTION_DEBUG = ${OPTION_DEBUG}
                 ( logs will be found in ${LOGDIRECTORY} )
@@ -92,7 +100,7 @@ case ${DATABASE,,} in
 		# create / load
 
 		java -Ddbconnect.properties=${DATABASE,,}.properties \
-		    EDLoader $SCALE all createschema dropcreate load upsert usingload batchsize 1000 streams $STREAMS salt $PARTITIONS maintain ${OPTIONS}
+		    EDLoader $SCALE all createschema dropcreate load upsert usingload batchsize 1000 streams $STREAMS salt $PARTITIONS maintain ${OPTION_ALIGNED} ${OPTION_MONARCH} ${OPTIONS}
 
 		;;
 

@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Net;
+using System.Net.Sockets;
 
 namespace EsgynDB.Data
 {
@@ -11,8 +13,10 @@ namespace EsgynDB.Data
         public short RetryCount;
 
         public string ClientUsername;
+        public string ccExtention;
 
         private byte[] _clientUsername;
+        private byte[] _ccExtention;
 
         public void WriteToDataStream(DataStream ds)
         {
@@ -28,6 +32,7 @@ namespace EsgynDB.Data
             ds.WriteString(ConnectionContext._clientVproc);
 
             ds.WriteString(_clientUsername);
+            ds.WriteString(_ccExtention);
         }
 
         public int PrepareMessageParams(EsgynDBEncoder enc)
@@ -46,6 +51,39 @@ namespace EsgynDB.Data
             if (_clientUsername.Length > 0)
             {
                 len += _clientUsername.Length + 1;
+            }
+
+            IPHostEntry heserver = Dns.GetHostEntry(ConnectionContext.ComputerName);
+            String ipClientAddress = "";
+
+            IPAddress[] ipv4Addresses = Array.FindAll(heserver.AddressList,
+                item => item.AddressFamily == AddressFamily.InterNetwork);
+
+            foreach (IPAddress ipAddress in ipv4Addresses)
+            {
+                String ipString = ipAddress.ToString();
+                if (!ipString.Equals(ipClientAddress))
+                {
+                    ipClientAddress = ipString;
+                }
+            }
+
+            String roleName = ConnectionContext.UserRole;
+            ccExtention = String.Format("{{\"sessionName\":\"{0}\",\"ipClientAddress\":\"{1}\",\"clientHostName\":\"{2}\",\"userName\":\"{3}\",\"roleName\":\"{4}\",\"applicationName\":\"{5}\"}}",
+                       ConnectionContext.SessionName,
+                       ipClientAddress,
+                       ConnectionContext.ComputerName,
+                       ClientUsername,
+                       roleName,
+                       System.AppDomain.CurrentDomain.FriendlyName);
+
+            _ccExtention = enc.GetBytes(ccExtention, enc.Transport);
+
+            // need insert a INT here to represent the length of the _ccExtention
+            len += 4;
+            if (_ccExtention.Length > 0)
+            {
+                len += _ccExtention.Length + 1;
             }
 
             return len;

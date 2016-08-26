@@ -21,7 +21,6 @@
 package org.trafodion.dcs.util;
 
 import java.util.Map.Entry;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -35,7 +34,7 @@ public class DcsConfiguration extends Configuration {
 
   // a constant to convert a fraction to a percentage
   private static final int CONVERT_TO_PERCENTAGE = 100;
- 
+
   public static Configuration addWmsResources(Configuration conf) {
     conf.addResource("dcs-default.xml");
     conf.addResource("dcs-site.xml");

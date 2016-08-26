@@ -1,6 +1,6 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2015 Esgyn Corporation
+// (C) Copyright 2015-2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
@@ -16,6 +16,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Properties;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -150,6 +151,17 @@ public class ConfigurationResource {
 		}
 		return alertsEnabled;
 	}
+
+	public boolean isWMSEnabled() {
+		boolean enableWMS = false;
+		try {
+			enableWMS = Boolean.parseBoolean(xmlConfig.getProperty("enableWMS"));
+		} catch (Exception ex) {
+
+		}
+		return enableWMS;
+	}
+
 	public static String getDatabaseVersion() {
 		if (!ConfigurationResource.systemPropertiesLoaded) {
 			loadEsgynDBSystemProperties();
@@ -191,6 +203,16 @@ public class ConfigurationResource {
 			adminPass = org.eclipse.jetty.util.security.Password.deobfuscate(adminPass);
 		}
 		return adminPass;
+	}
+
+	public int getHttpReadTimeoutSeconds() {
+		int httpReadTimeOut = 120;
+		try {
+			String timeOut = xmlConfig.getProperty("httpReadTimeOutSeconds", "120");
+			httpReadTimeOut = Integer.parseInt(timeOut);
+		} catch (Exception ex) {
+		}
+		return httpReadTimeOut;
 	}
 
 	public int getSessionTimeoutMinutes() {
@@ -271,15 +293,15 @@ public class ConfigurationResource {
 
 		try {
 
-			String DBMGR_HOME = System.getenv("DBMGR_INSTALL_DIR");
-			if (DBMGR_HOME == null || DBMGR_HOME.isEmpty()) {
+			if (!SystemUtils.IS_OS_LINUX) {
 				URL path = ConfigurationResource.class.getClassLoader().getResource("config.xml");
-				_LOG.info("Using default configuration file " + path.toURI());
+				_LOG.info("Using default configuration " + path.toURI());
 				File file = new File(path.toURI());
 				input = new FileInputStream(file);
 				prop.loadFromXML(input);
 				input.close();
 			} else {
+				String DBMGR_HOME = System.getenv("DBMGR_INSTALL_DIR");
 				String fileName = DBMGR_HOME + "/conf/config.xml";
 				input = new FileInputStream(fileName);
 				_LOG.info("Reading configuration file {}", fileName);

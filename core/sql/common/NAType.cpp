@@ -521,6 +521,10 @@ Lng32 NAType::getDisplayLength(Lng32 datatype,
       d_len = SQL_LARGE_DISPLAY_SIZE + scale_len;
       break;
 
+    case REC_BIN64_UNSIGNED:
+      d_len = SQL_ULARGE_DISPLAY_SIZE + scale_len;
+      break;
+
     case REC_BYTE_F_ASCII:
       d_len = length;
       break;
@@ -622,6 +626,10 @@ Lng32 NAType::getDisplayLength(Lng32 datatype,
       d_len = length;
       break;
 
+    case REC_BOOLEAN:
+      d_len = SQL_BOOLEAN_DISPLAY_SIZE;
+      break;
+
     default:
       d_len = length;
       break;
@@ -678,7 +686,15 @@ short NAType::getMyTypeAsHiveText(NAString * outputStr)  // output
   switch (fs_datatype)
     {
     case REC_MIN_F_CHAR_H ... REC_MAX_F_CHAR_H:
-      *outputStr = "string";
+      {
+        SQLChar * ct = (SQLChar*)this;
+        char buf[20];
+        Int32 size = getNominalSize() / ct->getBytesPerChar();
+        str_itoa(size, buf);
+        *outputStr = "char(";
+        *outputStr += buf;
+        *outputStr += ")";
+      }
       break;
 
     case REC_MIN_V_CHAR_H ... REC_MAX_V_CHAR_H:
@@ -723,6 +739,10 @@ short NAType::getMyTypeAsHiveText(NAString * outputStr)  // output
 
     case REC_FLOAT64:
       *outputStr = "double";
+      break;
+
+    case REC_BOOLEAN:
+      *outputStr = "boolean";
       break;
 
     case REC_DATETIME:

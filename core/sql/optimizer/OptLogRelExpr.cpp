@@ -4792,6 +4792,25 @@ MapValueIds::synthLogProp(NormWA * normWAPtr)
   // Synthesize log. properties for me and my children.
   RelExpr::synthLogProp(normWAPtr);
 
+  GroupAttributes &myGA = *getGroupAttr();
+
+  ValueIdSet nonRIConstraints;
+  for (ValueId x= child(0).getGroupAttr()->getConstraints().init();
+       child(0).getGroupAttr()->getConstraints().next(x);
+       child(0).getGroupAttr()->getConstraints().advance(x) )
+  {
+    if (x.getItemExpr()->getOperatorType() == ITM_UNIQUE_OPT_CONSTRAINT)
+    {
+      ValueIdSet uniqueCols ;
+      getMap().rewriteValueIdSetUp
+	(uniqueCols, ((UniqueOptConstraint *)x.getItemExpr())->uniqueCols());
+      myGA.addConstraint(new(CmpCommon::statementHeap())
+			 UniqueOptConstraint(uniqueCols));
+    }
+    else if (x.getItemExpr()->getOperatorType() == ITM_CARD_CONSTRAINT)
+      myGA.addConstraint(x);
+    // func. dependency and check opt constraints can be added here if needed
+  }
 } //  MapValueIds::synthLogProp()
 
 // -----------------------------------------------------------------------
@@ -4963,12 +4982,7 @@ Scan::synthLogProp(NormWA * normWAPtr)
       if (idesc->isClusteringIndex() &&
           getTableDesc()->getNATable()->isHiveTable())
         {
-          if (getTableDesc()->getNATable()->isORC())
-            // temporary kludge, see Mantis-269, use
-            // methods for Hive tables below once we have virtual columns
-            continue;
-          else
-            createUniquenessConstraintsForHiveTable();
+          createUniquenessConstraintsForHiveTable();
 
           continue;
         }

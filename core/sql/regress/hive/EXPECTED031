@@ -236,6 +236,8 @@ C_CUSTOMER_SK
 >>select ca_gmt_offset from customer_address$$ORC$$ where ca_gmt_offset < -8 
 +>order by ca_gmt_offset;
 
+*** WARNING[6008] Statistics for column (CA_GMT_OFFSET) from table HIVE.HIVE.CUSTOMER_ADDRESS_ORC were not available. As a result, the access path chosen might not be the best possible.
+
 CA_GMT_OFFSET  
 ---------------
 
@@ -2168,7 +2170,7 @@ SS_QUANTITY
 >>invoke trafodion.hivesch.view_customer$$ORC$$;
 
 -- Definition of Trafodion view TRAFODION.HIVESCH.VIEW_CUSTOMER_ORC
--- Definition current  Sun Mar 13 15:56:03 2016
+-- Definition current  Fri Jul 29 20:45:39 2016
 
   (
     C_CUSTOMER_SK                    INT DEFAULT NULL
@@ -2199,6 +2201,13 @@ SS_QUANTITY
   , C_LAST_REVIEW_DATE               VARCHAR(20 BYTES) CHARACTER SET UTF8
       COLLATE DEFAULT DEFAULT NULL
   )
+
+--- SQL operation complete.
+>>
+>>obey $$REGRTSTDIR$$/TEST001(clean_up);
+>>--------------------------------------------------------------------------
+>>
+>>drop view trafodion.hivesch.view_customer$$ORC$$;
 
 --- SQL operation complete.
 >>

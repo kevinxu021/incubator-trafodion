@@ -350,6 +350,10 @@ public:
 
   void setSchemaAsLdapUser(const NAString val="");
 
+  static float computeNumESPsPerCore(NABoolean aggressive);
+
+  // get the number of configured ESPs (in float) per node.
+  float            getNumOfESPsPerNodeInFloat() const;
 
 private:
 
@@ -383,11 +387,6 @@ private:
   					 Int32 errOrWarn,
   					 Provenance overwriteIfNotYet);
   void		   deleteMe();
-
-  static float computeNumESPsPerCore(NABoolean aggressive);
-
-  // get the number of configured ESPs (in float) per node.
-  float            getNumOfESPsPerNodeInFloat() const;
 
   static const char *keywords_[];	// attr_VALUE keywords (ON, OFF, ANSI...
 

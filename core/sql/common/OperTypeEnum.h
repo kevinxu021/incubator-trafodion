@@ -180,6 +180,7 @@ enum OperatorTypeEnum {
                         REL_LEFT_TSJ,
                         REL_UNION,
                         REL_INTERSECT,
+                        REL_EXCEPT,
                         REL_CHOICE,
                         REL_UPDATE,
                         REL_DELETE,
@@ -283,10 +284,7 @@ enum OperatorTypeEnum {
                         // item operators (predicates)
                         // ---------------------------------------------------
                         // NOTE: the numbers for ITM operator types are also
-                        // used for expressions in the executor. Do NOT
-                        // change any numbers in this range without adding
-                        // versioning support in DP2. Try to add new numbers
-                        // rather than changing existing numbers.
+                        // used for expressions in the executor.
                         // ---------------------------------------------------
                         ITM_FIRST_ITEM_OP = 2000,
                         // binary logic operators
@@ -312,6 +310,9 @@ enum OperatorTypeEnum {
                         // new operator type used in the hash anti semi join optimization project
                         //
                         ITM_NOT_IN = 2026,
+
+                        ITM_ANY_COMP = 2027,
+
                         // unary arithmetic operators
                         ITM_NEGATE = 2030,
                         ITM_INVERSE = 2031,
@@ -844,6 +845,7 @@ enum OperatorTypeEnum {
                         DDL_FIRST_STMT_OP = DDL_FIRST_DDL_OP,
                         DDL_ALTER_AUDIT_CONFIG,
                         DDL_ALTER_CATALOG,
+                        DDL_ALTER_SCHEMA,
                         DDL_ALTER_INDEX_ATTRIBUTE,
                         DDL_ALTER_INDEX_ALTER_HBASE_OPTIONS,
                         DDL_ALTER_LIBRARY,
@@ -867,6 +869,7 @@ enum OperatorTypeEnum {
                         DDL_ALTER_TABLE_MOVE,
                         DDL_ALTER_TABLE_PARTITION,
                         DDL_ALTER_TABLE_RENAME,
+                        DDL_ALTER_TABLE_STORED_DESC,
                         DDL_ALTER_TABLE_SET_CONSTRAINT,
                         DDL_ALTER_TABLE_DROPPABLE,
                         DDL_ALTER_TABLE_INSERT_ONLY,

@@ -50,6 +50,8 @@
 #include "OptRange.h"
 #include "GroupAttr.h"
 #include "parser.h"
+#include "Analyzer.h"
+#include "ScanOptimizer.h"
 
 // ***********************************************************************
 // $$$ SearchKey
@@ -2510,10 +2512,16 @@ HivePartitionAndBucketKey::HivePartitionAndBucketKey(TableDesc *tDesc)
      : hdfsTableStats_(tDesc->getNATable()->getClusteringIndex()->getHHDFSTableStats()),
        selectedPartitions_(&(((HHDFSTableStats *) hdfsTableStats_)->listPartitionStatsList_),
                            (CollHeap *) NULL),
-       partColValuesAsFunc_(tDesc->getNATable()->getClusteringIndex()->getHivePartColValues())
+       partColValuesAsFunc_(tDesc->getNATable()->getClusteringIndex()->getHivePartColValues()),
+       partitionEliminatedCT_(FALSE),
+       estRCInPartnsSelected_(0),
+       estFileSizeInPartnsSelected_(0),
+       avgFileSizeInOnePartnSelected_(0),
+       avgRCInOnePartnSelected_(0)
 {
   // mark all buckets as selected
   selectedSingleBucket_ = -1;
+
   // select all partitions by default
   selectedPartitions_.complement();
 
@@ -2701,68 +2709,75 @@ NABoolean HivePartitionAndBucketKey::convertHivePartColValsToSQL(
       // strip leading and trailing blanks
       token = token.strip(NAString::both);
 
-      switch (colType->getTypeQualifier())
+      if (token.compareTo("__HIVE_DEFAULT_PARTITION__") == 0)
         {
-        case NA_CHARACTER_TYPE:
-          if (token.contains("'"))
-                {
-                  reportError(
-                       partNum,
-                       c,
-                       naTable,
-                       hiveVals,
-                       "Partitioning column value containing a quote");
-                  return FALSE;
-                }
-
-          // surround the value with quotes, Hive does not
-          // use quotes for character constants in partitions
-          sqlPartKeyValues.append("'");
-          sqlPartKeyValues.append(token);
-          sqlPartKeyValues.append("'");
-          break;
-
-        case NA_NUMERIC_TYPE:
-          // just copy the value unchanged
-          sqlPartKeyValues.append(token);
-          break;
-
-        case NA_DATETIME_TYPE:
+          sqlPartKeyValues += "cast(NULL as ";
+          sqlPartKeyValues += colType->getTypeSQLname(TRUE);
+          sqlPartKeyValues += ")";
+        }
+      else
+        switch (colType->getTypeQualifier())
           {
-            // surround the value by quotes and prefix it
-            // with date or timestamp (2000-01-01 becomes
-            // date '2000-01-01')
-            const DatetimeType *dtt =
-              static_cast<const DatetimeType *>(colType);
-
-            if (dtt->getSubtype() == DatetimeType::SUBTYPE_SQLDate)
-              sqlPartKeyValues.append("date ");
-            else
+          case NA_CHARACTER_TYPE:
+            if (token.contains("'"))
               {
-                CMPASSERT(dtt->getSubtype() == DatetimeType::SUBTYPE_SQLTimestamp);
-                sqlPartKeyValues.append("timestamp ");
+                reportError(
+                     partNum,
+                     c,
+                     naTable,
+                     hiveVals,
+                     "Partitioning column value containing a quote");
+                return FALSE;
               }
 
+            // surround the value with quotes, Hive does not
+            // use quotes for character constants in partitions
             sqlPartKeyValues.append("'");
             sqlPartKeyValues.append(token);
             sqlPartKeyValues.append("'");
-          }
-          break;
+            break;
 
-        default:
-          // For now we only support characters and strings
-          // as Hive partition columns
-          reportError(partNum, c, naTable, hiveVals,
-                      "Unsupported type for partition column");
-          return FALSE;
-        }
+          case NA_NUMERIC_TYPE:
+            // just copy the value unchanged
+            sqlPartKeyValues.append(token);
+            break;
+
+          case NA_DATETIME_TYPE:
+            {
+              // surround the value by quotes and prefix it
+              // with date or timestamp (2000-01-01 becomes
+              // date '2000-01-01')
+              const DatetimeType *dtt =
+                static_cast<const DatetimeType *>(colType);
+
+              if (dtt->getSubtype() == DatetimeType::SUBTYPE_SQLDate)
+                sqlPartKeyValues.append("date ");
+              else
+                {
+                  CMPASSERT(dtt->getSubtype() == DatetimeType::SUBTYPE_SQLTimestamp);
+                  sqlPartKeyValues.append("timestamp ");
+                }
+
+              sqlPartKeyValues.append("'");
+              sqlPartKeyValues.append(token);
+              sqlPartKeyValues.append("'");
+            }
+            break;
+
+          default:
+            // For now we only support characters and strings
+            // as Hive partition columns
+            reportError(partNum, c, naTable, hiveVals,
+                        "Unsupported type for partition column");
+            return FALSE;
+          }
 
       startPos = endPos+1;
     }
   return TRUE;
 }
 
-NABoolean HivePartitionAndBucketKey::computePartitionPredicates(
+NABoolean HivePartitionAndBucketKey::computePartAndVirtColPredicates(
      const GroupAttributes *ga,
      ValueIdSet &selectionPredicates)
 {
@@ -2776,11 +2791,11 @@ NABoolean HivePartitionAndBucketKey::computePartitionPredicates(
 
       DCMPASSERT(compileTimePartColPreds_.isEmpty());
       DCMPASSERT(partAndVirtColPreds_.isEmpty());
-      compileTimePartColPreds_ = selectionPredicates;
+      partAndVirtColPreds_ = selectionPredicates;
 
-      for (ValueId p=compileTimePartColPreds_.init();
-           compileTimePartColPreds_.next(p);
-           compileTimePartColPreds_.advance(p))
+      for (ValueId p=partAndVirtColPreds_.init();
+           partAndVirtColPreds_.next(p);
+           partAndVirtColPreds_.advance(p))
         {
           if (p.getItemExpr()->getOperatorType() == ITM_VEG_PREDICATE)
             {
@@ -2791,8 +2806,9 @@ NABoolean HivePartitionAndBucketKey::computePartitionPredicates(
               ValueId vegRef= static_cast<VEGPredicate *>(
                    p.getItemExpr())->getVEG()->getVEGReference()->getValueId();
 
-              if (!hivePartColList_.contains(vegRef))
-                compileTimePartColPreds_ -= p;
+              if (!hivePartColList_.contains(vegRef) &&
+                  !hiveVirtFileColList_.contains(vegRef))
+                partAndVirtColPreds_ -= p;
             }
         }
 
@@ -2800,8 +2816,8 @@ NABoolean HivePartitionAndBucketKey::computePartitionPredicates(
       // computed from the partitioning columns at compile time
       // (i.e. without relying on characteristic inputs), save these
       // removed preds for the next step
-      partAndVirtColPreds_ = compileTimePartColPreds_;
-      compileTimePartColPreds_.removeUnCoveredExprs(availableValues);
+      compileTimePartColPreds_ = partAndVirtColPreds_;
+      compileTimePartColPreds_.removeUnCoveredExprs(availableValues/*part cols*/);
 
       // a VEGPred(partcol, <other values>) will still be in
       // compileTimePartColPreds_, but we can only evaluate it at
@@ -2853,23 +2869,27 @@ NABoolean HivePartitionAndBucketKey::computePartitionPredicates(
 
 int HivePartitionAndBucketKey::computeActivePartitions()
 {
-  if (hivePartColList_.isEmpty())
-    return 1;
-  else
-    {
-      Parser p(CmpCommon::context());
-      int result = selectedPartitions_.entries();
+  Int32 originalNumPartns = selectedPartitions_.entries();
+  Int32 result = originalNumPartns;
+  Parser p(CmpCommon::context());
 
-      // loop over selected partitions so far (usually will be all the partitions)
-      for (CollIndex p=0;
-           selectedPartitions_.nextUsed(p);
-           p++)
+  // loop over selected partitions so far (usually will be all the partitions)
+  for (CollIndex p=0;
+       selectedPartitions_.nextUsed(p);
+       p++)
+    {
+      NABoolean partitionIsEliminated = FALSE;
+      ValueIdList colValuesList;
+
+      // note that we can come here for non-partitioned tables as
+      // well, and we may even have compile-time elimination of that
+      // single partition, for example if we have a predicate that is
+      // a tautology, like 1=1 or a contradiction, like 1=0
+      if (!hivePartColList_.isEmpty())
         {
-          NABoolean partitionIsEliminated = FALSE;
           const ItemExprList *colValues =
             partColValuesAsFunc_->getRangePartitionBoundaries()->
             getBoundaryValues(p);
-          ValueIdList colValuesList;
 
           // make a ValueIdList with the start values cast to the
           // correct type
@@ -2882,41 +2902,44 @@ int HivePartitionAndBucketKey::computeActivePartitions()
               castVal->synthTypeAndValueId();
               colValuesList.insert(castVal->getValueId());
             }
+        }
 
-          if (!compileTimePartColPreds_.isEmpty())
+      if (!compileTimePartColPreds_.isEmpty())
+        {
+          // make a map that maps partition columns to the values
+          // of these partition columns for this partition
+          ValueIdMap colsToConsts(hivePartColList_, colValuesList);
+          ComDiagsArea da;
+
+          // evaluate this rewritten predicate at compile time
+          ex_expr::exp_return_type predEvalResult =
+            compileTimePartColPreds_.evalPredsAtCompileTime(
+                 &da,
+                 &colsToConsts,
+                 TRUE);
+
+          if (da.getNumber() == 0 &&
+              (predEvalResult == ex_expr::EXPR_FALSE ||
+               predEvalResult == ex_expr::EXPR_NULL))
             {
-              // make a map that maps partition columns to the values
-              // of these partition columns for this partition
-              ValueIdMap colsToConsts(hivePartColList_, colValuesList);
-              ComDiagsArea da;
-
-              // evaluate this rewritten predicate at compile time
-              ex_expr::exp_return_type predEvalResult =
-                compileTimePartColPreds_.evalPredsAtCompileTime(
-                     &da,
-                     &colsToConsts,
-                     TRUE);
-
-              if (da.getNumber() == 0 &&
-                  (predEvalResult == ex_expr::EXPR_FALSE ||
-                   predEvalResult == ex_expr::EXPR_NULL))
-                {
-                  // no errors or warnings, predicate is FALSE
-                  partitionIsEliminated = TRUE;
-                }
-              else if (da.getNumber() > 0 ||
-                       predEvalResult != ex_expr::EXPR_TRUE)
-                {
-                  // we should not see errors or warnings, but if
-                  // there are some then we assume the partition
-                  // qualifies and also do partition elimination
-                  // at runtime
-                  DCMPASSERT(0);
-                  partAndVirtColPreds_ += compileTimePartColPreds_;
-                }
+              // no errors or warnings, predicate is FALSE
+              partitionIsEliminated = TRUE;
             }
+          else if (da.getNumber() > 0 ||
+                   predEvalResult != ex_expr::EXPR_TRUE)
+            {
+              // we should not see errors or warnings, but if
+              // there are some then we assume the partition
+              // qualifies and also do partition elimination
+              // at runtime
+              DCMPASSERT(0);
+              partAndVirtColPreds_ += compileTimePartColPreds_;
+            }
+        }
 
-          if (!partitionIsEliminated)
+      if (!partitionIsEliminated)
+        {
+          if (!hivePartColList_.isEmpty())
             {
               // get an upper bound for the actual row length, including
               // any needed alignment on up to 8 byte boundaries
@@ -2935,15 +2958,17 @@ int HivePartitionAndBucketKey::computeActivePartitions()
               // those in the code generator
               binaryPartColValues_.insertAt(p, buf);
             }
-          else
-            {
-              selectedPartitions_.remove(p);
-              result--;
-            }
-        } // loop over list partitions
+        }
+      else
+        {
+          selectedPartitions_.remove(p);
+          result--;
+        }
+    } // loop over list partitions
 
-      return result;
-    } // table is partitioned
+  partitionEliminatedCT_ = (result < originalNumPartns);
+
+  return result;
 }
 
 void HivePartitionAndBucketKey::reportError(int part,
@@ -2952,7 +2977,7 @@ void HivePartitionAndBucketKey::reportError(int part,
                                             const char *partColVals,
                                             const char *details)
 {
-  *CmpCommon::diags() << DgSqlCode(-4226)
+  *CmpCommon::diags() << DgSqlCode(-4227)
                       << DgTableName(naTable->getTableName().getQualifiedNameAsAnsiString())
                       << DgInt0(part)
                       << DgInt1(col)
@@ -3555,7 +3580,8 @@ void HivePartitionAndBucketKey::replaceVEGExpressions(const ValueIdSet & availab
        availableValues.next(v);
        availableValues.advance(v))
     {
-      if (v.getItemExpr()->getOperatorType() == ITM_INDEXCOLUMN)
+      if (!inputValues.contains(v) &&
+          v.getItemExpr()->getOperatorType() == ITM_INDEXCOLUMN)
         {
           NAColumn *nac =
             static_cast<IndexColumn *>(v.getItemExpr())->getNAColumn();
@@ -3583,3 +3609,168 @@ CompareHiveFileIterator::operator()(HiveFileIterator& t1, HiveFileIterator& t2)
    // return TRUE iff t1's total size is less than t2's. 
    return (t1.getFileStats()->getTotalSize() < t2.getFileStats()->getTotalSize());
 }
+
+Int64 HivePartitionAndBucketKey::getRowcountInSelectedPartitionsCT()
+{
+  Int64 rc = 0.0;
+  for (CollIndex i=0; selectedPartitions_.nextUsed(i); i++)
+  {
+      HHDFSListPartitionStats *lps = selectedPartitions_.element(i);
+      rc += lps->getTotalRows();
+  }
+  return rc;
+}
+
+void HivePartitionAndBucketKey::computeAvgAccessMetrics(FileScan* fileScan)
+{
+  const SUBARRAY(HHDFSListPartitionStats *)& selPartitions = getMask();
+  Int32 numSelectedParts = MAXOF(selPartitions.entries(), 1);
+
+  const HHDFSTableStats * hdfsStats = getHDFSTableStats();
+
+  avgRCInOnePartnSelected_ = hdfsStats->getTotalRows() / numSelectedParts;
+  avgFileSizeInOnePartnSelected_ = hdfsStats->getTotalSize() / numSelectedParts;
+
+  NABoolean displayCostInfo = (CmpCommon::getDefault(NCM_ORC_COSTING_DEBUG) == DF_ON);
+  if ( displayCostInfo ) {
+    NAString tname((fileScan->getIndexDesc()->getPrimaryTableDesc()->
+                    getNATable()->getTableName()).getQualifiedNameAsAnsiString());
+    printf("\ncomputeAvgAccessMetrics() for %s:\n", tname.data());
+    printf("numSelectedParts= %d:\n", numSelectedParts);
+    printf("avgRCInOnePartnSelected= %ld:\n", avgRCInOnePartnSelected_);
+    printf("avgFileSizeInOnePartnSelected_= %ld:\n", avgFileSizeInOnePartnSelected_);
+  }
+}
+
+
+void HivePartitionAndBucketKey::estimateAccessMetrics(FileScan* fileScan)
+{
+  NABoolean displayCostInfo = (CmpCommon::getDefault(NCM_ORC_COSTING_DEBUG) == DF_ON);
+
+  ValueIdSet combinedPreds(getCompileTimePartColPreds());
+  estFileSizeInPartnsSelected_ = getTotalSize();
+
+  if ( displayCostInfo ) {
+    NAString tname((fileScan->getIndexDesc()->getPrimaryTableDesc()->
+                    getNATable()->getTableName()).getQualifiedNameAsAnsiString());
+    printf("\nestimateAccessMetrics() for %s:\n", tname.data());
+    printf("Initial total file size selected = %ld:\n", estFileSizeInPartnsSelected_);
+  }
+
+  if ( partitionEliminatedCTOnly() ) {
+    // If compile-time partition elimination is the best
+    // we can do, return the tuple processed value for PE(CT). 
+     estRCInPartnsSelected_ = getRowcountInSelectedPartitionsCT();
+     if ( displayCostInfo ) {
+       printf("In PE(CT) selected partitions, final values\n");
+       printf("RC= %ld:\n", estRCInPartnsSelected_);
+       printf("File size= %ld:\n", estFileSizeInPartnsSelected_);
+     }
+
+     return;
+  }
+
+  // PE(CT) is not feasible, but PE(RT) is.
+  combinedPreds += getPartAndVirtColPreds();
+       
+
+  TableAnalysis* tableAnalysis = fileScan->getGroupAttr()
+                               ->getGroupAnalysis()->getNodeAnalysis()->getTableAnalysis();
+
+  // get the stats of this table.
+  EstLogPropSharedPtr ptr = tableAnalysis->getStatsAfterLocalPreds();
+  const ColStatDescList& colStatsOfThis = ptr->getColStats();
+
+  // if there is no stats, bail out
+  if ( colStatsOfThis.entries() == 0 )
+    return;
+
+  CostScalar beforeRC = MAXOF(colStatsOfThis[0]->getColStats()->getRowcount().getValue(), 1.0);
+
+  ColStatDescList sourceStats(colStatsOfThis, STMTHEAP);
+
+  // get the stats (after applying the local preds) from all other tables 
+  // connected to this table via the combined VEG preds.
+  CANodeIdSet nidSet;
+  tableAnalysis->computeConnectedTables(combinedPreds, nidSet);
+
+  for(CANodeId nid = nidSet.init(); nidSet.next(nid); nidSet.advance(nid))
+    {
+       TableAnalysis* otherAnalysis = nid.getNodeAnalysis()->getTableAnalysis();
+       if( (!otherAnalysis) || otherAnalysis == tableAnalysis )
+         continue;
+
+       EstLogPropSharedPtr ptr = otherAnalysis -> getStatsAfterLocalPreds();
+       const ColStatDescList& colStatsOfOther = ptr->getColStats() ;
+
+       sourceStats.appendDeepCopy(colStatsOfOther, colStatsOfOther.entries());
+    }
+ 
+
+  Histograms scanHist(sourceStats);
+
+  const SelectivityHint* selHint = fileScan->getIndexDesc()->getPrimaryTableDesc()->getSelectivityHint();
+  const CardinalityHint* cardHint = fileScan->getIndexDesc()->getPrimaryTableDesc()->getCardinalityHint();
+
+  // Apply the predicate to compute the row count and the UEC
+  scanHist.applyPredicates(combinedPreds, *fileScan, selHint, cardHint, REL_SCAN);
+
+  estRCInPartnsSelected_ = scanHist.getRowCount().getValue();
+
+  estFileSizeInPartnsSelected_ *= (estRCInPartnsSelected_ / beforeRC.getValue()); 
+
+  if ( displayCostInfo ) {
+     printf("PE(RT): Initial RC = %f\n", beforeRC.getValue());
+     printf("PE(RT): RC reduced to %ld\n", estRCInPartnsSelected_);
+     printf("PE(RT): total file size reduced to %ld\n", estFileSizeInPartnsSelected_);
+  }
+
+  // process the UEC, if available
+  ValueIdSet partnsColumns(getPartCols());
+  CostScalar partnsColsUEC = scanHist.getColStatDescList().getAggregateUec(partnsColumns);
+
+  Int64 totalFileSizeInPartnsReducedViaUEC = 0;
+
+  if ( partnsColsUEC > 0.0 ) {
+
+    // adjust total file size in the selected partition if the UEC of the partition columns
+    // is less than the total number of partitions of the table
+
+     const HHDFSTableStats* hdfsStats = getHDFSTableStats();
+     Int32 partns = hdfsStats->getNumPartitions();
+
+     // If some partitions are eliminated, then assume all the data in the remaining partitions
+     // will be useful.
+     if ( partnsColsUEC < partns ) {
+        Int64 avgFileSizePerPartition = hdfsStats->getTotalSize() / partns;
+        totalFileSizeInPartnsReducedViaUEC = partnsColsUEC.getValue() * avgFileSizePerPartition;
+
+       if ( displayCostInfo ) {
+          printf("Total size reduced through UEC\n");
+          printf("partnsColsUEC= %f:\n", partnsColsUEC.getValue());
+          printf("partns= %d:\n", partns);
+          printf("total file size reduced through UEC= %ld:\n", totalFileSizeInPartnsReducedViaUEC);
+        }
+
+       estFileSizeInPartnsSelected_ = 
+          MINOF(estFileSizeInPartnsSelected_, totalFileSizeInPartnsReducedViaUEC);
+     }
+  }
+
+  // If we reach here, it means there is no partition eliminated by stats. 
+  // Scale down the total file size by the ratio of estRCInPartnsSelected_ / beforeRC
+
+
+  if ( displayCostInfo ) {
+     printf("In PE(RT) selected partitions, final values\n");
+     printf("RC= %ld:\n", estRCInPartnsSelected_);
+     printf("File size= %ld:\n", estFileSizeInPartnsSelected_);
+  }
+
+}
+
+NABoolean HivePartitionAndBucketKey::canEliminatePartitions()
+{
+  return ( partitionEliminatedCTOnly() || getPartAndVirtColPreds().entries() > 0 );
+}
+

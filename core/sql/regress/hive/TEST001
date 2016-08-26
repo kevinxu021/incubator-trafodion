@@ -22,10 +22,12 @@
 --
 -- @@@ END COPYRIGHT @@@
 
+obey TEST001(clean_up);
 log LOG001 clear;
 obey TEST001(setup);
 obey TEST001(tests);
 log;
+obey TEST001(clean_up);
 exit;
 
 ?section setup
@@ -34,6 +36,11 @@ exit;
 set schema hive.hive;
 cqd HIVE_MAX_STRING_LENGTH '20' ;
 cqd mode_seahive 'ON';
+
+?section clean_up
+--------------------------------------------------------------------------
+
+drop view trafodion.hivesch.view_customer$$ORC$$;
 
 ?section tests
 --------------------------------------------------------------------------

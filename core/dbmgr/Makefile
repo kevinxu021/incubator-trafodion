@@ -41,6 +41,8 @@ LICENSE_Esgyn: ../../licenses/Esgyn
 install-tools:
 	@echo "Installing Manageability tools required by DBMgr" 
 	cd $(MY_SQROOT)/sql/scripts && install_mgblty 
+	@echo "Installing sqlines converter tool"
+	cd $(MY_SQROOT)/sql/scripts && install_sqlines
 
 package-tools: install-tools
 	${CP} -r scripts/bosun/* $(MY_SQROOT)/../../mgblty/bosun
@@ -61,3 +63,4 @@ clean:
 
 cleanall: clean
 	$(RM) -r $(MY_SQROOT)/../dbmgr/mgblty_download
+	$(RM) -r $(MY_SQROOT)/../dbmgr/sqlines_download

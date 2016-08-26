@@ -73,6 +73,7 @@
 #include "CmpSeabaseDDL.h"
 #include "Globals.h"
 #include "QCache.h"
+#include "HDFSHook.h"
 
 #include "SqlParserGlobals.h"		// MUST be last #include!
 
@@ -195,10 +196,6 @@ struct DefaultDefault
 
 #define  DDcoll_(name,value)		 DD(name,value,&validateCollList)
 
-#define  DDdskNS(name,value)		 DD(name,value,&validateDiskListNSK)
-#define SDDdskNS(name,value)		SDD(name,value,&validateDiskListNSK)
-//SCARTCH_DRIVE_LETTERS* made internal RV 06/21/01 CR 10-010425-2440
-#define  DDdskNT(name,value)		 DD(name,value,&validateDiskListNT)
 #define  DDint__(name,value)		 DD(name,value,&validateInt)
 #define SDDint__(name,value)		SDD(name,value,&validateInt)
 #define XDDint__(name,value)		XDD(name,value,&validateInt)
@@ -259,16 +256,10 @@ struct DefaultDefault
 #define SDDkwd__(name,value)		SDD(name,value,&validateKwd)
 #define  DDSkwd__(name,value)		 DDS(name,value,&validateKwd)
 #define SDDSkwd__(name,value)		SDDS(name,value,&validateKwd)
-#define  DDnskv_(name,value)		 DD(name,value,&validateNSKV)
-#define  DDnsksv(name,value)		 DD(name,value,&validateNSKSV)
-#define  DDnsksy(name,value)		 DD(name,value,&validateNSKSY)
-#define  DDnsklo(name,value)		DD(name,value,&validateNSKMPLoc)
 #define  DD1_4096(name,value)	         DD(name,value,&validate1_4096)
 #define  DD0_18(name,value)	         DD(name,value,&validate0_18)
 #define DD0_64(name,value)	        DD(name,value,&validate0_64)
 #define DD16_64(name,value)	        DD(name,value,&validate16_64)
-#define  DDvol__(name,value)		 DD(name,value,&validateVol)
-#define SDDvol__(name,value)		SDD(name,value,&validateVol)
 #define  DDalis_(name,value)		 DD(name,value,&validateAnsiList)
 #define XDDalis_(name,value)		XDD(name,value,&validateAnsiList)
 #define XDDpos__(name,value)            XDD(name,value,&validatePOSTableSizes)
@@ -288,8 +279,7 @@ struct DefaultDefault
 
 const DefaultValidator	validateUnknown;
 const DefaultValidator	validateAnsiName(CASE_SENSITIVE_ANSI); // e.g. 'c.s.tbl'
-const ValidateDiskListNSK	validateDiskListNSK;
-const ValidateDiskListNT	validateDiskListNT;
+
       ValidateCollationList	validateCollList(TRUE/*mp-format*/);  // list collations
 const ValidateInt		validateInt;	// allows neg, zero, pos ints
 const ValidateIntNeg1         validateIntNeg1;// allows -1 to +infinity ints
@@ -322,11 +312,6 @@ const ValidateFltMin1		validateFlt1;	// allows pos only (>= 1)
 const ValidateSelectivity	ValidateSelectivity;	// allows 0 to 1 (float)
 const ValidateFlt_0_1		validateFlt_0_1;	// allows 0 to 1 (float)
 const ValidateKeyword		validateKwd;	// allows relevant keywords only
-const ValidateNSKVol		validateNSKV;	// allows NSK volumes ($X, e.g.)
-const ValidateNSKSubVol	validateNSKSV;	// allows NSK subvols
-const ValidateVolumeList      validateVol;    // allows ':' separ. list of $volumes
-const ValidateNSKSystem	validateNSKSY;	// allows NSK system names
-const ValidateNSKMPLoc	validateNSKMPLoc;	// allows NSK MP cat names($X.Y)
 const Validate_1_4096		validate1_4096;	    // allows 1 to 4096 (integer) which is max character size supported.
 const Validate_0_18		validate0_18;	    // allows 0 to 18 (integer) because 18 is max precision supported.
 const Validate_1_1024     validate1_1024;     // allows 1 to 1024 (integer).
@@ -767,7 +752,12 @@ SDDkwd__(CAT_ENABLE_QUERY_INVALIDATION, "ON"),
   DDkwd__(COMP_BOOL_206,		"OFF"), // Internal Usage
   DDkwd__(COMP_BOOL_207,		"OFF"), // Internal Usage
   DDkwd__(COMP_BOOL_208,		"OFF"), // Internal Usage
-  DDkwd__(COMP_BOOL_209,		"OFF"), // Internal Usage
+
+  // Control the number of ESPs per node for hive queries. 
+  //  off: use the value of HIVE_NUM_ESPS_PER_DATANODE 
+  //  on: use the aggregasive ESP allocation per core
+  DDkwd__(COMP_BOOL_209,		"OFF"), 
+  
   DDkwd__(COMP_BOOL_21,			"OFF"),
   DDkwd__(COMP_BOOL_210,		"ON"),
   DDkwd__(COMP_BOOL_211,		"ON"), // controls removing constants from group expression
@@ -1176,7 +1166,7 @@ SDDui___(CYCLIC_ESP_PLACEMENT,                  "1"),
   DDkwd__(DATA_FLOW_OPTIMIZATION,		"ON"),
 
   // DDL Default location support
- DDdskNS(DDL_DEFAULT_LOCATIONS,                ""),
+ DD_____(DDL_DEFAULT_LOCATIONS,                ""),
 
   DDkwd__(DDL_EXPLAIN,                           "OFF"),
   DDkwd__(DDL_TRANSACTIONS,         "ON"),
@@ -1784,6 +1774,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDusht_(HBASE_ROWSET_VSBB_SIZE,        	"1024"),
   DDflt0_(HBASE_SALTED_TABLE_MAX_FILE_SIZE,	"0"),
   DDkwd__(HBASE_SALTED_TABLE_SET_SPLIT_POLICY,	"ON"),
+  DDflt__(HBASE_SCAN_DOP_AS_PARTITIONS_THRESHOLD, 	"10.0"), // in units of MB
   DD_____(HBASE_SCHEMA,                         "HBASE"),
  DDkwd__(HBASE_SERIALIZATION,		"ON"),
  
@@ -1808,7 +1799,8 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
 
   DDui1__(HDFS_IO_BUFFERSIZE,                            "65536"),
   DDui___(HDFS_IO_BUFFERSIZE_BYTES,               "0"),
-  DDui1__(HDFS_IO_RANGE_TAIL,                     "16384"),
+  // The value 0 denotes RangeTail = max record length of table.
+  DDui___(HDFS_IO_RANGE_TAIL,                     "0"),
   DDkwd__(HDFS_PREFETCH,                           "ON"),
   DDkwd__(HDFS_READ_CONTINUE_ON_ERROR,                           "OFF"),
   DDui1__(HDFS_REPLICATION,                            "1"),
@@ -1944,7 +1936,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDansi_(HIST_ROOT_NODE,                            ""),
  XDDflt1_(HIST_ROWCOUNT_REQUIRING_STATS,        "500"),
   DDflt0_(HIST_SAME_TABLE_PRED_REDUCTION,       "0.0"),
-  DDvol__(HIST_SCRATCH_VOL,                     ""),
+  DD_____(HIST_SCRATCH_VOL,                     ""),
   // control the amount of data in each partition of the sample tble.
   DDflt1_(HIST_SCRATCH_VOL_THRESHOLD,           "10240000"),
   DDflt_0_1(HIST_SKEW_COST_ADJUSTMENT,            "0.2"),
@@ -1980,6 +1972,9 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDui___(HIVE_INSERT_ERROR_MODE,               "1"),
   DDint__(HIVE_LIB_HDFS_PORT_OVERRIDE,          "-1"),
   DDint__(HIVE_LOCALITY_BALANCE_LEVEL,          "3"),
+  DDflt1_(HIVE_LOCALITY_MAX_OVERLOAD,           "1.05"),
+  DDint__(HIVE_LOCALITY_MAX_SECOND_CHECK_TGTS,  "20"),
+  DDint__(HIVE_LOCALITY_NUM_SECOND_LOOPS,       "4"),
   DDui___(HIVE_MAX_ESPS,                        "9999"),
   // Set to one byte less than QUERY_CACHE_MAX_CHAR_LEN so that hive queries with
   // string literals can be cached.
@@ -1988,12 +1983,13 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDkwd__(HIVE_METADATA_JAVA_ACCESS,            "ON"),
   DDint__(HIVE_METADATA_REFRESH_INTERVAL,       "0"),
   DDflt0_(HIVE_MIN_BYTES_PER_ESP_PARTITION,     "67108864"),
-  DDui___(HIVE_NUM_ESPS_PER_DATANODE,           "2"),
+  DDui___(HIVE_NUM_ESPS_PER_DATANODE,           "8"),
   DDpct__(HIVE_NUM_ESPS_ROUND_DEVIATION,        "34"),
   DDkwd__(HIVE_PARTITION_ELIMINATION_CT,        "ON"),
   DDkwd__(HIVE_PARTITION_ELIMINATION_MM,        "ON"),
   DDkwd__(HIVE_PARTITION_ELIMINATION_RT,        "ON"),
   DDint__(HIVE_SCAN_SPECIAL_MODE,                "0"),
+  DDkwd__(HIVE_SIMULATE_REAL_NODEMAP,           "OFF"),
   DDkwd__(HIVE_SORT_HDFS_HOSTS,                 "ON"),
   DDkwd__(HIVE_TREAT_EMPTY_STRING_AS_NULL,      "OFF"),
   DDkwd__(HIVE_USE_EXT_TABLE_ATTRS,             "ON"),
@@ -2001,7 +1997,6 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDkwd__(HIVE_USE_FAKE_TABLE_DESC,             "OFF"),
   DDkwd__(HIVE_USE_HASH2_AS_PARTFUNCTION,       "ON"),
   DDkwd__(HIVE_USE_PERSISTENT_KEY,              "OFF"),
-  DDkwd__(HIVE_USE_SORT_COLS_IN_KEY,            "OFF"),
   DDkwd__(HIVE_VIEWS,                           "OFF"),
 
  // -------------------------------------------------------------------------
@@ -2234,7 +2229,8 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   DDflt1_(MDOP_CPUS_PENALTY,      "70"),
 
   // specify the limit beyond which the number of CPUs will be limited.
-  DDui1__(MDOP_CPUS_SOFT_LIMIT,   "64"),
+  // A value of -1  means there is no limit.
+  DDint__(MDOP_CPUS_SOFT_LIMIT,   "-1"),
 
   // controls the amount of penalty for CPU resource per memory unit
   // required that is beyond the value specified by MDOP_CPUS_SOFT_LIMIT.
@@ -2267,7 +2263,10 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
 
   DDflt1_(MEMORY_USAGE_NICE_CONTEXT_FACTOR,	"1"),
   DDflt1_(MEMORY_USAGE_OPT_PASS_FACTOR,		"1.5"),
-  DDui1__(MEMORY_USAGE_SAFETY_NET,              "500"),
+  // increase to 1200 (from 500) to help with Q88 and other queries in TPCDs
+  // Without the raise, certain subqueries in Q88 will compilied into slow
+  // nested joins.
+  DDui1__(MEMORY_USAGE_SAFETY_NET,              "1200"),
 
   // MERGE_JOINS ON means do MERGE_JOINS
  XDDkwd__(MERGE_JOINS,				"ON"),
@@ -2322,11 +2321,6 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   DDkwd__(MODE_SPECIAL_5,                       "OFF"),
   DD_____(MONARCH_LOCATOR_ADDRESS,              "127.0.0.1"),
   DD_____(MONARCH_LOCATOR_PORT,                 "10334"),
-  DDnsklo(MP_CATALOG,				"$SYSTEM.SQL"),
-  DDnsksv(MP_SUBVOLUME,				"SUBVOL"),
-  DDnsksy(MP_SYSTEM,				""),
-  DDnskv_(MP_VOLUME,                            "$VOL"),
-
   DDflt0_(MSCF_CONCURRENCY_IO,			"0.10"),
   DDflt0_(MSCF_CONCURRENCY_MSG,			"0.10"),
 
@@ -2924,10 +2918,10 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
 
    // default to 72GB 
    DDui___(POS_DEFAULT_SMALLEST_DISK_SIZE_GB,            "72"),
-   DDdskNS(POS_DISKS_IN_SEGMENT,                 ""),
-  SDDui___(POS_DISK_POOL,			"0"),
+   DD_____(POS_DISKS_IN_SEGMENT,                 ""),
+   DD_____(POS_DISK_POOL,			"0"),
    DD_____(POS_FILE_OPTIONS,                    ""),
-  SDDdskNS(POS_LOCATIONS,                        ""),
+   DD_____(POS_LOCATIONS,                        ""),
    DDkwd__(POS_MAP_HASH_TO_HASH2,               "ON"),
    DDpos__(POS_MAX_EXTENTS,                     ""),
   SDDui___(POS_NUM_DISK_POOLS,                  "0"),
@@ -2938,7 +2932,7 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   SDDpos__(POS_SEC_EXT_SIZE,			""),
   SDDpos__(POS_TABLE_SIZE,			""),
   SDDpct__(POS_TEMP_TABLE_FREESPACE_THRESHOLD_PERCENT,      "0"),
-  SDDdskNS(POS_TEMP_TABLE_LOCATIONS,            ""),
+  DD_____(POS_TEMP_TABLE_LOCATIONS,            ""),
   SDDpos__(POS_TEMP_TABLE_SIZE,                 ""),
    DDkwd__(POS_TEST_MODE,      "OFF"),
    DDui___(POS_TEST_NUM_NODES,  "0"),
@@ -3168,14 +3162,12 @@ SDDflt0_(QUERY_CACHE_SELECTIVITY_TOLERANCE,       "0"),
   DDkwd__(SAP_PREFER_KEY_NESTED_JOIN,           "OFF"),
   DDint__(SAP_TUPLELIST_SIZE_THRESHOLD,         "5000"),
  XDDkwd__(SAVE_DROPPED_TABLE_DDL,               "OFF"),
- XDDansi_(SCHEMA,                               "SEABASE"),
- SDDdskNS(SCRATCH_DISKS,                        ""),
- SDDdskNS(SCRATCH_DISKS_EXCLUDED,               "$SYSTEM"),
-  DDdskNS(SCRATCH_DISKS_PREFERRED,              ""),
-  DDkwd__(SCRATCH_DISK_LOGGING,                 "OFF"),
-  DDdskNT(SCRATCH_DRIVE_LETTERS,                ""),
-  DDdskNT(SCRATCH_DRIVE_LETTERS_EXCLUDED,       ""),
-  DDdskNT(SCRATCH_DRIVE_LETTERS_PREFERRED,      ""),
+ XDDansi_(SCHEMA,                               "SEABASE"), 
+ //specify a : separated list of full path names where scratch files
+ //should reside. Ensure each specified directoy exisst on each node and 
+ //Trafodion user has permissions to access them.
+ DD_____(SCRATCH_DIRS,                        ""),
+ DDkwd__(SCRATCH_DISK_LOGGING,                 "OFF"),
  SDDpct__(SCRATCH_FREESPACE_THRESHOLD_PERCENT,      "1"),
   DDui___(SCRATCH_IO_BLOCKSIZE_SORT,            "524288"),
   //On LINUX, writev and readv calls are used to perform
@@ -3343,7 +3335,7 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   // TARGET_MSG_REMOTE_TIME are seconds
   DDflte_(TARGET_MSG_REMOTE_TIME,		"0.00125"),
 
-  DDvol__(TEMPORARY_TABLE_HASH_PARTITIONS,     	"" ),
+  DD_____(TEMPORARY_TABLE_HASH_PARTITIONS,     	"" ),
   DDkwd__(TERMINAL_CHARSET,             (char *)SQLCHARSETSTRING_ISO88591),
 
   DDint__(TEST_PASS_ONE_ASSERT_TASK_NUMBER,	"-1"),
@@ -3370,20 +3362,31 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
 
   DDkwd__(TRAF_BLOB_AS_VARCHAR,                 "ON"), //set to OFF to enable Lobs support  
 
+  DDkwd__(TRAF_BOOLEAN_IO,                        "OFF"),
+
   DDkwd__(TRAF_BOOTSTRAP_MD_MODE,                            "OFF"),   
 
   DDkwd__(TRAF_CLOB_AS_VARCHAR,                 "ON"), //set to OFF to enable Lobs support  
 
   DDkwd__(TRAF_COL_LENGTH_IS_CHAR,                 "ON"),   
 
+  DDkwd__(TRAF_CREATE_SIGNED_NUMERIC_LITERAL,      "ON"),   
+
   DDansi_(TRAF_CREATE_TABLE_WITH_UID,          ""),
 
- DDkwd__(TRAF_DEFAULT_COL_CHARSET,            (char *)SQLCHARSETSTRING_ISO88591),
+  DDkwd__(TRAF_CREATE_TINYINT_LITERAL,        "ON"),   
+
+  DDkwd__(TRAF_DEFAULT_COL_CHARSET,            (char *)SQLCHARSETSTRING_ISO88591),
  
- DDkwd__(TRAF_ENABLE_ORC_FORMAT,                 "ON"),   
+  DD_____(TRAF_DEFAULT_STORAGE_TYPE,            "HBASE"),
+
+  DDkwd__(TRAF_ENABLE_ORC_FORMAT,                 "ON"),   
 
   DDkwd__(TRAF_INDEX_ALIGNED_ROW_FORMAT,        "ON"),   
   DDkwd__(TRAF_INDEX_CREATE_OPT,          "OFF"),
+
+  DDkwd__(TRAF_LARGEINT_UNSIGNED_IO,                        "OFF"),
+
   DDkwd__(TRAF_LOAD_ALLOW_RISKY_INDEX_MAINTENANCE,        "OFF"),
   DDkwd__(TRAF_LOAD_CONTINUE_ON_ERROR,          "OFF"),
   DD_____(TRAF_LOAD_ERROR_COUNT_ID,             "" ),
@@ -3420,9 +3423,13 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDint__(TRAF_NUM_OF_SALT_PARTNS,                     "-1"),
   DDint__(TRAF_NUM_OF_SALT_REGIONS,                    "-1"),
 
+  DDkwd__(TRAF_READ_OBJECT_DESC,                       "OFF"),   
+
   DDkwd__(TRAF_RELOAD_NATABLE_CACHE,                   "OFF"),
   DD_____(TRAF_SAMPLE_TABLE_LOCATION,                  "/sample/"),
   DDint__(TRAF_SEQUENCE_CACHE_SIZE,        "-1"),
+
+  DDkwd__(TRAF_STORE_OBJECT_DESC,                    "OFF"),   
 
   DDkwd__(TRAF_STRING_AUTO_TRUNCATE,      "OFF"),
   DDkwd__(TRAF_STRING_AUTO_TRUNCATE_WARNING,      "OFF"),
@@ -4383,6 +4390,9 @@ void NADefaults::updateSystemParameters(NABoolean reInit)
         OSIM_errorMessage(e.getErrMessage());
         return;
   }
+
+  HHDFSMasterHostList::reset();
+
   // First (but only if NSK-LITE Services exist),
   // write system parameters (attributes DEF_*) into DefaultDefaults,
   // then copy DefaultDefaults into CurrentDefaults.
@@ -5096,7 +5106,7 @@ ULng32 NADefaults::getTotalNumOfESPsInCluster(NABoolean& fakeEnv) const
      return getAsLong(PARALLEL_NUM_ESPS);
    }
 
-   float espsPerNode = getNumOfESPsPerNodeInFloat();
+   float espsPerNode = CURRSTMT_OPTDEFAULTS->getNumESPsPerNodePerQuery();
 
    CollIndex numOfNodes = gpClusterInfo->numOfSMPs();
 
@@ -5457,10 +5467,7 @@ enum DefaultConstants NADefaults::validateAndInsert(const char *attrName,
 	    }
 	}
     }
-    else if (attrEnum == MP_SUBVOLUME && value.first('.') != NA_NPOS) {
-      if (!setMPLoc(value, errOrWarn, overwriteIfNotYet))
-        attrEnum = __INVALID_DEFAULT_ATTRIBUTE;
-    }
+   
     else {
       if ( attrEnum == MAX_LONG_VARCHAR_DEFAULT_SIZE ||
            attrEnum == MAX_LONG_WVARCHAR_DEFAULT_SIZE ) {
@@ -5591,12 +5598,7 @@ enum DefaultConstants NADefaults::validateAndInsert(const char *attrName,
 
 	      // Now fall thru to insert the string "SYSTEM" or ""
 	    }
-	    if (attrEnum == MP_CATALOG) {
-	      // This will apply default \sys to value if only $v.sv was specified.
-	      ComMPLoc loc(value, ComMPLoc::SUBVOL);
-	      value = loc.getMPName();
-	    }
-
+	   
 	    if (!insert(attrEnum, value, errOrWarn))
 	      attrEnum = __INVALID_DEFAULT_ATTRIBUTE;
 	  }	  // overwrite (i.e. insert)
@@ -5614,14 +5616,6 @@ enum DefaultConstants NADefaults::validateAndInsert(const char *attrName,
 	}
 
       switch (attrEnum) {
-
-      case MP_SYSTEM:
-      case MP_VOLUME:
-      case MP_SUBVOLUME:
-	//
-	// Signal to reconstruct MPLOC and MPLOC_as_SchemaName
-	// on the next query, i.e. next call to getSqlParser_NADefaults().
-	SqlParser_NADefaults_->MPLOC_.setUnknown();
 
       case CATALOG:
       case SCHEMA:
@@ -6065,8 +6059,8 @@ enum DefaultConstants NADefaults::validateAndInsert(const char *attrName,
 
 float NADefaults::computeNumESPsPerCore(NABoolean aggressive)
 {
-   #define DEFAULT_ESPS_PER_NODE 2   // for conservation allocation
-   #define DEFAULT_ESPS_PER_CORE 0.5 // for aggressive allocation
+   #define DEFAULT_ESPS_PER_NODE 2    // for conservation allocation
+   #define DEFAULT_ESPS_PER_CORE 0.25 // for aggressive allocation (i.e. 4 core per ESP)
 
      // Make sure the gpClusterInfo points at an NAClusterLinux object.
      // In osim simulation mode, the pointer can point at a NAClusterNSK
@@ -6211,35 +6205,6 @@ enum DefaultConstants NADefaults::holdOrRestore	(const char *attrName,
 
 const SqlParser_NADefaults *NADefaults::getSqlParser_NADefaults()
 {
-  // "Precompile" the MPLOC into a handier format for name resolution.
-  // The pure ComMPLoc is used in a few places, and the SchemaName form
-  // is used when NAMETYPE is NSK.
-  //
-  if (SqlParser_NADefaults_->MPLOC_.getFormat() == ComMPLoc::UNKNOWN) {
-    NAString sys, vol, subvol;
-    getValue(MP_SYSTEM, sys);
-    getValue(MP_VOLUME, vol);
-    getValue(MP_SUBVOLUME, subvol);
-    if (!sys.isNull())
-      sys += ".";
-    sys += vol + "." + subvol;
-    SqlParser_NADefaults_->MPLOC_.parse(sys, ComMPLoc::SUBVOL);
-
-    // For NAMETYPE NSK, catalog name is e.g. "\AZTEC.$FOO"
-    SqlParser_NADefaults_->MPLOC_as_SchemaName_.setCatalogName(
-    SqlParser_NADefaults_->MPLOC_.getSysDotVol());
-
-    // For NAMETYPE NSK, schema name is e.g. "
-    SqlParser_NADefaults_->MPLOC_as_SchemaName_.setSchemaName(
-    SqlParser_NADefaults_->MPLOC_.getSubvolName());
-
-    // We've already validated the heck out of this
-    // in validateAndInsert() and setMPLoc()!
-#if defined(NA_NSK) || defined(_DEBUG)
-    CMPASSERT(SqlParser_NADefaults_->MPLOC_.isValid(ComMPLoc::SUBVOL));
-#endif  // defined(NA_NSK) || defined(_DEBUG)
-  }
-
   return SqlParser_NADefaults_;
 }
 
@@ -6349,43 +6314,7 @@ NABoolean NADefaults::setCatalog(NAString &value,
   }
 }
 
-NABoolean NADefaults::setMPLoc(const NAString &value,
-			       Int32 errOrWarn,
-			       Provenance overwriteIfNotYet)
-{
-  NABoolean isValid = TRUE;
 
-  // Validate the entire string all at once,
-  // so that if any namepart is in error,
-  // we insert NONE of the MP_xxx values.
-  ComMPLoc loc(value, ComMPLoc::SUBVOL);
-
-  if (!loc.isValid(ComMPLoc::SUBVOL)) {
-    // Call the MPLOC validator solely to emit proper errmsg
-    validateNSKMPLoc.validate(value, this, MP_SUBVOLUME, errOrWarn);
-    isValid = FALSE;
-  }
-  else {
-    NAString v;
-    DefaultConstants e;
-
-    if (loc.hasSystemName()) {
-      v = loc.getSystemName();
-      e = validateAndInsert("MP_SYSTEM", v, 0, errOrWarn, overwriteIfNotYet);
-      CMPASSERT(e >= 0);			// this is just double-checking!
-    }
-
-    v = loc.getVolumeName();
-    e = validateAndInsert("MP_VOLUME", v, 0, errOrWarn, overwriteIfNotYet);
-    CMPASSERT(e >= 0);				// this is just double-checking!
-
-    v = loc.getSubvolName();
-    e = validateAndInsert("MP_SUBVOLUME", v, 0, errOrWarn, overwriteIfNotYet);
-    CMPASSERT(e >= 0);				// this is just double-checking!
-  }
-
-  return isValid;
-}
 
 NABoolean NADefaults::setSchema(NAString &value,
 				Int32 errOrWarn,
@@ -7010,6 +6939,11 @@ DefaultToken NADefaults::token(Int32 attrEnum,
     case SUBQUERY_UNNESTING:
       if (tok == DF_OFF || tok == DF_ON || tok == DF_DEBUG)
         isValid = TRUE;
+      break;
+
+    case SUBQUERY_UNNESTING_P2:
+      if (tok == DF_OFF || tok == DF_ON || tok == DF_INTERNAL)
+         isValid = TRUE;
       break;
 
     case SORT_INTERMEDIATE_SCRATCH_CLEANUP:

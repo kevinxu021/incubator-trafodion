@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# @@@ START COPYRIGHT @@@ 
+# (C) Copyright 2016 Esgyn Corportation
+# @@@ END COPYRIGHT @@@
+
+#### Script to build and install sqlines tool
+
+# Location of tools folder
+SQLINES_TOOLSDIR=$MY_SQROOT/tools
+
+# Location of temporary download folder
+SQLINES_DOWNLOAD_DIR=$MY_SQROOT/../dbmgr/sqlines_download
+
+# Location of sqlines log file
+SQLINES_LOG=$SQLINES_DOWNLOAD_DIR/log/install_sqlines_$(date +%F_%T).log
+mkdir -p $SQLINES_DOWNLOAD_DIR/log
+
+echo
+cd $SQLINES_DOWNLOAD_DIR
+if [[ -d $SQLINES_DOWNLOAD_DIR/sqlines ]]; then
+  echo "sqlines download files already exists, skipping sqlines download" | tee -a ${SQLINES_LOG}
+else
+   echo "Downloading sqlines"| tee -a ${SQLINES_LOG}
+   git clone git@github.com:dmtolpeko/sqlines.git
+fi
+
+echo "Compiling sqlines"| tee -a ${SQLINES_LOG}
+cd $SQLINES_DOWNLOAD_DIR/sqlines/sqlparser
+./build_all64.sh
+cd $SQLINES_DOWNLOAD_DIR/sqlines/sqlines
+./build_all64.sh
+chmod +x sqlines
+
+cp sqlines $SQLINES_TOOLSDIR/.
+
+echo
+cds
+echo "Successfully installed sqlines in tools directory"
+echo
+exit 0

@@ -2145,8 +2145,7 @@ Int32 yyULexer::yylex(YYSTYPE *lvalp)
           else
             {
               doBeforeAction();
-              return setTokval(NON_SQLTEXT_CHARACTER, 
-                               DBGMSG("Non-SQLTEXT character <%s>\n"), lvalp);
+              return setTokval(yytext_[0], DBGMSG("Not %s\n"), lvalp);
             }
           break;
         case L'<':

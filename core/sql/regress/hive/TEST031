@@ -21,11 +21,14 @@
 --
 -- @@@ END COPYRIGHT @@@
 
+set envvar ORC '_ORC';
+obey $$REGRTSTDIR$$/TEST001(clean_up);
 log LOG031 clear;
 set envvar ORC '_ORC';
 obey TEST031(setup);
 obey $$REGRTSTDIR$$/TEST001(setup);
 obey $$REGRTSTDIR$$/TEST001(tests);
+obey $$REGRTSTDIR$$/TEST001(clean_up);
 log;
 exit;
 

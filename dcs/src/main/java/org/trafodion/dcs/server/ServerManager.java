@@ -88,6 +88,8 @@ public final class ServerManager implements Callable {
     private static String publishStatsToOpenTSDB;
     private static String tsdHost;
     private static int tsdPort;
+    private static int exitSessionsCount;
+    private static int exitLiveTimeMinutes;
     private int maxRestartAttempts;
     private int retryIntervalMillis;
     private RetryCounterFactory retryCounterFactory;
@@ -203,6 +205,10 @@ public final class ServerManager implements Callable {
                                    + " ")
                     .replace("-OPENTSDURL",
                             "-OPENTSDURL " + tsdHost+":" + tsdPort + " ")
+                    .replace("-EXITSESSIONSCOUNT",
+                            "-EXITSESSIONSCOUNT " + exitSessionsCount + " ")
+                    .replace("-EXITLIVETIME",
+                            "-EXITLIVETIME " + exitLiveTimeMinutes + " ")
                     .replace("&lt;", "<").replace("&amp;", "&")
                     .replace("&gt;", ">");
             scriptContext.setCommand(command);
@@ -376,12 +382,19 @@ public final class ServerManager implements Callable {
         this.userProgPortBindToSecs = this.conf
                 .getInt(Constants.DCS_SERVER_USER_PROGRAM_PORT_BIND_TIMEOUT_SECONDS,
                         Constants.DEFAULT_DCS_SERVER_USER_PROGRAM_PORT_BIND_TIMEOUT_SECONDS);
+        this.exitSessionsCount = conf
+                .getInt(Constants.DCS_SERVER_PROGRAM_EXIT_SESSIONS_COMPLETED_COUNT,
+                        Constants.DEFAULT_DCS_SERVER_PROGRAM_EXIT_SESSIONS_COMPLETED_COUNT);
+        this.exitLiveTimeMinutes = conf
+                .getInt(Constants.DCS_SERVER_PROGRAM_EXIT_LIVE_TIME,
+                        Constants.DEFAULT_DCS_SERVER_PROGRAM_EXIT_LIVE_TIME);
         this.maxRestartAttempts = conf
                 .getInt(Constants.DCS_SERVER_USER_PROGRAM_RESTART_HANDLER_ATTEMPTS,
                         Constants.DEFAULT_DCS_SERVER_USER_PROGRAM_RESTART_HANDLER_ATTEMPTS);
         this.retryIntervalMillis = conf
                 .getInt(Constants.DCS_SERVER_USER_PROGRAM_RESTART_HANDLER_RETRY_INTERVAL_MILLIS,
                         Constants.DEFAULT_DCS_SERVER_USER_PROGRAM_RESTART_HANDLER_RETRY_INTERVAL_MILLIS);
+
         this.retryCounterFactory = new RetryCounterFactory(
                 this.maxRestartAttempts, this.retryIntervalMillis);
     }

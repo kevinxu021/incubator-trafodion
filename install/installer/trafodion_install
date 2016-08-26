@@ -118,17 +118,22 @@ do
       fi
       if [[ $HADOOP_TYPE == "cloudera" ]]; then
          if [[ $CDH_5_3_HDP_2_2_SUPPORT == "N" ]]; then
-            if [[ $CDH_5_4_SUPPORT == "Y" ]] || [[ $CDH_5_5_SUPPORT == "Y" ]]; then
-               supportedHBase=$(echo $version | grep "1.0.0" | wc -l)
-               if [[ $supportedHBase -eq "0" ]]; then
-                  echo "***ERROR: HBase installed must be 1.0.0 on node $node"
+            if [[ $CDH_5_4_SUPPORT == "Y" ]] || [[ $CDH_5_5_SUPPORT == "Y" ]] || [[ $CDH_5_7_SUPPORT == "Y" ]]; then
+               supportedHBase12=$(echo $version | grep "1.2" | wc -l)
+               supportedHBase10=$(echo $version | grep "1.0" | wc -l)
+               if [[ $supportedHBase12 -eq "0" ]] && [[ $supportedHBase10 -eq "0" ]]; then
+                  echo "***ERROR: HBase installed must be 1.2.* or 1.0.* on node $node"
                   exit -1
                fi
-               cdhVersion=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | grep "cdh5.4.*" | wc -l)
-               if [[ "$cdhVersion" -ge "1" ]]; then
-                  CDH_VERSION="5.4"
+               if [[ $supportedHBase12 -eq "1" ]]; then
+                  CDH_VERSION="5.7"
                else
-                  CDH_VERSION="5.5"
+                  cdhVersion=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | grep "cdh5.4.*" | wc -l)
+                  if [[ "$cdhVersion" -ge "1" ]]; then
+                     CDH_VERSION="5.4"
+                  else
+                     CDH_VERSION="5.5"
+                  fi
                fi
             else
                supportedHBase=$(echo $version | grep "0.98.1" | wc -l)
@@ -169,11 +174,6 @@ sed -i '/CDH_VERSION\=/d' $TRAF_CONFIG
 echo "export CDH_VERSION=\"$CDH_VERSION\"" >> $TRAF_CONFIG
 sudo chmod 777 $TRAF_CONFIG
 sudo rm -rf hbaseVersion.txt
-
-#Debug version
-trafodionVersion=$(echo $trafodionFullName | sed 's/trafodion_.*server-//' | sed 's/-debug//' | sed 's/.tgz//')
-
-echo "***INFO: Trafodion version = $trafodionVersion"
 
 }
 
@@ -340,17 +340,6 @@ fi
 # if user did not supply their own config file, use the default
 # or prompt to generate a new one.
 if [ -z "$USER_CONFIG" ]; then
-   if [ -f $TRAF_CONFIG ]; then
-      # strip out LOCAL_WORKDIR from config file, if there.
-      # LOCAL_WORKDIR was erroneously saved to the config file in
-      # previous versions of the installer scripts and since the config
-      # file hangs around between installer runs it needs to be stripped
-      # out here before we source in the config file
-      cp $TRAF_CONFIG config_temp
-      sudo grep -vE "LOCAL_WORKDIR" config_temp > $TRAF_CONFIG 2> /dev/null
-      source $TRAF_CONFIG
-   fi
-
    # prompt user for configuration info
    $LOCAL_WORKDIR/traf_config_setup | tee -a $INSTALL_LOG
    if [ ${PIPESTATUS[0]} != "0" ]; then
@@ -376,6 +365,11 @@ else
    sudo chmod 777 $TRAF_CONFIG
 fi
 
+sudo chmod 777 $TRAF_CONFIG
+sudo sed -i '/\<LOCAL_WORKDIR\>/d' $TRAF_CONFIG
+echo "export LOCAL_WORKDIR=\"$LOCAL_WORKDIR\"" >> $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+
 source $TRAF_CONFIG
 if [ $? -ne 0 ]; then
    echo "***ERROR: unable to source $TRAF_CONFIG"
@@ -383,7 +377,6 @@ if [ $? -ne 0 ]; then
 fi
 #=============================================
 #Check Config File for Errors
-
 $LOCAL_WORKDIR/traf_config_check | tee -a $INSTALL_LOG
 
 if [ ${PIPESTATUS[0]} != "0" ]; then   
@@ -505,7 +498,7 @@ source $TRAF_CONFIG
 #============================================
 #Check to make sure HBase Version is the correct version
 
-if [[ $HADOOP_TYPE != "apache" ]]; then
+if [[ "$HADOOP_TYPE" != "apache" ]] && [[ "$HADOOP_TYPE" != "mapr" ]]; then
    checkHBaseVersion
 fi
 #==============================================
@@ -518,9 +511,18 @@ echo
 
 if [[ "$UPGRADE_TRAF" == "true" ]]; then
    sudo chmod 777 $HOME_DIR/$TRAF_USER/.bashrc
-   sudo sed -i -e "s@export NODE_LIST=.*@export NODE_LIST=\"$NODE_LIST\"@" $HOME_DIR/$TRAF_USER/.bashrc   
-   sudo sed -i -e "s@export MY_NODES=.*@export MY_NODES=\"$MY_NODES\"@" $HOME_DIR/$TRAF_USER/.bashrc
-   
+   sudo sed -i -e "/export NODE_LIST/d" $HOME_DIR/$TRAF_USER/.bashrc   
+   sudo sed -i -e "/export MY_NODES=/d" $HOME_DIR/$TRAF_USER/.bashrc
+   sudo sed -i -e "/export JAVA_HOME=/d" $HOME_DIR/$TRAF_USER/.bashrc
+   if [ $node_count -gt "1" ]; then
+      sudo cp -r $HOME_DIR/$TRAF_USER/.bashrc $HOME/tempBash
+      sudo chown $(whoami):$(whoami) $HOME/tempBash
+      $TRAF_PDCP $HOME/tempBash $HOME
+      $TRAF_PDSH sudo cp $HOME/tempBash $HOME_DIR/$TRAF_USER/.bashrc
+      $TRAF_PDSH sudo chown $TRAF_USER.trafodion $HOME_DIR/$TRAF_USER/.bashrc
+      $TRAF_PDSH sudo chmod 777 $HOME_DIR/$TRAF_USER/.bashrc
+      $TRAF_PDSH rm -rf $HOME/tempBash
+   fi
    for node in $ALL_NODE_LIST
    do
       userForTrafodion=$(ssh -q -n $node grep "$TRAF_USER:" /etc/passwd | wc -l)
@@ -655,6 +657,17 @@ echo "******************************"
 echo
 
 if [[ $MODS_COMPLETE != "Y" ]]; then
+   if [[ $HADOOP_TYPE == "mapr" ]]; then
+      echo "***INFO: Will run traf_mapr_mods" 2>&1 | tee -a $INSTALL_LOG
+      $LOCAL_WORKDIR/traf_mapr_mods 2>&1 | tee -a $INSTALL_LOG
+       if [ ${PIPESTATUS[0]}  != "0" ]; then
+          echo "***ERROR: traf_mapr_mods exited with error." | tee -a $INSTALL_LOG
+          echo "***ERROR: Please check log files." | tee -a $INSTALL_LOG
+          echo "***ERROR: Exiting...." | tee -a $INSTALL_LOG
+          exit -1
+       fi
+   fi
+
    if [[ $HADOOP_TYPE == "cloudera" ]]; then
       echo "***INFO: Cloudera installed will run traf_cloudera_mods" 2>&1 | tee -a $INSTALL_LOG
       $LOCAL_WORKDIR/traf_cloudera_mods 2>&1 | tee -a $INSTALL_LOG

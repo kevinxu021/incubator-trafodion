@@ -1,15 +1,21 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2016 Esgyn Corporation
+// (C) Copyright 2015-2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
 package com.esgyn.dbmgr.resources;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URI;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.util.ArrayList;
 import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
@@ -30,6 +36,8 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.trafodion.ci.ScriptsInterface;
+import org.trafodion.ci.SessionDefaults;
 
 import com.esgyn.dbmgr.common.EsgynDBMgrException;
 import com.esgyn.dbmgr.common.Helper;
@@ -85,6 +93,8 @@ public class ServerResource {
 			objNode.put("dcsMasterInfoUri", configResource.getDcsMasterInfoUri());
 			objNode.put("dbmgrTimeZone", DateTimeZone.getDefault().getID());
 			objNode.put("dbmgrUTCOffset", DateTimeZone.getDefault().getOffset(DateTime.now().getMillis()));
+			objNode.put("enableWMS", configResource.isWMSEnabled());
+
 			Session content = new Session(usr, pwd, new DateTime(DateTimeZone.UTC));
 			SessionModel.putSessionObject(key, content);
 		} else {
@@ -153,6 +163,7 @@ public class ServerResource {
 		objNode.put("dbmgrUTCOffset", DateTimeZone.getDefault().getOffset(DateTime.now().getMillis()));
 		objNode.put("databaseVersion", ConfigurationResource.getDatabaseVersion());
 		objNode.put("databaseEdition", ConfigurationResource.getDatabaseEdition());
+		objNode.put("enableWMS", server.isWMSEnabled());
 
 		return objNode;
 	}
@@ -339,5 +350,232 @@ public class ServerResource {
 		}
 	}
 
+	@POST
+	@Path("/convertsql/")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public ObjectNode convertSQL(ObjectNode obj, @Context HttpServletRequest request) throws EsgynDBMgrException {
+		String srcSqlType = obj.get("srcType").textValue();
+		String tgtSqlType = obj.get("tgtType").textValue();
 
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectNode objNode = mapper.createObjectNode();
+		objNode.put("status", "OK");
+		File inputFile = null, outputFile = null;
+		long ms = DateTime.now().getMillis();
+		String inFileName = String.format("batch_%1$s.sql", ms);
+		String outFileName = String.format("batch_%1$s.log", ms);
+
+		try {
+			inputFile = new File(inFileName);
+			FileWriter fw = new FileWriter(inputFile);
+			fw.write(obj.get("text").textValue());
+			fw.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to save source query file", e);
+			_LOG.error(ee.getMessage());
+			throw ee;
+		}
+		try {
+			String args = String.format("-s=%1$s -t=%2$s -in=%3$s -out=%4$s", srcSqlType, tgtSqlType, inFileName,
+					outFileName);
+			_LOG.debug(args);
+			ProcessBuilder pb = new ProcessBuilder("sqlines", args);
+			Process process = pb.start();
+			int errCode = process.waitFor();
+			_LOG.debug("Echo command executed, any errors? " + (errCode == 0 ? "No" : "Yes"));
+			StringBuilder sb = new StringBuilder();
+			BufferedReader br = null;
+			try {
+				br = new BufferedReader(new InputStreamReader(process.getInputStream()));
+				String line = null;
+				while ((line = br.readLine()) != null) {
+					sb.append(line + System.getProperty("line.separator"));
+				}
+			} finally {
+				br.close();
+			}
+			_LOG.debug("Std Output : " + sb.toString());
+			try {
+				outputFile = new File(outFileName);
+				BufferedReader fw = new BufferedReader(new FileReader(outputFile));
+				sb = new StringBuilder();
+				String line = null;
+				while ((line = fw.readLine()) != null) {
+					sb.append(line + System.getProperty("line.separator"));
+				}
+				fw.close();
+				objNode.put("convertedText", sb.toString());
+
+			} catch (IOException e) {
+				e.printStackTrace();
+				EsgynDBMgrException ee = Helper.createDBManagerException("Failed to save source query file", e);
+				_LOG.error(ee.getMessage());
+				throw ee;
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to convert sql", ex);
+			_LOG.error(ee.getMessage());
+			throw ee;
+		} finally {
+			// Conversion is done, delete the input and output files
+			try {
+				if (inputFile != null) {
+					inputFile.delete();
+				}
+			} catch (Exception ex) {
+
+			}
+			try {
+				if (outputFile != null) {
+					outputFile.delete();
+				}
+			} catch (Exception ex) {
+
+			}
+		}
+		return objNode;
+	}
+
+	@POST
+	@Path("/executebatch/")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public ObjectNode executeBatchSQL(ObjectNode obj, @Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectNode objNode = mapper.createObjectNode();
+		objNode.put("status", "OK");
+
+		String timestamp = null;
+		if (obj.has("timestamp")) {
+			timestamp = String.valueOf(obj.get("timestamp").longValue());
+		}
+
+		File inputFile = null, outputFile = null;
+		long ms = DateTime.now().getMillis();
+		String inFileName = String.format("batch_%1$s.sql", ms);
+		String outFileName = String.format("batch_%1$s.log", ms);
+
+		try {
+			inputFile = new File(inFileName);
+			FileWriter fw = new FileWriter(inputFile);
+			fw.write(obj.get("text").textValue());
+			fw.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to query to temp file", e);
+			_LOG.error(ee.getMessage());
+			throw ee;
+		}
+
+		Session soc = SessionModel.getSession(servletRequest, servletResponse);
+		executeSQLUsingTrafCI(inFileName, outFileName, ConfigurationResource.getInstance().getJdbcUrl(),
+				soc.getUsername(), soc.getPassword(), timestamp);
+
+		StringBuilder sb = new StringBuilder();
+		try {
+			outputFile = new File(outFileName);
+			BufferedReader fw = new BufferedReader(new FileReader(outputFile));
+			sb = new StringBuilder();
+			String line = null;
+			while ((line = fw.readLine()) != null) {
+				sb.append(line + System.getProperty("line.separator"));
+			}
+			fw.close();
+			objNode.put("output", sb.toString());
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to read command log file ", e);
+			_LOG.error(ee.getMessage());
+			throw ee;
+		} finally {
+			// Conversion is done, delete the input and output files
+			try {
+				if (inputFile != null) {
+					inputFile.delete();
+				}
+			} catch (Exception ex) {
+
+			}
+			try {
+				if (outputFile != null) {
+					outputFile.delete();
+				}
+			} catch (Exception ex) {
+
+			}
+		}
+
+		return objNode;
+	}
+
+	private static void executeSQLUsingTrafCI(String inFile, String outFile, String jdbcUrl, String userName,
+			String password, String timestamp) throws EsgynDBMgrException {
+		ScriptsInterface scriptsInterface = null;
+
+		try {
+			String uriString = jdbcUrl.substring("jdbc:".length());
+			URI uri = new URI(uriString);
+			String host = uri.getHost();
+			int port = uri.getPort();
+
+			scriptsInterface = new ScriptsInterface();
+			scriptsInterface.openConnection(userName, password, "", host, String.valueOf(port), "",
+					SessionDefaults.PRUNI);
+
+			_LOG.debug("Adding script interface with key " + userName + timestamp);
+			SessionModel.putScriptsObject(userName + timestamp, scriptsInterface);
+			scriptsInterface.executeScript(inFile, outFile);
+
+		} catch (Exception e) {
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to execute batch ", e);
+			_LOG.error(ee.getMessage());
+			throw ee;
+		} finally {
+			_LOG.debug("execute batch completed");
+			if (scriptsInterface != null) {
+				SessionModel.removeScriptsObject(userName + timestamp);
+				try {
+					scriptsInterface.disconnect();
+				} catch (Exception e) {
+				}
+			}
+		}
+	}
+
+	@POST
+	@Path("/cancelbatch/")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public ObjectNode cancelBatchSQL(ObjectNode obj, @Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectNode objNode = mapper.createObjectNode();
+		String timestamp = null;
+		if (obj.has("timestamp")) {
+			timestamp = String.valueOf(obj.get("timestamp").longValue());
+		}
+
+		Session soc = SessionModel.getSession(servletRequest, servletResponse);
+		_LOG.debug("Looking up script interface with key " + soc.getUsername() + timestamp);
+		ScriptsInterface scriptsInterface = SessionModel.getScriptsObject(soc.getUsername() + timestamp);
+		if (scriptsInterface != null) {
+			_LOG.debug("Found script interface in cache");
+			scriptsInterface.interrupt();
+			try {
+				scriptsInterface.disconnect();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				// e.printStackTrace();
+			}
+		}
+		objNode.put("status", "OK");
+		return objNode;
+	}
 }

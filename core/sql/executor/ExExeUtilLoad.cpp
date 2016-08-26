@@ -1402,7 +1402,7 @@ short ExExeUtilHBaseBulkLoadTcb::work()
           step_ = LOAD_END_ERROR_;
           break;
         }
-
+        
         step_ = COMPLETE_BULK_LOAD_;
         if (rowsAffected_ == 0)
           step_ = LOAD_END_;
@@ -1877,7 +1877,7 @@ void ExExeUtilHBaseBulkUnLoadTcb::createHdfsFileError(Int32 sfwRetCode)
   ComDiagsArea * diagsArea = NULL;
   char* errorMsg = sequenceFileWriter_->getErrorText((SFW_RetCode)sfwRetCode);
   ExRaiseSqlError(getHeap(), &diagsArea, (ExeErrorCode)(8447), NULL,
-                  NULL, NULL, NULL, errorMsg, NULL);
+                  NULL, NULL, NULL, errorMsg, (char *)GetCliGlobals()->currContext()->getJniErrorStr().data());
   ex_queue_entry *pentry_up = qparent_.up->getTailEntry();
   pentry_up->setDiagsArea(diagsArea);
 }
@@ -2363,18 +2363,6 @@ short ExExeUtilHBaseBulkUnLoadTcb::work()
     case UNLOAD_END_:
     case UNLOAD_END_ERROR_:
     {
-      if (step_ == UNLOAD_END_ &&
-          (hblTdb().getScanType() == ComTdbExeUtilHBaseBulkUnLoad::SNAPSHOT_SCAN_CREATE ||
-           hblTdb().getScanType() == ComTdbExeUtilHBaseBulkUnLoad::SNAPSHOT_SCAN_EXISTING))
-      {
-        sfwRetCode = sequenceFileWriter_->release( );
-        if (sfwRetCode != SFW_OK)
-        {
-          createHdfsFileError(sfwRetCode);
-          step_ = UNLOAD_END_ERROR_;
-          break;
-        }
-      }
       if (restoreCQD("TRAF_TABLE_SNAPSHOT_SCAN") < 0)
       {
         step_ = UNLOAD_ERROR_;
@@ -2620,6 +2608,9 @@ ExExeUtilLobExtractTcb::ExExeUtilLobExtractTcb
   : ExExeUtilTcb(exe_util_tdb, child_tcb, glob),
     step_(EMPTY_)    
 {
+  ContextCli *currContext =
+    getGlobals()->castToExExeStmtGlobals()->castToExMasterStmtGlobals()->
+    getStatement()->getContext();
   lobHandleLen_ = 2050;
   memset(lobHandle_, 0 , sizeof(lobHandle_) );
   memset(lobInputHandleBuf_ , 0, sizeof(lobInputHandleBuf_));
@@ -2644,6 +2635,14 @@ ExExeUtilLobExtractTcb::ExExeUtilLobExtractTcb
   requestTag_ = -1;
 
   memset(lobLoc_, 0, sizeof(lobLoc_) );
+ 
+  lobGlobals_ = 
+    new(currContext->exHeap()) LOBglobals(currContext->exHeap());
+  ExpLOBoper::initLOBglobal
+    (lobGlobals_->lobAccessGlobals(), 
+     currContext->exHeap(),currContext,lobTdb().getLobHdfsServer(),
+               lobTdb().getLobHdfsPort());
+    
 
 }
 
@@ -2668,16 +2667,9 @@ short ExExeUtilLobExtractTcb::work()
 
   ComDiagsArea & diags       = currContext->diags();
 
-  if (! currContext->currLobGlobals())
-    {
-      currContext->currLobGlobals() = 
-	new(currContext->exHeap()) LOBglobals(currContext->exHeap());
-      ExpLOBoper::initLOBglobal
-	(currContext->currLobGlobals()->lobAccessGlobals(), 
-	 currContext->exHeap());
-    }
+  
 
-  void * lobGlobs = currContext->currLobGlobals()->lobAccessGlobals();
+  void * lobGlobs = getLobGlobals()->lobAccessGlobals();
 
   ex_queue_entry * centry = NULL;
   
@@ -3352,16 +3344,9 @@ short ExExeUtilFileExtractTcb::work()
 
   ComDiagsArea & diags       = currContext->diags();
 
-  if (! currContext->currLobGlobals())
-    {
-      currContext->currLobGlobals() = 
-	new(currContext->exHeap()) LOBglobals(currContext->exHeap());
-      ExpLOBoper::initLOBglobal
-	(currContext->currLobGlobals()->lobAccessGlobals(), 
-	 currContext->exHeap());
-    }
+  
 
-  void * lobGlobs = currContext->currLobGlobals()->lobAccessGlobals();
+  void * lobGlobs = getLobGlobals()->lobAccessGlobals();
 
   while (1)
     {
@@ -3617,16 +3602,9 @@ short ExExeUtilFileLoadTcb::work()
 
   ComDiagsArea & diags       = currContext->diags();
 
-  if (! currContext->currLobGlobals())
-    {
-      currContext->currLobGlobals() = 
-	new(currContext->exHeap()) LOBglobals(currContext->exHeap());
-      ExpLOBoper::initLOBglobal
-	(currContext->currLobGlobals()->lobAccessGlobals(), 
-	 currContext->exHeap());
-    }
+  
 
-  void * lobGlobs = currContext->currLobGlobals()->lobAccessGlobals();
+  void * lobGlobs = getLobGlobals()->lobAccessGlobals();
 
   while (1)
     {

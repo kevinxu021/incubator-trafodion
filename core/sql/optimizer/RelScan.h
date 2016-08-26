@@ -858,45 +858,39 @@ public:
                                  NABoolean updateSearchKeyOnly
                                 );
 
-  void processMinMaxKeysForPartitionCols(
+  void processMinMaxKeysForPartitionAndStripeCols(
        Generator* generator, 
        ValueIdSet& pulledNewInputs,
-       ValueIdSet& availableValues);
+       ValueIdSet& availableValues,
+       NABoolean useORCPushDownPredicates,
+       ValueIdSet &orcMinMaxPredicates);
 
   short codeGenForHive(Generator*);
-  short genForTextAndSeq(Generator * generator,
-                         Queue * &hdfsFileInfoList,
-                         Queue * &hdfsFileRangeBeginList,
-                         Queue * &hdfsFileRangeNumList,
-                         char* &hdfsHostName,
-                         Int32 &hdfsPort,
-                         NABoolean &doMultiCursor,
-                         NABoolean &doSplitFileOpt,
-                         ComCompressionInfo *&genCompressionTypes,
-                         Int16 &numCompressionTypes,
-                         ExpTupleDesc *partCols,
-                         int partColValuesLen,
-                         const HivePartitionAndBucketKey *hiveSearchKey);
-  static short genForOrc(Generator * generator,
-                         const HHDFSTableStats* hTabStats,
-                         const PartitioningFunction * mypart,
+  static short genScanRanges(Generator * generator,
+                             const HHDFSTableStats* hTabStats,
+                             const PartitioningFunction * mypart,
+                             Queue * &hdfsFileInfoList,
+                             Queue * &hdfsFileRangeBeginList,
+                             Queue * &hdfsFileRangeNumList,
+                             char* &hdfsHostName,
+                             Int32 &hdfsPort,
+                             NABoolean &useCursorMulti,
+                             NABoolean &doSplitFileOpt,
+                             ComCompressionInfo *&genCompressionTypes,
+                             Int16 &numCompressionTypes,
+                             ExpTupleDesc *partCols,
+                             int partColValuesLen,
+                             const HivePartitionAndBucketKey *hiveSearchKey,
+                             NABoolean isORC);
+  static short genOrcPPI(Generator * generator,
                          NAList<OrcPushdownPredInfo> *listOfOrcPPI,
-                         Queue * &hdfsFileInfoList,
-                         Queue * &hdfsFileRangeBeginList,
-                         Queue * &hdfsFileRangeNumList,
                          Queue * &tdbListOfOrcPPI,
-                         ValueIdList &orcOperVIDlist,
-                         char* &hdfsHostName,
-                         Int32 &hdfsPort,
-                         ExpTupleDesc *partCols,
-                         int partColValuesLen,
-                         const HivePartitionAndBucketKey *hiveSearchKey,
-                         NABoolean isForFastAggr = FALSE);
+                         ValueIdList &orcOperVIDlist);
   static char * genExplodedHivePartKeyVals(Generator *generator,
                                            ExpTupleDesc *partCols,
                                            const ValueIdList &valList);
   
- static desc_struct *createHbaseTableDesc(const char * table_name);
+ static TrafDesc *createHbaseTableDesc(const char * table_name);
 
   // Return a (short-lived) reference to the respective predicates
   const ValueIdList & getBeginKeyPred() const    { return beginKeyPred_; }
@@ -1049,7 +1043,6 @@ public:
 
   OrcPushdownPredInfoList &orcListOfPPI() { return orcListOfPPI_;}
 
-  void convertBeginKeyKeyToPredicatesForORC(ValueIdSet& preds, CollHeap* heap);
   void convertKeyToPredicate(ValueIdList& key, OperatorTypeEnum op, ValueIdSet& preds, CollHeap* heap);
 
   // Compute the total width of all columns in this scan that involve in 
@@ -1308,14 +1301,14 @@ public:
   // mutators
 
   //! createVirtualTableDesc method
-  //  creates a desc_struct for the Virtual Table
-  //  virtual desc_struct *createVirtualTableDesc();
-  static desc_struct *createVirtualTableDesc(const char * name,
+  //  creates a TrafDesc for the Virtual Table
+  //  virtual TrafDesc *createVirtualTableDesc();
+  static TrafDesc *createVirtualTableDesc(const char * name,
 					     NABoolean isRW = FALSE,
 					     NABoolean isCW = FALSE, 
                                              NAArray<HbaseStr> * hbaseKeys = NULL);
 
-  static desc_struct *createVirtualTableDesc(const char * name,
+  static TrafDesc *createVirtualTableDesc(const char * name,
 					     NAList<char*> &colNameList,
 					     NAList<char*> &colValList);
 
@@ -1382,8 +1375,9 @@ public:
 
   virtual NABoolean isHbaseScan() { return TRUE; }
 
-  static int createAsciiColAndCastExprNative(Generator * generator,
+  static int createAsciiColAndCastExprForOrc(Generator * generator,
                                              const NAType &givenType,
+                                             const NAType *hiveType,
                                              ItemExpr *&asciiValue,
                                              ItemExpr *&castValue);
 
@@ -1391,7 +1385,6 @@ public:
 				       const NAType &givenType,
 				       ItemExpr *&asciiValue,
 				       ItemExpr *&castValue,
-                                       NABoolean isOrc = FALSE,
                                        NABoolean srcIsInt32Varchar = FALSE);
 
   static int createAsciiColAndCastExpr2(Generator * generator,

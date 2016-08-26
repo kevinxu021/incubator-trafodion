@@ -280,8 +280,7 @@ private:
   NAString getLastJavaError();
 
   enum JAVA_METHODS {
-    JM_CTOR = 0
-   ,JM_GET_ERROR 
+    JM_GET_ERROR
    ,JM_SCAN_OPEN 
    ,JM_DELETE    
    ,JM_COPROC_AGGR
@@ -458,6 +457,7 @@ public:
                    NABoolean force);
   NAArray<HbaseStr>* listAll(NAHeap *heap, const char* pattern);
   NAArray<HbaseStr>* getRegionStats(NAHeap *heap, const char* tblName);
+  Int32 getRegionStatsEntries();
 
   HBC_RetCode exists(const char* fileName, Int64 transID);
   HBC_RetCode grant(const Text& user, const Text& tableName, const TextVec& actionCodes); 
@@ -556,7 +556,6 @@ private:
 private:  
   enum JAVA_METHODS {
     JM_CTOR = 0
-   ,JM_GET_ERROR 
    ,JM_INIT
    ,JM_CLEANUP   
    ,JM_GET_HTC
@@ -569,6 +568,7 @@ private:
    ,JM_DROP_ALL
    ,JM_LIST_ALL
    ,JM_GET_REGION_STATS
+   ,JM_GET_REGION_STATS_ENTRIES
    ,JM_COPY
    ,JM_EXISTS
    ,JM_GRANT
@@ -793,7 +793,6 @@ private:
 
   enum JAVA_METHODS {
     JM_CTOR = 0
-   ,JM_GET_ERROR
    ,JM_INIT_HFILE_PARAMS
    ,JM_CLOSE_HFILE
    ,JM_DO_BULK_LOAD
@@ -821,6 +820,7 @@ typedef enum {
 	,BRC_ERROR_INIT_PARAM
 	,BRC_ERROR_CREATE_SNAPSHOT_EXCEPTION
 	,BRC_ERROR_RESTORE_SNAPSHOT_EXCEPTION
+	,BRC_ERROR_DELETE_BACKUP_EXCEPTION
 	,BRC_ERROR_INIT_BRC_EXCEPTION
 	,BRC_LAST
 } BRC_RetCode;
@@ -843,6 +843,7 @@ public:
 	BRC_RetCode init();
 	BRC_RetCode createSnapshot(const TextVec& tables, const char* backuptag);
 	BRC_RetCode restoreSnapshots(const char* backuptag, NABoolean timestamp = FALSE);
+	BRC_RetCode deleteBackup(const char* backuptag, NABoolean timestamp = FALSE);
 	NAArray<HbaseStr>* listAllBackups(NAHeap *heap);
 	virtual char* getErrorText(BRC_RetCode errEnum);
 
@@ -856,6 +857,7 @@ private:
 		,JM_CREATE_SNAPSHOT
 		,JM_RESTORE_SNAPSHOTS
 		,JM_LIST_ALL_BACKUPS
+		,JM_DELETE_BACKUP
 		,JM_GET_ERROR
 		,JM_LAST
 	};

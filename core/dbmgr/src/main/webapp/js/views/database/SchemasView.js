@@ -142,7 +142,7 @@ define([
 					{
 						"aTargets": [ 2 ],
 						"mData": 2,
-						"className" : "dbmgr-nowrap",
+						"className" : "dt-body-right dbmgr-nowrap",
 						"mRender": function ( data, type, full ) {
 							if (type === 'display') {
 								return common.toServerLocalDateFromUtcMilliSeconds(data);  
@@ -153,7 +153,7 @@ define([
 					{
 						"aTargets": [ 3 ],
 						"mData": 3,
-						"className" : "dbmgr-nowrap",
+						"className" : "dt-body-right dbmgr-nowrap",
 						"mRender": function ( data, type, full ) {
 							if (type === 'display') {
 								return common.toServerLocalDateFromUtcMilliSeconds(data);  

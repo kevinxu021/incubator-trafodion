@@ -333,8 +333,6 @@ void ex_expr::displayContents(Space * space, short mode, const char * displayStr
 	  //creating text for the showplan
 	  UInt32 f = 0;
 	  ex_expr_base::setForShowplan(f, TRUE);
-          ex_expr_base::setDownrevCompileR2FCS(f, ((flag & 0x00000010) != 0));
-          ex_expr_base::setDownrevCompileRR(f, ((flag & 0x00000020) != 0));
 	  pCodeGenerate(&tempSpace, &tempSpace, f);
 	  
 	  if(getPCodeObject())
@@ -453,7 +451,7 @@ int ex_expr::formatARow2(const char** srcFldsPtr,
                                             sizeof(vcActualLen),
                                             heap,
                                             diags,
-                                            (conv_case_index)srcFieldsConvIndex[index]
+                                            (ConvInstruction)srcFieldsConvIndex[index]
                                             );
 
     if(err == ex_expr::EXPR_ERROR) return -1;

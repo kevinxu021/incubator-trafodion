@@ -330,16 +330,16 @@ Tables in Schema TRAFODION._HV_SCH_T009_
 T009T2
 
 --- SQL operation complete.
->>select row_id, catalog_name, schema_name, object_name from table(natablecacheentries('user','local')) order by 2,3,4;
+>>select catalog_name, schema_name, object_name from table(natablecacheentries('user','local')) order by 1,2,3;
 
-ROW_ID      CATALOG_NAME                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      SCHEMA_NAME                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       OBJECT_NAME
-----------  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CATALOG_NAME                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      SCHEMA_NAME                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       OBJECT_NAME
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-         3  HIVE                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              HIVE                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              PROMOTION                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
-         5  HIVE                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              SCH_T009                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          T009T2                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
-         2  TRAFODION                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         _HV_HIVE_                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         PROMOTION                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
-         4  TRAFODION                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         _HV_SCH_T009_                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     T009T2                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
-         1  TRAFODION                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         _MD_                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              OBJECTS                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+HIVE                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              HIVE                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              PROMOTION                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
+HIVE                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              SCH_T009                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          T009T2                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+TRAFODION                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         _HV_HIVE_                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         PROMOTION                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
+TRAFODION                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         _HV_SCH_T009_                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     T009T2                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+TRAFODION                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         _MD_                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              OBJECTS                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
 
 --- 5 row(s) selected.
 >>create external table t009t1 for hive.sch_t009.t009t1;
@@ -348,7 +348,7 @@ ROW_ID      CATALOG_NAME                                                        
 >>invoke hive.sch_t009.t009t1;
 
 -- Definition of hive table T009T1
--- Definition current  Thu Jun 16 19:45:00 2016
+-- Definition current  Wed Aug 17 03:44:15 2016
 
   (
     A                                INT
@@ -417,7 +417,7 @@ _HB__CELL__
 >>invoke trafodion."_HB__ROW__"."baseball";
 
 -- Definition of Trafodion external table TRAFODION."_HB__ROW__"."baseball"
--- Definition current  Thu Jun 16 19:45:06 2016
+-- Definition current  Wed Aug 17 03:44:20 2016
 
   (
     ROW_ID                           VARCHAR(100) CHARACTER SET ISO88591
@@ -430,7 +430,7 @@ _HB__CELL__
 >>invoke trafodion."_HB__CELL__"."baseball";
 
 -- Definition of Trafodion external table TRAFODION."_HB__CELL__"."baseball"
--- Definition current  Thu Jun 16 19:45:07 2016
+-- Definition current  Wed Aug 17 03:44:21 2016
 
   (
     ROW_ID                           VARCHAR(100) CHARACTER SET ISO88591
@@ -519,7 +519,7 @@ ROW_ID      COLS
 >>invoke hive.hive.store_sales;
 
 -- Definition of hive table STORE_SALES
--- Definition current  Thu Jun 16 19:45:13 2016
+-- Definition current  Wed Aug 17 03:44:33 2016
 
   (
     SS_SOLD_DATE_SK                  INT
@@ -563,18 +563,18 @@ ROW_ID      COLS
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212332866313934337
+PLAN_ID .................. 212338165473536608
 ROWS_OUT ............. 1,709
-EST_TOTAL_COST ........... 0.27
+EST_TOTAL_COST ........... 0.05
 STATEMENT ................ select * from store_sales where ss_item_sk = 1;
 
 
 ------------------------------------------------------------------ NODE LISTING
-ROOT ======================================  SEQ_NO 2        ONLY CHILD 1
+ROOT ======================================  SEQ_NO 3        ONLY CHILD 2
 REQUESTS_IN .............. 1
 ROWS_OUT ............. 1,709
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 0.27
+EST_TOTAL_COST ........... 0.05
 DESCRIPTION
   max_card_est ........... 2.77461e+06
   fragment_id ............ 0
@@ -582,8 +582,10 @@ DESCRIPTION
   fragment_type .......... master
   statement_index ........ 0
   affinity_value ......... 0
+  est_memory_per_cpu ..... 28 KB
   max_max_cardinality  1,709
   total_overflow_size .... 0.00 KB
+  esp_2_node_map ......... (\NSK:-1:-1:-1:-1:-1:-1)
   xn_access_mode ......... read_only
   xn_autoabort_interval    0
   auto_query_retry ....... enabled
@@ -591,6 +593,8 @@ DESCRIPTION
   embedded_arkcmp ........ used
   IS_SQLCI ............... ON
   LDAP_USERNAME
+  HIVE_USE_EXT_TABLE_ATTR  ON
+  AUTO_QUERY_RETRY_WARNIN  ON
   HIVE_MAX_STRING_LENGTH  20
   SHOWCONTROL_SHOW_ALL ... OFF
   SCHEMA ................. HIVE.HIVE
@@ -619,46 +623,45 @@ DESCRIPTION
   input_variables ........ %(1)
 
 
+ESP_EXCHANGE ==============================  SEQ_NO 2        ONLY CHILD 1
+REQUESTS_IN .............. 1
+ROWS_OUT ............. 1,709
+EST_OPER_COST ............ 0.01
+EST_TOTAL_COST ........... 0.05
+DESCRIPTION
+  max_card_est ........... 2.77461e+06
+  fragment_id ............ 2
+  parent_frag ............ 0
+  fragment_type .......... esp
+  est_memory_per_cpu ..... 28 KB
+  buffer_size ....... 12,500
+  record_length ........ 176
+  parent_processes ....... 1
+  child_processes ........ 6
+  child_partitioning_func  hash2 partitioned 6 ways on (randomNum)
+  seamonster_query ....... no
+  seamonster_exchange .... no
+
+
 HIVE_SCAN =================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.STORE_SALES
 REQUESTS_IN .............. 1
 ROWS_OUT ............. 1,709
-EST_OPER_COST ............ 0.27
-EST_TOTAL_COST ........... 0.27
+EST_OPER_COST ............ 0.05
+EST_TOTAL_COST ........... 0.05
 DESCRIPTION
   max_card_est ........... 2.77461e+06
-  fragment_id ............ 0
-  parent_frag ............ (none)
-  fragment_type .......... master
-  scan_type .............. subset scan of table HIVE.HIVE.STORE_SALES
+  fragment_id ............ 2
+  parent_frag ............ 0
+  fragment_type .......... esp
+  scan_type .............. full scan of table HIVE.HIVE.STORE_SALES
   object_type ............ Hive_Text
   scan_direction ......... forward
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
-  columns_retrieved ..... 23
-  key_columns ............ HIVE.STORE_SALES.SS_SOLD_DATE_SK,
-                             HIVE.STORE_SALES.SS_SOLD_TIME_SK,
-                             HIVE.STORE_SALES.SS_ITEM_SK,
-                             HIVE.STORE_SALES.SS_CUSTOMER_SK,
-                             HIVE.STORE_SALES.SS_CDEMO_SK,
-                             HIVE.STORE_SALES.SS_HDEMO_SK,
-                             HIVE.STORE_SALES.SS_ADDR_SK,
-                             HIVE.STORE_SALES.SS_STORE_SK,
-                             HIVE.STORE_SALES.SS_PROMO_SK,
-                             HIVE.STORE_SALES.SS_TICKET_NUMBER,
-                             HIVE.STORE_SALES.SS_QUANTITY,
-                             HIVE.STORE_SALES.SS_WHOLESALE_COST,
-                             HIVE.STORE_SALES.SS_LIST_PRICE,
-                             HIVE.STORE_SALES.SS_SALES_PRICE,
-                             HIVE.STORE_SALES.SS_EXT_DISCOUNT_AMT,
-                             HIVE.STORE_SALES.SS_EXT_SALES_PRICE,
-                             HIVE.STORE_SALES.SS_EXT_WHOLESALE_COST,
-                             HIVE.STORE_SALES.SS_EXT_LIST_PRICE,
-                             HIVE.STORE_SALES.SS_EXT_TAX,
-                             HIVE.STORE_SALES.SS_COUPON_AMT,
-                             HIVE.STORE_SALES.SS_NET_PAID,
-                             HIVE.STORE_SALES.SS_NET_PAID_INC_TAX,
-                             HIVE.STORE_SALES.SS_NET_PROFIT
+  columns_retrieved ..... 27
+  probes ................. 1
+  rows_accessed .......... 2.92064e+06
   executor_predicates .... (HIVE.STORE_SALES.SS_ITEM_SK = %(1))
 
 --- SQL operation complete.
@@ -692,9 +695,9 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212332866314848871
+PLAN_ID .................. 212338165474101903
 ROWS_OUT ......... 2,920,643
-EST_TOTAL_COST ........... 1.07
+EST_TOTAL_COST ...... 28,723.07
 STATEMENT ................ select *
                            from customer, store_sales
                            where store_sales.ss_item_sk =
@@ -707,7 +710,7 @@ ROOT ======================================  SEQ_NO 4        ONLY CHILD 3
 REQUESTS_IN .............. 1
 ROWS_OUT ......... 2,920,643
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 1.07
+EST_TOTAL_COST ...... 28,723.07
 DESCRIPTION
   max_card_est ........... 2.92064e+06
   fragment_id ............ 0
@@ -724,6 +727,8 @@ DESCRIPTION
   embedded_arkcmp ........ used
   IS_SQLCI ............... ON
   LDAP_USERNAME
+  HIVE_USE_EXT_TABLE_ATTR  ON
+  AUTO_QUERY_RETRY_WARNIN  ON
   HIVE_MAX_STRING_LENGTH  20
   SHOWCONTROL_SHOW_ALL ... OFF
   SCHEMA ................. HIVE.HIVE
@@ -773,7 +778,7 @@ NESTED_JOIN ===============================  SEQ_NO 3        CHILDREN 1, 2
 REQUESTS_IN .............. 1
 ROWS_OUT ......... 2,920,642
 EST_OPER_COST ............ 0.5
-EST_TOTAL_COST ........... 1.07
+EST_TOTAL_COST ...... 28,723.07
 DESCRIPTION
   max_card_est ........... 2.92064e+06
   fragment_id ............ 0
@@ -787,42 +792,24 @@ HIVE_SCAN =================================  SEQ_NO 2        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.STORE_SALES
 REQUESTS_IN ........ 104,843
 ROWS/REQUEST ............ 27.86
-EST_OPER_COST ............ 0.55
-EST_TOTAL_COST ........... 0.55
+EST_OPER_COST ....... 28,722.54
+EST_TOTAL_COST ...... 28,722.54
 DESCRIPTION
   max_card_est ........... 2.92064e+06
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
-  scan_type .............. subset scan of table HIVE.HIVE.STORE_SALES
+  scan_type .............. full scan of table HIVE.HIVE.STORE_SALES
   object_type ............ Hive_Text
   scan_direction ......... forward
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
-  columns_retrieved ..... 23
-  key_columns ............ HIVE.STORE_SALES.SS_SOLD_DATE_SK,
-                             HIVE.STORE_SALES.SS_SOLD_TIME_SK,
-                             HIVE.STORE_SALES.SS_ITEM_SK,
-                             HIVE.STORE_SALES.SS_CUSTOMER_SK,
-                             HIVE.STORE_SALES.SS_CDEMO_SK,
-                             HIVE.STORE_SALES.SS_HDEMO_SK,
-                             HIVE.STORE_SALES.SS_ADDR_SK,
-                             HIVE.STORE_SALES.SS_STORE_SK,
-                             HIVE.STORE_SALES.SS_PROMO_SK,
-                             HIVE.STORE_SALES.SS_TICKET_NUMBER,
-                             HIVE.STORE_SALES.SS_QUANTITY,
-                             HIVE.STORE_SALES.SS_WHOLESALE_COST,
-                             HIVE.STORE_SALES.SS_LIST_PRICE,
-                             HIVE.STORE_SALES.SS_SALES_PRICE,
-                             HIVE.STORE_SALES.SS_EXT_DISCOUNT_AMT,
-                             HIVE.STORE_SALES.SS_EXT_SALES_PRICE,
-                             HIVE.STORE_SALES.SS_EXT_WHOLESALE_COST,
-                             HIVE.STORE_SALES.SS_EXT_LIST_PRICE,
-                             HIVE.STORE_SALES.SS_EXT_TAX,
-                             HIVE.STORE_SALES.SS_COUPON_AMT,
-                             HIVE.STORE_SALES.SS_NET_PAID,
-                             HIVE.STORE_SALES.SS_NET_PAID_INC_TAX,
-                             HIVE.STORE_SALES.SS_NET_PROFIT
+  columns_retrieved ..... 27
+  probes ........... 104,843
+  successful_probes  104,843
+  unique_probes ...... 5,242
+  duplicated_succ_pr  99,601
+  rows_accessed .......... 3.06209e+11
   executor_predicates .... (HIVE.STORE_SALES.SS_ITEM_SK =
                              HIVE.CUSTOMER.C_CUSTOMER_SK)
 
@@ -831,36 +818,21 @@ HIVE_SCAN =================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.CUSTOMER
 REQUESTS_IN .............. 1
 ROWS_OUT ........... 104,843
-EST_OPER_COST ............ 0.02
-EST_TOTAL_COST ........... 0.02
+EST_OPER_COST ............ 0.03
+EST_TOTAL_COST ........... 0.03
 DESCRIPTION
   max_card_est ..... 104,843
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
-  scan_type .............. subset scan of table HIVE.HIVE.CUSTOMER
+  scan_type .............. full scan of table HIVE.HIVE.CUSTOMER
   object_type ............ Hive_Text
   scan_direction ......... forward
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
-  columns_retrieved ..... 18
-  key_columns ............ HIVE.CUSTOMER.C_CUSTOMER_SK,
-                             HIVE.CUSTOMER.C_CUSTOMER_ID,
-                             HIVE.CUSTOMER.C_CURRENT_CDEMO_SK,
-                             HIVE.CUSTOMER.C_CURRENT_HDEMO_SK,
-                             HIVE.CUSTOMER.C_CURRENT_ADDR_SK,
-                             HIVE.CUSTOMER.C_FIRST_SHIPTO_DATE_SK,
-                             HIVE.CUSTOMER.C_FIRST_SALES_DATE_SK,
-                             HIVE.CUSTOMER.C_SALUTATION,
-                             HIVE.CUSTOMER.C_FIRST_NAME,
-                             HIVE.CUSTOMER.C_LAST_NAME,
-                             HIVE.CUSTOMER.C_PREFERRED_CUST_FLAG,
-                             HIVE.CUSTOMER.C_BIRTH_DAY,
-                             HIVE.CUSTOMER.C_BIRTH_MONTH,
-                             HIVE.CUSTOMER.C_BIRTH_YEAR,
-                             HIVE.CUSTOMER.C_BIRTH_COUNTRY,
-                             HIVE.CUSTOMER.C_LOGIN, HIVE.CUSTOMER.C_EMAIL_ADDRE
-                             SS, HIVE.CUSTOMER.C_LAST_REVIEW_DATE
+  columns_retrieved ..... 22
+  probes ................. 1
+  rows_accessed .... 104,843
   executor_predicates .... HIVE.CUSTOMER.C_CUSTOMER_SK is not null
 
 --- SQL operation complete.
@@ -894,7 +866,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim;
 
 -- Definition of hive table DATE_DIM
--- Definition current  Thu Jun 16 19:45:17 2016
+-- Definition current  Wed Aug 17 03:44:36 2016
 
   (
     D_DATE_SK                        INT
@@ -943,11 +915,11 @@ DESCRIPTION
 >>showddl hive.hive.date_dim;
 
 /* Hive DDL */
-CREATE TABLE DATE_DIM
+CREATE TABLE DEFAULT.DATE_DIM
   (
     D_DATE_SK                        int
   , D_DATE_ID                        string
-  , D_DATE                           timestamp
+  , D_DATE                           date
   , D_MONTH_SEQ                      int
   , D_WEEK_SEQ                       int
   , D_QUARTER_SEQ                    int
@@ -1035,8 +1007,8 @@ CREATE EXTERNAL TABLE DATE_DIM
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212332866319821558
-ROWS_OUT ................. 1
+PLAN_ID .................. 212338165478632899
+ROWS_OUT ............... 284
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
                            from hive.hive.date_dim
@@ -1046,17 +1018,17 @@ STATEMENT ................ select *
 ------------------------------------------------------------------ NODE LISTING
 ROOT ======================================  SEQ_NO 2        ONLY CHILD 1
 REQUESTS_IN .............. 1
-ROWS_OUT ................. 1
+ROWS_OUT ............... 284
 EST_OPER_COST ............ 0
 EST_TOTAL_COST ........... 0.01
 DESCRIPTION
-  max_card_est ........... 1
+  max_card_est ...... 76,574.8
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
   statement_index ........ 0
   affinity_value ......... 0
-  max_max_cardinality .... 1
+  max_max_cardinality    284
   total_overflow_size .... 0.00 KB
   xn_access_mode ......... read_only
   xn_autoabort_interval    0
@@ -1065,6 +1037,8 @@ DESCRIPTION
   embedded_arkcmp ........ used
   IS_SQLCI ............... ON
   LDAP_USERNAME
+  HIVE_USE_EXT_TABLE_ATTR  ON
+  AUTO_QUERY_RETRY_WARNIN  ON
   HIVE_MAX_STRING_LENGTH  20
   SHOWCONTROL_SHOW_ALL ... OFF
   SCHEMA ................. TRAFODION.SCH
@@ -1097,20 +1071,22 @@ DESCRIPTION
 HIVE_SCAN =================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.DATE_DIM
 REQUESTS_IN .............. 1
-ROWS_OUT ................. 1
+ROWS_OUT ............... 284
 EST_OPER_COST ............ 0.01
 EST_TOTAL_COST ........... 0.01
 DESCRIPTION
-  max_card_est ........... 1
+  max_card_est ...... 76,574.8
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
-  scan_type .............. subset scan of table HIVE.HIVE.DATE_DIM
+  scan_type .............. full scan of table HIVE.HIVE.DATE_DIM
   object_type ............ Hive_Text
   scan_direction ......... forward
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
-  columns_retrieved ..... 28
+  columns_retrieved ..... 32
+  probes ................. 1
+  rows_accessed ..... 80,604
   executor_predicates .... (HIVE.DATE_DIM.D_DATE = %(2016-01-27))
 
 --- SQL operation complete.
@@ -1126,7 +1102,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim;
 
 -- Definition of hive table DATE_DIM
--- Definition current  Thu Jun 16 19:45:27 2016
+-- Definition current  Wed Aug 17 03:44:43 2016
 
   (
     D_DATE_SK                        INT
@@ -1175,11 +1151,11 @@ DESCRIPTION
 >>showddl hive.hive.date_dim;
 
 /* Hive DDL */
-CREATE TABLE DATE_DIM
+CREATE TABLE DEFAULT.DATE_DIM
   (
     D_DATE_SK                        int
   , D_DATE_ID                        string
-  , D_DATE                           timestamp
+  , D_DATE                           date
   , D_MONTH_SEQ                      int
   , D_WEEK_SEQ                       int
   , D_QUARTER_SEQ                    int
@@ -1267,8 +1243,8 @@ CREATE EXTERNAL TABLE DATE_DIM
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212332866330134922
-ROWS_OUT ................. 1
+PLAN_ID .................. 212338165484761384
+ROWS_OUT ............... 284
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
                            from hive.hive.date_dim
@@ -1278,17 +1254,17 @@ STATEMENT ................ select *
 ------------------------------------------------------------------ NODE LISTING
 ROOT ======================================  SEQ_NO 2        ONLY CHILD 1
 REQUESTS_IN .............. 1
-ROWS_OUT ................. 1
+ROWS_OUT ............... 284
 EST_OPER_COST ............ 0
 EST_TOTAL_COST ........... 0.01
 DESCRIPTION
-  max_card_est ........... 1
+  max_card_est ...... 76,574.8
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
   statement_index ........ 0
   affinity_value ......... 0
-  max_max_cardinality .... 1
+  max_max_cardinality    284
   total_overflow_size .... 0.00 KB
   xn_access_mode ......... read_only
   xn_autoabort_interval    0
@@ -1297,6 +1273,8 @@ DESCRIPTION
   embedded_arkcmp ........ used
   IS_SQLCI ............... ON
   LDAP_USERNAME
+  HIVE_USE_EXT_TABLE_ATTR  ON
+  AUTO_QUERY_RETRY_WARNIN  ON
   HIVE_MAX_STRING_LENGTH  20
   SHOWCONTROL_SHOW_ALL ... OFF
   SCHEMA ................. TRAFODION.SCH
@@ -1329,20 +1307,22 @@ DESCRIPTION
 HIVE_SCAN =================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.DATE_DIM
 REQUESTS_IN .............. 1
-ROWS_OUT ................. 1
+ROWS_OUT ............... 284
 EST_OPER_COST ............ 0.01
 EST_TOTAL_COST ........... 0.01
 DESCRIPTION
-  max_card_est ........... 1
+  max_card_est ...... 76,574.8
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
-  scan_type .............. subset scan of table HIVE.HIVE.DATE_DIM
+  scan_type .............. full scan of table HIVE.HIVE.DATE_DIM
   object_type ............ Hive_Text
   scan_direction ......... forward
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
-  columns_retrieved ..... 28
+  columns_retrieved ..... 32
+  probes ................. 1
+  rows_accessed ..... 80,604
   executor_predicates .... (HIVE.DATE_DIM.D_DATE = %(2016-01-27))
 
 --- SQL operation complete.
@@ -1359,6 +1339,10 @@ DESCRIPTION
 +>  for hive.hive.date_dim;
 
 *** ERROR[1009] Column D_DATE_SKK does not exist in the specified table.
+
+*** WARNING[8597] Statement was automatically retried 1 time(s). Delay before each retry was 0 seconds. See next entry for the error that caused this retry.
+
+*** WARNING[1009] Column D_DATE_SKK does not exist in the specified table.
 
 --- SQL operation failed with errors.
 >>

@@ -146,6 +146,7 @@ public class ReplayEngine {
 
     public ReplayEngine(long timestamp) throws Exception {
         setupLog4j();
+        if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine constructor ENTRY"); 
         System.out.println("ReplayEngine constructor ENTRY");
 
         timeStamp = timestamp;
@@ -165,17 +166,22 @@ public class ReplayEngine {
             for (Map.Entry<String, TableRecoveryGroup> tableEntry :  recoveryTableMap.entrySet())
             {            
                 String tableName = tableEntry.getKey();
+                if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine working on table " + tableName); 
                 System.out.println("ReplayEngine working on table " + tableName);
 
                 TableRecoveryGroup tableRecoveryGroup = tableEntry.getValue();
 
+                if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine got TableRecoveryGroup"); 
                 System.out.println("ReplayEngine got TableRecoveryGroup");
                 SnapshotMetaRecord tableMeta = tableRecoveryGroup.getSnapshotRecord();
+                if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine got SnapshotMetaRecord"); 
                 System.out.println("ReplayEngine got SnapshotMetaRecord");
                 String snapshotPath = tableMeta.getSnapshotPath();
+                if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine got path " + snapshotPath); 
                 System.out.println("ReplayEngine got path " + snapshotPath);
     
                 admin.restoreSnapshot(snapshotPath);
+                if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine snapshot restored"); 
                 System.out.println("ReplayEngine snapshot restored");
 
                 table = new HTable (config, tableName);   
@@ -183,6 +189,7 @@ public class ReplayEngine {
                 // Now go through mutations files one by one for now
                 List<MutationMetaRecord> mutationList = tableRecoveryGroup.getMutationList();
 
+                if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine : " + mutationList.size() + " mutation files for " + tableName); 
                 System.out.println("ReplayEngine : " + mutationList.size() + " mutation files for " + tableName);
 
                 for (int i = 0; i < mutationList.size(); i++) {
@@ -196,10 +203,12 @@ public class ReplayEngine {
             }
         }
         catch (Exception e) {
+        	if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine Exception occurred during Replay " + e);
             System.out.println("ReplayEngine Exception occurred during Replay " + e);
             e.printStackTrace();
             throw e;
        }
+        if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine constructor EXIT");
         System.out.println("ReplayEngine constructor EXIT");
     }
 
@@ -214,7 +223,8 @@ public class ReplayEngine {
 
       try { 
 	    
-	  System.out.println("PIT mutationReaderFile " + readPath + " start ");
+          if (LOG.isTraceEnabled()) LOG.trace("PIT mutationReaderFile " + readPath + " start ");
+          System.out.println("PIT mutationReaderFile " + readPath + " start ");
 	  
           HFile.Reader reader = HFile.createReader(fileSystem, readPath, new CacheConfig(config), config);
           HFileScanner scanner = reader.getScanner(true, false);
@@ -224,6 +234,7 @@ public class ReplayEngine {
               //KeyValue firstVal = scanner.getKeyValue();
               Cell tmVal = scanner.getKeyValue();
 	      iKV++;
+	      if (LOG.isTraceEnabled()) LOG.trace("PIT mutationRead: read txn proto, path " + readPath + " KV " + iKV);
 	      System.out.println("PIT mutationRead: read txn proto, path " + readPath + " KV " + iKV);
 
 	      ByteArrayInputStream input = new ByteArrayInputStream(CellUtil.cloneValue(tmVal));
@@ -232,6 +243,7 @@ public class ReplayEngine {
 		  // if tsm.getCommitId() is NOT within the desired range, then skip this record
 		  // Note. the commitID will not be in a monotonic increasing order inside the mutation files due to concurrency/delay
 		  // the smallest commitId within a file will be logged into mutation meta to filter out unnecessary mutation files
+          if (LOG.isTraceEnabled()) LOG.trace("PIT mutationRead: transaction id " + tmm.getTxId());
 		  System.out.println("PIT mutationRead: transaction id " + tmm.getTxId());
 		  sid = tmm.getStartId();
 		  cid = tmm.getCommitId();
@@ -261,6 +273,8 @@ public class ReplayEngine {
                             Delete writeDelete = ProtobufUtil.toDelete(deleteProtos.get(deleteIndex++));
 		  	  deletes.add(writeDelete);
                         }
+                        if (LOG.isTraceEnabled()) LOG.trace("PIT mutationRead -- Transaction Id " + tmm.getTxId() + " has " +
+			                   putIndex + " put " + deleteIndex + " delete ");
                         System.out.println("PIT mutationRead -- Transaction Id " + tmm.getTxId() + " has " +
 			                   putIndex + " put " + deleteIndex + " delete ");
                         // complete current transaction's mutations    
@@ -269,6 +283,10 @@ public class ReplayEngine {
                     }
   		    mutationReplay(puts, deletes); // here is replay transaction by transaction (may just use HBase client API)
                     // print this txn's mutation context 
+                    if (LOG.isTraceEnabled()) LOG.trace("PIT mutationRead -- " + 
+		                    " Transaction Id " + tmm.getTxId() + 
+		                    " with startId " + sid + " and commitId " + cid + 
+		                    " has " + putIndex + " put " + deleteIndex + " delete ");   
                     System.out.println("PIT mutationRead -- " + 
 		                    " Transaction Id " + tmm.getTxId() + 
 		                    " with startId " + sid + " and commitId " + cid + 
@@ -292,8 +310,10 @@ public class ReplayEngine {
           e.printStackTrace(pw);
           LOG.error(sw.toString());
       }	 
-      System.out.println("mutationReaderFile " + readPath + " complete " +
+      if (LOG.isTraceEnabled()) LOG.trace("mutationReaderFile " + readPath + " complete " +
 	                    iTxnProto + " transaction mutation protos for " );
+      System.out.println("mutationReaderFile " + readPath + " complete " +
+              iTxnProto + " transaction mutation protos for " );
   }
    
   public void mutationReplay(List<Put> puts, List<Delete> deletes) throws IOException {

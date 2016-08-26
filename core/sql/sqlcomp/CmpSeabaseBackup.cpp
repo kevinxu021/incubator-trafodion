@@ -231,7 +231,7 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
 	
 	char query[1000];
 	Lng32 cliRC;
-	str_sprintf(query, "select distinct catalog_name,schema_name,object_name from %s.\"%s\".%s where schema_name not like '|_HV|_%%|_' escape '|' and schema_name not like '|_HB|_%%|_' escape '|' and object_type in ('BT', 'IX') ", getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_OBJECTS);
+	str_sprintf(query, "select distinct catalog_name,schema_name,object_name from %s.\"%s\".%s where schema_name not like '|_HV|_%%|_' escape '|' and schema_name not like '|_HB|_%%|_' escape '|' and schema_name not like 'VOLATILE_SCHEMA_%%' and object_type in ('BT', 'IX') ", getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_OBJECTS);
 	  
 	Queue * tableQueue = NULL;
 	cliRC = cliInterface->fetchAllRows(tableQueue, query, 0, FALSE, FALSE, TRUE);
@@ -343,6 +343,46 @@ short CmpSeabaseDDL::restore(DDLExpr * ddlExpr,
 
     return 0;
 
+}
+
+short CmpSeabaseDDL::deleteBackup(DDLExpr * ddlExpr, 
+        ExeCliInterface * cliInterface)
+{
+    short error;
+    short rc;
+    Lng32 retcode;
+
+    //do not let deleteBackup when backup in progress.
+    if(isSQLLocked())
+    {
+        *CmpCommon::diags() << DgSqlCode(-CAT_BACKUP_IN_PROGRESS);
+        return -1;
+    }
+
+    ExpHbaseInterface * ehi = allocBRCEHI();
+    if (ehi == NULL)
+    {
+        //  Diagnostic already populated.
+        return -1;
+    }
+
+    //No need of any other lock for this operation.
+    retcode = ehi->deleteBackup(ddlExpr->getBackupTag(),
+                               ddlExpr->getBackupTagTimeStamp());
+    if (retcode < 0)
+    {
+        *CmpCommon::diags() << DgSqlCode(-8448)
+        << DgString0((char*)"ExpHbaseInterface::deleteBackup()")
+        << DgString1(getHbaseErrStr(-retcode))
+        << DgInt0(-retcode)
+        << DgString2((char*)GetCliGlobals()->getJniErrorStr().data());
+    }
+
+    //deallocate, not needed anymore.
+    ehi->close();
+    ehi = NULL;
+
+    return 0;
 }
 
 

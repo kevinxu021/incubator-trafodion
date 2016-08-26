@@ -1041,9 +1041,13 @@ void createAndInsertDP2Scan( const IndexDesc * idesc,
             HivePartitionAndBucketKey *hpk =
               new(CmpCommon::statementHeap()) HivePartitionAndBucketKey(
                    bef->getTableDesc());
-            hpk->computePartitionPredicates(
+            hpk->computePartAndVirtColPredicates(
                  bef->getGroupAttr(),
                  fileScan->selectionPred());
+
+            hpk->estimateAccessMetrics(fileScan);
+            hpk->computeAvgAccessMetrics(fileScan);
+
             if (hpk->computeActivePartitions() < 0)
               return; // error encountered, diags are set
             fileScan->setHiveSearchKey(hpk);

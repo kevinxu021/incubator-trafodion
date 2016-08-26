@@ -142,7 +142,7 @@ protected:
   short moveRowToUpQueue(const char * row, Lng32 len, 
                          Lng32 tuppIndex,
                          short * rc, NABoolean isVarchar);
-  short handleError(short &rc);
+  short handleError(short &rc, ComDiagsArea * inDiagsArea);
   short handleDone(ExWorkProcRetcode &rc, Int64 rowsAffected = 0);
 
   short setupError(Lng32 exeError, Lng32 retcode, 
@@ -307,7 +307,6 @@ protected:
   struct ComTdbHdfsVirtCols *virtColData_; // pointer to data for virtual columns
 
   hdfsFile hdfsFp_;
-  hdfsFS hdfsFs_;     // shallow copy from cliGlobals.
 
   void * lobGlob_;
 
@@ -343,6 +342,7 @@ protected:
   NABoolean checkRangeDelimiter_;
 
   NABoolean dataModCheckDone_;
+  ComDiagsArea * loggingErrorDiags_;
 };
 
 #define RANGE_DELIMITER '\002'

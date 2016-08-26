@@ -2625,6 +2625,16 @@ NABoolean JoinToTSJRule::topMatch (RelExpr * expr,
   Lng32 mtd_mdam_uec_threshold = (Lng32)(ActiveSchemaDB()->getDefaults()).
                                      getAsLong(MTD_MDAM_NJ_UEC_THRESHOLD);
 
+  
+  const SET(IndexDesc *) &availIndexes=
+       joinExpr->child(1).getGroupAttr()->getAvailableBtreeIndexes();
+          
+  if ( availIndexes.entries() > 0 && 
+       availIndexes[0]->getPrimaryTableDesc()->getNATable()->isHiveTable() )   {
+     // Do nothing. NJ into Hive tables will not be subjected to keyless
+     // tests below, since the key columns will look like 
+     // (INPUT__RANGE__NUMBER, ROW__NUMBER__IN__RANGE). 
+  } else
   // if no cqs and NJ is not the only explored option and keylessNJ off
   // then avoid keyless nested join
   if (!cqs_skips_keylessNJ_heuristic AND !NJisOnlyOption AND 
@@ -5261,9 +5271,9 @@ RelExpr * GroupByOnJoinRule::nextSubstitute(RelExpr * before,
   else
     tjcol = &t1jcol;
 
-  // add all columns that are functionally dependent on grcol,
-  // this will increase the chance that we cover the join columns
-  const ValueIdSet &constr = oldGB->getGroupAttr()->getConstraints();
+  // Add all columns that are functionally dependent on grcol,
+  // this will increase the chance that we cover the join columns.
+  const ValueIdSet &constr = oldJoin->getGroupAttr()->getConstraints();
 
   for (ValueId v = constr.init(); constr.next(v); constr.advance(v))
     {

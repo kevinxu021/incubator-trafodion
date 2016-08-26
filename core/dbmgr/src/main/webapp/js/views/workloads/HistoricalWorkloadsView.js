@@ -54,7 +54,69 @@ define([
 	CANCEL_QUERY_ID = '#cancel-query-id',
 	CANCEL_QUERY_YES_BTN = '#cancel-query-yes-btn';
 
-
+	var CHART_CONFIG = {
+			"TopN_Memory_Used":{
+				container:"topN-memory-chart",
+				spinner:"#memory-spinner",
+				error:"#topN-memory-error-text",
+				column : 8,	//index of column used for trigger sort
+				type : "top_memory",
+				valueFormat: common.bytesToSize,
+				value:"memory_used" //key to get value from return data
+			},
+			"TopN_CPU_Time":{
+				container:"topN-cpu-chart",
+				spinner:"#cpu-spinner",
+				error:"#topN-cpu-error-text",
+				column : 9,
+				type : "top_cpu",
+				valueFormat: common.microsecondsToString,
+				value:"cpu_time"
+			},
+			"TopN_Total_Runtime":{
+				container:"topN-runtime-chart",
+				spinner:"#runtime-spinner",
+				error:"#topN-runtime-error-text",
+				column : 7,
+				type : "top_runtime",
+				valueFormat: common.microsecondsToString,
+				value:"query_elapsed_time"
+			},
+			"TopN_Disk_IO":{
+				container:"topN-diskio-chart",
+				spinner:"#diskio-spinner",
+				error:"#topN-diskio-error-text",
+				column : 10,
+				type : "top_diskio",
+				valueFormat: common.formatNumberWithCommas,
+				value:"disk_ios"
+			},
+	}
+	var FLOT_OPTIONS = {
+			grid :{
+				hoverable: true,
+				clickable: true,
+				borderColor: "#f3f3f3",
+				borderWidth: {top:0, right: 0, bottom: 1, left: 1},
+				tickColor: "#737373"
+				},
+			series: {
+		        points: {
+		            fillColor: 'red'
+		        }
+		    },
+			xaxis : {
+				mode : "time",
+				tickLength:0
+			},
+			yaxis : {
+				tickLength:0,
+				min:1,
+				max:5,
+				tickFormatter: function (val,axis) { return (6-val); },
+			}
+	}
+	
 	var oDataTable = null;
 	var _this = null;
 	var validator = null;
@@ -160,12 +222,17 @@ define([
 			wHandler.on(wHandler.FETCH_REPO_ERROR, this.showErrorMessage);
 			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
 			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
+			wHandler.on(wHandler.FETCH_TOPN_MAX_MEM_USED_SUCCESS, this.displayTopMemUsed);
+			wHandler.on(wHandler.FETCH_TOPN_CPU_TIME_SUCCESS, this.displayTopCPUTime);
+			wHandler.on(wHandler.FETCH_TOPN_Rumtime_SUCCESS, this.displayTopRuntime);
+			wHandler.on(wHandler.FETCH_TOPN_DiskIO_SUCCESS, this.displayTopDiskIO);
 			$(REFRESH_MENU).on('click', this.fetchQueriesInRepository);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			$(CANCEL_QUERY_YES_BTN).on('click', this.cancelQueryConfirmed);
 			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
 			this.fetchQueriesInRepository();
+			_this.fetchTopN();
 		},
 		doResume: function(){
 			this.redirectFlag=false;
@@ -326,6 +393,7 @@ define([
 			}
 			_this.showLoading();
 			wHandler.fetchQueriesInRepository(lastAppliedFilters);
+			_this.fetchTopN();
 		},
 		getFilterParams: function(){
 			var startTime = $(START_TIME_PICKER).data("DateTimePicker").date();
@@ -364,6 +432,46 @@ define([
 			$(ERROR_CONTAINER).hide();
 			_this.updateFilter();
 			_this.filterApplyClicked();
+		},
+		fetchTopN: function(){
+			var timeRange = _this.getTimerange();
+			var startTime = timeRange.startTime.format("YYYY-MM-DD HH:mm:ss");
+			var endTime = timeRange.endTime.format("YYYY-MM-DD HH:mm:ss");
+			$(CHART_CONFIG["TopN_Memory_Used"].spinner).show();
+			$(CHART_CONFIG["TopN_CPU_Time"].spinner).show();
+			$(CHART_CONFIG["TopN_Total_Runtime"].spinner).show();
+			$(CHART_CONFIG["TopN_Disk_IO"].spinner).show();
+			$(CHART_CONFIG["TopN_Memory_Used"].error).hide();
+			$(CHART_CONFIG["TopN_CPU_Time"].error).hide();
+			$(CHART_CONFIG["TopN_Total_Runtime"].error).hide();
+			$(CHART_CONFIG["TopN_Disk_IO"].error).hide();
+			wHandler.fetchTopMemUsed(startTime,endTime);
+			wHandler.fetchTopCPUTime(startTime,endTime);
+			wHandler.fetchTopRuntime(startTime,endTime);
+			wHandler.fetchTopDiskIO(startTime,endTime);
+		},
+		displayTopMemUsed: function(data){
+			var chartConfig = CHART_CONFIG["TopN_Memory_Used"];
+			_this.displayTopCharts(data,chartConfig);
+		},
+		displayTopCPUTime: function(data){
+			var chartConfig = CHART_CONFIG["TopN_CPU_Time"];
+			_this.displayTopCharts(data,chartConfig);
+		},
+		displayTopRuntime: function(data){
+			var chartConfig = CHART_CONFIG["TopN_Total_Runtime"];
+			_this.displayTopCharts(data,chartConfig);
+		},
+		displayTopDiskIO: function(data){
+			var chartConfig = CHART_CONFIG["TopN_Disk_IO"];
+			_this.displayTopCharts(data,chartConfig);
+		},
+		getTimerange: function(){
+			////console.log(startTime.format("YYYY-MM-DD HH:mm:ss"));
+			return {
+				startTime: $(START_TIME_PICKER).data("DateTimePicker").date(),
+				endTime: $(END_TIME_PICKER).data("DateTimePicker").date()
+			}
 		},
 		displayResults: function (result){
 			_this.hideLoading();
@@ -422,7 +530,7 @@ define([
 					{
 						"aTargets": [ 2],
 						"mData": 2,
-						"className" : "dbmgr-nowrap",
+						"className" : "dt-body-right dbmgr-nowrap",
 						"mRender": function ( data, type, full ) {
 							//if (type === 'display') {
 							if(data != null || data != -1)
@@ -435,7 +543,7 @@ define([
 					{
 						"aTargets": [3 ],
 						"mData": 3,
-						"className" : "dbmgr-nowrap",
+						"className" : "dt-body-right dbmgr-nowrap",
 						"mRender": function ( data, type, full ) {
 							//if (type === 'display') {
 							if(data != null || data != -1)
@@ -458,8 +566,44 @@ define([
 						}
 					},
 					{
-						"aTargets": [8],
-						"mData" : 8,
+						"aTargets": [8 ],
+						"mData": 8,
+						"mRender": function ( data, type, full ) {
+							if (type === 'display') {
+							if(data != null || data != -1)
+								return common.bytesToSize(data*1024);
+							else return "";
+							}
+							else return data;
+						}
+					},
+					{
+						"aTargets": [9 ],
+						"mData": 9,
+						"mRender": function ( data, type, full ) {
+							//if (type === 'display') {
+							if(data != null || data != -1)
+								return common.microsecondsToString(data);
+							else return "";
+							//}
+							//else return data;
+						}
+					},
+					{
+						"aTargets": [10 ],
+						"mData": 10,
+						"mRender": function ( data, type, full ) {
+							//if (type === 'display') {
+							if(data != null || data != -1)
+								return common.formatNumberWithCommas(data);
+							else return "";
+							//}
+							//else return data;
+						}
+					},
+					{
+						"aTargets": [11],
+						"mData" : 11,
 						"mRender": function(data, type, full){
 							if(type == 'display' && data != null){
 								if(data.length > 30){
@@ -490,9 +634,9 @@ define([
 							if(cell.column == 0){
 								var data = oDataTable.row(cell.row).data();
 								if(data && data.length > 0){
-									sessionStorage.setItem(data[0], JSON.stringify({type: 'repo', text: data[8]}));	
+									sessionStorage.setItem(data[0], JSON.stringify({type: 'repo', text: data[11]}));	
 								}
-							}else if(cell.column == 8){
+							}else if(cell.column == 11){
 								if ($(this).find('.dbmgr-text-ellipsis').length > 0)
 									$(this).find('.dbmgr-text-ellipsis').removeClass('dbmgr-text-ellipsis'); 
 								else 
@@ -524,6 +668,105 @@ define([
 				}
 			}
 		},
+		UTCstamp2UTCsecond: function(strDate){
+			//convert UTC Date "YYYY:MM::DD HH:MM:SS" to UTC milliseconds
+			//new Date() use local timezone
+			var tDate = new Date(strDate);
+			var utc = tDate.getTime() - tDate.getTimezoneOffset()*60000;
+			return utc;
+		},
+		displayTopCharts: function(data,chartConfig){
+			var data = data;
+			var type = chartConfig.type;
+			var column = chartConfig.column;
+			var container = chartConfig.container;
+			var spinner = chartConfig.spinner;
+			var x_start = _this.getTimerange().startTime.unix() * 1000;
+			var x_end = _this.getTimerange().endTime.unix() * 1000;
+			var valueFormat = chartConfig.valueFormat;
+			var options = FLOT_OPTIONS;
+			options.xaxis.min = x_start;
+			options.xaxis.max = x_end;
+			var lines = [];
+			var count = 5;
+			for(var i=0;i < data.length;i++){
+				var status = "Complete";
+				var start_time = _this.UTCstamp2UTCsecond(data[i].start_time);
+				var end_time = data[i].end_time;
+				if(end_time == null){
+					end_time = x_end;
+					status = "Executing";
+				}else{
+					end_time = _this.UTCstamp2UTCsecond(end_time);
+				}
+				var y = count;
+				var value = data[i][chartConfig.value];
+				if(type == 'top_memory'){
+					value = value *1024;
+				}
+				var query_id = data[i].query_id;
+				var line = {
+						"query_id":query_id,
+						"start_time":data[i].start_time,
+						"end_time":data[i].end_time,
+						"value": valueFormat(value),
+						"index":y,
+						"status":status,
+						"type": type,
+						"column": column,
+						"color":"#3c8dbc",
+						"data": [[start_time,y],[end_time,y]]
+				}
+				lines.push(line);
+				count--;
+			}
+			$.plot("#"+container ,lines,options);
+			$("#"+container).bind("plotclick", function (event, pos, item) {
+				if (item) {
+					//tooltip
+					$(".even").css("background-color","")
+					$(".odd").css("background-color","")
+					for(var i in CHART_CONFIG){
+						$("#"+ CHART_CONFIG[i].type + '-tooltip').remove();
+					}
+					var type = item.series.type;
+					var column = item.series.column;
+					var query_id = item.series.query_id;
+					var start_time = item.series.start_time;
+					var end_time = item.series.end_time;
+					var index = item.series.index;
+					var value = item.series.value;
+					var status = item.series.status;
+					var content = "QueryID:" + query_id + "</br>Status:" + status + "</br>Value:" + value +"</br>StartTime:"+start_time+"</br>EndTime:"+end_time;
+					common.showTooltip(pos.pageX, pos.pageY, content, type+'-tooltip');
+					$(".tooltip-inner").css("max-width","600px");
+					$("#"+type+'-tooltip').width(600);
+					//sort
+					var table = $(".dbmgr-table").dataTable();
+					table.fnSort([[column,"desc"]]);
+					//highlight
+					var data = $(".dbmgr-table").DataTable();
+					var indexes = data.rows().indexes();
+					for(var i = 0;i<indexes.length;i++){
+						if(query_id == data.row(indexes[i]).data()[0]){
+							data.row(indexes[i]).nodes().to$().css('background-color','yellow');
+							break;
+						}
+					}
+					
+				} else {
+					//$("#"+container + '-tooltip').remove();
+					for(var i in CHART_CONFIG){
+						$("#"+ CHART_CONFIG[i].type + '-tooltip').remove();
+					}
+					$(".even").css("background-color","")
+					$(".odd").css("background-color","")
+				}
+
+			});
+			$(spinner).hide();
+		},
+		
 		parseInputDate:function(date){
 			return moment.tz(date, DATE_FORMAT_ZONE, common.serverTimeZone);
 		},

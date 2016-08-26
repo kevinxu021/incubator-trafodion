@@ -567,6 +567,11 @@ public:
   // phase
   void eliminateFilterChild();
 
+  // used duirng SQO, to check if the child or grandchild of current
+  // node is a filter. Two acceptable patterns are (a) child(0) is filter
+  // child(0) is groupby an child(0)->child(0) is filter
+  NABoolean hasFilterChild();
+
   // used during SQO phase to make the left sub tree of the join
   // being unnested produce the extra outputs that is necessary to
   // group by a set of unique columns of of the left sub tree
@@ -2003,7 +2008,9 @@ public:
                         maxOperMemReq_(0),
                         maxOperCPUReq_(0),
                         maxOperDataAccessCost_(0),
-                        maxMaxCardinality_(0){};
+                        maxMaxCardinality_(0),
+                        numOfHBaseTables_(0),
+                        numOfHiveTables_(0) {};
   void accumulate(CostScalar memRsrcs, CostScalar cpuRsrcs, CostScalar dataAccessCost, CostScalar maxCard = csZero);
   CostScalar getMemoryResources(){ return memoryResources_; };
   CostScalar getCpuResources(){ return cpuResources_; };
@@ -2017,6 +2024,11 @@ public:
   void setCpuResources(CostScalar cpuRes) { cpuResources_ = cpuRes; };
   void setDataAccessCost(CostScalar dataAccessCost) { dataAccessCost_ = dataAccessCost; };
 
+  void incrementNumOfHBaseTables() { numOfHBaseTables_++; };
+  void incrementNumOfHiveTables() { numOfHiveTables_++; };
+
+  Int32 getNumOfHbaseTables() { return numOfHBaseTables_; };
+  Int32 getNumOfHiveTables() { return numOfHiveTables_; };
 private:
   CostScalar memoryResources_;
   CostScalar cpuResources_;
@@ -2025,6 +2037,9 @@ private:
   CostScalar maxOperCPUReq_;
   CostScalar maxOperDataAccessCost_;
   CostScalar maxMaxCardinality_;
+
+  Int32 numOfHBaseTables_; // number of Hbase tables accumulated
+  Int32 numOfHiveTables_;  // number of Hive tables accumulated
 }; // RequiredResources
 
 // *********************************************************************

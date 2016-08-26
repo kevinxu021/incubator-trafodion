@@ -141,6 +141,7 @@ class ExpHbaseInterface : public NABasicObject
 
   virtual Lng32 createSnaphot(const std::vector<Text>& tables, const char* backuptag);
   virtual Lng32 restoreSnapshots(const char* backuptag, NABoolean timestamp = FALSE);
+  virtual Lng32 deleteBackup(const char* backuptag, NABoolean timestamp = FALSE);
   virtual NAArray<HbaseStr> *listAllBackups();
   
   virtual Lng32 exists(HbaseStr &tblName) = 0;
@@ -415,6 +416,8 @@ class ExpHbaseInterface : public NABasicObject
   // get regions and size
   virtual NAArray<HbaseStr> *getRegionStats(const HbaseStr& tblName) = 0;
 
+  virtual NAArray<HbaseStr> *getClusterStats(Int32 &numEntries) = 0;
+
 protected:
   enum 
     {
@@ -499,6 +502,7 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
 
   virtual Lng32 createSnaphot(const std::vector<Text>& tables, const char* backuptag);
   virtual Lng32 restoreSnapshots(const char* backuptag, NABoolean timestamp = FALSE);
+  virtual Lng32 deleteBackup(const char* backuptag, NABoolean timestamp = FALSE);
   virtual NAArray<HbaseStr> *listAllBackups();
   
   // -1, if table exists. 0, if doesn't. -ve num, error.
@@ -762,6 +766,7 @@ virtual Lng32 initHFileParams(HbaseStr &tblName,
   virtual Lng32 addTablesToHDFSCache(const std::vector<Text> & tables, const char* poolName);
   virtual Lng32 removeTablesFromHDFSCache(const std::vector<Text> & tables, const char* poolName);
   virtual NAArray<HbaseStr>* getRegionStats(const HbaseStr& tblName);
+  virtual NAArray<HbaseStr>* getClusterStats(Int32 &numEntries);
 
   
 private:

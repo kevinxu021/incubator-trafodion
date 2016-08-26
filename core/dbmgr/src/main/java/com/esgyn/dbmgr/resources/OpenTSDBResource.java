@@ -9,6 +9,7 @@ package com.esgyn.dbmgr.resources;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -387,7 +388,7 @@ public class OpenTSDBResource {
 
 			List<String> nodeValues = RESTProcessor.GetNodeValues(jsonOutputString, "dps");
 
-			String[] timePoints = null;
+			TreeSet<String> timePoints = null;
 			TreeMap<String, Object> resultMetrics = new TreeMap<String, Object>();
 
 			ArrayList<TreeMap<String, Object>> parsedMetrics = new ArrayList<TreeMap<String, Object>>();
@@ -398,7 +399,13 @@ public class OpenTSDBResource {
 				// Get the list of time keys once
 				if (timePoints == null) {
 					if (metricValues.keySet().size() > 0)
-						timePoints = metricValues.keySet().toArray(new String[0]);
+						timePoints = new TreeSet(metricValues.keySet());
+				} else {
+					for (String timepoint : metricValues.keySet()) {
+						if (timePoints.contains(timepoint))
+							continue;
+						timePoints.add(timepoint);
+					}
 				}
 				parsedMetrics.add(metricValues);
 			}

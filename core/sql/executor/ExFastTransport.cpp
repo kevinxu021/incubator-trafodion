@@ -621,25 +621,28 @@ Int32 ExHdfsFastExtractTcb::fixup()
 
   if(!myTdb().getSkipWritingToFiles() &&
      !myTdb().getBypassLibhdfs())
-
+    memset (hdfsHost_, '\0', sizeof(hdfsHost_));
+      strncpy(hdfsHost_, myTdb().getHdfsHostName(), sizeof(hdfsHost_));
+      hdfsPort_ = myTdb().getHdfsPortNum();
     ExpLOBinterfaceInit
-      (lobGlob_, getGlobals()->getDefaultHeap(),TRUE);
+      (lobGlob_, getGlobals()->getDefaultHeap(),getGlobals()->castToExExeStmtGlobals()->getContext(),TRUE,hdfsHost_,hdfsPort_);
 
   modTS_ = myTdb().getModTSforDir();
 
   return 0;
 }
 
-void ExHdfsFastExtractTcb::convertSQRowToString(ULng32 nullLen,
-                                                ULng32 recSepLen,
-                                                ULng32 delimLen,
-                                                tupp_descriptor* dataDesc,
-                                                char* targetData,
-                                                NABoolean orcRow,
-                                                NABoolean & convError) {
+NABoolean ExHdfsFastExtractTcb::convertSQRowToString(ULng32 nullLen,
+                                                     ULng32 recSepLen,
+                                                     ULng32 delimLen,
+                                                     tupp_descriptor* dataDesc,
+                                                     char* targetData,
+                                                     NABoolean orcRow,
+                                                     NABoolean & convError) {
   char* childRow = dataDesc->getTupleAddress();
   ULng32 childRowLen = dataDesc->getAllocatedSize();
   UInt32 vcActualLen = 0;
+  Int32 origNumBytesLeft = currPartn_->currBuffer_->bytesLeft_;
 
   for (UInt32 i = 0; i < myTdb().getChildTuple()->numAttrs(); i++) {
     Attributes * attr = myTdb().getChildTableAttr(i);
@@ -647,6 +650,11 @@ void ExHdfsFastExtractTcb::convertSQRowToString(ULng32 nullLen,
     char *childColData = NULL; //childRow + attr->getOffset();
     UInt32 childColLen = 0;
     UInt32 maxTargetColLen = attr2->getLength();
+
+    if (currPartn_->currBuffer_->bytesLeft_ < maxTargetColLen) {
+      currPartn_->currBuffer_->bytesLeft_ = origNumBytesLeft;
+      return FALSE;
+    }
 
     //source format is aligned format--
     //----------
@@ -710,7 +718,7 @@ void ExHdfsFastExtractTcb::convertSQRowToString(ULng32 nullLen,
     } // not orcRow
     
     if (! nullVal) {
-      switch ((conv_case_index) sourceFieldsConvIndex_[i]) {
+      switch ((ConvInstruction) sourceFieldsConvIndex_[i]) {
       case CONV_ASCII_V_V:
       case CONV_ASCII_F_V:
       case CONV_UNICODE_V_V:
@@ -742,7 +750,7 @@ void ExHdfsFastExtractTcb::convertSQRowToString(ULng32 nullLen,
             targetData, attr2->getLength(), attr2->getDatatype(),
             attr2->getPrecision(), attr2->getScale(), (char*) &vcActualLen,
             sizeof(vcActualLen), 0, 0,             // diags may need to be added
-            (conv_case_index) sourceFieldsConvIndex_[i]);
+            (ConvInstruction) sourceFieldsConvIndex_[i]);
 
         if (err == ex_expr::EXPR_ERROR) {
           convError = TRUE;
@@ -777,6 +785,9 @@ void ExHdfsFastExtractTcb::convertSQRowToString(ULng32 nullLen,
   if (orcRow)
     currPartn_->currBuffer_->numRows_++;
 
+  ex_assert(currPartn_->currBuffer_->bytesLeft_ >= 0,
+            "exceeded IO buffer space in FastExtract");
+  return TRUE;
 }
 
 static void replaceInString(NAString &s, const char *pat, const char *subst)
@@ -949,7 +960,7 @@ ExWorkProcRetcode ExHdfsFastExtractTcb::work()
         ex_conv_clause tempClause;
         int convIndex = 0;
         sourceFieldsConvIndex_[i] =
-            tempClause.find_case_index(
+            tempClause.findInstruction(
                 attr->getDatatype(),
                 0,
                 attr2->getDatatype(),
@@ -1066,7 +1077,9 @@ ExWorkProcRetcode ExHdfsFastExtractTcb::work()
         if (partStringValueFromExprNullInd_ &&
             *partStringValueFromExprNullInd_)
           {
-            // partition string evaluated to NULL, this is TBD later
+            // partition string evaluated to NULL, this should not
+            // happen, as we use COALESCE to map NULL values of individual
+            // partition columns to __HIVE_DEFAULT_PARTITION__
             ex_assert(0, "null partition string");
           }
 
@@ -1499,9 +1512,21 @@ ExWorkProcRetcode ExHdfsFastExtractTcb::work()
 
         if (expStatus == ex_expr::EXPR_ERROR)
         {
-          updateWorkATPDiagsArea(centry);
-          pstate.step_ = EXTRACT_ERROR;
-          break;
+          if (myTdb().getContinueOnError())
+            {
+              // ignore this row and continue to the next row
+              if (workAtp_->getDiagsArea())
+                workAtp_->getDiagsArea()->clear();
+              qChild_.up->removeHead();
+               pstate.step_ = EXTRACT_READ_ROWS_FROM_CHILD;
+              break;
+            }
+          else
+            {
+              updateWorkATPDiagsArea(centry);
+              pstate.step_ = EXTRACT_ERROR;
+              break;
+            }
         }
       } // if (myTdb().getChildDataExpr())
 
@@ -1518,32 +1543,34 @@ ExWorkProcRetcode ExHdfsFastExtractTcb::work()
         break;
       }
       NABoolean convError = FALSE;
-      convertSQRowToString(nullLen, recSepLen, delimLen, dataDesc,
-                           targetData, isOrcFile(), convError);
 
-      ///////////////////////////////
-      pstate.matchCount_++;
-      qChild_.up->removeHead();
-      if (!convError)
-      {
-        if (feStats)
+      if (convertSQRowToString(nullLen, recSepLen, delimLen, dataDesc,
+                               targetData, isOrcFile(), convError))
         {
-          feStats->incProcessedRowsCount();
+          ///////////////////////////////
+          pstate.matchCount_++;
+          qChild_.up->removeHead();
+          if (!convError)
+            {
+              if (feStats)
+                {
+                  feStats->incProcessedRowsCount();
+                }
+              pstate.successRowCount_ ++;
+            }
+          else
+            {
+              if (feStats)
+                {
+                  feStats->incErrorRowsCount();
+                }
+              pstate.errorRowCount_ ++;
+            }
+          pstate.step_ = EXTRACT_READ_ROWS_FROM_CHILD;
         }
-        pstate.successRowCount_ ++;
-      }
       else
-      {
-        if (feStats)
-        {
-          feStats->incErrorRowsCount();
-        }
-        pstate.errorRowCount_ ++;
-      }
-      if (currPartn_->currBuffer_->bytesLeft_ < (Int32) maxExtractRowLength_)
+        // row did not fit into the current buffer
         pstate.step_ = EXTRACT_DATA_READY_TO_SEND;
-      else
-        pstate.step_ = EXTRACT_READ_ROWS_FROM_CHILD;
     }
     break;
 
@@ -1576,7 +1603,7 @@ ExWorkProcRetcode ExHdfsFastExtractTcb::work()
         if (sendPartition(currPartn_, feStats))
           pstate.step_ = EXTRACT_ERROR;
         else
-          pstate.step_ = EXTRACT_READ_ROWS_FROM_CHILD;
+          pstate.step_ = EXTRACT_CONVERT_DATA;
       }
     }
     break;

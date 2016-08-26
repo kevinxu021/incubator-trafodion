@@ -601,6 +601,45 @@ bool CProcess::childRemoveFirst ( nidPid_t & child)
     return result;
 }
 
+void CProcess::CompleteLicenseRequest( bool status, char *licenseStruct )
+{
+    const char method_name[] = "CProcess::CompleteLicenseRequest";
+    TRACE_ENTRY;
+
+    static int results_count = 0;
+    static bool verificationSuccess = true;
+    struct message_def *msg;    
+    
+    if (trace_settings & (TRACE_SYNC | TRACE_REQUEST | TRACE_PROCESS))
+       trace_printf("%s@%d - Process %s (%d,%d:%d), status %d\n",
+                    method_name, __LINE__, Name, Nid, Pid, Verifier, status);
+
+    if (status == false)
+    {
+      verificationSuccess = false;
+    }
+    
+    if (( !Clone ) && (++results_count == Monitor->GetNumVerifiers()))
+    {
+        msg = parentContext();
+        if ( msg )
+        { // reply pending, so send reply
+            msg->noreply = false;
+            msg->u.reply.type = ReplyType_License;
+            msg->u.reply.u.license.return_code = MPI_SUCCESS;
+            msg->u.reply.u.license.success = verificationSuccess;
+            if (verificationSuccess)
+                memcpy(msg->u.reply.u.license.license, licenseStruct,LICENSE_NUM_BYTES);
+            CRequest::lioreply (msg, Pid);
+            parentContext( NULL );
+        }
+        results_count = 0; // reset
+        verificationSuccess = true;
+    }
+
+    TRACE_EXIT;
+}
+
 void CProcess::CompleteDump(DUMPSTATUS status, char *core_file)
 {
     CProcess           *dumper;

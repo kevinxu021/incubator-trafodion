@@ -16,6 +16,15 @@ mkdir -p $DBMGR_INSTALL_DIR/logs
 WARFILE=`echo $DBMGR_INSTALL_DIR/lib/dbmgr*.war`
 WARFILENAME=$(basename $WARFILE)
 
+#if TZ variable exits but is  blank, unset it
+#This is so the right timezone is picked by DBMgr.
+#if we did not do this, the current timezone defaults to GMT
+if [[ ! -z ${TZ+x} ]];then
+  if [[ ! -n $TZ ]];then
+    unset TZ
+  fi
+fi
+
 usage() {
     prog=`basename $0`
     echo "$prog  { start | stop | status | version |watch }"

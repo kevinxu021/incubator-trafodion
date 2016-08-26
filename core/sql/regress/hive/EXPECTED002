@@ -11,14 +11,14 @@
 
 --- SQL operation complete.
 >>
->>cqd HDFS_IO_BUFFERSIZE '3';
+>>cqd HDFS_IO_BUFFERSIZE '5';
 
 --- SQL operation complete.
 >>obey TEST002(tests);
 >>--------------------------------------------------------------------------
 >>
 >>log;
-hdfsBufSize_ = 3072, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 8
+hdfsBufSize_ = 5120, rangeTailIOSize_ = 20760, hdfsSqlMaxRecLen_ = 8
 >>select count(*) from customer ;
 
 (EXPR)              
@@ -97,7 +97,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 
 4    .    5    root                                                  1.00E+000
 3    .    4    sort_partial_aggr_ro                                  1.00E+000
-2    .    3    esp_exchange                    1:2(hash2)            1.00E+000
+2    .    3    esp_exchange                    1:6(hash2)            1.00E+000
 1    .    2    sort_partial_aggr_le                                  1.00E+000
 .    .    1    hive_scan                       STORE_SALES           2.92E+006
 
@@ -142,7 +142,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>--------------------------------------------------------------------------
 >>
 >>log;
-hdfsBufSize_ = 32768, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 8
+hdfsBufSize_ = 32768, rangeTailIOSize_ = 20760, hdfsSqlMaxRecLen_ = 8
 >>select count(*) from customer ;
 
 (EXPR)              
@@ -221,7 +221,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 
 4    .    5    root                                                  1.00E+000
 3    .    4    sort_partial_aggr_ro                                  1.00E+000
-2    .    3    esp_exchange                    1:2(hash2)            1.00E+000
+2    .    3    esp_exchange                    1:6(hash2)            1.00E+000
 1    .    2    sort_partial_aggr_le                                  1.00E+000
 .    .    1    hive_scan                       STORE_SALES           2.92E+006
 

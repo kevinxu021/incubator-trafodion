@@ -471,6 +471,12 @@ execute display_rows_accessed;
 -- a partition elimination predicate
 select * from hive.hive.hivepio where p1=1 or col2<10;
 
+-- test partition elimination for predicates that don't
+-- rely on any partition column
+select * from hive.hive.hivenonp where 1=0;
+select * from hive.hive.hivepi where 2=3;
+select * from hive.hive.hivepiso where 4=5;
+
 update statistics for table hive.hive.hivepi on every column;
 update statistics for table hivepis on every column;
 update statistics for table hivepiso on every column;
@@ -573,7 +579,7 @@ select a from hive.hive.thive;
 select * from hive.hive.thive;
 
 -- truncate of hive data
-cqd query_cache '0';
+--cqd query_cache '0';
 truncate hive.hive.thive;
 select * from hive.hive.thive;
 insert into hive.hive.thive values (10, 20);
