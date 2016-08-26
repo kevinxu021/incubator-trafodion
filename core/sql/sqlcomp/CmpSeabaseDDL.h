@@ -1411,6 +1411,10 @@ protected:
 				       const NAString &schName, 
 				       const NAString &seqName);
     
+  ComTdbVirtTablePrivInfo * getSeabasePrivInfo
+    (const Int64 objUID,
+     const ComObjectType objType);
+
   Lng32 getSeabaseColumnInfo(ExeCliInterface *cliInterface,
                              Int64 objUID,
                              const NAString &catName,
