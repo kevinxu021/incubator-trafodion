@@ -6253,6 +6253,7 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
     childRelExpr = childRelExpr->child(0)->castToRelExpr();
 
   NABoolean isSeabase = FALSE;
+  NABoolean isMonarch = FALSE;
   NABoolean isOrc = FALSE;
   const NATable * naTable = NULL;
   if (childRelExpr && 
@@ -6281,6 +6282,7 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
 
       naTable = scan->getTableDesc()->getNATable();
       isSeabase = naTable->isSeabaseTable();
+      isMonarch = naTable->isMonarch();
       isOrc = ((naTable->isHiveTable()) &&
         (naTable->getClusteringIndex()->getHHDFSTableStats()->isOrcFile()));
     }
@@ -6297,16 +6299,11 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
       if ((aggrPushdown) &&
           (((isSeabase) && (CmpCommon::getDefault(HBASE_COPROCESSORS) == DF_OFF)) ||
            
+           ((isMonarch) && (CmpCommon::getDefault(MONARCH_AGGR_PUSHDOWN) == DF_OFF)) ||
            ((isOrc) && (CmpCommon::getDefault(ORC_AGGR_PUSHDOWN) == DF_OFF))))
         {
           aggrPushdown = FALSE;
         }
-
-      // TEMP_MONARCH Aggr pushdown not yet supported
-      if (aggrPushdown && isSeabase && 
-          ((NOT selectionPred().isEmpty()) ||
-           (naTable->isMonarch())))
-        aggrPushdown = FALSE;
     }
   
   if (aggrPushdown)
@@ -6317,7 +6314,7 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
         {
           ItemExpr * ae = valId.getItemExpr();
 
-          if ((isSeabase) &&
+          if (((isSeabase) || (isMonarch)) &&
               (ae->getOperatorType() == ITM_COUNT) &&
               (ae->origOpType() == ITM_COUNT_STAR__ORIGINALLY) &&
               (NOT generator->preCodeGenParallelOperator()))
@@ -6370,7 +6367,7 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
           // to be valid, we have to hit at least one of the continue
           // statements above
           aggrPushdown = FALSE;
-        }
+        } // for
     }
   
   if (aggrPushdown)
