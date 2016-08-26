@@ -5,6 +5,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <openssl/des.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+
 
 #define MAX_STR_LEN  512
 //ASCII is smaller than 256, so 2 bytes to show in HEX 
@@ -72,7 +77,8 @@ void printHelp()
     printf("\
 decoder -c\n\
         -n\n\
-        -s [encrypted license string]\n\
+        -s <encrypted license string>\n\
+        -f <encrypted file name>\n\
         -p\n\
         -t\n\
         -e\n");
@@ -92,12 +98,18 @@ int main(int argc, char *argv[])
     int eopt=0;
     int topt=0;
     int popt=0;
+    int vopt=0;
+    int fopt=0;
     char encstr[ENC_LEN+1];
+    char encfile[1024];
     int nodenumber = 0;
     int exday = 0;
+    int fd = 0;
+    short vernum = 0;
     int packageinstalled = 0;
     int installtype=0;
     memset(encstr, 0, sizeof(encstr));
+    memset(encfile, 0, sizeof(encfile));
 #if 0
     char version[VERSION_LEN+1];
     char customer[CUSTOMER_LEN+1];
@@ -117,7 +129,7 @@ int main(int argc, char *argv[])
     memset(reserved, 0, RESERVED_FIELD+1);
 #endif 
 
-    while((ch=getopt(argc,argv,"cnetps:"))!=-1)
+    while((ch=getopt(argc,argv,"cnetpvf:s:"))!=-1)
     {
         switch(ch)
         {
@@ -144,6 +156,19 @@ int main(int argc, char *argv[])
                 break;
             case 'e':
                 eopt=1;
+                argnum++;
+                break;
+            case 'v':
+                vopt=1;
+                argnum++;
+                break;
+            case 'f':
+                strcpy(encfile,optarg);
+                fd=open(encfile,O_RDONLY);
+                if(fd == -1) {perror("File open error"); exit(1); }
+                read(fd,encstr, ENC_LEN);
+                close(fd);
+                fopt=1;
                 argnum++;
                 break;
             default:
@@ -187,17 +212,22 @@ int main(int argc, char *argv[])
     if(copt == 1)  //print customer
     {
         strncpy(display, (char*)output + VERSION_LEN,  CUSTOMER_LEN);
-        printf("%s",  display);
+        printf("%s\n",  display);
+    }
+    else if(vopt == 1)
+    {
+        memcpy(&vernum, (char*)output ,  sizeof(short));
+        printf("%d\n", vernum); 
     }
     else if(eopt == 1)  //print expire date
     {
         memcpy(&exday, (char*)output + VERSION_LEN + CUSTOMER_LEN + NODENUM_LEN,  sizeof(int));
-        printf("%d", exday); 
+        printf("%d\n", exday); 
     }
     else if(nopt == 1)  //print node number
     {
         memcpy(&nodenumber, (char*)output + VERSION_LEN + CUSTOMER_LEN ,  sizeof(int));
-        printf("%d",  nodenumber);
+        printf("%d\n",  nodenumber);
     }
     else if(topt == 1)  //print node number
     {
@@ -205,16 +235,16 @@ int main(int argc, char *argv[])
         switch(installtype) 
         {
           case TYPE_DEMO:
-            printf("%s",TYPE_DEMO_TEXT);
+            printf("%s\n",TYPE_DEMO_TEXT);
             break;
           case TYPE_POC:
-            printf("%s",TYPE_POC_TEXT);
+            printf("%s\n",TYPE_POC_TEXT);
             break;
           case TYPE_PRODUCT:
-            printf("%s", TYPE_PRODUCT_TEXT);
+            printf("%s\n", TYPE_PRODUCT_TEXT);
             break;
           default:
-            printf("UNKNOWN %d", installtype);
+            printf("UNKNOWN\n");
         }
     }
     else if(popt == 1)  //print node number
@@ -223,13 +253,13 @@ int main(int argc, char *argv[])
         switch(packageinstalled)
         {
           case PACKAGE_ENT:
-            printf("%s",PACKAGE_ENT_TEXT);
+            printf("%s\n",PACKAGE_ENT_TEXT);
             break;
           case PACKAGE_ADV:
-            printf("%s",PACKAGE_ADV_TEXT);
+            printf("%s\n",PACKAGE_ADV_TEXT);
             break;
           default:
-            printf("UNKNONW");
+            printf("UNKNOWN\n");
         } 
     }
 

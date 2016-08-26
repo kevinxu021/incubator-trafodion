@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <openssl/des.h>
+#include <ctype.h>
 
 #define MAX_ENC_STR_LEN  512
 
@@ -49,7 +50,7 @@ int main(int argc, char *argv[])
     int ret = 0;
     int ch = 0;
     int i = 0;
-    int v = 0;
+    short v = 0;
     int n = 0;
     int argnum=0;
     int da = 0;
@@ -62,9 +63,10 @@ int main(int argc, char *argv[])
     int expiredate;
     char packageInstalled[PACKAGE_INSTALLED+1];
     char installType[INSTALL_TYPE+1];
+    char typeUpper[16]; 
+    char pkgUpper[16]; 
     
     /* initialize string buffer */
-    memset(version,0,VERSION_LEN+1);
     memset(customer,0,CUSTOMER_LEN+1);
     memset(packageInstalled,0,PACKAGE_INSTALLED+1);
     memset(installType,0,INSTALL_TYPE+1);
@@ -75,12 +77,11 @@ int main(int argc, char *argv[])
         {
             case 'v':
                 v = atoi(optarg);
-                if ( v < 1 || v > 9 ) // 1 char, 9 version should be enough ...
+                if ( v < 1 || v > 128 )  
                 {
                     printf("Version %s is invalid\n", optarg);
                     exit(1);
                 }
-                sprintf(version,"%2d",v);
                 argnum++;
                 break;
             case 'c':
@@ -103,20 +104,34 @@ int main(int argc, char *argv[])
                 break;
             case 'p':
                 package = 0;
-                if(strcmp(optarg,PACKAGE_ADV_TEXT) == 0 ) 
+                memset(pkgUpper, 0, sizeof(pkgUpper)); 
+                if (strlen(optarg) > 16) {
+                  printf("Invalid package\n");
+                  exit(1);
+                }
+                for(i = 0; i < strlen(optarg); i++)
+                  pkgUpper[i]=toupper(optarg[i]);
+                if(strcmp(pkgUpper,PACKAGE_ADV_TEXT) == 0 ) 
                   package=PACKAGE_ADV;
-                else if(strcmp(optarg,PACKAGE_ENT_TEXT) == 0)
+                else if(strcmp(pkgUpper,PACKAGE_ENT_TEXT) == 0)
                   package=PACKAGE_ENT;
                 memcpy(packageInstalled,(void*)&package,sizeof(int));
                 argnum++;
                 break;
             case 't':
                 type= 0;
-                if(strcmp(optarg,TYPE_DEMO_TEXT) == 0 ) 
+                memset(typeUpper, 0, sizeof(typeUpper)); 
+                if (strlen(optarg) > 16) {
+                  printf("Invalid type \n");
+                  exit(1);
+                }
+                for(i = 0; i < strlen(optarg); i++)
+                  typeUpper[i]=toupper(optarg[i]);
+                if(strcmp(typeUpper,TYPE_DEMO_TEXT) == 0 ) 
                   type=TYPE_DEMO;
-                else if(strcmp(optarg,TYPE_POC_TEXT) == 0)
+                else if(strcmp(typeUpper,TYPE_POC_TEXT) == 0)
                   type=TYPE_POC;
-                else if(strcmp(optarg, TYPE_PRODUCT_TEXT) == 0)
+                else if(strcmp(typeUpper, TYPE_PRODUCT_TEXT) == 0)
                   type=TYPE_PRODUCT;
                 else
                   type=0;
@@ -137,8 +152,8 @@ int main(int argc, char *argv[])
     char output[MAX_ENC_STR_LEN];
     memset(output,0,MAX_ENC_STR_LEN);
    
-    strcat(output, version);
-    strcat(output, customer);
+    memcpy(output , &v, sizeof(short));
+    memcpy(output + VERSION_LEN, customer, CUSTOMER_LEN );
     memcpy(output + VERSION_LEN + CUSTOMER_LEN , &nodenumber, sizeof(int));
     memcpy(output + VERSION_LEN + CUSTOMER_LEN + NODENUM_LEN , &expiredate , sizeof(int));
     memcpy(output + VERSION_LEN + CUSTOMER_LEN + NODENUM_LEN + EXPIRE_LEN , packageInstalled , sizeof(int));
