@@ -101,6 +101,7 @@ define([
 				tickColor: "#737373"
 				},
 			series: {
+				shadowSize: 0,
 		        points: {
 		            fillColor: 'red'
 		        }
@@ -722,25 +723,11 @@ define([
 			}
 			$.plot("#"+container ,lines,options);
 			$("#"+container).bind("plotclick", function (event, pos, item) {
-				if (item) {
-					//tooltip
+				if(item){
 					$(".even").css("background-color","")
 					$(".odd").css("background-color","")
-					for(var i in CHART_CONFIG){
-						$("#"+ CHART_CONFIG[i].type + '-tooltip').remove();
-					}
-					var type = item.series.type;
-					var column = item.series.column;
 					var query_id = item.series.query_id;
-					var start_time = item.series.start_time;
-					var end_time = item.series.end_time;
-					var index = item.series.index;
-					var value = item.series.value;
-					var status = item.series.status;
-					var content = "QueryID:" + query_id + "</br>Status:" + status + "</br>Value:" + value +"</br>StartTime:"+start_time+"</br>EndTime:"+end_time;
-					common.showTooltip(pos.pageX, pos.pageY, content, type+'-tooltip');
-					$(".tooltip-inner").css("max-width","600px");
-					$("#"+type+'-tooltip').width(600);
+					var column = item.series.column;
 					//sort
 					var table = $(".dbmgr-table").dataTable();
 					table.fnSort([[column,"desc"]]);
@@ -753,14 +740,49 @@ define([
 							break;
 						}
 					}
+				}else{
+					//remove highlight css
+					$(".even").css("background-color","")
+					$(".odd").css("background-color","")
+				}
+			})
+			$("#"+container).bind("plothover", function (event, pos, item) {
+				if (item) {
+					//tooltip
+					for(var i in CHART_CONFIG){
+						$("#"+ CHART_CONFIG[i].type + '-tooltip').remove();
+					}
+					var type = item.series.type;
+					var query_id = item.series.query_id;
+					var start_time = item.series.start_time;
+					var end_time = item.series.end_time;
+					var index = item.series.index;
+					var value = item.series.value;
+					var status = item.series.status;
+					var content = "QueryID:" + query_id + "</br>Status:" + status + "</br>Value:" + value +"</br>StartTime:"+start_time+"</br>EndTime:"+end_time;
+					var x,y;
+					var navWidth = $("#navbar").width();
+					var navHeight = $("#navbar").height();
+					if(pos.pageX<(navWidth-600)){
+						x = pos.pageX;
+					}else{
+						x = navWidth-700;
+					}
+					if((pos.pageY-200)<navHeight){
+						y = pos.pageY + 50;
+					}else{
+						y = pos.pageY;
+					}
+					common.showTooltip(x, y, content, type+'-tooltip');
+					$(".tooltip-inner").css("max-width","600px");
+					$("#"+type+'-tooltip').width(600);
+					
 					
 				} else {
 					//$("#"+container + '-tooltip').remove();
 					for(var i in CHART_CONFIG){
 						$("#"+ CHART_CONFIG[i].type + '-tooltip').remove();
 					}
-					$(".even").css("background-color","")
-					$(".odd").css("background-color","")
 				}
 
 			});
