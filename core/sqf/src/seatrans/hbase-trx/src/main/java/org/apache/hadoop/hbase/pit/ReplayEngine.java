@@ -239,7 +239,7 @@ public class ReplayEngine {
           // simply to make sure they all complete, no return codes necessary at the moment
           for (int loopIndex = 0; loopIndex < loopCount; loopIndex ++) {
             int returnValue = compPool.take().get();
-            if ((loopIndex % 20) == 1) System.out.println("ReplayEngine: table restored " + loopIndex/loopCount);
+            if ((loopIndex % 10) == 1) System.out.println("..... ReplayEngine: table restored " + (loopIndex*100)/loopCount + " .....");
           }
         }catch (Exception e) {
             LOG.error("Replay Engine exception retrieving replies : ", e);
