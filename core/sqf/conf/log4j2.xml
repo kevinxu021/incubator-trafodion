@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="FATAL" shutdownHook="disable" packages="com.gemstone.gemfire.internal.logging.log4j">
+
+  <Properties>
+    <Property name="log-pattern">[%level{lowerCase=true} %date{yyyy/MM/dd HH:mm:ss.SSS z} &lt;%thread&gt; tid=%tid] %message%n%throwable%n</Property>
+    <Property name="log-path">/mnt/ngoyal/logs</Property>
+  </Properties>
+
+  <Appenders>
+
+    <RollingFile name="esgyn-cp-file-log" fileName="${log-path}/esgyn_cp.log"
+		 filePattern="${log-path}/esgyn_tm_%d{yyyy-MM-dd}.log">
+      <PatternLayout>
+	<pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c{1} - %msg%n</pattern>
+      </PatternLayout>
+      <Policies>
+	<TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+      </Policies>
+    </RollingFile>
+
+    <RollingFile name="esgyn-catchall-file-log" fileName="${log-path}/esgyn_catchall_logs.log"
+		 filePattern="${log-path}/esgyn_catchall_logs_%d{yyyy-MM-dd}.log">
+      <PatternLayout>
+	<pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c{1} - %msg%n</pattern>
+      </PatternLayout>
+      <Policies>
+	<TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+      </Policies>
+    </RollingFile>
+
+    <Console name="STDOUT" target="SYSTEM_OUT">
+      <PatternLayout pattern="${log-pattern}"/>
+    </Console>
+
+  </Appenders>
+
+  <Loggers>
+
+    <Logger name="io.esgyn.coprocessor" level="DEBUG" additivity="true">
+      <appender-ref ref="esgyn-cp-file-log" level="DEBUG"/>
+    </Logger>
+
+    <Root level="ERROR">
+      <AppenderRef ref="esgyn-catchall-file-log" level="ERROR"/>
+    </Root>
+
+  </Loggers>
+
+</Configuration>

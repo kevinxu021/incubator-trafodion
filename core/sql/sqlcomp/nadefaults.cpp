@@ -2319,6 +2319,9 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   DDkwd__(MODE_SPECIAL_3,                       "OFF"),
   DDkwd__(MODE_SPECIAL_4,                       "OFF"),
   DDkwd__(MODE_SPECIAL_5,                       "OFF"),
+
+  DDkwd__(MONARCH_AGGR_PUSHDOWN,                "ON"),
+
   DD_____(MONARCH_LOCATOR_ADDRESS,              "127.0.0.1"),
   DD_____(MONARCH_LOCATOR_PORT,                 "10334"),
   DDflt0_(MSCF_CONCURRENCY_IO,			"0.10"),
@@ -6939,6 +6942,11 @@ DefaultToken NADefaults::token(Int32 attrEnum,
     case SUBQUERY_UNNESTING:
       if (tok == DF_OFF || tok == DF_ON || tok == DF_DEBUG)
         isValid = TRUE;
+      break;
+
+    case SUBQUERY_UNNESTING_P2:
+      if (tok == DF_OFF || tok == DF_ON || tok == DF_INTERNAL)
+         isValid = TRUE;
       break;
 
     case SORT_INTERMEDIATE_SCRATCH_CLEANUP:

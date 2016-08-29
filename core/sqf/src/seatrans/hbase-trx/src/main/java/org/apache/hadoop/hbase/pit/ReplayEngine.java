@@ -134,8 +134,15 @@ public class ReplayEngine {
     private long timeStamp = 0;
 
     // These are here to not have to pass them around
-    private HTable table;
+    //private HTable table;
     private HBaseAdmin admin;
+    int pit_thread = 1;
+
+  /**
+   * threadPool - pool of thread for asynchronous requests
+   */
+    private ExecutorService threadPool;
+
     void setupLog4j() {
         System.setProperty("trafodion.root", System.getenv("MY_SQROOT"));
         String confFile = System.getenv("MY_SQROOT")
@@ -143,11 +150,109 @@ public class ReplayEngine {
         PropertyConfigurator.configure(confFile);
    }
 
+/**
+   * ReplayEngineCallable  :  inner class for creating asynchronous requests
+   */
+  private abstract class ReplayEngineCallable implements Callable<Integer>  {
+
+        ReplayEngineCallable(){}
+        public Integer doReplay(List<MutationMetaRecord> mList, HTable mtable, Configuration mconfig, String msnapshotPath) throws IOException  {
+
+          long threadId = Thread.currentThread().getId();
+          System.out.println("ENTRY Working from thread " + threadId + " path " + msnapshotPath);
+         LOG.info("ENTRY Working from thread " + threadId + " path " + msnapshotPath);
+
+          if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine got path " + msnapshotPath); 
+          //System.out.println("ReplayEngine got path " + msnapshotPath);
+          admin.restoreSnapshot(msnapshotPath);
+          System.out.println("ReplayEngine got path restored " + msnapshotPath);
+          LOG.info("ReplayEngine got path restored " + msnapshotPath);
+
+          for (int i = 0; i < mList.size(); i++) {
+            System.out.println("Working from thread " + threadId + " path " + msnapshotPath + "mutation # " + i);
+            MutationMetaRecord mutationRecord = mList.get(i);
+            String mutationPathString = mutationRecord.getMutationPath();
+            Path mutationPath = new Path (mutationPathString);
+
+            // read in mutation file, parse it and replay operations
+            mutationReaderFile(mutationPath, mconfig, mtable);
+          }
+
+          System.out.println("EXIT Working from thread " + threadId + " path " + msnapshotPath);
+          LOG.info("EXIT Working from thread " + threadId + " path " + msnapshotPath);
+          return 0;
+       }
+    }
+
+    public ReplayEngine(long timestamp, int pit_thread) throws Exception {
+        setupLog4j();
+        if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine constructor ENTRY with parallel threads " + pit_thread); 
+        System.out.println("ReplayEngine constructor ENTRY with parallel threads " + pit_thread);
+
+        threadPool = Executors.newFixedThreadPool(pit_thread);
+
+        timeStamp = timestamp;
+
+        config = HBaseConfiguration.create();
+        fileSystem = FileSystem.get(config);
+        admin = new HBaseAdmin(config);
+
+        int loopCount = 0;
+        CompletionService<Integer> compPool = new ExecutorCompletionService<Integer>(threadPool);
+        try {
+            RecoveryRecord recoveryRecord = new RecoveryRecord(timeStamp);
+        
+            Map<String, TableRecoveryGroup> recoveryTableMap = recoveryRecord.getRecoveryTableMap();
+ 
+            for (Map.Entry<String, TableRecoveryGroup> tableEntry :  recoveryTableMap.entrySet())
+            {            
+                String tableName = tableEntry.getKey();
+                if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine working on table " + tableName); 
+                System.out.println("ReplayEngine working on table " + tableName);
+
+                TableRecoveryGroup tableRecoveryGroup = tableEntry.getValue();
+
+                if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine got TableRecoveryGroup"); 
+                System.out.println("ReplayEngine got TableRecoveryGroup");
+                SnapshotMetaRecord tableMeta = tableRecoveryGroup.getSnapshotRecord();
+                final String snapshotPath = tableMeta.getSnapshotPath();
+
+                // these need to be final due to the inner class access
+                final HTable table = new HTable (config, tableName);           
+                final List<MutationMetaRecord> mutationList = tableRecoveryGroup.getMutationList();
+
+                // Send mutation work to a thread for work
+                compPool.submit(new ReplayEngineCallable() {
+                    public Integer call() throws IOException {
+                        return doReplay(mutationList, table, config, snapshotPath);
+                   }
+                 });
+
+                loopCount++;
+            } 
+        }catch (Exception e) {
+            LOG.error("Replay Engine exception in retrieving/replaying mutations : ", e);
+            throw e;
+        }
+
+        try {
+          // simply to make sure they all complete, no return codes necessary at the moment
+          for (int loopIndex = 0; loopIndex < loopCount; loopIndex ++) {
+            int returnValue = compPool.take().get();
+            if ((loopIndex % 20) == 1) System.out.println("ReplayEngine: table restored " + loopIndex/loopCount);
+          }
+        }catch (Exception e) {
+            LOG.error("Replay Engine exception retrieving replies : ", e);
+            throw e;
+       }
+        if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine constructor EXIT");
+        System.out.println("ReplayEngine constructor EXIT");
+    }
 
     public ReplayEngine(long timestamp) throws Exception {
+        HTable mtable;
         setupLog4j();
-        if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine constructor ENTRY"); 
-        System.out.println("ReplayEngine constructor ENTRY");
+        System.out.println("ReplayEngine constructor ENTRY without parallelism");
 
         timeStamp = timestamp;
       //  pSTRConfig = STRConfig.getInstance(config);
@@ -166,30 +271,24 @@ public class ReplayEngine {
             for (Map.Entry<String, TableRecoveryGroup> tableEntry :  recoveryTableMap.entrySet())
             {            
                 String tableName = tableEntry.getKey();
-                if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine working on table " + tableName); 
                 System.out.println("ReplayEngine working on table " + tableName);
 
                 TableRecoveryGroup tableRecoveryGroup = tableEntry.getValue();
 
-                if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine got TableRecoveryGroup"); 
                 System.out.println("ReplayEngine got TableRecoveryGroup");
                 SnapshotMetaRecord tableMeta = tableRecoveryGroup.getSnapshotRecord();
-                if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine got SnapshotMetaRecord"); 
                 System.out.println("ReplayEngine got SnapshotMetaRecord");
                 String snapshotPath = tableMeta.getSnapshotPath();
-                if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine got path " + snapshotPath); 
                 System.out.println("ReplayEngine got path " + snapshotPath);
     
                 admin.restoreSnapshot(snapshotPath);
-                if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine snapshot restored"); 
                 System.out.println("ReplayEngine snapshot restored");
 
-                table = new HTable (config, tableName);   
+                mtable = new HTable (config, tableName);   
           
                 // Now go through mutations files one by one for now
                 List<MutationMetaRecord> mutationList = tableRecoveryGroup.getMutationList();
 
-                if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine : " + mutationList.size() + " mutation files for " + tableName); 
                 System.out.println("ReplayEngine : " + mutationList.size() + " mutation files for " + tableName);
 
                 for (int i = 0; i < mutationList.size(); i++) {
@@ -198,21 +297,19 @@ public class ReplayEngine {
                     Path mutationPath = new Path (mutationPathString);
 
                     // read in mutation file, parse it and replay operations
-                    mutationReaderFile(mutationPath, config);
+                    mutationReaderFile(mutationPath, config, mtable);
                }
             }
         }
         catch (Exception e) {
-        	if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine Exception occurred during Replay " + e);
             System.out.println("ReplayEngine Exception occurred during Replay " + e);
             e.printStackTrace();
             throw e;
        }
-        if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine constructor EXIT");
         System.out.println("ReplayEngine constructor EXIT");
     }
 
-    public void mutationReaderFile(Path readPath, Configuration config) throws IOException {
+    public void mutationReaderFile(Path readPath, Configuration config, HTable table) throws IOException {
  
     // this method is invoked by the replay engine after a mutation file is included in the replay file set
 
@@ -281,7 +378,7 @@ public class ReplayEngine {
 		        // TRK-Not here mutationReplay(puts, deletes); // here is replay transaction by transaction (may just use HBase client API)
       
                     }
-  		    mutationReplay(puts, deletes); // here is replay transaction by transaction (may just use HBase client API)
+  		    mutationReplay(puts, deletes, table); // here is replay transaction by transaction (may just use HBase client API)
                     // print this txn's mutation context 
                     if (LOG.isTraceEnabled()) LOG.trace("PIT mutationRead -- " + 
 		                    " Transaction Id " + tmm.getTxId() + 
@@ -316,7 +413,7 @@ public class ReplayEngine {
               iTxnProto + " transaction mutation protos for " );
   }
    
-  public void mutationReplay(List<Put> puts, List<Delete> deletes) throws IOException {
+  public void mutationReplay(List<Put> puts, List<Delete> deletes,  HTable mtable) throws IOException {
       
       // only for local instance
       // peer may require a "connection" or "peerId" argument
@@ -331,8 +428,8 @@ public class ReplayEngine {
       
       try {
         
-       table.put(puts);
-       table.delete(deletes);
+       mtable.put(puts);
+       mtable.delete(deletes);
 
       } catch(Exception e) {
           StringWriter sw = new StringWriter();
