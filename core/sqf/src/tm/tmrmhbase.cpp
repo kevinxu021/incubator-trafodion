@@ -59,12 +59,12 @@ int32 RM_Info_HBASE::num_rm_failed(CTmTxBase *pp_txn)
    {
       TMTrace (2, ("RM_Info_HBASE::num_rm_failed ENTRY : Txn ID (%d,%d).\n",
                pp_txn->node(), pp_txn->seqnum()));
-      lv_count = gv_HbaseTM.failedRegions(pp_txn->legacyTransid());
+      lv_count = gv_HbaseTM->failedRegions(pp_txn->legacyTransid());
    }
    else
    {
       TMTrace(2, ("RM_Info_HBASE::num_rm_failed : ENTRY : Get the total number of failed RMs.\n"));
-      lv_count = gv_HbaseTM.failedRegions(0);
+      lv_count = gv_HbaseTM->failedRegions(0);
    }
 
    TMTrace (2, ("RM_Info_HBASE::num_rm_failed EXIT Returned %d failed RMs.\n", lv_count));
@@ -84,7 +84,7 @@ int32 RM_Info_HBASE::num_rm_partic(CTmTxBase *pp_txn)
    {
       TMTrace (2, ("RM_Info_HBASE::num_rm_partic ENTRY : Txn ID (%d,%d).\n",
                pp_txn->node(), pp_txn->seqnum()));
-      lv_count = gv_HbaseTM.participatingRegions(pp_txn->legacyTransid());
+      lv_count = gv_HbaseTM->participatingRegions(pp_txn->legacyTransid());
    }
    else
    {
@@ -139,7 +139,7 @@ int32 RM_Info_HBASE::num_rms_unresolved(CTmTxBase *pp_txn)
    {
       TMTrace (2, ("RM_Info_HBASE::num_rms_unresolved ENTRY : Txn ID (%d,%d).\n",
                pp_txn->node(), pp_txn->seqnum()));
-      lv_count = gv_HbaseTM.unresolvedRegions(pp_txn->legacyTransid());
+      lv_count = gv_HbaseTM->unresolvedRegions(pp_txn->legacyTransid());
    }
    else
    {
@@ -186,7 +186,7 @@ int32 RM_Info_HBASE::rollback_branches (CTmTxBase *pp_txn,
    TMTrace (2, ("RM_Info_HBASE::rollback_branches, Txn ID (%d,%d), ENTRY, flags " PFLL "\n",
                 pp_txn->node(), pp_txn->seqnum(), pv_flags));
 
-   short lv_err = gv_HbaseTM.abortTransaction(pp_txn->legacyTransid());
+   short lv_err = gv_HbaseTM->abortTransaction(pp_txn->legacyTransid());
 
    TMTrace (2, ("RM_Info_HBASE::rollback_branches, Txn ID (%d,%d), EXIT, UnResolved branches %d.\n",
                 pp_txn->node(), pp_txn->seqnum(), num_rms_unresolved(pp_txn)));
@@ -204,7 +204,7 @@ int32 RM_Info_HBASE::commit_branches (CTmTxBase *pp_txn,
    TMTrace (2, ("RM_Info_HBASE::commit_branches, Txn ID (%d,%d), ENTRY, flags " PFLL "\n",
                 pp_txn->node(), pp_txn->seqnum(), pv_flags));
 
-   short lv_err = gv_HbaseTM.doCommit(pp_txn->legacyTransid());
+   short lv_err = gv_HbaseTM->doCommit(pp_txn->legacyTransid());
 
    TMTrace (2, ("RM_Info_HBASE::commit_branches, Txn ID (%d,%d), EXIT, UnResolved branches %d, error %d.\n",
                 pp_txn->node(), pp_txn->seqnum(), num_rms_unresolved(pp_txn), lv_err));
@@ -221,7 +221,7 @@ int32 RM_Info_HBASE::completeRequest_branches (CTmTxBase *pp_txn)
    TMTrace (2, ("RM_Info_HBASE::completeRequest_branches, Txn ID (%d,%d), ENTRY\n",
                 pp_txn->node(), pp_txn->seqnum()));
 
-   short lv_err = gv_HbaseTM.completeRequest(pp_txn->legacyTransid());
+   short lv_err = gv_HbaseTM->completeRequest(pp_txn->legacyTransid());
 
    TMTrace (2, ("RM_Info_HBASE::completeRequest_branches, Txn ID (%d,%d), EXIT.\n",
                 pp_txn->node(), pp_txn->seqnum()));
@@ -311,7 +311,7 @@ int32 RM_Info_HBASE::prepare_branches (CTmTxBase *pp_txn, int64 pv_flags)
    TMTrace (2, ("RM_Info_HBASE::prepare_branches, Txn ID (%d,%d), ENTRY, flags " PFLL "\n",
                 pp_txn->node(), pp_txn->seqnum(), pv_flags));
 
-   short lv_err = gv_HbaseTM.prepareCommit(pp_txn->legacyTransid());
+   short lv_err = gv_HbaseTM->prepareCommit(pp_txn->legacyTransid());
 
    TMTrace (2, ("RM_Info_HBASE::prepare_branches, Txn ID (%d,%d), EXIT, Error %d, UnResolved branches %d.\n",
                 pp_txn->node(), pp_txn->seqnum(), lv_err, num_rms_unresolved(pp_txn)));
@@ -333,7 +333,7 @@ int32 RM_Info_HBASE::start_branches (CTmTxBase *pp_txn,  int64 pv_flags, CTmTxMe
    TMTrace (2, ("RM_Info_HBASE::start_branches, Txn ID (%d,%d), ENTRY, flags " PFLL "\n",
                 pp_txn->node(), pp_txn->seqnum(), pv_flags));
 
-    lv_err = gv_HbaseTM.beginTransaction(&lv_transid);
+    lv_err = gv_HbaseTM->beginTransaction(&lv_transid);
 
    if ((lv_transid != lv_transidIn) || (lv_err != 0))
    {
@@ -371,7 +371,7 @@ int32 RM_Info_HBASE::registerRegion (CTmTxBase *pp_txn,  int64 pv_flags, CTmTxMe
                 pp_txn->node(), pp_txn->seqnum(), pv_flags, lv_startid,
                 pp_msg->request()->u.iv_register_region.ia_regioninfo2));
 
-    lv_err = gv_HbaseTM.registerRegion(lv_transid,
+    lv_err = gv_HbaseTM->registerRegion(lv_transid,
                    pp_msg->request()->u.iv_register_region.iv_startid,
                    pp_msg->request()->u.iv_register_region.iv_port,
                    pp_msg->request()->u.iv_register_region.ia_hostname,
@@ -429,7 +429,7 @@ int32 RM_Info_HBASE::hb_ddl_operation(CTmTxBase *pp_txn, int64 pv_flags, CTmTxMe
 
          if(ddlbuffer == NULL) {
             buffer_keys = NULL;
-            lv_err = gv_HbaseTM.createTable(lv_transid,
+            lv_err = gv_HbaseTM->createTable(lv_transid,
                          buffer_tbldesc,
                          pv_tbldesclen,
                          NULL,
@@ -446,7 +446,7 @@ int32 RM_Info_HBASE::hb_ddl_operation(CTmTxBase *pp_txn, int64 pv_flags, CTmTxMe
                memcpy(buffer_keys[i],(char*)(ddlbuffer)+index , pv_keylen);
                index = index + pv_keylen;
              }
-             lv_err = gv_HbaseTM.createTable(lv_transid,
+             lv_err = gv_HbaseTM->createTable(lv_transid,
                          buffer_tbldesc,
                          pv_tbldesclen,
                          buffer_keys,
@@ -461,12 +461,12 @@ int32 RM_Info_HBASE::hb_ddl_operation(CTmTxBase *pp_txn, int64 pv_flags, CTmTxMe
          }
          break;
       case TM_DDL_DROP:
-         lv_err = gv_HbaseTM.dropTable(lv_transid,
+         lv_err = gv_HbaseTM->dropTable(lv_transid,
                          pp_msg->request()->u.iv_ddl_request.ddlreq,
                          pp_msg->request()->u.iv_ddl_request.ddlreq_len);
          break;
       case TM_DDL_TRUNCATE:
-         lv_err = gv_HbaseTM.regTruncateOnAbort(lv_transid,
+         lv_err = gv_HbaseTM->regTruncateOnAbort(lv_transid,
                          pp_msg->request()->u.iv_ddl_request.ddlreq,
                          pp_msg->request()->u.iv_ddl_request.ddlreq_len);
       case TM_DDL_ALTER:
@@ -489,7 +489,7 @@ int32 RM_Info_HBASE::hb_ddl_operation(CTmTxBase *pp_txn, int64 pv_flags, CTmTxMe
             index = index + pv_tbloptslen;
          }
 
-         lv_err = gv_HbaseTM.alterTable(lv_transid,
+         lv_err = gv_HbaseTM->alterTable(lv_transid,
                          pp_msg->request()->u.iv_ddl_request.ddlreq,
                          pp_msg->request()->u.iv_ddl_request.ddlreq_len,
                          buffer_opts,
@@ -525,7 +525,7 @@ int32 RM_Info_HBASE::shutdown_branches (bool pv_leadTM, bool pv_clean)
    TMTrace (2, ("RM_Info_HBASE::shutdown_branches ENTRY Lead TM %d, clean? %d.\n",
             pv_leadTM, pv_clean));
 
-   gv_HbaseTM.shutdown();
+   gv_HbaseTM->shutdown();
 
    TMTrace (2, ("RM_Info_HBASE::shutdown_branches EXIT.\n"));
    return FEOK;

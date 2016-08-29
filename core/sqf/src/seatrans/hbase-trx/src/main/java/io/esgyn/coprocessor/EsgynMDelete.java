@@ -8,10 +8,6 @@ public class EsgynMDelete extends MDelete implements java.io.Serializable {
 
     Durability m_durability = Durability.USE_DEFAULT;
 
-    public EsgynMDelete() {
-	super("");
-    }
-
     public EsgynMDelete(byte[] rowKey) {
 	super(rowKey);
     }

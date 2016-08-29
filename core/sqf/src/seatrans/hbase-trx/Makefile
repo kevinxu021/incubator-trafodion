@@ -104,7 +104,8 @@ jdk_1_7_apache12: build_chk_apache12
 	cp -pf target/$(BLD_HBASE_APACHE12_TRX_JARNAME) $(MY_SQROOT)/export/lib
 	$(RM) $(VFILE)
 
-build_all: jdk_1_7_cdh54 jdk_1_7_cdh55 jdk_1_7_cdh57 jdk_1_7_hdp jdk_1_7_apache10 jdk_1_7_apache11 jdk_1_7_apache12
+#build_all: jdk_1_7_cdh54 jdk_1_7_cdh55 jdk_1_7_cdh57 jdk_1_7_hdp jdk_1_7_apache10 jdk_1_7_apache11 jdk_1_7_apache12
+build_all: jdk_1_7_cdh57
 #jdk_1_7_mapr
 
 build_chk_apache10:

@@ -905,6 +905,12 @@ $MY_SQROOT/export/lib/${UTIL_JAR}:\
 $MY_SQROOT/export/lib/${JDBCT4_JAR}:\
 $MY_SQROOT/export/lib/jdbcT2.jar
 
+if [[ ! -z ${AMPOOL_HOME} ]]; then
+    SQ_CLASSPATH=${SQ_CLASSPATH}:\
+${MY_SQROOT}/conf:\
+${AMPOOL_HOME}/lib/ampool-dependencies.jar
+
+fi
 
 # Check whether the current shell environment changed from a previous execution of this
 # script.

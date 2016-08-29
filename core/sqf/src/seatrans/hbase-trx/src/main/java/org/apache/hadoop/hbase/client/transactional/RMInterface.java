@@ -489,7 +489,8 @@ public class RMInterface {
                  ts = ts2;
               }
               else {
-                 if (LOG.isTraceEnabled()) LOG.trace("RMInterface:registerTransaction, adding new TransactionState to map " + ts);
+                 if (LOG.isTraceEnabled()) LOG.trace("RMInterface:registerTransaction, adding new TransactionState to map " 
+						     + ts);
                  mapTransactionStates.put(transactionID, ts);
               }
            }// end synchronized

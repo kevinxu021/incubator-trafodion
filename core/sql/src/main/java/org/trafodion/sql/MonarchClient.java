@@ -1,4 +1,4 @@
-// @@@ START COPYRIGHT @@@
+// @@@ start COPYRIGHT @@@
 //
 // Licensed to the Apache Software Foundation (ASF) under one
 // or more contributor license agreements.  See the NOTICE file
@@ -56,6 +56,8 @@ import io.ampool.monarch.table.exceptions.*;
 import io.ampool.monarch.table.client.*;
 import io.ampool.monarch.table.MDiskWritePolicy;
 
+import io.esgyn.utils.*;
+
 import org.trafodion.sql.MTableClient;
 
 public class MonarchClient {
@@ -63,7 +65,7 @@ public class MonarchClient {
     static final int HASH_PARTITIONED = 1;
     static final int SALT_BYTES_LENGTH = 4;
     static Logger logger = Logger.getLogger(MonarchClient.class.getName());
-    public static MConfiguration config = MConfiguration.create();
+    public static MConfiguration config = null;
     String lastError;
     //RMInterface table = null;
     private PoolMap<String, MTableClient> mTableClientsFree;
@@ -131,10 +133,12 @@ public class MonarchClient {
 
     public boolean init(String server, String port) 
     {
+	config = MConfiguration.create();
+	config.addResource("ampool-site.xml");
        if (logger.isDebugEnabled()) 
           logger.debug("MonarchClient.init(" + server + ", " + port + ") called.");
-       config.set(Constants.MonarchLocator.MONARCH_LOCATOR_ADDRESS, server);
-       config.setInt(Constants.MonarchLocator.MONARCH_LOCATOR_PORT, Integer.parseInt(port));
+       //TBD-Narendra       config.set(Constants.MonarchLocator.MONARCH_LOCATOR_ADDRESS, server);
+       //TBD-Narendra       config.setInt(Constants.MonarchLocator.MONARCH_LOCATOR_PORT, Integer.parseInt(port));
        MClientCache clientCache = new MClientCacheFactory().create(config);
        admin = clientCache.getAdmin();
        return true;
@@ -460,6 +464,7 @@ public class MonarchClient {
       if (tableType == RANGE_PARTITIONED) {
          desc.setTotalNumOfSplits(numSplits+1);
          desc.setTableType(MTableType.ORDERED_VERSIONED);
+	 //Narendra - begin
          HashMap<Integer, Pair<byte[], byte[]>> keySpace = new HashMap();
          byte[] startKey = null;
          byte[] endKey;
@@ -467,17 +472,20 @@ public class MonarchClient {
          if (beginEndKeys != null  && beginEndKeys.length != 0) {
              for (i = 0; i < beginEndKeys.length; i++) {
                 if (i == 0)
-                   startKey = new byte[keyLength+1];
+		    startKey = new byte[0];
                 endKey = (byte[])beginEndKeys[i];
                 keySpace.put(Integer.valueOf(i), new Pair(startKey, endKey));
-                startKey = new byte[keyLength+1];
+                startKey = new byte[keyLength];
                 System.arraycopy(endKey, 0, startKey, 0, endKey.length);
+		startKey = GeneralUtils.binaryIncrementPos(startKey, 1);
+		//		AmpoolUtils.printBytes(startKey);
              }
              endKey = new byte[keyLength];
              Arrays.fill(endKey, (byte)0xff);
              keySpace.put(Integer.valueOf(i), new Pair(startKey, endKey));
              desc.setKeySpace(keySpace);
          }
+	 //Narendra - end
       }
       else {
          desc.setTableType(MTableType.UNORDERED);
@@ -747,8 +755,8 @@ public class MonarchClient {
     }
 */
     public boolean exists(String tblName)  {
-            if (logger.isDebugEnabled()) 
-               logger.debug("MonarchClient.exists(" + tblName + ") called.");
+            if (logger.isTraceEnabled()) 
+               logger.trace("MonarchClient.exists(" + tblName + ") called.");
             boolean result = true;
             try {
                MTable table = MClientCacheFactory.getAnyInstance().getTable(tblName);
@@ -764,8 +772,8 @@ public class MonarchClient {
     public MTableClient getMTableClient(long jniObject, String tblName, 
                   boolean useTRex, boolean bSynchronized) throws IOException 
     {
-       if (logger.isDebugEnabled()) 
-          logger.debug("MonarchClient.getMTableClient(" + tblName + 
+       if (logger.isTraceEnabled()) 
+          logger.trace("MonarchClient.getMTableClient(" + tblName + 
                       (useTRex ? ", use TRX" : ", no TRX")
                      + (bSynchronized ? ", use STR" : ", no STR")
                      + ") called.");
@@ -783,8 +791,8 @@ public class MonarchClient {
           mTable.setJniObject(jniObject);
           return mTable;
        } else {
-            if (logger.isDebugEnabled()) 
-               logger.debug("  ==> Returning existing object, removing from container.");
+            if (logger.isTraceEnabled()) 
+               logger.trace("  ==> Returning existing object, removing from container.");
             mTableClientsInUse.put(mTable.getTableName(), mTable);
             //mTable.resetAutoFlush();
             mTable.setJniObject(jniObject);
@@ -798,8 +806,8 @@ public class MonarchClient {
         if (mTable == null)
             return;
 	                
-        if (logger.isDebugEnabled()) 
-           logger.debug("MonarchClient.releaseMTableClient(" + mTable.getTableName() + ").");
+        if (logger.isTraceEnabled()) 
+           logger.trace("MonarchClient.releaseMTableClient(" + mTable.getTableName() + ").");
         boolean cleanJniObject = false;
         if (mTable.release(cleanJniObject))
         // If the thread is interrupted, then remove the table from cache
@@ -1625,6 +1633,3 @@ public class MonarchClient {
   }
 
 }
-    
-
-

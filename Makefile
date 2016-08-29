@@ -43,7 +43,7 @@ package-all:
 package-src: $(SRCDIR)-${TRAFODION_VER}-incubating/LICENSE
 	@echo "Packaging source for $(TRAFODION_VER_PROD) $(TRAFODION_VER)"
 	mkdir -p distribution
-	git archive --format tar --prefix $(SRCDIR)-${TRAFODION_VER}-incubating/ HEAD > distribution/$(SRCDIR)-${TRAFODION_VER}-incubating-src.tar
+	git archive --format tar --prefix $(SRCDIR)-${TRAFODION_VER}-incubating/ > distribution/$(SRCDIR)-${TRAFODION_VER}-incubating-src.tar
 	tar rf distribution/$(SRCDIR)-${TRAFODION_VER}-incubating-src.tar $^
 	gzip distribution/$(SRCDIR)-${TRAFODION_VER}-incubating-src.tar
 	rm -rf $(SRCDIR)-${TRAFODION_VER}-incubating LICENSE

@@ -38,7 +38,7 @@
 using namespace std;
 
 // Globals
-CHbaseTM gv_HbaseTM;
+CHbaseTM *gv_HbaseTM = 0;
 HBASETM_TraceMask gv_HBASETM_traceMask;  // HBase TM tracing Mask.  0 = no tracing (default)
 
 #define SQ_LIO_SIGNAL_REQUEST_REPLY (SIGRTMAX - 4)
@@ -75,7 +75,11 @@ short HBasetoTxnError(short pv_HBerr)
 // ---------------------------------------------------------------
 int HbaseTM_initialize (short pv_nid)
 {
-   int lv_error = gv_HbaseTM.initialize(pv_nid);
+  if (gv_HbaseTM == 0) {
+    gv_HbaseTM = new CHbaseTM();
+  }
+
+   int lv_error = gv_HbaseTM->initialize(pv_nid);
    return lv_error;
 }
 
@@ -113,7 +117,11 @@ int HbaseTM_initialize (bool pp_tracing, bool pv_tm_stats, CTmTimer *pp_tmTimer,
    else
       u.lv_traceMask = HBASETM_TraceOff;
 
-   lv_error = gv_HbaseTM.initialize(u.lv_traceMask, pv_tm_stats, pp_tmTimer, pv_nid);
+   if (gv_HbaseTM == 0) {
+     gv_HbaseTM = new CHbaseTM();
+   }
+   
+   lv_error = gv_HbaseTM->initialize(u.lv_traceMask, pv_tm_stats, pp_tmTimer, pv_nid);
 
 
    HBASETrace((lv_error?HBASETM_TraceAPIExitError:HBASETM_TraceAPIExit),
@@ -127,7 +135,7 @@ int HbaseTM_initialize (bool pp_tracing, bool pv_tm_stats, CTmTimer *pp_tmTimer,
 //----------------------------------------------------------------
 void HbaseTM_initiate_cp()
 {
-   gv_HbaseTM.addControlPoint();
+   gv_HbaseTM->addControlPoint();
 }
 
 //----------------------------------------------------------------
@@ -137,7 +145,7 @@ void HbaseTM_initiate_cp()
 void HbaseTM_initiate_stall(int where)
 {
    cout << "HbaseTM_initiate_stall called with parameter " << where << "\n";
-   gv_HbaseTM.stall(where);
+   gv_HbaseTM->stall(where);
 }
 
 //----------------------------------------------------------------
@@ -147,7 +155,7 @@ void HbaseTM_initiate_stall(int where)
 HashMapArray* HbaseTM_process_request_regions_info()
 {
     cout << "Start HBaseTM_process_request_regions\n";
-    HashMapArray* mapArrayRegions = gv_HbaseTM.requestRegionInfo();
+    HashMapArray* mapArrayRegions = gv_HbaseTM->requestRegionInfo();
     return mapArrayRegions;
 }
 
@@ -236,6 +244,8 @@ int CHbaseTM::initJVM()
   JavaMethods_[JM_COMPLETEREQUEST].jm_signature = "(J)S";
   JavaMethods_[JM_REGREGION  ].jm_name      = "callRegisterRegion";
   JavaMethods_[JM_REGREGION  ].jm_signature = "(JJI[BJ[BI)S";
+  JavaMethods_[JM_MREGREGION  ].jm_name      = "callMRegisterRegion";
+  JavaMethods_[JM_MREGREGION  ].jm_signature = "(JJI[BJ[BI)S";
   JavaMethods_[JM_PARREGION  ].jm_name      = "participatingRegions";
   JavaMethods_[JM_PARREGION  ].jm_signature = "(J)I";
   JavaMethods_[JM_CNTPOINT   ].jm_name      = "addControlPoint";
@@ -514,7 +524,7 @@ int CHbaseTM::initialize(HBASETM_TraceMask pv_traceMask, bool pv_tm_stats, CTmTi
 
    setTrace(pv_traceMask);
    lock();
-   //   gv_HbaseTM.setTrace(pv_traceMask);
+   //   gv_HbaseTM->setTrace(pv_traceMask);
    iv_tm_stats = pv_tm_stats;
 
    if (pp_tmTimer != NULL) 
@@ -693,15 +703,28 @@ int CHbaseTM::registerRegion(int64 pv_transid,
   _tlp_jenv->SetByteArrayRegion(jba_regionInfo, 0, pv_regionInfo_Length, (const jbyte*)pa_regionInfo);
 
 //  printf("JavaObjectInterfaceTM::registerRegion calling client callRegisterRegion with trans: %ld and startid: %ld\n", jlv_transid, jlv_startid);
-  lv_error = _tlp_jenv->CallShortMethod(javaObj_,
-					JavaMethods_[JM_REGREGION].methodID,
-					jlv_transid,
-					jlv_startid,
-					jiv_port,
-					jba_hostname,
-					pv_startcode,
-					jba_regionInfo,
-					pv_peerId);
+  if (pv_startcode == 100) {
+    lv_error = _tlp_jenv->CallShortMethod(javaObj_,
+					  JavaMethods_[JM_MREGREGION].methodID,
+					  jlv_transid,
+					  jlv_startid,
+					  jiv_port,
+					  jba_hostname,
+					  pv_startcode,
+					  jba_regionInfo,
+					  pv_peerId);
+  }
+  else {
+    lv_error = _tlp_jenv->CallShortMethod(javaObj_,
+					  JavaMethods_[JM_REGREGION].methodID,
+					  jlv_transid,
+					  jlv_startid,
+					  jiv_port,
+					  jba_hostname,
+					  pv_startcode,
+					  jba_regionInfo,
+					  pv_peerId);
+  }
   if (getExceptionDetails(NULL)) {
      tm_log_write(DTM_TM_JNI_ERROR, SQ_LOG_ERR, (char *)"CHbaseTM::registerRegion()", (char *)_tlp_error_msg->c_str(), pv_transid);
      return RET_EXCEPTION;

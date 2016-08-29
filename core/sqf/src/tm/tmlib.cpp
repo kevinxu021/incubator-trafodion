@@ -856,6 +856,8 @@ short ABORTTRANSACTION()
         return FENOTRANSID;
      }
     
+    TMlibTrace(("TMLIB_TRACE : ABORTTRANSACTION ENTRY: txid: %d\n", lp_trans->getTransid()->get_seq_num()), 1);
+
     short lv_error =  lp_trans->abort();
 
      // cleanup for legacy API
@@ -870,8 +872,14 @@ short ABORTTRANSACTION()
          gp_trans_thr->set_current(NULL);
          TM_Native_Type lv_native_type_txid = lp_trans->getTransid()->get_native_type();
          gv_tmlib.cleanupTransactionLocal(lv_native_type_txid);
+         gv_tmlib.cleanupMTransactionLocal(lv_native_type_txid);
          delete lp_trans; 
      }
+
+    TMlibTrace(("TMLIB_TRACE : ABORTTRANSACTION EXIT: txid: %d, retcode: %d\n", 
+		lp_trans->getTransid()->get_seq_num(), 
+		lv_error), 
+	       1);
 
      return lv_error;
 }
@@ -984,8 +992,6 @@ short ENDTRANSACTION()
        lv_error =  lp_trans->end();
     }while ((lv_error == FETMLOCKED) && (lv_retries++ < 60));
   
-    TMlibTrace(("TMLIB_TRACE : ENDTRANSACTION EXIT: txid: %d, retcode: %d\n", lp_trans->getTransid()->get_seq_num(), lv_error), 1);
-
      // cleanup for legacy API
      if  ((lv_error == FEINVTRANSID) ||
          (lv_error == FENOTRANSID) ||
@@ -1000,8 +1006,14 @@ short ENDTRANSACTION()
          gp_trans_thr->set_current(NULL);
          TM_Native_Type lv_native_type_txid = lp_trans->getTransid()->get_native_type();
          gv_tmlib.cleanupTransactionLocal(lv_native_type_txid);
+         gv_tmlib.cleanupMTransactionLocal(lv_native_type_txid);
          delete lp_trans;
      }
+     
+    TMlibTrace(("TMLIB_TRACE : ENDTRANSACTION EXIT: txid: %d, retcode: %d\n", 
+		lp_trans->getTransid()->get_seq_num(), 
+		lv_error), 
+	       1);
 
      return lv_error;
 }
@@ -1428,6 +1440,7 @@ short SUSPENDTRANSACTION(short *pp_transid)
         if(!lp_trans->isEnder()) {
           TM_Native_Type lv_native_type_txid = lp_trans->getTransid()->get_native_type();
           gv_tmlib.cleanupTransactionLocal(lv_native_type_txid);
+          gv_tmlib.cleanupMTransactionLocal(lv_native_type_txid);
           delete lp_trans;
         }
     }
@@ -2599,7 +2612,12 @@ TMLIB::TMLIB() : JavaObjectInterfaceTM()
     enableCleanupRMInterface(true);
     ms_getenv_bool("TMLIB_ENABLE_CLEANUP", &iv_enableCleanupRMInterface);
 
+    //Monarch/Ampool
+    enableCleanupMRMInterface(true);
+    ms_getenv_bool("TMLIB_ENABLE_MCLEANUP", &iv_enableCleanupMRMInterface);
+
     ip_seqNum = new CtmSeqNum();
+    strcpy(mrminterface_classname,"io/esgyn/client/MRMInterface"); //Monarch (Ampool)
     strcpy(rminterface_classname,"org/apache/hadoop/hbase/client/transactional/RMInterface");
     strcpy(hbasetxclient_classname,"org/trafodion/dtm/HBaseTxClient");
 } //TMLIB::TMLIB
@@ -3213,30 +3231,48 @@ short TMLIB::setupJNI()
    TMLibJavaMethods_[JM_CLEARTRANSACTIONSTATES].jm_signature = "(J)V";
    TMLibJavaMethods_[JM_REPLAYENGINE].jm_name                = "replayEngineStart";
    TMLibJavaMethods_[JM_REPLAYENGINE].jm_signature           = "(J)V"; 
-   
+   TMLibJavaMethods_[JM_CLEAR_MTRANSACTIONSTATES].jm_name      = "clearTransactionStates";
+   TMLibJavaMethods_[JM_CLEAR_MTRANSACTIONSTATES].jm_signature = "(J)V";
    
    //sleep(30);
    short ret = JavaObjectInterfaceTM::init(hbasetxclient_classname, javaClass_, 
                                            (JavaMethodInit*)&TMLibJavaMethods_, JM_LAST_HBASETXCLIENT, false);
    if (ret == JOI_OK) {
       if (enableCleanupRMInterface()) {
-         // Setup call to RMInterface.clearTransactionStates
-         iv_RMInterface_class = _tlp_jenv->FindClass(rminterface_classname); 
-         if (iv_RMInterface_class != NULL) {
-            TMLibJavaMethods_[JM_CLEARTRANSACTIONSTATES].methodID =
-                     _tlp_jenv->GetStaticMethodID(iv_RMInterface_class,
-                                                  TMLibJavaMethods_[JM_CLEARTRANSACTIONSTATES].jm_name.data(),
-                                                  TMLibJavaMethods_[JM_CLEARTRANSACTIONSTATES].jm_signature.data());
+	// Setup call to RMInterface.clearTransactionStates
+	iv_RMInterface_class = _tlp_jenv->FindClass(rminterface_classname); 
+	if (iv_RMInterface_class != NULL) {
+	  TMLibJavaMethods_[JM_CLEARTRANSACTIONSTATES].methodID =
+	    _tlp_jenv->GetStaticMethodID(iv_RMInterface_class,
+					 TMLibJavaMethods_[JM_CLEARTRANSACTIONSTATES].jm_name.data(),
+					 TMLibJavaMethods_[JM_CLEARTRANSACTIONSTATES].jm_signature.data());
 						  
-            TMLibJavaMethods_[JM_REPLAYENGINE].methodID =
-                     _tlp_jenv->GetStaticMethodID(iv_RMInterface_class,
-                                                  TMLibJavaMethods_[JM_REPLAYENGINE].jm_name.data(),
-                                                  TMLibJavaMethods_[JM_REPLAYENGINE].jm_signature.data());
+	  TMLibJavaMethods_[JM_REPLAYENGINE].methodID =
+	    _tlp_jenv->GetStaticMethodID(iv_RMInterface_class,
+					 TMLibJavaMethods_[JM_REPLAYENGINE].jm_name.data(),
+					 TMLibJavaMethods_[JM_REPLAYENGINE].jm_signature.data());
+	}
+	else {
+	  fprintf(stderr,"FindClass for class name %s failed. Aborting.\n",rminterface_classname);
+	  fflush(stderr);
+	  abort();
+	}
+      }
+
+      // Cleanup Monarch/Ampool transactions?
+      if (enableCleanupMRMInterface()) {
+         // Setup call to MRMInterface.clearTransactionStates
+         iv_MRMInterface_class = _tlp_jenv->FindClass(mrminterface_classname); 
+         if (iv_MRMInterface_class != NULL) {
+            TMLibJavaMethods_[JM_CLEAR_MTRANSACTIONSTATES].methodID =
+                     _tlp_jenv->GetStaticMethodID(iv_MRMInterface_class,
+                                                  TMLibJavaMethods_[JM_CLEAR_MTRANSACTIONSTATES].jm_name.data(),
+                                                  TMLibJavaMethods_[JM_CLEAR_MTRANSACTIONSTATES].jm_signature.data());
          }
          else {
-            fprintf(stderr,"FindClass for class name %s failed. Aborting.\n",rminterface_classname);
+            fprintf(stderr,"FindClass for class name %s failed. \n",mrminterface_classname);
             fflush(stderr);
-            abort();
+            //TBD abort();
          }
       }
      
@@ -3246,9 +3282,10 @@ short TMLIB::setupJNI()
       fflush(stderr);
       abort();
    }
-   return ret;
-} //setupJNI
 
+   return ret;
+
+} //setupJNI
 
 ///////////////////////////////////////////////
 //                 JNI Methods                              //
@@ -3317,6 +3354,32 @@ void TMLIB::cleanupTransactionLocal(long transactionID)
   return;
 } //cleanupTransactionLocal
 
+void TMLIB::cleanupMTransactionLocal(long transactionID)
+{
+  initJNI();
+  if (enableCleanupMRMInterface() == false)
+  	 return;
+
+  jlong   jlv_transid = transactionID;
+  JOI_RetCode lv_joi_retcode = JOI_OK;
+
+  lv_joi_retcode = JavaObjectInterfaceTM::initJVM();
+  if (lv_joi_retcode != JOI_OK) {
+    fprintf(stderr, "JavaObjectInterfaceTM::initJVM returned: %d\n", lv_joi_retcode);
+    fflush(stderr);
+    abort();
+  }
+
+  _tlp_jenv->CallStaticVoidMethod(iv_MRMInterface_class, TMLibJavaMethods_[JM_CLEAR_MTRANSACTIONSTATES].methodID, jlv_transid);
+  if(_tlp_jenv->ExceptionOccurred()){
+    _tlp_jenv->ExceptionDescribe();
+    _tlp_jenv->ExceptionClear();
+    fprintf(stderr,"Monarch clearTransactionStates raised an exception!\n");
+    fflush(stderr);
+    abort();
+  }
+  return;
+} //cleanupMTransactionLocal
 
 short TMLIB::endTransactionLocal(long transactionID)
 {
