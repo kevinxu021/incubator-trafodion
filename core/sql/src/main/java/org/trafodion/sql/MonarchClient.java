@@ -139,6 +139,11 @@ public class MonarchClient {
           logger.debug("MonarchClient.init(" + server + ", " + port + ") called.");
        //TBD-Narendra       config.set(Constants.MonarchLocator.MONARCH_LOCATOR_ADDRESS, server);
        //TBD-Narendra       config.setInt(Constants.MonarchLocator.MONARCH_LOCATOR_PORT, Integer.parseInt(port));
+       if (logger.isDebugEnabled()) 
+          logger.debug("MonarchClient.init" 
+		       + ", port from config: " + config.getInt(Constants.MonarchLocator.MONARCH_LOCATOR_PORT)
+		       );
+
        MClientCache clientCache = new MClientCacheFactory().create(config);
        admin = clientCache.getAdmin();
        return true;
@@ -488,7 +493,7 @@ public class MonarchClient {
 	 //Narendra - end
       }
       else {
-         desc.setTableType(MTableType.UNORDERED);
+         desc.setTableType(MTableType.ORDERED_VERSIONED);
          //desc.setTotalNumOfSplits(numSplits);
       }
 /* 

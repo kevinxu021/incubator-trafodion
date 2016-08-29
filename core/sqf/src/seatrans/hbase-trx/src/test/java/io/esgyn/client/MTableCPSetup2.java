@@ -68,6 +68,7 @@ public class MTableCPSetup2 {
 
         tableDescriptor.setRedundantCopies(1);
         tableDescriptor.setTotalNumOfSplits(numBuckets);
+	tableDescriptor.setTableType(MTableType.UNORDERED);
 
         MClientCache clientCache = MClientCacheFactory.getAnyInstance();
         MAdmin admin = clientCache.getAdmin();

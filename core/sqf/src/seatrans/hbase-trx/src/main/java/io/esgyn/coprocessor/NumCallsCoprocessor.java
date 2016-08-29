@@ -2,6 +2,7 @@ package io.esgyn.coprocessor;
 
 import io.ampool.monarch.table.MResultScanner;
 import io.ampool.monarch.table.MScan;
+import io.ampool.monarch.table.MTableRegion;
 import io.ampool.monarch.table.coprocessor.MCoprocessor;
 import io.ampool.monarch.table.coprocessor.MCoprocessorContext;
 import io.ampool.monarch.table.coprocessor.MExecutionRequest;
@@ -24,6 +25,8 @@ public class NumCallsCoprocessor extends MCoprocessor {
 	logger.info("NumCallsCoprocessor.numCalls ");
 
         MExecutionRequest request = context.getRequest();
+
+	MTableRegion lv_region = context.getMTableRegion();
 
 	    logger.info("Table Name: " + 
 			context.getTable().getName());

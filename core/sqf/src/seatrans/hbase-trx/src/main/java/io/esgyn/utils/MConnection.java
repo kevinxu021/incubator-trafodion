@@ -32,9 +32,13 @@ public class MConnection {
 	}
 
         MConfiguration mconf = MConnection.getMConfiguration();
-
-        mconf.set(Constants.MonarchLocator.MONARCH_LOCATOR_ADDRESS, p_pa.m_locator_host);
-        mconf.setInt(Constants.MonarchLocator.MONARCH_LOCATOR_PORT, p_pa.m_locator_port);
+	mconf.addResource("ampool-site.xml");
+	if (LOG.isInfoEnabled()) LOG.info("createClientCache"
+					   + ", locator port from config: " + mconf.getInt(Constants.MonarchLocator.MONARCH_LOCATOR_PORT)
+					   );
+	
+        //mconf.set(Constants.MonarchLocator.MONARCH_LOCATOR_ADDRESS, p_pa.m_locator_host);
+        //mconf.setInt(Constants.MonarchLocator.MONARCH_LOCATOR_PORT, p_pa.m_locator_port);
 	if ((p_pa.m_log_file_name != null) &&
 	    (p_pa.m_log_file_name.length() > 0)) {
 	    mconf.set(Constants.MClientCacheconfig.MONARCH_CLIENT_LOG, p_pa.m_log_file_name);

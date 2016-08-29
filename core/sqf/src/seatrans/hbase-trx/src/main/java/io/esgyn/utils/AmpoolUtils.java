@@ -22,11 +22,6 @@ public class AmpoolUtils {
     // key=table name
     static Map<String, List<MServerLocation>> sv_tli = new ConcurrentHashMap<String, List<MServerLocation>>();
 
-    //TBR
-    static {
-	LOG.debug("AmpoolUtils class initialized");
-    }
-
     static public void printBytes(String pv_str) 
     {
 	byte[] lv_ba = pv_str.getBytes();

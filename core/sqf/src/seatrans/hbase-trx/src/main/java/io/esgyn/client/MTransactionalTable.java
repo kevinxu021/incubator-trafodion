@@ -34,7 +34,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.Connection;
 
 import org.apache.hadoop.hbase.regionserver.transactional.SingleVersionDeleteNotSupported;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -73,7 +73,7 @@ public class MTransactionalTable implements MTransactionalTableClient {
      * @param tableName
      * @throws IOException
      */
-    public MTransactionalTable(final String pv_table_name, HConnection pv_connection) 
+    public MTransactionalTable(final String pv_table_name, Connection pv_connection) 
 	throws IOException 
     {
 	this(pv_table_name);
@@ -89,7 +89,7 @@ public class MTransactionalTable implements MTransactionalTableClient {
      * @param tableName
      * @throws IOException
      */
-    public MTransactionalTable(final byte[] pv_table_name, HConnection pv_connection) 
+    public MTransactionalTable(final byte[] pv_table_name, Connection pv_connection) 
 	throws IOException
     {
 	this(new String(pv_table_name));

@@ -56,16 +56,16 @@
 
   <Loggers>
 
-    <Logger name="io.esgyn.client" level="INFO" additivity="true">
-    <appender-ref ref="esgyn-tm-file-log" level="INFO"/>
+    <Logger name="io.esgyn.client" level="TRACE" additivity="true">
+    <appender-ref ref="esgyn-tm-file-log" level="TRACE"/>
     </Logger>
 
-    <Logger name="io.esgyn.client.MTransactionManager" level="INFO" additivity="false">
-    <appender-ref ref="esgyn-tm-file-log" level="INFO"/>
+    <Logger name="io.esgyn.client.MTransactionManager" level="TRACE" additivity="false">
+    <appender-ref ref="esgyn-tm-file-log" level="TRACE"/>
     </Logger>
 
-    <Logger name="io.esgyn.utils" level="INFO" additivity="true">
-    <appender-ref ref="esgyn-tm-file-log" level="INFO"/>
+    <Logger name="io.esgyn.utils" level="TRACE" additivity="false">
+    <appender-ref ref="esgyn-tm-file-log" level="TRACE"/>
     </Logger>
 
     <Logger name="io.ampool.monarch.table" level="INFO" additivity="true">
@@ -80,11 +80,11 @@
     <appender-ref ref="esgyn-tm-file-log" level="INFO"/>
     </Logger>
 
-    <Logger name="org.trafodion.dtm" level="ERROR" additivity="true">
+    <Logger name="org.trafodion.dtm" level="ERROR" additivity="false">
     <appender-ref ref="esgyn-tm-file-log" level="ERROR"/>
     </Logger>
 
-    <Logger name="org.trafodion.dtm.HBaseTxClient" level="INFO" additivity="true">
+    <Logger name="org.trafodion.dtm.HBaseTxClient" level="TRACE" additivity="false">
     <appender-ref ref="esgyn-tm-file-log" level="INFO"/>
     </Logger>
 

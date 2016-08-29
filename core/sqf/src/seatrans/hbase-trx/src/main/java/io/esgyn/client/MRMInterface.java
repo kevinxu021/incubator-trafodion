@@ -37,7 +37,7 @@ import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 
 import org.apache.hadoop.hbase.exceptions.DeserializationException;
@@ -97,14 +97,8 @@ public class MRMInterface {
        try {
           pSTRConfig = STRConfig.getInstance(lv_config);
        }
-       catch (InterruptedException int_exception) {
-	   LOG.error("Interrupted Exception trying to get STRConfig instance: ", int_exception);
-       }
        catch (IOException ioe) {
 	   LOG.error("IO Exception trying to get STRConfig instance: ", ioe);
-       }
-       catch (KeeperException zke) {
-	   LOG.error("Zookeeper Connection Exception trying to get STRConfig instance: ", zke);
        }
     }
 
@@ -215,7 +209,7 @@ public class MRMInterface {
 	    if (LOG.isTraceEnabled()) LOG.trace(" peerCount: " + pSTRConfig.getPeerCount());
 	    if( transactionAlgorithm == AlgorithmType.MVCC) {
 		peer_tables = new HashMap<Integer, MTransactionalTableClient>();
-		for ( Map.Entry<Integer, HConnection> e : pSTRConfig.getPeerConnections().entrySet() ) {
+		for ( Map.Entry<Integer, Connection> e : pSTRConfig.getPeerConnections().entrySet() ) {
 		    int           lv_peerId = e.getKey();
 		    if (lv_peerId == 0) continue;
 		    if (! isSTRUp(lv_peerId)) {

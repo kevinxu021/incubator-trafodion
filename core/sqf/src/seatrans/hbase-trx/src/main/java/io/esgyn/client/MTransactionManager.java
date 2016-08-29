@@ -732,8 +732,9 @@ public class MTransactionManager {
 			if (LOG.isTraceEnabled()) LOG.trace("doAbortX -- before coprocessorService"
 							    + ", txId: " + pv_transaction_id 
 							    + ", participant_num: " + pv_participant_num 
-							    + ", table: " + m_mtable 
-							    + ", m_start_key: " + new String(m_start_key, "UTF-8") 
+							    + ", table: " + m_mtable.getName() 
+							    + ", m_start_key: " + Bytes.toString(m_start_key)
+							    + ", location: " + m_location
 							    );
 
 			result = m_mtable.coprocessorService(
@@ -746,8 +747,9 @@ public class MTransactionManager {
 			String msg = "ERROR occurred while calling doAbortX coprocessor service"
 			    + ", txId: " + pv_transaction_id 
 			    + ", participant_num: " + pv_participant_num 
-			    + ", table: " + m_mtable 
+			    + ", table: " + m_mtable.getName() 
 			    + ", m_start_key: " + new String(m_start_key, "UTF-8") 
+			    + ", location: " + m_location
 			    ;
 			LOG.error(msg,  t);
 			//TBD
@@ -1338,9 +1340,11 @@ public class MTransactionManager {
 		    loopCount++;
 		    final int participantNum = loopCount;
 
-		    if(LOG.isTraceEnabled()) LOG.trace("Submitting abort for, txId: "
-						       + transactionState.getTransactionId() + ", participant: "
-						       + participantNum + ", region: " + location.toString());
+		    if(LOG.isTraceEnabled()) LOG.trace("Submitting abort" 
+						       + ", txId: " + transactionState.getTransactionId() 
+						       + ", participant: " + participantNum 
+						       + ", region: " + location.toString()
+						       );
 		    threadPool.submit(new MTransactionManagerCallable(transactionState, 
 								      location
 								      ) {

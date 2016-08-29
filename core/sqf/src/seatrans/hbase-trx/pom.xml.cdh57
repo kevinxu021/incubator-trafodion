@@ -31,9 +31,9 @@
   </repositories>
 
   <properties>
+    <ampool.version>1.0.0</ampool.version>
     <hadoop.version>2.6.0-cdh5.7.1</hadoop.version>
     <hbase.version>1.2.0-cdh5.7.1</hbase.version>
-    <ampool.version>1.0.0</ampool.version>
     <protobuf.version>2.5.0</protobuf.version>
     <protocVersion>2.5.0</protocVersion>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

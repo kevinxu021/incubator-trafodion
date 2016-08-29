@@ -146,7 +146,7 @@ public class HBaseTxClient {
 			   );
    }
 
-   public boolean init(String hBasePath, String zkServers, String zkPort) throws Exception {
+   public boolean init(String hBasePath, String zkServers, String zkPort) throws IOException {
        try {
       setupLog4j();
       if (LOG.isDebugEnabled()) LOG.debug("Enter init, hBasePath:" + hBasePath);
@@ -260,7 +260,7 @@ public class HBaseTxClient {
       return true;
    }
 
-   public boolean init(short dtmid) throws Exception {
+   public boolean init(short dtmid) throws IOException {
        try {
       setupLog4j();
       if (LOG.isDebugEnabled()) LOG.debug("Enter init(" + dtmid + ")");
@@ -668,7 +668,7 @@ public class HBaseTxClient {
        return lv_monarch_retcode;
    }
 
-   public short HabortTransaction(final long transactionID) throws Exception {
+   public short HabortTransaction(final long transactionID) throws IOException {
       if (LOG.isDebugEnabled()) LOG.debug("Enter HabortTransaction, txId: " + transactionID);
       TransactionState ts = mapTransactionStates.get(transactionID);
 
@@ -715,10 +715,12 @@ public class HBaseTxClient {
                   while (loopBack);
             }
          }
-      } catch (CommitUnsuccessfulException cue) {
+      }
+      catch (CommitUnsuccessfulException cue) {
          LOG.error("Returning from HBaseTxClient:abortTransaction, txid: " + transactionID + " tLog.putRecord: EXCEPTION ", cue);
          return TransReturnCode.RET_EXCEPTION.getShort();
-      } catch(IOException e) {
+      } 
+      catch(IOException e) {
          LOG.error("Returning from HBaseTxClient:abortTransaction, txid: " + transactionID + " tLog.putRecord: EXCEPTION ", e);
          return TransReturnCode.RET_EXCEPTION.getShort();
       } 
@@ -739,7 +741,8 @@ public class HBaseTxClient {
 
       try {
          trxManager.abort(ts);
-      } catch (UnsuccessfulDDLException ddle) {
+      } 
+      catch (UnsuccessfulDDLException ddle) {
           LOG.error("FATAL DDL Exception from HBaseTxClient:abort, WAITING INDEFINETLY !! retval: " + TransReturnCode.RET_EXCEPTION.toString() + " UnsuccessfulDDLException" + " txid: " + transactionID, ddle);
 
           //Reaching here means several attempts to perform the DDL operation has failed in abort phase.
@@ -817,19 +820,22 @@ public class HBaseTxClient {
       if (LOG.isTraceEnabled()) LOG.trace("Exit HabortTransaction, retval: OK txId: " + transactionID + " mapsize: " + mapTransactionStates.size());
       return TransReturnCode.RET_OK.getShort();
    }
-    
-   public short MabortTransaction(final long transactionID) throws Exception {
+
+   public short MabortTransaction(final long transactionID) throws IOException 
+    {
       if (LOG.isDebugEnabled()) LOG.debug("Enter MabortTransaction, txId: " + transactionID);
       MTransactionState ts = mapMTransactionStates.get(transactionID);
 
       if(ts == null) {
           LOG.error("Returning from MabortTransaction" 
 		    + ", txId: " + transactionID 
-		    + ", retval: " + TransReturnCode.RET_NOTX.toString());
+		    + ", retval: " + TransReturnCode.RET_NOTX.toString()
+		    );
           return TransReturnCode.RET_NOTX.getShort();
       }
 
-      try {
+      /* TBD try  */
+	  {
          ts.setStatus(TransState.STATE_ABORTED);
 	 /* TBD
          if (useTlog) {
@@ -845,55 +851,71 @@ public class HBaseTxClient {
                         lv_tLog.doTlogWrite(ts, TransState.STATE_ABORTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true, -1);
 
                      }
-                     catch (Exception e) {
-                        LOG.error("Returning from doTlogWrite, txId: " + transactionID + 
-                                   " tLog.doTlogWrite: EXCEPTION " + e);
+                     catch (IOException e) {
+                        LOG.error("Returning from doTlogWrite, txid: " + transactionID + 
+                                   " tLog.doTlogWrite: EXCEPTION " , e);
                         return TransReturnCode.RET_EXCEPTION.getShort();
                      }
                   }
                }   
             }
             if (bSynchronized && ts.hasRemotePeers() && (! synchronousWrites)){
-               try{
                   if (LOG.isTraceEnabled()) LOG.trace("MabortTransaction, completing Tlog write for transaction: " + transactionID);
-                  ts.completeRequest();
-               }
-               catch(Exception e){
-                  LOG.error("Exception in MabortTransaction completing Tlog write completeRequest. txId: " + transactionID + "Exception: " + e);
-                  //return; //Do not return here?
-               }
+                  boolean loopBack = false;
+                  do
+                  {
+                    try {
+                      loopBack = false;
+                      ts.completeRequest();
+                    } catch (InterruptedException ie) {
+                      loopBack = true;
+                    }
+                  }
+                  while (loopBack);
             }
          }
 	 */
-      } catch(Exception e) {
+      }
+      /* TBD
+      catch (CommitUnsuccessfulException cue) {
          LOG.error("Returning from MabortTransaction" 
-		   + ", txId: " + transactionID 
-		   + ", tLog.putRecord: EXCEPTION " + e
-		   , e
+		   + ", txid: " + transactionID 
+		   + " tLog.putRecord: EXCEPTION ", cue
 		   );
          return TransReturnCode.RET_EXCEPTION.getShort();
-      }
+      } 
+      catch(IOException e) {
+         LOG.error("Returning from MabortTransaction" 
+		   + ", txid: " + transactionID 
+		   + " tLog.putRecord: EXCEPTION ", e
+		   );
+         return TransReturnCode.RET_EXCEPTION.getShort();
+      } 
+      */
 
       if ((stallWhere == 1) || (stallWhere == 3)) {
          LOG.info("Stalling in phase 2 for MabortTransaction");
-         Thread.sleep(300000); // Initially set to run every 5 min
+         boolean loopBack = false;
+         do {
+            try {
+               loopBack = false;
+               Thread.sleep(300000); // Initially set to run every 5 min
+            } catch(InterruptedException ie) {
+               loopBack = true;
+            }
+         } while (loopBack);
       }
 
       try {
          mtrxManager.abort(ts);
-      } catch(IOException e) {
-          synchronized(mapLock) {
-             mapMTransactionStates.remove(transactionID);
-          }
-          LOG.error("Returning from MabortTransaction" 
-		    + ", txId: " + transactionID 
-		    + " retval: EXCEPTION " + e
-		    , e
-		    );
-          return TransReturnCode.RET_EXCEPTION.getShort();
-      }
+      } 
+      /* TBD
       catch (UnsuccessfulDDLException ddle) {
-          LOG.error("FATAL DDL Exception from abort, WAITING INDEFINETLY !! retval: " + TransReturnCode.RET_EXCEPTION.toString() + " UnsuccessfulDDLException" + " txId: " + transactionID);
+          LOG.error("FATAL DDL Exception from abort, WAITING INDEFINETLY !!" 
+		    + ", retval: " + TransReturnCode.RET_EXCEPTION.toString() 
+		    + ", UnsuccessfulDDLException" 
+		    + ", txid: " + transactionID, ddle
+		    );
 
           //Reaching here means several attempts to perform the DDL operation has failed in abort phase.
           //Generally if only DML operation is involved, returning error causes TM to call completeRequest()
@@ -905,12 +927,32 @@ public class HBaseTxClient {
           Object commitDDLLock = new Object();
           synchronized(commitDDLLock)
           {
-            commitDDLLock.wait();
+             boolean loopBack = false;
+             do {
+                try {
+                    loopBack = false;
+                    commitDDLLock.wait();
+                } catch(InterruptedException ie) {
+                    LOG.warn("Interrupting commitDDLLock.wait,  but retrying ", ie);
+                    loopBack = true;
+                }
+             } while (loopBack);
           }
           return TransReturnCode.RET_EXCEPTION.getShort();
+      } 
+      */
+      catch(IOException e) {
+          synchronized(mapLock) {
+             mapMTransactionStates.remove(transactionID);
+          }
+          LOG.error("Returning from MabortTransaction" 
+		    + ", txid: " + transactionID 
+		    + " retval: EXCEPTION", e
+		    );
+          return TransReturnCode.RET_EXCEPTION.getShort();
       }
-      
-      /* 
+
+      /* TBD
       if (useTlog && useForgotten) {
          tLog.putSingleRecord(transactionID, ts.getStartId(), -1, TransState.STATE_FORGOTTEN_ABORT.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), forceForgotten); // forced flush?
          if (bSynchronized && ts.hasRemotePeers()){
@@ -923,9 +965,9 @@ public class HBaseTxClient {
                      if (LOG.isTraceEnabled()) LOG.trace("calling doTlogWrite FORGOTTEN for : " + ts.getTransactionId());
                      lv_tLog.doTlogWrite(ts, TransState.STATE_FORGOTTEN_ABORT.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true, -1);
                   }
-                  catch (Exception e) {
-                     LOG.error("Returning from doTlogWrite, txId: " + transactionID + 
-                               " tLog.doTlogWrite: EXCEPTION " + e);
+                  catch (IOException e) {
+                     LOG.error("Returning from doTlogWrite, txid: " + transactionID + 
+                               " tLog.doTlogWrite: EXCEPTION ", e);
                      return TransReturnCode.RET_EXCEPTION.getShort();
                   }
                }
@@ -933,26 +975,34 @@ public class HBaseTxClient {
          }
 
          if (bSynchronized && ts.hasRemotePeers() && (! synchronousWrites)){
-            try{
                if (LOG.isTraceEnabled()) LOG.trace("MabortTransaction, completing Tlog write for FORGOTTEN transaction: " + transactionID);
-               ts.completeRequest();
-            }
-            catch(Exception e){
-               LOG.error("Exception in MabortTransaction completing Tlog write completeRequest for FORGOTTEN txId: " + transactionID + "Exception: " + e);
-               //return; //Do not return here?
-            }
+               boolean loopBack = false;
+               do
+               {
+                 try {
+                    loopBack = false;
+                    ts.completeRequest();
+                 } catch (InterruptedException ie) {
+                    loopBack = true;
+                 } catch (CommitUnsuccessfulException cue) {
+                    LOG.error("MabortTransaction, completing Tlog write for FORGOTTEN transaction: " + transactionID, cue);
+                    return TransReturnCode.RET_EXCEPTION.getShort();
+
+                 }
+               }
+               while (loopBack);
          }
       }
       */
 
-      if (LOG.isTraceEnabled()) LOG.trace("Exit MabortTransaction, retval: OK" 
-					  + ", txId: " + transactionID 
+      if (LOG.isTraceEnabled()) LOG.trace("Exit MabortxTransaction, retval: OK" 
+					  + ",  txId: " + transactionID 
 					  + ", mapsize: " + mapMTransactionStates.size()
 					  );
       return TransReturnCode.RET_OK.getShort();
    }
     
-   public short prepareCommit(long transactionId) throws Exception {
+   public short prepareCommit(long transactionId) throws IOException {
        short lv_hbase_retcode = HprepareCommit(transactionId);
        short lv_monarch_retcode = TransReturnCode.RET_OK.getShort();
 
@@ -976,7 +1026,7 @@ public class HBaseTxClient {
        return lv_monarch_retcode;
    }
 
-    public short HprepareCommit(long transactionId) throws Exception 
+    public short HprepareCommit(long transactionId) throws IOException 
     {
        try {
      if (LOG.isDebugEnabled()) LOG.debug("Enter HprepareCommit"
@@ -1024,10 +1074,6 @@ public class HBaseTxClient {
        LOG.error("Returning from prepareCommit, txId: " + transactionId + " retval: " + TransReturnCode.RET_IOEXCEPTION.toString() + " IOException");
        return TransReturnCode.RET_IOEXCEPTION.getShort();
      }
-     catch (Exception e) {
-           LOG.error("Returning from prepareCommit, txId: " + transactionId + " retval: " + TransReturnCode.RET_NOCOMMITEX.toString() + " Exception " + e);
-           return TransReturnCode.RET_NOCOMMITEX.getShort();
-     }
        }
        catch (Throwable e) {
 	   LOG.error("Exception", e);
@@ -1036,7 +1082,7 @@ public class HBaseTxClient {
        
    }
 
-   public short MprepareCommit(long transactionId) throws Exception {
+   public short MprepareCommit(long transactionId) throws IOException {
        try {
      if (LOG.isTraceEnabled()) LOG.trace("Enter MprepareCommit" 
 					 + ", txId: " + transactionId
@@ -1095,15 +1141,6 @@ public class HBaseTxClient {
 		 );
        return TransReturnCode.RET_IOEXCEPTION.getShort();
      }
-     catch (Exception e) {
-	 LOG.error("Returning from MprepareCommit" 
-		   + ", txId: " + transactionId 
-		   + ", retval: " + TransReturnCode.RET_NOCOMMITEX.toString() 
-		   + ", Exception " + e
-		   , e
-		   );
-           return TransReturnCode.RET_NOCOMMITEX.getShort();
-     }
        }
        catch (Throwable e) {
 	   LOG.error("Exception", e);
@@ -1112,7 +1149,7 @@ public class HBaseTxClient {
        
    }
 
-   public short doCommit(long transactionId) throws Exception {
+   public short doCommit(long transactionId) throws IOException {
        short lv_hbase_retcode = HdoCommit(transactionId);
        short lv_monarch_retcode = TransReturnCode.RET_OK.getShort();
 
@@ -1134,7 +1171,7 @@ public class HBaseTxClient {
        return lv_monarch_retcode;
    }
 
-   public short HdoCommit(long transactionId) throws Exception {
+   public short HdoCommit(long transactionId) throws IOException {
       if (LOG.isDebugEnabled()) LOG.trace("Enter doCommit, txId: " + transactionId);
       TransactionState ts = mapTransactionStates.get(transactionId);
 
@@ -1259,7 +1296,7 @@ public class HBaseTxClient {
        */
 
        if ((stallWhere == 2) || (stallWhere == 3)) {
-          LOG.info("Stalling in phase 2 for doCommit");
+    	  if (LOG.isInfoEnabled())LOG.info("Stalling in phase 2 for MdoCommit for transaction: " + transactionId);
           boolean loopBack = false;
           do {
              try {
@@ -1298,7 +1335,9 @@ public class HBaseTxClient {
                    loopBack = false;
                    commitDDLLock.wait();
                 } catch(InterruptedException ie) {
-                    LOG.warn("Interrupting commitDDLLock.wait,  but retrying ", ie);
+                    LOG.warn("Interrupting commitDDLLock.wait" 
+			     + ", txId: " + transactionId
+			     + ", retrying ", ie);
                     loopBack = true;
                 }
              } while (loopBack);
@@ -1364,7 +1403,7 @@ public class HBaseTxClient {
        return TransReturnCode.RET_OK.getShort();
    }
 
-   public short MdoCommit(long transactionId) throws Exception {
+   public short MdoCommit(long transactionId) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("Enter MdoCommit" 
 					  + ", txId: " + transactionId
 					  );
@@ -1400,8 +1439,17 @@ public class HBaseTxClient {
        ts.setCommitId(commitIdVal);
 
        if (stallWhere == 4) {
-    	  if (LOG.isInfoEnabled())LOG.info("Stalling in phase 2a (before TLOG write) for MdoCommit for transaction: " + transactionId);
-          Thread.sleep(600000); // Initially set to run every 5 min
+    	  if (LOG.isInfoEnabled())LOG.info("Stalling in phase 2a (before TLOG write) for doCommit for transaction: " + transactionId);
+          boolean loopBack = false;
+          do
+          {
+             try {
+                loopBack = false;
+                Thread.sleep(600000); // Initially set to run every 5 min
+             } catch (InterruptedException ie) {
+                loopBack = true;
+             }
+          } while (loopBack);
        }
 
        try {
@@ -1488,7 +1536,15 @@ public class HBaseTxClient {
 
        if ((stallWhere == 2) || (stallWhere == 3)) {
     	  if (LOG.isInfoEnabled())LOG.info("Stalling in phase 2 for MdoCommit for transaction: " + transactionId);
-          Thread.sleep(300000); // Initially set to run every 5 min
+          boolean loopBack = false;
+          do {
+             try {
+                loopBack = false;
+                Thread.sleep(300000); // Initially set to run every 5 min
+             } catch(InterruptedException ie) {
+                 loopBack = true;
+             }
+          } while (loopBack);
        }
 
        try {
@@ -1514,7 +1570,19 @@ public class HBaseTxClient {
           Object commitDDLLock = new Object();
           synchronized(commitDDLLock)
           {
-            commitDDLLock.wait();
+             boolean loopBack = false;
+             do {
+                try {
+                   loopBack = false;
+                   commitDDLLock.wait();
+                } catch(InterruptedException ie) {
+                    LOG.warn("Interrupting commitDDLLock.wait" 
+			     + ", txId: " + transactionId
+			     + ", retrying ", ie);
+                    loopBack = true;
+                }
+             } while (loopBack);
+
           }
           return TransReturnCode.RET_EXCEPTION.getShort();
        }
@@ -1584,7 +1652,9 @@ public class HBaseTxClient {
        return TransReturnCode.RET_OK.getShort();
    }
 
-   public short completeRequest(final long transactionId) throws Exception {
+   public short completeRequest(final long transactionId) 
+       throws IOException, CommitUnsuccessfulException       
+    {
 
        short lv_hbase_retcode = HcompleteRequest(transactionId);
 
@@ -1597,7 +1667,9 @@ public class HBaseTxClient {
        return lv_monarch_retcode;
    }
 
-   public short HcompleteRequest(long transactionId) throws Exception {
+    public short HcompleteRequest(long transactionId)
+	throws IOException, CommitUnsuccessfulException 
+    {
      if (LOG.isDebugEnabled()) LOG.debug("Enter HcompleteRequest" 
 					 + ", txId: " + transactionId
 					 );
@@ -1620,20 +1692,12 @@ public class HBaseTxClient {
 	       ts.completeRequest();
 	   } 
 	   catch(InterruptedException ie) {
-	       LOG.warn("Interrupting HBaseTxClient:completeRequest but retrying, ts.completeRequest" 
+	       LOG.warn("Interrupting completeRequest but retrying, ts.completeRequest" 
 			+ ", txid: " + transactionId 
 			+ ", EXCEPTION: "
 			, ie);
 	       loopBack = true;
 	   } 
-	   catch(Exception e) {
-	       LOG.error("Returning from HcompleteRequest, ts.completeRequest" 
-			 + ", txId: " + transactionId 
-			 + ", EXCEPTION: "
-			 , e
-			 );
-	       throw new Exception("Exception during HcompleteRequest, unable to commit. Exception: " + e);
-	   }
        } while (loopBack);
 
      synchronized(mapLock) {
@@ -1646,7 +1710,9 @@ public class HBaseTxClient {
      return TransReturnCode.RET_OK.getShort();
    }
 
-   public short McompleteRequest(long transactionId) throws Exception {
+   public short McompleteRequest(long transactionId) 
+       throws IOException 
+    {
      if (LOG.isDebugEnabled()) LOG.debug("Enter McompleteRequest" 
 					 + ", txId: " + transactionId
 					 );
@@ -1662,16 +1728,20 @@ public class HBaseTxClient {
 	 return TransReturnCode.RET_NOTX.getShort();
      }
 
-       try {
-          ts.completeRequest();
-       } catch(Exception e) {
-          LOG.error("Returning from McompleteRequest, ts.completeRequest" 
-		    + ", txId: " + transactionId 
-		    + ", EXCEPTION: "
-		    , e
-		    );
-	  throw new Exception("Exception during McompleteRequest, unable to commit. Exception: " + e);
-       }
+     boolean loopBack = false;
+     do {
+	 try {
+	     loopBack = false;
+	     ts.completeRequest();
+	 } 
+	 catch(InterruptedException ie) {
+	     LOG.warn("Interrupting McompleteRequest but retrying, ts.completeRequest" 
+		      + ", txid: " + transactionId 
+		      + ", EXCEPTION: "
+		      , ie);
+	     loopBack = true;
+	 } 
+     } while (loopBack);
 
      synchronized(mapLock) {
         mapMTransactionStates.remove(transactionId);
@@ -1973,14 +2043,17 @@ public class HBaseTxClient {
 	return TransReturnCode.RET_OK.getShort();
     }
 
-   public int participatingRegions(long transactionId) throws IOException {
+   public int participatingRegions(long transactionId) 
+       throws IOException 
+    {
        if (LOG.isTraceEnabled()) LOG.trace("Enter participatingRegions, txId: " + transactionId);
        return (HparticipatingRegions(transactionId) + MparticipatingRegions(transactionId));
    }
 
-   public int HparticipatingRegions(long transactionId) throws Exception {
+   public int HparticipatingRegions(long transactionId)
+       throws IOException 
+    {
        if (LOG.isTraceEnabled()) LOG.trace("Enter HparticipatingRegions, txId: " + transactionId);
->>>>>>> Stashed changes
        TransactionState ts = mapTransactionStates.get(transactionId);
        if(ts == null) {
          if (LOG.isTraceEnabled()) LOG.trace("Returning from HparticipatingRegions" 
@@ -2007,7 +2080,9 @@ public class HBaseTxClient {
        return participants;
    }
 
-   public int MparticipatingRegions(long transactionId) throws Exception {
+   public int MparticipatingRegions(long transactionId)
+       throws IOException 
+    {
        if (LOG.isTraceEnabled()) LOG.trace("Enter MparticipatingRegions, txId: " + transactionId);
 
        MTransactionState ts = mapMTransactionStates.get(transactionId);
