@@ -627,6 +627,7 @@ if [ -z $MPICH_ROOT ]; then
   export MPICH_ROOT=$TOOLSDIR/dest-mpich-3.0.4
 fi
 export PROTOBUFS=/usr
+export SNAPPY=/usr
 
 # LOG4CXX
 if [[ -d $TOOLSDIR/apache-log4cxx-0.10.0 ]]
@@ -800,7 +801,7 @@ if [ -z $ICU ]; then
 fi
 
 if [ -z $ORCCPPREADER ]; then
-  export ORCCPPREADER="${TOOLSDIR}/orc-cpp-reader"
+  export ORCCPPREADER="${MY_SQROOT}/../../core/sql/orc"
 fi
 
 
@@ -816,6 +817,14 @@ fi
 # PROTOBUFS may include local over-rides
 export PROTOBUFS_LIB=$PROTOBUFS/lib
 export PROTOBUFS_INC=$PROTOBUFS/include
+
+if [[ ! -e $PROTOBUFS_LIB/libprotobuf.so ]]; then
+export PROTOBUFS_LIB=$PROTOBUFS/lib64
+fi
+
+
+# snappy shared library
+export SNAPPY_LIB=$SNAPPY/lib64
 
 ######################
 # Library Path may include local over-rides
