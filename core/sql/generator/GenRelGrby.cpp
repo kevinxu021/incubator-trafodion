@@ -2017,6 +2017,14 @@ short HbasePushdownAggr::codeGen(Generator * generator)
 
   generator->initTdbFields(aggr_tdb);
 
+  if (tableDesc_->getNATable()->isSeabaseTable())
+    {
+      if (tableDesc_->getNATable()->isMonarch())
+        {
+          aggr_tdb->setStorageType(COM_STORAGE_MONARCH);
+        }
+    }
+
   if(!generator->explainDisabled()) {
     generator->setExplainTuple(
        addExplainInfo(aggr_tdb, 0, 0, generator));

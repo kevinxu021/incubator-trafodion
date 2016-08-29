@@ -45,6 +45,7 @@ import io.ampool.conf.Constants;
 import io.ampool.monarch.table.*;
 import io.ampool.monarch.table.exceptions.*;
 import io.ampool.monarch.table.client.*;
+import io.ampool.monarch.table.client.coprocessor.AggregationClient;
 
 import io.esgyn.client.*;
 import io.esgyn.coprocessor.*;
@@ -1039,53 +1040,27 @@ public class MTableClient {
       return putRow(transID, rowID, columns, columnToCheck, 
          colValToCheck, true, asyncOperation);
    }
-/*
-        public byte[] coProcAggr(long transID, int aggrType, 
-      byte[] startRowID, 
-              byte[] stopRowID, byte[] colFamily, byte[] colName, 
-              boolean cacheBlocks, int numCacheRows) 
-                          throws IOException, Throwable {
 
-          Configuration customConf = table.getConfiguration();
-                    long rowCount = 0;
+   public byte[] coProcAggr(long transID, int aggrType, 
+                            byte[] startRowID, 
+                            byte[] stopRowID, byte[] colFamily, byte[] colName, 
+                            boolean cacheBlocks, int numCacheRows) 
+       throws IOException, Throwable {
+       
+       long rowCount = 0;
+       
+       AggregationClient aggregationClient = new AggregationClient();
+       MScan scan = new MScan();
+       rowCount = aggregationClient.rowCount(getMTableName(), scan);
 
-                    if (transID > 0) {
-            TransactionalAggregationClient aggregationClient = 
-                          new TransactionalAggregationClient(customConf);
-            Scan scan = new Scan();
-            scan.addFamily(colFamily);
-            scan.setCacheBlocks(false);
-            final ColumnInterpreter<Long, Long, EmptyMsg, LongMsg, LongMsg> ci =
-         new LongColumnInterpreter();
-            byte[] tname = getTableName().getBytes();
-            rowCount = aggregationClient.rowCount(transID, 
-                        org.apache.hadoop.hbase.TableName.valueOf(getTableName()),
-                        ci,
-                        scan);
-                    }
-                    else {
-            AggregationClient aggregationClient = 
-                          new AggregationClient(customConf);
-            Scan scan = new Scan();
-            scan.addFamily(colFamily);
-            scan.setCacheBlocks(false);
-            final ColumnInterpreter<Long, Long, EmptyMsg, LongMsg, LongMsg> ci =
-         new LongColumnInterpreter();
-            byte[] tname = getTableName().getBytes();
-            rowCount = aggregationClient.rowCount( 
-                        org.apache.hadoop.hbase.TableName.valueOf(getTableName()),
-                        ci,
-                        scan);
-                    }
+       byte[] rcBytes = 
+           ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN).putLong(rowCount).array();
 
-          coprocAggrResult = new ByteArrayList();
+       //       System.out.println("monarch aggr count = " + rowCount);
 
-          byte[] rcBytes = 
-                      ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN).putLong(rowCount).array();
-                    return rcBytes; 
+       return rcBytes; 
    }
-
-*/
+    
    public boolean release(boolean cleanJniObject) throws IOException {
 
       boolean retcode = false;
