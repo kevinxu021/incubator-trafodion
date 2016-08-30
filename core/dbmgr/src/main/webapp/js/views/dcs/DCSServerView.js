@@ -211,10 +211,9 @@ define([
 					],
 					buttons: [
 	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
-	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+	                           { extend : 'csv', exportOptions: { columns: ':visible' }, filename:'Connectivity Servers' },
 	                          // { extend : 'excel', exportOptions: { columns: ':visible' } },
-	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
-	                        	   title: 'Connectivity Servers'} ,
+	                          // { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, title: 'Connectivity Servers'} ,
 	                           { extend : 'print', orientation: 'landscape', exportOptions: { columns: ':visible' }, title: 'Connectivity Servers' }
 				          ]
 				});
