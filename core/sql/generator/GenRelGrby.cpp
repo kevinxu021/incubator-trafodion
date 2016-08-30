@@ -2017,6 +2017,14 @@ short HbasePushdownAggr::codeGen(Generator * generator)
 
   generator->initTdbFields(aggr_tdb);
 
+  if (tableDesc_->getNATable()->isSeabaseTable())
+    {
+      if (tableDesc_->getNATable()->isMonarch())
+        {
+          aggr_tdb->setStorageType(COM_STORAGE_MONARCH);
+        }
+    }
+
   if(!generator->explainDisabled()) {
     generator->setExplainTuple(
        addExplainInfo(aggr_tdb, 0, 0, generator));
@@ -2272,18 +2280,28 @@ short OrcPushdownAggr::codeGen(Generator * generator)
   const HHDFSTableStats* hTabStats = 
     tableDesc_->getClusteringIndex()->getNAFileSet()->getHHDFSTableStats();
 
-  Queue * tdbListOfOrcPPI = NULL;
-  ValueIdList orcOperVIDlist;
-  FileScan::genForOrc(generator, 
-                      hTabStats,
-                      getPhysicalProperty()->getPartitioningFunction(),
-                      NULL,
-                      hdfsFileInfoList, hdfsFileRangeBeginList, hdfsFileRangeNumList,
-                      tdbListOfOrcPPI,
-                      orcOperVIDlist,
-                      hdfsHostName, hdfsPort, NULL, 0 , getHiveSearchKey(), 
-                      TRUE /*for fast aggre */ );
-  
+  NABoolean dummy1, dummy2;
+  ComCompressionInfo *dummy3;
+  Int16 dummy4;
+
+  FileScan::genScanRanges(
+       generator,
+       hTabStats,
+       getPhysicalProperty()->getPartitioningFunction(),
+       hdfsFileInfoList,
+       hdfsFileRangeBeginList,
+       hdfsFileRangeNumList,
+       hdfsHostName,
+       hdfsPort,
+       dummy1,
+       dummy2,
+       dummy3, // compression info is not used for ORC
+       dummy4,
+       NULL,   // partitioned tables only supported w/o any preds
+       0,
+       getHiveSearchKey(),
+       TRUE);
+
   ULng32 buffersize = 3 * getDefault(GEN_DPSO_BUFFER_SIZE);
   queue_index upqueuelength = (queue_index)getDefault(GEN_DPSO_SIZE_UP);
   queue_index downqueuelength = (queue_index)getDefault(GEN_DPSO_SIZE_DOWN);

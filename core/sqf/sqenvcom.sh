@@ -150,19 +150,30 @@ export MY_SQROOT=$PWD
 export SQ_HOME=$PWD
 
 # set common version to be consistent between shared lib and maven dependencies
-export HBASE_DEP_VER_CDH=1.0.0-cdh5.5.1
-export HIVE_DEP_VER_CDH=1.1.0-cdh5.5.1
-export HBASE_TRX_ID_CDH=hbase-trx-cdh5_5
-if [[ "$HBASE_DISTRO" = "CDH5.4" ]]; then
+export HBASE_DEP_VER_CDH=1.2.0-cdh5.7.1
+export HIVE_DEP_VER_CDH=1.1.0-cdh5.7.1
+export HBASE_TRX_ID_CDH=hbase-trx-cdh5_7
+
+if [[ "$HBASE_DISTRO" == "CDH5.5" ]]; then
+   export HBASE_DEP_VER_CDH=1.0.0-cdh5.5.1
+   export HIVE_DEP_VER_CDH=1.1.0-cdh5.5.1
+   export HBASE_TRX_ID_CDH=hbase-trx-cdh5_5
+fi
+if [[ "$HBASE_DISTRO" == "CDH5.4" ]]; then
    export HBASE_DEP_VER_CDH=1.0.0-cdh5.4.4
    export HIVE_DEP_VER_CDH=1.1.0-cdh5.4.4
    export HBASE_TRX_ID_CDH=hbase-trx-cdh5_4
 fi
 
-export HBASE_DEP_VER_APACHE=1.1.2
+export HBASE_DEP_VER_APACHE=1.2.0
 export HIVE_DEP_VER_APACHE=1.1.0
-export HBVER=apache1_1_2
-if [[ "$HBASE_DISTRO" = "APACHE1.0" ]]; then
+export HBVER=apache1_2_0
+
+if [[ "$HBASE_DISTRO" == "APACHE1.1" ]]; then
+   export HBASE_DEP_VER_APACHE=1.1.2
+   export HBVER=apache1_1_2
+fi
+if [[ "$HBASE_DISTRO" == "APACHE1.0" ]]; then
    export HBASE_DEP_VER_APACHE=1.0.2
    export HBVER=apache1_0_2
 fi
@@ -185,23 +196,23 @@ export HADOOP_BLD_INC=${TOOLSDIR}/hadoop-${HADOOP_DEP_VER}/include
 # general Hadoop & TRX dependencies - not distro specific, choose one to build against
 export HBASE_TRXDIR=$MY_SQROOT/export/lib
 export HBASE_TRX_JAR=${HBASE_TRX_ID_CDH}-${TRAFODION_VER}.jar
-export DTM_COMMON_JAR=trafodion-dtm-${TRAFODION_VER}.jar
-export SQL_JAR=trafodion-sql-${TRAFODION_VER}.jar
+export DTM_COMMON_JAR=trafodion-dtm-cdh-${TRAFODION_VER}.jar
+export SQL_JAR=trafodion-sql-cdh-${TRAFODION_VER}.jar
 export UTIL_JAR=trafodion-utility-${TRAFODION_VER}.jar
 export JDBCT4_JAR=jdbcT4-${TRAFODION_VER}.jar
 
 HBVER=""
-if [[ "$HBASE_DISTRO" = "HDP" ]] || [[ "$HBASE_DISTRO" == "BI" ]] || [[ "$HBASE_DISTRO" == "MAPR" ]]; then
+if [[ "$HBASE_DISTRO" == "HDP" ]] || [[ "$HBASE_DISTRO" == "BI" ]] || [[ "$HBASE_DISTRO" == "MAPR" ]]; then
     export HBASE_TRX_JAR=${HBASE_TRX_ID_HDP}-${TRAFODION_VER}.jar
     HBVER="hdp2_3"
-    export DTM_COMMON_JAR=trafodion-dtm-${HBVER}-${TRAFODION_VER}.jar
-    export SQL_JAR=trafodion-sql-${HBVER}-${TRAFODION_VER}.jar
+    export DTM_COMMON_JAR=trafodion-dtm-hdp-${TRAFODION_VER}.jar
+    export SQL_JAR=trafodion-sql-hdp-${TRAFODION_VER}.jar
 fi
 
 if [[ "$HBASE_DISTRO" =~ "APACHE" ]]; then
     export HBASE_TRX_JAR=${HBASE_TRX_ID_APACHE}-${TRAFODION_VER}.jar
-    export DTM_COMMON_JAR=trafodion-dtm-${HBVER}-${TRAFODION_VER}.jar
-    export SQL_JAR=trafodion-sql-${HBVER}-${TRAFODION_VER}.jar
+    export DTM_COMMON_JAR=trafodion-dtm-apache-${TRAFODION_VER}.jar
+    export SQL_JAR=trafodion-sql-apache-${TRAFODION_VER}.jar
 fi
 
 # check for workstation env
@@ -337,7 +348,7 @@ elif [[ -d /opt/cloudera/parcels/CDH ]]; then
   export CURL_LIB_DIR=/usr/lib64
 
   #HBASE_JAR_FILES obtained from hbase itself here.
-  lv_hbase_cp=`hbase classpath`
+  lv_hbase_cp=`/opt/cloudera/parcels/CDH/bin/hbase classpath`
 
   # directories with jar files and list of jar files
   # (could try to reduce the number of jars in the classpath)
@@ -415,8 +426,8 @@ elif [[ "$HADOOP_TYPE" == "hortonworks" ]]; then
 
   export HBASE_TRX_JAR=${HBASE_TRX_ID_HDP}-${TRAFODION_VER}.jar
   HBVER="hdp2_3"
-  export DTM_COMMON_JAR=trafodion-dtm-${HBVER}-${TRAFODION_VER}.jar
-  export SQL_JAR=trafodion-sql-${HBVER}-${TRAFODION_VER}.jar
+  export DTM_COMMON_JAR=trafodion-dtm-hdp-${TRAFODION_VER}.jar
+  export SQL_JAR=trafodion-sql-hdp-${TRAFODION_VER}.jar
   
   # Configuration directories
 
@@ -595,8 +606,8 @@ EOF
 
     # end of code for Apache Hadoop/HBase installation w/o distro
     export HBASE_TRX_JAR=${HBASE_TRX_ID_APACHE}-${TRAFODION_VER}.jar
-    export DTM_COMMON_JAR=trafodion-dtm-${HBVER}-${TRAFODION_VER}.jar
-    export SQL_JAR=trafodion-sql-${HBVER}-${TRAFODION_VER}.jar
+    export DTM_COMMON_JAR=trafodion-dtm-apache-${TRAFODION_VER}.jar
+    export SQL_JAR=trafodion-sql-apache-${TRAFODION_VER}.jar
   else
     # print usage information, not enough information about Hadoop/HBase
     if [[ -z $HADOOP_TYPE ]]; then
@@ -627,6 +638,7 @@ if [ -z $MPICH_ROOT ]; then
   export MPICH_ROOT=$TOOLSDIR/dest-mpich-3.0.4
 fi
 export PROTOBUFS=/usr
+export SNAPPY=/usr
 
 # LOG4CXX
 if [[ -d $TOOLSDIR/apache-log4cxx-0.10.0 ]]
@@ -800,7 +812,7 @@ if [ -z $ICU ]; then
 fi
 
 if [ -z $ORCCPPREADER ]; then
-  export ORCCPPREADER="${TOOLSDIR}/orc-cpp-reader"
+  export ORCCPPREADER="${MY_SQROOT}/../../core/sql/orc"
 fi
 
 
@@ -816,6 +828,14 @@ fi
 # PROTOBUFS may include local over-rides
 export PROTOBUFS_LIB=$PROTOBUFS/lib
 export PROTOBUFS_INC=$PROTOBUFS/include
+
+if [[ ! -e $PROTOBUFS_LIB/libprotobuf.so ]]; then
+export PROTOBUFS_LIB=$PROTOBUFS/lib64
+fi
+
+
+# snappy shared library
+export SNAPPY_LIB=$SNAPPY/lib64
 
 ######################
 # Library Path may include local over-rides
@@ -894,6 +914,11 @@ $MY_SQROOT/export/lib/${UTIL_JAR}:\
 $MY_SQROOT/export/lib/${JDBCT4_JAR}:\
 $MY_SQROOT/export/lib/jdbcT2.jar
 
+if [[ ! -z ${AMPOOL_HOME} ]]; then
+    SQ_CLASSPATH=${SQ_CLASSPATH}:\
+${MY_SQROOT}/conf:\
+${AMPOOL_HOME}/lib/ampool-dependencies.jar
+fi
 
 # Check whether the current shell environment changed from a previous execution of this
 # script.

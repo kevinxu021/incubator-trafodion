@@ -28,6 +28,7 @@ import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
@@ -351,6 +352,175 @@ public class WorkloadsResource {
 
 	}
 
+	@GET
+	@Path("/repo/top_mem_used/{startTime}/{endTime}")
+	@Produces("application/json")
+	public ArrayList<HashMap<String,String>> getTopMemUsed(@Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse,@PathParam("startTime") String startTime, 
+			@PathParam("endTime") String endTime) throws EsgynDBMgrException {
+		ArrayList<HashMap<String,String>> result = new ArrayList<HashMap<String,String>>();
+		
+		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.TOP_N_MEM_USED),startTime,endTime);
+		_LOG.debug(sqlText);
+
+		Connection connection = null;
+		PreparedStatement stmt;
+		ResultSet rs;
+
+		try {
+			connection = JdbcHelper.getInstance().getAdminConnection();
+			stmt = connection.prepareStatement(sqlText);
+
+			rs = stmt.executeQuery();
+			while(rs.next()){
+				HashMap<String, String> queryInfo = new HashMap<String, String>();
+				queryInfo.put("query_id", rs.getString("query_id").trim());
+				queryInfo.put("memory_used", rs.getString("memory_used"));
+				queryInfo.put("start_time", rs.getString("exec_start_utc_ts"));
+				queryInfo.put("end_time", rs.getString("exec_end_utc_ts"));
+				result.add(queryInfo);
+			}
+			stmt.close();
+		} catch (Exception e) {
+			_LOG.error("Failed to execute query : " + e.getMessage());
+			throw new EsgynDBMgrException(e.getMessage());
+		} finally {
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (Exception ex) {
+				}
+			}
+		}
+		return result;
+	}
+	
+	@GET
+	@Path("/repo/topcpu/{startTime}/{endTime}")
+	@Produces("application/json")
+	public ArrayList<HashMap<String,String>> getTopCPUTime(@Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse,@PathParam("startTime") String startTime, 
+			@PathParam("endTime") String endTime) throws EsgynDBMgrException {
+		ArrayList<HashMap<String,String>> result = new ArrayList<HashMap<String,String>>();
+		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.TOP_N_CPU_TIME),startTime,endTime);
+		_LOG.debug(sqlText);
+
+		Connection connection = null;
+		PreparedStatement stmt;
+		ResultSet rs;
+
+		try {
+			connection = JdbcHelper.getInstance().getAdminConnection();
+			stmt = connection.prepareStatement(sqlText);
+
+			rs = stmt.executeQuery();
+			while(rs.next()){
+				HashMap<String, String> queryInfo = new HashMap<String, String>();
+				queryInfo.put("query_id", rs.getString("query_id").trim());
+				queryInfo.put("cpu_time", rs.getString("cpu_time"));
+				queryInfo.put("start_time", rs.getString("exec_start_utc_ts"));
+				queryInfo.put("end_time", rs.getString("exec_end_utc_ts"));
+				result.add(queryInfo);
+			}
+			stmt.close();
+		} catch (Exception e) {
+			_LOG.error("Failed to execute query : " + e.getMessage());
+			throw new EsgynDBMgrException(e.getMessage());
+		} finally {
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (Exception ex) {
+				}
+			}
+		}
+		return result;
+	}
+	
+	@GET
+	@Path("/repo/topruntime/{startTime}/{endTime}")
+	@Produces("application/json")
+	public ArrayList<HashMap<String,String>> getTopRunTime(@Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse,@PathParam("startTime") String startTime, 
+			@PathParam("endTime") String endTime) throws EsgynDBMgrException {
+		ArrayList<HashMap<String,String>> result = new ArrayList<HashMap<String,String>>();
+		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.TOP_N_TOTAL_RUN_TIME),startTime,endTime);
+		_LOG.debug(sqlText);
+
+		Connection connection = null;
+		PreparedStatement stmt;
+		ResultSet rs;
+
+		try {
+			connection = JdbcHelper.getInstance().getAdminConnection();
+			stmt = connection.prepareStatement(sqlText);
+
+			rs = stmt.executeQuery();
+			while(rs.next()){
+				HashMap<String, String> queryInfo = new HashMap<String, String>();
+				queryInfo.put("query_id", rs.getString("query_id").trim());
+				queryInfo.put("query_elapsed_time", rs.getString("query_elapsed_time"));
+				queryInfo.put("start_time", rs.getString("exec_start_utc_ts"));
+				queryInfo.put("end_time", rs.getString("exec_end_utc_ts"));
+				result.add(queryInfo);
+			}
+			stmt.close();
+		} catch (Exception e) {
+			_LOG.error("Failed to execute query : " + e.getMessage());
+			throw new EsgynDBMgrException(e.getMessage());
+		} finally {
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (Exception ex) {
+				}
+			}
+		}
+		return result;
+	}
+	
+	@GET
+	@Path("/repo/topdiskio/{startTime}/{endTime}")
+	@Produces("application/json")
+	public ArrayList<HashMap<String,String>> getTopDiskIO(@Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse,@PathParam("startTime") String startTime, 
+			@PathParam("endTime") String endTime) throws EsgynDBMgrException {
+		ArrayList<HashMap<String,String>> result = new ArrayList<HashMap<String,String>>();
+		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.TOP_N_DISK_IO),startTime,endTime);
+		_LOG.debug(sqlText);
+
+		Connection connection = null;
+		PreparedStatement stmt;
+		ResultSet rs;
+
+		try {
+			connection = JdbcHelper.getInstance().getAdminConnection();
+			stmt = connection.prepareStatement(sqlText);
+
+			rs = stmt.executeQuery();
+			while(rs.next()){
+				HashMap<String, String> queryInfo = new HashMap<String, String>();
+				queryInfo.put("query_id", rs.getString("query_id").trim());
+				queryInfo.put("disk_ios", rs.getString("disk_ios"));
+				queryInfo.put("start_time", rs.getString("exec_start_utc_ts"));
+				queryInfo.put("end_time", rs.getString("exec_end_utc_ts"));
+				result.add(queryInfo);
+			}
+			stmt.close();
+		} catch (Exception e) {
+			_LOG.error("Failed to execute query : " + e.getMessage());
+			throw new EsgynDBMgrException(e.getMessage());
+		} finally {
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (Exception ex) {
+				}
+			}
+		}
+		return result;
+	}
+	
 	@GET
 	@Path("/active/detail/")
 	@Produces("application/json")

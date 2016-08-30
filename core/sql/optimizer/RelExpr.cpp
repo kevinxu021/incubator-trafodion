@@ -8120,7 +8120,11 @@ HbasePushdownAggr::~HbasePushdownAggr()
 
 const NAString HbasePushdownAggr::getText() const
 {
-  return "hbase_aggr";
+  NABoolean isMonarch = 
+    (getTableDesc() && getTableDesc()->getNATable()
+     ? getTableDesc()->getNATable()->isMonarch() : FALSE);
+
+  return (isMonarch ? "monarch_aggr" : "hbase_aggr");
 }
 
 RelExpr * HbasePushdownAggr::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)

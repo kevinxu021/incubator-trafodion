@@ -4,15 +4,34 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <openssl/des.h>
+#include <ctype.h>
 
-#define MAX_STR_LEN  512
-//ASCII is smaller than 256, so 2 bytes to show in HEX 
-#define MAX_ENC_STR_LEN  MAX_STR_LEN*2
+#define MAX_ENC_STR_LEN  512
 
-#define VERSION_LEN     1
-#define CUSTOMER_LEN    7
-#define NODENUM_LEN     4
-#define EXPIRE_LEN      4
+#define VERSION_LEN        2
+#define CUSTOMER_LEN       10
+#define NODENUM_LEN        4
+#define EXPIRE_LEN         4
+#define PACKAGE_INSTALLED  4
+#define INSTALL_TYPE       4
+#define RESERVED_FIELD     4
+
+//define the enum of package installed
+#define PACKAGE_ENT  1
+#define PACKAGE_ADV  2
+
+#define PACKAGE_ENT_TEXT  "ENT"
+#define PACKAGE_ADV_TEXT  "ADV"
+
+//define the enum of installed type
+#define TYPE_DEMO     1
+#define TYPE_POC      2
+#define TYPE_PRODUCT  3
+
+#define TYPE_DEMO_TEXT "DEMO"
+#define TYPE_POC_TEXT "POC"
+#define TYPE_PRODUCT_TEXT "PRODUCT"
 
 void printHelp()
 {
@@ -20,7 +39,10 @@ void printHelp()
 encoder –v [version]\n\
         -c [customer name]\n\
         -n [node number]\n\
-        -e [expire date]\n");
+        -e [expire date]\n\
+        -p [package installed]\n\
+        -t [install type]\n"\
+        );
 }
 
 int main(int argc, char *argv[])
@@ -28,52 +50,92 @@ int main(int argc, char *argv[])
     int ret = 0;
     int ch = 0;
     int i = 0;
-    int v = 0;
+    short v = 0;
     int n = 0;
     int argnum=0;
+    int da = 0;
+    int len = 0;
+    int package=0, type=0;
     
     char version[VERSION_LEN+1];
     char customer[CUSTOMER_LEN+1];
-    char nodenumber[NODENUM_LEN+1];
-    char expiredate[EXPIRE_LEN+1];
+    int nodenumber;
+    int expiredate;
+    char packageInstalled[PACKAGE_INSTALLED+1];
+    char installType[INSTALL_TYPE+1];
+    char typeUpper[16]; 
+    char pkgUpper[16]; 
     
     /* initialize string buffer */
-    memset(version,0,VERSION_LEN+1);
     memset(customer,0,CUSTOMER_LEN+1);
-    memset(nodenumber,0,NODENUM_LEN+1);
-    memset(expiredate,0,EXPIRE_LEN+1);
+    memset(packageInstalled,0,PACKAGE_INSTALLED+1);
+    memset(installType,0,INSTALL_TYPE+1);
 
-    while((ch=getopt(argc,argv,"v:c:n:e:"))!=-1)
+    while((ch=getopt(argc,argv,"v:c:n:e:p:t:"))!=-1)
     {
         switch(ch)
         {
             case 'v':
                 v = atoi(optarg);
-                if ( v < 1 || v > 9 ) // 1 char, 9 version should be enough ...
+                if ( v < 1 || v > 128 )  
                 {
                     printf("Version %s is invalid\n", optarg);
                     exit(1);
                 }
-                sprintf(version,"%1d",v);
                 argnum++;
                 break;
             case 'c':
-                sprintf(customer,"%7s",optarg );
+                sprintf(customer,"%10s",optarg );
                 argnum++;
                 break;
             case 'n':
-                n = atoi(optarg);
-                if ( n < 1 || n > 9999 )
+                nodenumber = atoi(optarg);
+                if ( nodenumber < 1 || nodenumber > 9999 )
                 {
                     printf("node number %s is invalid\n", optarg);
                     exit(1);
                 }               
-                sprintf(nodenumber,"%4d",n);
                 argnum++;
                 break;
             case 'e':
-                //set to 9999 for now
-                strcpy(expiredate,"9999");
+                // 32-bit integer, # of days after Jan 1, 1970, 4 bytes
+                expiredate= atoi(optarg);
+                argnum++;
+                break;
+            case 'p':
+                package = 0;
+                memset(pkgUpper, 0, sizeof(pkgUpper)); 
+                if (strlen(optarg) > 16) {
+                  printf("Invalid package\n");
+                  exit(1);
+                }
+                for(i = 0; i < strlen(optarg); i++)
+                  pkgUpper[i]=toupper(optarg[i]);
+                if(strcmp(pkgUpper,PACKAGE_ADV_TEXT) == 0 ) 
+                  package=PACKAGE_ADV;
+                else if(strcmp(pkgUpper,PACKAGE_ENT_TEXT) == 0)
+                  package=PACKAGE_ENT;
+                memcpy(packageInstalled,(void*)&package,sizeof(int));
+                argnum++;
+                break;
+            case 't':
+                type= 0;
+                memset(typeUpper, 0, sizeof(typeUpper)); 
+                if (strlen(optarg) > 16) {
+                  printf("Invalid type \n");
+                  exit(1);
+                }
+                for(i = 0; i < strlen(optarg); i++)
+                  typeUpper[i]=toupper(optarg[i]);
+                if(strcmp(typeUpper,TYPE_DEMO_TEXT) == 0 ) 
+                  type=TYPE_DEMO;
+                else if(strcmp(typeUpper,TYPE_POC_TEXT) == 0)
+                  type=TYPE_POC;
+                else if(strcmp(typeUpper, TYPE_PRODUCT_TEXT) == 0)
+                  type=TYPE_PRODUCT;
+                else
+                  type=0;
+                memcpy(installType,(void*)&type,sizeof(int));
                 argnum++;
                 break;
             default:
@@ -81,7 +143,7 @@ int main(int argc, char *argv[])
                 exit(1);
         }
     }
-    if(argnum != 4)
+    if(argnum != 6)
     {
         printHelp();
         exit(1);
@@ -89,18 +151,38 @@ int main(int argc, char *argv[])
         
     char output[MAX_ENC_STR_LEN];
     memset(output,0,MAX_ENC_STR_LEN);
-    
-    strcat(output,version);
-    strcat(output,customer);
-    strcat(output,nodenumber);
-    strcat(output,expiredate);
+   
+    memcpy(output , &v, sizeof(short));
+    memcpy(output + VERSION_LEN, customer, CUSTOMER_LEN );
+    memcpy(output + VERSION_LEN + CUSTOMER_LEN , &nodenumber, sizeof(int));
+    memcpy(output + VERSION_LEN + CUSTOMER_LEN + NODENUM_LEN , &expiredate , sizeof(int));
+    memcpy(output + VERSION_LEN + CUSTOMER_LEN + NODENUM_LEN + EXPIRE_LEN , packageInstalled , sizeof(int));
+    memcpy(output + VERSION_LEN + CUSTOMER_LEN + NODENUM_LEN + EXPIRE_LEN + PACKAGE_INSTALLED , installType, sizeof(int));
         
     //encrpt
-    //convert each character into HEX and output 
-    for( i=0 ; i < strlen(output); i++)
-    {
-        printf("%2x",output[i]);
-    }
+    DES_cblock key[1];
+    DES_key_schedule key_schedule;
 
+    DES_string_to_key("nonstop2016",key);
+
+    if (DES_set_key_checked(key, &key_schedule) != 0)
+      exit(1);
+
+    //DES requires the output buffer len to be  ( inputLen + 7 ) /8 * 8  , i.e. output is longer than input
+    size_t lenenc = (VERSION_LEN + CUSTOMER_LEN + NODENUM_LEN + EXPIRE_LEN + PACKAGE_INSTALLED + INSTALL_TYPE + RESERVED_FIELD +7)/8 * 8;
+    unsigned char *outputenc = (unsigned char*) malloc(lenenc+1);
+    memset(outputenc, 0 , sizeof(outputenc) );
+
+    DES_cblock ivec;
+
+    memset((char*)&ivec, 0, sizeof(ivec));
+    DES_ncbc_encrypt((const unsigned char *)output, outputenc, lenenc, &key_schedule, &ivec, 1);
+
+    //convert each character into HEX and output 
+    for( i=0 ; i < lenenc; i++)
+    {
+        printf("%.2x",outputenc[i]);
+    }
+ 
     return ret;
 }

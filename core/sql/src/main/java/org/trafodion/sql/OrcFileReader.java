@@ -1114,13 +1114,24 @@ public class OrcFileReader
 		break;
 	    case OrcProto.Type.Kind.VARCHAR_VALUE:
 		HiveVarchar lv_hivevarchar = ((WritableHiveVarcharObjectInspector) m_foi).getPrimitiveJavaObject(lv_field_val);
-		p_row_bb.putInt(lv_hivevarchar.getCharacterLength());
+                //		p_row_bb.putInt(lv_hivevarchar.getCharacterLength());
+                p_row_bb.putInt(lv_hivevarchar.getValue().length());
 		p_row_bb.put(lv_hivevarchar.getValue().getBytes());
+
+                //                System.out.println("length = " + lv_hivevarchar.getValue().length());
+                //                System.out.println("getCharacterLength() = " + lv_hivevarchar.getCharacterLength());
+                //                System.out.println("getBytes():" + Bytes.toString(lv_hivevarchar.getValue().getBytes()) + ":");
+                
 		break;
 	    case OrcProto.Type.Kind.CHAR_VALUE:
 		HiveChar lv_hivechar = ((WritableHiveCharObjectInspector) m_foi).getPrimitiveJavaObject(lv_field_val);
-		p_row_bb.putInt(lv_hivechar.getCharacterLength());
+                p_row_bb.putInt(lv_hivechar.getValue().length());
 		p_row_bb.put(lv_hivechar.getValue().getBytes());
+
+                //                System.out.println("length = " + lv_hivechar.getValue().length());
+                //                System.out.println("getCharacterLength() = " + lv_hivechar.getCharacterLength());
+                //                System.out.println("getStrippedBytes():" + Bytes.toString(lv_hivechar.getStrippedValue().getBytes()) + ":");
+                //                System.out.println("getBytes():" + Bytes.toString(lv_hivechar.getValue().getBytes()) + ":");
 		break;
 	    default:
 		break;

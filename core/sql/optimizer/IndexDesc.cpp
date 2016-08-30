@@ -275,6 +275,23 @@ IndexDesc::IndexDesc(TableDesc *tdesc,
 	}
     }
 
+
+  const NAColumnArray &allColsArray = tdesc->getNATable()->getNAColumnArray();
+  const ValueIdList &allCols = tdesc->getColumnVEGList();
+
+  // make lists of the Hive partition columns in order of appearance, 
+  // expressed in ValueIds of the index columns.
+  for (int colNum=0; colNum<allColsArray.entries(); colNum++)
+  {
+     NAColumn *nac = allColsArray[colNum];
+     if (nac->isHivePartColumn()) {
+       ixColNumber = allColsArray.getColumnPosition(nac->getColName());
+       ValueId id = indexColumns_[ixColNumber];
+       hivePartCols_.insert(id);
+     }
+  }
+  
+
   // ---------------------------------------------------------------------
   // If this index is partitioned, find the partitioning key columns
   // and build a partitioning function.

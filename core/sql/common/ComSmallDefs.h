@@ -1778,6 +1778,7 @@ enum ComReplType
 // storage system of a trafodion table
 enum ComStorageType
   {
+    COM_STORAGE_UNKNOWN = -1,
     COM_STORAGE_HBASE = 0,
     COM_STORAGE_MONARCH = 1
   };
