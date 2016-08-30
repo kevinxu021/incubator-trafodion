@@ -200,6 +200,7 @@ export DTM_COMMON_JAR=trafodion-dtm-cdh-${TRAFODION_VER}.jar
 export SQL_JAR=trafodion-sql-cdh-${TRAFODION_VER}.jar
 export UTIL_JAR=trafodion-utility-${TRAFODION_VER}.jar
 export JDBCT4_JAR=jdbcT4-${TRAFODION_VER}.jar
+export ESGYN_MONARCH_TRX_JAR=esgyn_monarch-trx-${TRAFODION_VER}.jar
 
 HBVER=""
 if [[ "$HBASE_DISTRO" == "HDP" ]] || [[ "$HBASE_DISTRO" == "BI" ]] || [[ "$HBASE_DISTRO" == "MAPR" ]]; then
@@ -903,7 +904,8 @@ $MY_SQROOT/export/lib/${DTM_COMMON_JAR}:\
 $MY_SQROOT/export/lib/${SQL_JAR}:\
 $MY_SQROOT/export/lib/${UTIL_JAR}:\
 $MY_SQROOT/export/lib/${JDBCT4_JAR}:\
-$MY_SQROOT/export/lib/jdbcT2.jar
+$MY_SQROOT/export/lib/jdbcT2.jar:\
+$MY_SQROOT/export/lib/${ESGYN_MONARCH_TRX_JAR}
 
 if [[ ! -z ${AMPOOL_HOME} ]]; then
     SQ_CLASSPATH=${SQ_CLASSPATH}:\

@@ -493,7 +493,7 @@ public class MonarchClient {
 	 //Narendra - end
       }
       else {
-         desc.setTableType(MTableType.ORDERED_VERSIONED);
+         desc.setTableType(MTableType.UNORDERED);
          //desc.setTotalNumOfSplits(numSplits);
       }
 /* 

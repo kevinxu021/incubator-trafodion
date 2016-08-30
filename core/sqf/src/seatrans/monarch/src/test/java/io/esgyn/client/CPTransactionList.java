@@ -67,6 +67,8 @@ public class CPTransactionList {
 							    + ", Value: " + lv_e.getValue());
 		    for (java.lang.Object lv_value : lv_e.getValue()) {
 			AmpoolIPC.GetTransactionListResponse lv_rp = (AmpoolIPC.GetTransactionListResponse) lv_value;
+			
+			if (lv_rp.m_num_transactions <= 0) continue;
 		    
 			System.out.println("Entry: " + lv_e.getKey()
 					   + ", status: " + lv_rp.m_status

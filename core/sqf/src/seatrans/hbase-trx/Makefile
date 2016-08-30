@@ -36,7 +36,7 @@ GENVERS			    =./genvers
 UNCOMMENT_STRING	    =./uncomment_string
 REINSTATE_ORIG   	    =./reinstate_orig
 
-#.NOTPARALLEL: all
+.NOTPARALLEL: all
 
 all: build_all
 

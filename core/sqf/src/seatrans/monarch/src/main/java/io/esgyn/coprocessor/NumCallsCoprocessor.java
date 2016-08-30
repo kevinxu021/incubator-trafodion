@@ -21,19 +21,30 @@ public class NumCallsCoprocessor extends MCoprocessor {
     public  NumCallsCoprocessor() {
     }
 
-    public long numCalls(MCoprocessorContext context) {
-	logger.info("NumCallsCoprocessor.numCalls ");
+    public long numCalls(MCoprocessorContext context) 
+    {
+	logger.info("NumCallsCoprocessor (method: numCalls) Entry"
+		    + ", m_calls:" + m_calls);
 
         MExecutionRequest request = context.getRequest();
 
-	MTableRegion lv_region = context.getMTableRegion();
+	logger.info("NumCallsCoprocessor (method: numCalls)"
+		    + ", Table Name: " + context.getTable().getName()
+		    );
 
-	    logger.info("Table Name: " + 
-			context.getTable().getName());
-        try {
-        } catch (Exception e) {
-            throw new MCoprocessorException("Error in scanning results");
-        }
+	try {
+	    MTableRegion lv_region = context.getMTableRegion();
+	    
+	    logger.info("NumCallsCoprocessor (method: numCalls)"
+			+ ", Region: " + lv_region
+			);
+	}
+	catch (Throwable et) {
+	    logger.error("NumCallsCoprocessor (method: numCalls) exception"
+			 , et
+			 );
+	}
+
         return ++m_calls;
     }
 

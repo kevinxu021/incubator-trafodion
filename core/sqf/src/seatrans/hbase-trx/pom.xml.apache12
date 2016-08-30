@@ -25,14 +25,9 @@
       <url>http://mvnrepository.com/artifact/</url>
       <layout>default</layout>
     </repository>
-    <repository>
-      <id>Ampool-client</id>
-      <url>https://s3-us-west-2.amazonaws.com/ampool/mvn-repo</url>
-    </repository>
   </repositories> 
 
   <properties>
-    <ampool.version>1.0.0</ampool.version>
     <hadoop.version>2.6.0</hadoop.version>
     <hbase.version>1.2.0</hbase.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -97,23 +92,6 @@
 
 
   <dependencies>
-    <dependency>
-      <groupId>io.ampool</groupId>
-      <artifactId>ampool-core</artifactId>
-      <version>${ampool.version}</version>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-api</artifactId>
-      <version>2.5</version>
-    </dependency>
-    
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-core</artifactId>
-      <version>2.5</version>
-    </dependency>
     <dependency>
         <groupId>org.apache.hbase</groupId>
         <artifactId>hbase-common</artifactId>
@@ -237,79 +215,27 @@ if we can combine these profiles somehow -->
              </dependency>
          </dependencies>
          <build>
-           <plugins>
-             <plugin>
-               <artifactId>maven-dependency-plugin</artifactId>
-               <executions>
-                 <execution>
-                   <id>create-mrapp-generated-classpath</id>
-                   <phase>generate-test-resources</phase>
-                   <goals>
-                     <goal>build-classpath</goal>
-                   </goals>
-                   <configuration>
-                     <!-- needed to run the unit test for DS to generate
-                          the required classpath that is required in the env
-                          of the launch container in the mini mr/yarn cluster
-                       -->
-                     <outputFile>${project.build.directory}/test-classes/mrapp-generated-classpath</outputFile>
-                   </configuration>
-                 </execution>
-               </executions>
-             </plugin>
-
-             <plugin>
-               <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-compiler-plugin</artifactId>
-              <version>3.3</version>
-              <configuration>
-                <source>1.8</source>
-                <target>1.8</target>
-              </configuration>
-             </plugin>
-
-             <!-- Make a jar and put the sources in the jar.
-		  In the parent pom, so submodules will do the right thing. -->
-             <plugin>
-               <groupId>org.apache.maven.plugins</groupId>
-               <artifactId>maven-source-plugin</artifactId>
-               <executions>
-		 <execution>
-		   <id>attach-sources</id>
-		   <phase>prepare-package</phase>
-		   <goals>
-                     <goal>jar-no-fork</goal>
-                     <goal>test-jar-no-fork</goal>
-		   </goals>
-		 </execution>
-               </executions>
-             </plugin>
-
-             <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-jar-plugin</artifactId>
-	      <executions>
-		<execution>
-		  <goals>
-		    <goal>test-jar</goal>
-		  </goals>
-		</execution>
-	      </executions>
-              <configuration>
-                <archive>
-                  <manifest>
-                    <addClasspath>true</addClasspath>
-                    <!-- <classpathPrefix>lib</classpathPrefix> -->
-                    <!-- <mainClass>test.org.Cliente</mainClass> -->
-                  </manifest>
-                  <manifestEntries>
-                    <Class-Path>lib/</Class-Path>
-                  </manifestEntries>
-                </archive>
-              </configuration>
-             </plugin>
-
-           </plugins>
+             <plugins>
+                 <plugin>
+                     <artifactId>maven-dependency-plugin</artifactId>
+                     <executions>
+                         <execution>
+                             <id>create-mrapp-generated-classpath</id>
+                             <phase>generate-test-resources</phase>
+                             <goals>
+                                 <goal>build-classpath</goal>
+                             </goals>
+                             <configuration>
+                                 <!-- needed to run the unit test for DS to generate
+                                 the required classpath that is required in the env
+                                 of the launch container in the mini mr/yarn cluster
+                                 -->
+                                 <outputFile>${project.build.directory}/test-classes/mrapp-generated-classpath</outputFile>
+                             </configuration>
+                         </execution>
+                     </executions>
+                 </plugin>
+             </plugins>
          </build>
      </profile>
      <!--
