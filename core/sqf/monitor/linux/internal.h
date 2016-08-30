@@ -162,8 +162,9 @@ struct nodename_def
 
 struct license_def
 {
-    int        req_nid;                         // Node id of requesting process 
+    int        req_nid;                         // Node id of requesting process OR if verifier is -1, then this is the PNid of the monitor
     int        req_pid;                         // Pid id of requesting process
+    Verifier_t req_verifier;                    // validate for requester other than montior, monitor will set to -1
     bool       success;                         
     char       license[LICENSE_NUM_BYTES];
 };

@@ -27,6 +27,7 @@
 #include "monsonar.h"
 #include "monlogging.h"
 #include "clusterconf.h"
+#include "licensecommon.h"
 
 extern CNode *MyNode;
 extern CReplicate Replicator;
@@ -64,10 +65,8 @@ void CExtLicenseReq::performRequest()
     TRACE_ENTRY;
     
     CProcess       *requester = NULL;
-    int             rc = MPI_SUCCESS;
-    FILE           *pFile;
     bool            success = true;
-    char            myLicense[LICENSE_NUM_BYTES];
+    CLicenseCommon  licenseFile; //read in the license
     
     // Trace info about request
     if (trace_settings & (TRACE_REQUEST | TRACE_PROCESS))
@@ -75,36 +74,18 @@ void CExtLicenseReq::performRequest()
         trace_printf("%s@%d request #%ld: License Request"
                     , method_name, __LINE__, id_ );
     }
-
-    char *licenseFile = getenv("SQ_MON_LICENSE_FILE");
-    if (licenseFile)
-    {
-        pFile = fopen( licenseFile, "r" );
-        if ( pFile )
-        {
-           int bytesRead = fread (myLicense,sizeof(char), LICENSE_NUM_BYTES,pFile);
-           if (bytesRead != LICENSE_NUM_BYTES)
-           {
-                success = false;  
-           }
-           fclose(pFile);
-        }
-        else
-        {
-            success = false;
-        }
-    }
-    else
-      success = false;
+    nid_ = msg_->u.request.u.license.nid;
+    verifier_ = msg_->u.request.u.license.verifier;
+    success = licenseFile.getLicenseReady();
     
     if (!success)
        msg_->noreply = false;// reply now
     else
     {     
-        requester = MyNode->GetProcess( pid_ );    
+        requester = MyNode->GetProcess( pid_, verifier_);    
         if ( requester )
         {
-            CReplLicense *repl = new CReplLicense(pid_, nid_, myLicense);
+            CReplLicense *repl = new CReplLicense(pid_, nid_, verifier_, licenseFile.getLicense());
             if (repl)
             {
                // we will not reply at this time ... but wait for 
@@ -123,6 +104,7 @@ void CExtLicenseReq::performRequest()
             }
         }
     }
+    
    if (!msg_->noreply)  // client needs a reply 
    {
       msg_->u.reply.type = ReplyType_License;

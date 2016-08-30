@@ -28,10 +28,12 @@
 #define TYPE_DEMO     1
 #define TYPE_POC      2
 #define TYPE_PRODUCT  3
+#define TYPE_INTERNAL 4
 
 #define TYPE_DEMO_TEXT "DEMO"
 #define TYPE_POC_TEXT "POC"
 #define TYPE_PRODUCT_TEXT "PRODUCT"
+#define TYPE_INTERNAL_TEXT "INTERNAL"
 
 void printHelp()
 {
@@ -133,6 +135,8 @@ int main(int argc, char *argv[])
                   type=TYPE_POC;
                 else if(strcmp(typeUpper, TYPE_PRODUCT_TEXT) == 0)
                   type=TYPE_PRODUCT;
+                else if(strcmp(typeUpper, TYPE_INTERNAL_TEXT) == 0)
+                  type=TYPE_INTERNAL;
                 else
                   type=0;
                 memcpy(installType,(void*)&type,sizeof(int));

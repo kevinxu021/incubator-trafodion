@@ -3585,11 +3585,151 @@ void ls_cmd (char *cmd_tail, char delimiter)
     delete [] cmd;
     delete [] wdir;
 }
-
-//TRK - do not allow access for initial checkin
-void license_cmd (char *cmd_tail, char delimiter)
+void license_cmd ()
 {
-   printf("\n Not Supported\n");
+    const char method_name[] = "license_cmd";
+    MPI_Status status;
+    
+    char   msgString[MAX_BUFFER] = { 0 };
+    int    count;
+    char   license[LICENSE_NUM_BYTES];
+    int    numNodes;
+    int    expireDate;
+    short  version;
+    char   name [LICENSE_NAME_SIZE+1];
+    int    type;
+    int    package;
+    //char reserved[LICENSE_RESERVED_SIZE];
+    
+    assert(gp_local_mon_io);
+
+    if ( gp_local_mon_io->acquire_msg( &msg ) != 0 )
+    {   // Could not acquire a message buffer
+        sprintf( msgString, "[%s] Unable to acquire message buffer.", MyName);
+        write_startup_log( msgString );
+        printf ("%s\n", msgString );
+        return;
+    }
+
+    msg->type = MsgType_Service;
+    msg->noreply = false;
+    msg->reply_tag = REPLY_TAG;
+    msg->u.request.type = ReqType_License;
+    msg->u.request.u.license.nid = MyNid;
+    msg->u.request.u.license.pid = MyPid;
+    msg->u.request.u.license.verifier = MyVerifier;
+    if ( trace_settings & TRACE_SHELL_CMD )
+        trace_printf( "%s@%d [%s] Sending license get\n "
+                    , method_name, __LINE__, MyName );
+
+    gp_local_mon_io->send_recv( msg );
+    if (gp_local_mon_io->iv_shutdown)
+    {
+        gp_local_mon_io->release_msg(msg);
+        return;
+    }
+    status.MPI_TAG = msg->reply_tag;
+    count = sizeof( *msg );
+
+    if ((status.MPI_TAG == REPLY_TAG) &&
+        (count == sizeof (struct message_def)))
+    {
+        if ((msg->type == MsgType_Service) &&
+            (msg->u.reply.type == ReplyType_License))
+        {
+            if (msg->u.reply.u.license.return_code != MPI_SUCCESS)
+            {
+                printf( "[%s] License get failed, MPI error=%s\n"
+                          , MyName, ErrorMsg(msg->u.reply.u.generic.return_code));
+            }
+            else if (msg->u.reply.u.license.success != true)
+            {
+                printf( "[%s] License verification failed with success = false\n", MyName);
+            }
+            else
+            { 
+                memset(name, 0, LICENSE_NAME_SIZE+1);
+                memcpy ((void*)license, msg->u.reply.u.license.license,LICENSE_NUM_BYTES );
+                memcpy ((void*)&version, &(license[LICENSE_VERSION_OFFSET]), LICENSE_VERSION_SIZE);
+                memcpy ((void*)&numNodes, &(license[LICENSE_NODES_OFFSET]), LICENSE_NODES_SIZE);
+                memcpy ((void*)&expireDate, &(license[LICENSE_EXPIRE_OFFSET]), LICENSE_EXPIRE_SIZE);
+                strncpy (name, (char *)license + LICENSE_NAME_OFFSET, LICENSE_NAME_SIZE);
+                memcpy ((void*)&package, &(license[LICENSE_PACKAGE_OFFSET]), LICENSE_PACKAGE_SIZE);
+                memcpy ((void*)&type, &(license[LICENSE_TYPE_OFFSET]), LICENSE_TYPE_SIZE);
+                // memcpy ((void*)reserved, &(license[LICENSE_RESERVED_OFFSET]), LICENSE_RESERVED_SIZE);
+                
+                printf("\n\nVALID License\n---------------------\n");
+                printf("\nVERSION  : %d", version);
+                printf("\nNAME     : %s", name);
+                printf("\nNODES    : %d", numNodes);
+                printf("\nEXPIRE   : %d", expireDate);
+                switch (package)
+                {
+                  case PACKAGE_ENT :
+                  {
+                    printf("\nPACKAGE  : %s", PACKAGE_ENT_TEXT);
+                    break;
+                  }
+                  case PACKAGE_ADV :
+                  {
+                     printf("\nPACKAGE  : %s", PACKAGE_ADV_TEXT);
+                     break;
+                  }
+                  default:
+                  {
+                    printf("\nUNKNOWN PACKAGE  : %d", package);
+                    break;
+                  }
+                    
+                }
+                
+                switch (type)
+                {
+                  case TYPE_DEMO :
+                  {
+                    printf("\nTYPE     : %s", TYPE_DEMO_TEXT);
+                    break;
+                  }
+                  case TYPE_POC :
+                  {
+                    printf("\nTYPE     : %s", TYPE_POC_TEXT);
+                    break;
+                  }
+                  case TYPE_PRODUCT :
+                  {
+                    printf("\nTYPE     : %s", TYPE_PRODUCT_TEXT);
+                    break;
+                  }
+                  case TYPE_INTERNAL :
+                  {
+                    printf("\nTYPE     : %s", TYPE_INTERNAL_TEXT);
+                    break;
+                  }
+                  default :
+                  {
+                    printf("\nUNKNOWN TYPE     : %d", type);
+                    break;
+                  }
+                }
+                printf("\n");
+                // printf("\nRESERVED : %s\n\n", reserved);
+
+            }
+        }
+        else
+        {
+            printf( "[%s] Invalid MsgType(%d)/ReplyType(%d) for License message\n"
+                  , MyName, msg->type, msg->u.reply.type);
+        }
+    }
+    else
+    {
+        printf( "[%s] License reply invalid, msg tag is %d, count= %d. \n"
+              , MyName, status.MPI_TAG, count);
+    }
+
+    if (gp_local_mon_io)
+        gp_local_mon_io->release_msg(msg);
 }
 
 void node_cmd (char *cmd_tail)
@@ -5869,7 +6009,8 @@ bool process_command( char *token, char *cmd_tail, char delimiter )
     }
     else if (strcmp (token, "license") == 0)
     {
-        license_cmd(cmd_tail, delimiter);
+        printf("\nNot Supported\n");
+        //TRK license_cmd();
     }
     else if (strcmp (token, "ls") == 0)
     {

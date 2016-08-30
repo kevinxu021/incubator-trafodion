@@ -85,6 +85,7 @@ INCLUDES+= -I$(LOG4CXX_INC_DIR)/log4cxx
 LIBS+=  -lsqlite3
 LIBS+=  -llog4cxx
 LIBS+=  -ldl
+LIBS+=  -lssl
 
 ifeq ($(USE_TESTPOINTS),1)
    FLAGS+= -DUSE_TESTPOINTS
@@ -115,6 +116,7 @@ MONITORSRC += pnode.cxx
 MONITORSRC += intprocess.cxx
 MONITORSRC += healthcheck.cxx
 MONITORSRC += commaccept.cxx
+MONITORSRC += licensecommon.cxx
 ifeq ($(USE_DMALLOC),1)
     MONITORSRC += $(OUTDIR)/dm.cxx
 endif
@@ -176,6 +178,7 @@ MONITOROBJS += $(OUTDIR)/pnode.o
 MONITOROBJS += $(OUTDIR)/intprocess.o
 MONITOROBJS += $(OUTDIR)/healthcheck.o
 MONITOROBJS += $(OUTDIR)/commaccept.o
+MONITOROBJS += $(OUTDIR)/licensecommon.o
 ifeq ($(USE_DMALLOC),1)
     MONITOROBJS += $(OUTDIR)/dm.o
 endif
