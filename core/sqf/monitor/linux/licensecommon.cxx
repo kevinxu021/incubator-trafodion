@@ -1,4 +1,6 @@
 #include "licensecommon.h"
+#include "monlogging.h"
+#include "montrace.h"
 
 static unsigned char asc2hex[] = {
      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
@@ -21,6 +23,9 @@ static unsigned char asc2hex[] = {
 
 CLicenseCommon::CLicenseCommon()
 {    
+    const char method_name[] = "CLicenseCommon::CLicenseCommon";
+    TRACE_ENTRY;
+    
     secsToStartWarning_ = LICENSE_SEVEN_DAYS;
     char *daysToStartWarning = getenv("SQ_DAYS_START_WARNING");
     if (daysToStartWarning)
@@ -37,6 +42,8 @@ CLicenseCommon::CLicenseCommon()
     }
     licenseReady_ = false;
     parseLicense();
+    
+    TRACE_EXIT;
 }
 
 CLicenseCommon::~CLicenseCommon()
@@ -46,6 +53,9 @@ CLicenseCommon::~CLicenseCommon()
    
 void CLicenseCommon::parseLicense()
 {
+    const char method_name[] = "CLicenseCommon::parseLicense";
+    TRACE_ENTRY;
+    
     FILE *pFile;
     int   bytesRead = 0;
     char  myLicense[LICENSE_NUM_BYTES*3];  // some extra space just in case.  Update on next checkin [TRK]
@@ -61,6 +71,7 @@ void CLicenseCommon::parseLicense()
         tmpDir = getenv( "MY_SQROOT" );
         if (!tmpDir)
         {
+           TRACE_EXIT;
            return;
         }
         
@@ -80,6 +91,7 @@ void CLicenseCommon::parseLicense()
     
     if ( bytesRead  != LICENSE_NUM_BYTES_ENC)
     {
+       TRACE_EXIT;
        return;
     }
        
@@ -92,6 +104,7 @@ void CLicenseCommon::parseLicense()
 
     if (DES_set_key_checked(key, &key_schedule) != 0)
     {
+         TRACE_EXIT;
          return;
     }
 
@@ -113,28 +126,37 @@ void CLicenseCommon::parseLicense()
     DES_ncbc_encrypt((const unsigned char *)decodedbuf, output, len, &key_schedule, &ivec, 0);
 
     memcpy ((void*)license_, output,LICENSE_NUM_BYTES );
-    memcpy ((void*)&version_, &(license_[LICENSE_VERSION_OFFSET]), sizeof(short));
-    memcpy ((void*)&numNodes_, &(license_[LICENSE_NODES_OFFSET]), sizeof(int));
-    memcpy ((void*)&expireDays_, &(license_[LICENSE_EXPIRE_OFFSET]), sizeof(int));
-    strncpy (customerName_, (char *)license_ + LICENSE_NAME_OFFSET, 10);
-    memcpy ((void*)&package_, &(license_[LICENSE_PACKAGE_OFFSET]), 4);
-    memcpy ((void*)&type_, &(license_[LICENSE_TYPE_OFFSET]), 4);   
-    memcpy ((void*)reserved_, &(license_[LICENSE_RESERVED_OFFSET]), 4);
+    memcpy ((void*)&version_, &(license_[LICENSE_VERSION_OFFSET]), LICENSE_VERSION_SIZE);
+    memcpy ((void*)&numNodes_, &(license_[LICENSE_NODES_OFFSET]), LICENSE_NODES_SIZE);
+    memcpy ((void*)&expireDays_, &(license_[LICENSE_EXPIRE_OFFSET]), LICENSE_EXPIRE_SIZE);
+    strncpy (customerName_, (char *)license_ + LICENSE_NAME_OFFSET, LICENSE_NAME_SIZE);
+    memcpy ((void*)&package_, &(license_[LICENSE_PACKAGE_OFFSET]), LICENSE_PACKAGE_SIZE);
+    memcpy ((void*)&type_, &(license_[LICENSE_TYPE_OFFSET]), LICENSE_TYPE_SIZE);   
+    memcpy ((void*)reserved_, &(license_[LICENSE_RESERVED_OFFSET]), LICENSE_RESERVED_SIZE);
 
    licenseReady_ = true;
+   TRACE_EXIT;
 }
    
 bool CLicenseCommon::isInternal()
 {
+     const char method_name[] = "CLicenseCommon::isInternal";
+     TRACE_ENTRY;
+     
+     bool isInternal = false;
      if (type_ == TYPE_INTERNAL)
      {
-         return true;
+         isInternal = true;
      }
-     return false;
+     TRACE_EXIT;
+     return isInternal;
 }
 
 char * CLicenseCommon::strpack(char *src, size_t len, char *dst)
 {
+    const char method_name[] = "CLicenseCommon::strpack";
+    TRACE_ENTRY;
+     
     unsigned char *from, *to, *end;
  
     from = (unsigned char *)src;
@@ -144,6 +166,6 @@ char * CLicenseCommon::strpack(char *src, size_t len, char *dst)
     {
         *to  = (asc2hex[*from] << 4) | asc2hex[*(from + 1)];
     }
-    
+    TRACE_EXIT;
     return dst;
 }

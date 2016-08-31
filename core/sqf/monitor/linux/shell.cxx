@@ -3644,7 +3644,7 @@ void license_cmd ()
             }
             else if (msg->u.reply.u.license.success != true)
             {
-                printf( "[%s] License verification failed with success = false\n", MyName);
+                printf( "[%s] License verification failed.\n", MyName);
             }
             else
             { 
@@ -6009,8 +6009,7 @@ bool process_command( char *token, char *cmd_tail, char delimiter )
     }
     else if (strcmp (token, "license") == 0)
     {
-        printf("\nNot Supported\n");
-        //TRK license_cmd();
+        license_cmd();
     }
     else if (strcmp (token, "ls") == 0)
     {
