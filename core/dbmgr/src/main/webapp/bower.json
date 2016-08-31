@@ -1,58 +1,58 @@
 {
-  "name": "esgyndbmgr",
-  "version": "2.1.0",
-  "authors": [
+    "name": "esgyndbmgr",
+    "version": "2.1.0",
+    "authors": [
 	"venkat1m <venkat.muthuswamy@esgyn.com>"
   ],
-  "description": "EsgynDB Manager",
-  "main": "index.html",
-  "moduleType": [
+    "description": "EsgynDB Manager",
+    "main": "index.html",
+    "moduleType": [
 	"amd"
   ],
-  "keywords": [
+    "keywords": [
 	"EsgynDB"
   ],
-  "ignore": [
+    "ignore": [
 	"**/.*",
 	"node_modules",
 	"bower_components",
 	"test",
 	"tests"
   ],
-  "dependencies": {
-    "jquery": "2.2.4",
-	"backbone": "~1.2.1",
-	"jquery.cookie": "~1.4.1",
-	"jquery-ui": "1.11.4",
-	"jit": "~2.0.2",
-	"mocha": "~1.17.1",
-	"requirejs": "~2.1.18",
-	"font-awesome": "~4.6.3",
-	"bootstrap":"~3.3.7",
-	"startbootstrap-sb-admin-2": "https://github.com/BlackrockDigital/startbootstrap-sb-admin-2.git",
-	"text": "~2.0.14",
-	"jstree": "~3.1.1",
-	"eonasdan-bootstrap-datetimepicker": "4.17.37",
-	"jquery-validation": "~1.14.0",
-	"jquery-localize-i18n": "latest",
-	"moment-timezone": "0.4.0",
-	"codemirror":"latest",
-	"datatables.net-dt":"1.10.12",
-	"datatables.net-buttons":"1.2.1",
-	"datatables.net-buttons-bs":"1.1.2",
-	"datatables.net-buttons-dt":"1.1.2",
-	"datatables.net-select":"1.2.0",
-	"datatables.net-select-bs":"1.2.0",
-	"datatables.net-responsive":"2.1.0",
-	"datatables.net-responsive-bs":"2.1.0",
-	"bootswatch":"3.3.6",
-        "remarkable-bootstrap-notify":"3.1.3",
-        "pdfmake":"0.1.20",
-        "flot-axislabels":"latest",
-	"datatables-font-awesome":"1.0.0",
-	"file-saver":"1.3.1"
-  },
-  "resolutions" : {
-        "font-awesome":"~4.6.3"
-	}
+    "dependencies": {
+        "jquery": "2.2.4",
+        "backbone": "~1.2.1",
+        "jquery.cookie": "~1.4.1",
+        "jquery-ui": "1.11.4",
+        "jit": "~2.0.2",
+        "mocha": "~1.17.1",
+        "requirejs": "~2.1.18",
+        "font-awesome": "~4.6.3",
+        "bootstrap": "~3.3.7",
+        "startbootstrap-sb-admin-2": "https://github.com/BlackrockDigital/startbootstrap-sb-admin-2.git",
+        "text": "~2.0.14",
+        "jstree": "~3.1.1",
+        "eonasdan-bootstrap-datetimepicker": "4.17.37",
+        "jquery-validation": "~1.14.0",
+        "jquery-localize-i18n": "latest",
+        "moment-timezone": "0.4.0",
+        "codemirror": "latest",
+        "datatables.net-dt": "1.10.12",
+        "datatables.net-buttons": "1.2.2",
+        "datatables.net-buttons-bs": "1.2.2",
+        "datatables.net-buttons-dt": "1.2.2",
+        "datatables.net-select": "1.2.0",
+        "datatables.net-select-bs": "1.2.0",
+        "datatables.net-responsive": "2.1.0",
+        "datatables.net-responsive-bs": "2.1.0",
+        "bootswatch": "3.3.6",
+        "remarkable-bootstrap-notify": "3.1.3",
+        "pdfmake": "0.1.20",
+        "flot-axislabels": "latest",
+        "datatables-font-awesome": "1.0.0",
+        "file-saver": "1.3.1"
+    },
+    "resolutions": {
+        "font-awesome": "~4.6.3"
+    }
 }

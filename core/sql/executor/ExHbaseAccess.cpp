@@ -207,12 +207,12 @@ ex_tcb * ExHbaseCoProcAggrTdb::build(ex_globals * glob)
   
   ex_assert(exe_glob,"This operator cannot be in DP2");
 
-  ExHbaseCoProcAggrTcb *tcb = NULL;
+  ex_tcb *tcb = NULL;
 
   tcb = new(exe_glob->getSpace()) 
     ExHbaseCoProcAggrTcb(
-			   *this,
-			   exe_glob);
+         *this,
+         exe_glob);
 
   ex_assert(tcb, "Error building ExHbaseAggrTcb.");
 

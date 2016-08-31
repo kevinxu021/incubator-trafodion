@@ -158,7 +158,7 @@ import org.apache.hadoop.hbase.regionserver.LeaseException;
 import org.apache.hadoop.hbase.regionserver.LeaseListener;
 import org.apache.hadoop.hbase.regionserver.Leases;
 import org.apache.hadoop.hbase.regionserver.Leases.LeaseStillHeldException;
-import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
+//import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
@@ -360,7 +360,11 @@ CoprocessorService, Coprocessor {
   private HRegion m_Region = null;
   private String m_regionName = null;
   private boolean m_isTrafodionMetadata = false;
+#ifdef CDH5.7 APACHE1.2
+  private HRegion t_Region = null;
+#else
   private TransactionalRegion t_Region = null;
+#endif
   private FileSystem fs = null;
   private RegionCoprocessorHost rch = null;
   private WAL tHLog = null;
@@ -1760,7 +1764,7 @@ CoprocessorService, Coprocessor {
 
               if (scanner != null)
                 scanner.next(results);
-         
+
               result2 = Result.create(results);
   
               if (LOG.isTraceEnabled()) LOG.trace("get - txId " + transactionId + ", getScanner result2 isEmpty is " 
@@ -3573,7 +3577,7 @@ CoprocessorService, Coprocessor {
     if (LOG.isTraceEnabled()) LOG.trace("start");
     RegionCoprocessorEnvironment tmp_env = 
       (RegionCoprocessorEnvironment)env;
-#ifdef HDP2.3 HBASE1.1
+#ifdef HDP2.3 APACHE1.1 CDH5.7 APACHE1.2
     this.m_Region = (HRegion)
        tmp_env.getRegion();
 #else
@@ -3581,8 +3585,12 @@ CoprocessorService, Coprocessor {
        tmp_env.getRegion();
 #endif
     this.regionInfo = this.m_Region.getRegionInfo();
-    
+
+#ifdef CDH5.7 APACHE1.2
+    this.t_Region = (HRegion)tmp_env.getRegion();
+#else
     this.t_Region = (TransactionalRegion) tmp_env.getRegion();
+#endif
     this.fs = this.m_Region.getFilesystem();
 
     this.config = tmp_env.getConfiguration();
@@ -3722,7 +3730,11 @@ CoprocessorService, Coprocessor {
       }
     }
 
+#ifdef CDH5.7 APACHE1.2
+    this.t_Region = (HRegion)tmp_env.getRegion();
+#else
     this.t_Region = (TransactionalRegion) tmp_env.getRegion();
+#endif
     this.fs = this.m_Region.getFilesystem();
     //tHLog = this.m_Region.getLog();
     tHLog = this.m_Region.getWAL();
@@ -3733,7 +3745,11 @@ CoprocessorService, Coprocessor {
     lv_port = sn.getPort();
     if (LOG.isTraceEnabled()) LOG.trace("hostname " + lv_hostName + " port " + lv_port);
     this.regionInfo = this.m_Region.getRegionInfo();
+#ifdef CDH5.7 APACHE1.2
+    this.t_Region = (HRegion)tmp_env.getRegion();
+#else
     this.t_Region = (TransactionalRegion) tmp_env.getRegion();
+#endif
     zkw1 = rss.getZooKeeper();
 
     this.configuredEarlyLogging = tmp_env.getConfiguration().getBoolean("hbase.regionserver.region.transactional.earlylogging", false);
@@ -4204,7 +4220,7 @@ CoprocessorService, Coprocessor {
 
     try {
           if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery:  Flushing cache in startRegionAfterRecovery " + m_Region.getRegionInfo().getRegionNameAsString());
-#ifdef HDP2.3 HBASE1.1
+#ifdef HDP2.3 APACHE1.1 CDH5.7 APACHE1.2
           m_Region.flush(true);
 #else
           m_Region.flushcache();
@@ -4554,6 +4570,9 @@ CoprocessorService, Coprocessor {
                      }
                 	 final WALKey wk = new WALKey(this.regionInfo.getEncodedNameAsBytes(), 
 						      this.regionInfo.getTable(), now);
+#ifdef CDH5.7 APACHE1.2
+                    txid = this.tHLog.append(this.m_Region.getTableDesc(), this.regionInfo, wk, e, false);
+#else
                      AtomicLong lv_seqid = this.m_Region.getSequenceId();
                 	 txid = this.tHLog.append(this.m_Region.getTableDesc(),
 						  this.regionInfo, 
@@ -4562,6 +4581,7 @@ CoprocessorService, Coprocessor {
 						  lv_seqid,
 						  false, 
 						  null);
+#endif
                 	
                     if (LOG.isTraceEnabled()) LOG.trace("commit -" 
 							+ " txId " + transactionId + " with commitId " + commitId 
@@ -4601,6 +4621,9 @@ CoprocessorService, Coprocessor {
                 }
                 final WALKey wk = new WALKey(this.regionInfo.getEncodedNameAsBytes(), 
 					     this.regionInfo.getTable(), now);;
+#ifdef CDH5.7 APACHE1.2
+                        txid = this.tHLog.append(this.m_Region.getTableDesc(), this.regionInfo, wk, e, false);
+#else
            	 	txid = this.tHLog.append(this.m_Region.getTableDesc(),
 						 this.regionInfo, 
 						 wk , 
@@ -4608,6 +4631,7 @@ CoprocessorService, Coprocessor {
 						 this.m_Region.getSequenceId(), 
 						 false, 
 						 null);
+#endif
            	 	this.tHLog.sync(txid);
                 if (LOG.isTraceEnabled()) LOG.trace("commit -" 
 						    + " txId " + transactionId + " with commitId " + commitId
@@ -5319,6 +5343,9 @@ CoprocessorService, Coprocessor {
                        final WALKey wk = new WALKey(this.regionInfo.getEncodedNameAsBytes(), 
 						    this.regionInfo.getTable(),
 						    EnvironmentEdgeManager.currentTime());;
+#ifdef CDH5.7 APACHE1.2
+                       txid = this.tHLog.append(this.m_Region.getTableDesc(), this.regionInfo, wk, state.getEdit(), false);
+#else
 		       txid = this.tHLog.append(this.m_Region.getTableDesc(),
 						this.regionInfo, 
 						wk , 
@@ -5326,6 +5353,7 @@ CoprocessorService, Coprocessor {
 						this.m_Region.getSequenceId(), 
 						false, 
 						null);
+#endif
 		       
 		       if ((m_isTrafodionMetadata) || 
 			   (LOG.isTraceEnabled())) 
@@ -5752,6 +5780,17 @@ CoprocessorService, Coprocessor {
 					     this.regionInfo.getTable(),
 					     EnvironmentEdgeManager.currentTime());
 		  
+#ifdef CDH5.7 APACHE1.2
+                txid = this.tHLog.append(this.m_Region.getTableDesc(), this.regionInfo, wk, state.getEdit(), false);
+                if ((m_isTrafodionMetadata) || 
+		    (LOG.isTraceEnabled())) LOG.info("PH1 commitRequest COMMIT_OK -- EXIT "
+						     + m_regionName
+						     + " isTrafodionMD: " + m_isTrafodionMetadata
+						     + " txId: " + transactionId
+						     + " HLog seq: " + txid 
+						     + " flushHLOG: " + flushHLOG
+						     );
+#else
 		AtomicLong lv_seqid = this.m_Region.getSequenceId();
 		txid = this.tHLog.append(this.m_Region.getTableDesc(),
 					 this.regionInfo, 
@@ -5770,6 +5809,7 @@ CoprocessorService, Coprocessor {
 						     + " HLog seq: " + txid 
 						     + " flushHLOG: " + flushHLOG
 						     );
+#endif
 		if (flushHLOG) this.tHLog.sync(txid);
             }
             else {
@@ -6007,6 +6047,9 @@ CoprocessorService, Coprocessor {
              final WALKey wk = new WALKey(this.regionInfo.getEncodedNameAsBytes(),
 					  this.regionInfo.getTable(),
 					  EnvironmentEdgeManager.currentTime());;
+#ifdef CDH5.7 APACHE1.2
+                 txid = this.tHLog.append(this.m_Region.getTableDesc(), this.regionInfo, wk, e, false);
+#else
        	 	 txid = this.tHLog.append(this.m_Region.getTableDesc(),
 					  this.regionInfo, 
 					  wk , 
@@ -6014,6 +6057,7 @@ CoprocessorService, Coprocessor {
 					  this.m_Region.getSequenceId(), 
 					  false,
 					  null);
+#endif
        	 	
              if (LOG.isTraceEnabled()) LOG.trace("Y99 write abort HLOG " + transactionId + " HLog seq " + txid);
          }

@@ -391,7 +391,15 @@ define(['moment',
 					break;
 				default:
 					if(isAutoRefresh==""){
-						_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:selection,isAutoRefresh:isAutoRefresh};	
+						var stTime = $(_this.START_TIME_PICKER).data("DateTimePicker").date();
+						var etTime = $(_this.END_TIME_PICKER).data("DateTimePicker").date();
+						if(stTime != null){
+							stTime = stTime.format(_this.DATE_FORMAT_ZONE);
+						}
+						if(etTime != null){
+							etTime = etTime.format(_this.DATE_FORMAT_ZONE);
+						}
+						_this.commonTimeRange={startTime:stTime,endTime:etTime,timeRangeTag:selection,isAutoRefresh:isAutoRefresh};	
 					}else{
 						_this.commonTimeRange={startTime:null,endTime:null,timeRangeTag:selection,isAutoRefresh:isAutoRefresh};
 					}

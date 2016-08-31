@@ -91,6 +91,7 @@ static const QString seabaseAuthsDDL[] =
   {"  flags largeint not null not serialized "},
   {" ) "},
   {" primary key (auth_id) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -123,6 +124,7 @@ static const QString seabaseColumnsDDL[] =
   {"   flags largeint not null not serialized "},
   {" ) "},
   {" primary key (object_uid, column_name) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -143,6 +145,7 @@ static const QString seabaseDefaultsDDL[] =
   {"   flags largeint not null not serialized "},
   {" ) "},
   {" primary key (attribute) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -159,6 +162,7 @@ static const QString seabaseKeysDDL[] =
   {"   flags largeint not null not serialized "},
   {" ) "},
   {" primary key (object_uid, keyseq_number) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -176,6 +180,7 @@ static const QString seabaseIndexesDDL[] =
   {"   flags largeint not null not serialized "},
   {" ) "},
   {" primary key (base_table_uid, index_uid) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -189,6 +194,7 @@ static const QString seabaseLibrariesDDL[] =
   {"   flags largeint not null not serialized "},
   {" ) "},
   {" primary key (library_uid) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -201,6 +207,7 @@ static const QString seabaseLibrariesUsageDDL[] =
   {"   flags largeint not null not serialized "},
   {" ) "},
   {" primary key (using_library_uid, used_udr_uid) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -222,6 +229,7 @@ static const QString seabaseObjectsDDL[] =
   {"   flags largeint not null not serialized "},
   {" ) "},
   {" primary key (catalog_name, schema_name, object_name, object_type) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -231,6 +239,7 @@ static const QString seabaseObjectsUniqIdxIndexDDL[] =
   {" ( "},
   {"   object_uid "},
   {" ) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -245,6 +254,7 @@ static const QString seabaseObjectsUniqIdxDDL[] =
   {"   object_type char(2) character set iso88591 not null not serialized "},
   {" ) "},
   {" primary key (\"OBJECT_UID@\") "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -275,6 +285,7 @@ static const QString seabaseRefConstraintsDDL[] =
   {"   flags largeint not null not serialized "},
   {" ) "},
   {" primary key (ref_constraint_uid, unique_constraint_uid) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -303,6 +314,7 @@ static const QString seabaseRoutinesDDL[] =
   {"   flags largeint not null not serialized "},
   {" ) "},
   {" primary key (udr_uid) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -332,6 +344,7 @@ static const QString seabaseSeqGenDDL[] =
   {"   flags largeint not null not serialized "},
   {" ) "},
   {" primary key (seq_uid) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -349,6 +362,7 @@ static const QString seabaseTablesDDL[] =
   {"   flags largeint not null not serialized "},
   {" ) "},
   {" primary key (table_uid) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -380,6 +394,7 @@ static const QString seabaseTableConstraintsDDL[] =
   {"   flags largeint not null not serialized "},
   {" ) "},
   {" primary key (table_uid, constraint_uid, constraint_type) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -389,6 +404,7 @@ static const QString seabaseTableConstraintsIdxIndexDDL[] =
   {" ( "},
   {"   constraint_uid "},
   {" ) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -401,6 +417,7 @@ static const QString seabaseTableConstraintsIdxDDL[] =
   {"   constraint_type char(2) character set iso88591 not null not serialized "},
   {" ) "},
   {" primary key (\"CONSTRAINT_UID@\", table_uid, constraint_type) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -416,6 +433,7 @@ static const QString seabaseTextDDL[] =
   {"   text varchar(10000 bytes) character set utf8 not null not serialized "},
   {" ) "},
   {" primary key (text_uid, text_type, sub_id, seq_num) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -428,6 +446,7 @@ static const QString seabaseUniqueRefConstrUsageDDL[] =
   {"   flags largeint not null not serialized "},
   {" ) "},
   {" primary key (unique_constraint_uid, foreign_constraint_uid) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -442,6 +461,7 @@ static const QString seabaseVersionsDDL[] =
   {"   comment varchar(1000 bytes) character set utf8 not null not serialized "},
   {" ) "},
   {" primary key (version_type) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -456,6 +476,7 @@ static const QString seabaseViewsDDL[] =
   {"   flags largeint not null not serialized "},
   {" ) "},
   {" primary key (view_uid) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -469,6 +490,7 @@ static const QString seabaseViewsUsageDDL[] =
   {"   flags largeint not null not serialized "},
   {" ) "},
   {" primary key (using_view_uid, used_object_uid) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -522,6 +544,7 @@ static const QString seabaseHistogramsDDL[] =
   {" , constraint "HBASE_HIST_PK" primary key "},
   {"     (table_uid, histogram_id, col_position) "},
   {" ) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -545,6 +568,7 @@ static const QString seabaseHistogramIntervalsDDL[] =
   {" , constraint "HBASE_HISTINT_PK" primary key "},
   {"    (table_uid, histogram_id, interval_number) "},
   {" ) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 
@@ -566,6 +590,7 @@ static const QString seabasePersistentSamplesDDL[] =
   {"   V2 VARCHAR(250) CHARACTER SET UCS2 NOT NULL  NOT SERIALIZED, "},
   {"   constraint "HBASE_PERS_SAMP_PK" primary key (TABLE_UID) "},
   {" ) "},
+  {" attribute storage hbase "},
   {" ; "}
 };
 

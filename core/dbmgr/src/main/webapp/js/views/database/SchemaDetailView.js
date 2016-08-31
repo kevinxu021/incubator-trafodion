@@ -442,10 +442,10 @@ define([
 					"order": [[ 1, "asc" ]],
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
-					          { extend : 'csv', exportOptions: { columns: ':visible' } },
+					          { extend : 'csv', exportOptions: { columns: ':visible' }, filename: "Schema Privileges" },
 					         // { extend : 'excel', exportOptions: { columns: ':visible' } },
-					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Schema level privilges for " + routeArgs.name, orientation: 'landscape' },
-					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Schema level privilges for " + routeArgs.name }
+					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Schema level privileges for " + routeArgs.name, orientation: 'landscape' },
+					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Schema level privileges for " + routeArgs.name }
 					          ]
 				});
 			}

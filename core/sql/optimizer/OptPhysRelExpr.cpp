@@ -4122,18 +4122,11 @@ InputPhysicalProperty* NestedJoin::generateIpp(
 PartitioningFunction * 
 NestedJoin::getClusteringIndexPartFuncForRightChild() const
 {
-  GroupAttributes *ga = child(1).getGroupAttr();
-  const SET(IndexDesc *) &availIndexes = ga->getAvailableBtreeIndexes();
+  const IndexDesc* iDesc = getClusteringIndexIndexDescForRightChild();
 
-  Int32 x = availIndexes.entries();
-
-  for (CollIndex i = 0; i < availIndexes.entries(); i++) {
-      IndexDesc *iDesc = availIndexes[i];
-      if (iDesc->isClusteringIndex()) {
-           return iDesc->getPartitioningFunction();
-      }
-  }
-
+  if ( iDesc )
+    return iDesc->getPartitioningFunction();
+    
   return NULL;
 }
 
@@ -4146,6 +4139,24 @@ const NATable* NestedJoin::getNATableForRightChild() const
      return NULL;
    else
      return availIndexes[0]->getPrimaryTableDesc()->getNATable();
+}
+
+const IndexDesc*
+NestedJoin::getClusteringIndexIndexDescForRightChild() const
+{
+  GroupAttributes *ga = child(1).getGroupAttr();
+  const SET(IndexDesc *) &availIndexes = ga->getAvailableBtreeIndexes();
+
+  Int32 x = availIndexes.entries();
+
+  for (CollIndex i = 0; i < availIndexes.entries(); i++) {
+      IndexDesc *iDesc = availIndexes[i];
+      if (iDesc->isClusteringIndex()) {
+           return iDesc;
+      }
+  }
+
+  return NULL;
 }
 
 
@@ -5028,22 +5039,26 @@ Context* NestedJoin::createContextForAChild(Context* myContext,
          const NATable* naTable = getNATableForRightChild();
          if ( naTable && getNATableForRightChild()->isHiveTable() ) {
 
-          // produce a requirement of hash2(rand, childNumPartsRequirement)
+
+          // produce a requirement of reqApproxN(rand)
           ItemExpr *randNum = new(CmpCommon::statementHeap()) RandomNum(NULL, TRUE);
           randNum->synthTypeAndValueId();
+          
+          ValueIdSet partKey(randNum->getValueId());
 
-          ValueIdSet partKey;
-          partKey.insert(randNum->getValueId());
 
-          ValueIdList partKeyList(partKey);
+/*
+          // produce a requirement of reqApproxN(join cols)
+          const ValueIdSet& equiJoinExprFromChild0 =
+               getOriginalEquiJoinExpressions().getTopValues();
+   
+          ValueIdSet partKey(equiJoinExprFromChild0);
+*/
 
-          Hash2PartitioningFunction* partFunc = new(CmpCommon::statementHeap())
-            Hash2PartitioningFunction(partKey,
-                                    partKeyList,
-                                    childNumPartsRequirement,
-                                    NULL);
-
-           partReqForChild = new(CmpCommon::statementHeap()) RequireHash2(partFunc);
+          float deviation = CURRSTMT_OPTDEFAULTS->numberOfPartitionsDeviation();
+          Lng32 dop = rppForMe->getCountOfPipelines();
+          partReqForChild = new(CmpCommon::statementHeap()) 
+              RequireApproximatelyNPartitions(partKey, deviation, dop);
          
          } else {
             PartitioningFunction * innerTablePartFunc = 
@@ -6304,18 +6319,19 @@ NABoolean NestedJoin::OCRJoinIsFeasible(const Context* myContext)  const
   if ( JoinPredicateCoversChild1PartKey() == FALSE )
      return FALSE;
   
+  // If NJ into hive tables, allow OCR anyway.
+  const NATable* naTable = getNATableForRightChild();
+
+  if ( naTable && naTable->isHiveTable() )
+     return TRUE;
+
+
   PartitioningFunction *rightPartFunc =
          getClusteringIndexPartFuncForRightChild();
 
   // Do not consider OCR if the inner is single partitioned
   if ( rightPartFunc->getCountOfPartitions() == 1 )
      return FALSE;
-
-  // If NJ into hive tables, allow OCR anyway.
-  const NATable* naTable = getNATableForRightChild();
-
-  if ( naTable && naTable->isHiveTable() )
-     return TRUE;
 
   // No Hive cases resume here.
   // Do not consider OCR if the inner is not hash2 partitioned
@@ -6368,16 +6384,34 @@ NABoolean NestedJoin::OCRJoinIsFeasible(const Context* myContext)  const
           
 NABoolean NestedJoin::JoinPredicateCoversChild1PartKey() const
 {
-   PartitioningFunction *rightPartFunc =
-         getClusteringIndexPartFuncForRightChild();
+   const NATable* nt = getNATableForRightChild();
 
-   if ( rightPartFunc == NULL )
-      return FALSE;
+   if ( nt && nt->isHiveTable() ) {
 
+      const IndexDesc* idesc = getClusteringIndexIndexDescForRightChild();
+
+      if ( idesc && JoinPredicateCoversChild1PartKey(idesc->getHivePartCols()) )
+         return TRUE;
+   } 
+
+   PartitioningFunction *rightPartFunc = getClusteringIndexPartFuncForRightChild();
+
+   if ( rightPartFunc &&
+        JoinPredicateCoversChild1PartKey(rightPartFunc->getPartitioningKey())) 
+      return TRUE;
+
+   // We may need to worry about a combined case of hive partition columns plus
+   // hive bucket key column later. For now, return FALSE.
+   return FALSE;
+}
+
+NABoolean NestedJoin::JoinPredicateCoversChild1PartKey(const ValueIdSet& child1PartKey) const
+{
    const ValueIdSet& equiJoinExprFromChild1AsSet =
         getOriginalEquiJoinExpressions().getBottomValues();
 
-   ValueIdSet child1PartKey(rightPartFunc->getPartitioningKey());
+   if ( equiJoinExprFromChild1AsSet.contains(child1PartKey) ) 
+      return TRUE;
 
   // The equi-join predicate should contain the part key for OCR
   // to guarantee the correct result. This is because each row from
@@ -6387,9 +6421,15 @@ NABoolean NestedJoin::JoinPredicateCoversChild1PartKey() const
   // will not be partitioned, this implies that the row can go to an
   // incorrect partition.
 
-  if ( equiJoinExprFromChild1AsSet.contains(child1PartKey) ) {
+  
+
+  // check the set of index columns referenced in the join
+  // predicate on child1 side
+  ValueIdSet indexCols; 
+  equiJoinExprFromChild1AsSet.findAllReferencedIndexCols(indexCols);
+
+  if ( indexCols.contains(child1PartKey) ) 
       return TRUE;
-  }
 
   // double check the uncovered park key columns here. If they are 
   // all constants, then the join columns still cover the part keys.
@@ -14559,7 +14599,6 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   PartitioningFunction * ixDescPartFunc = indexDesc_->getPartitioningFunction();
   Lng32 numESPs = 1;
 
-
   // CQDs related to # of ESPs for a Hive table scan
   double bytesPerESP = getDefaultAsDouble(HIVE_MIN_BYTES_PER_ESP_PARTITION);
   Lng32 maxESPs = getDefaultAsLong(HIVE_MAX_ESPS);
@@ -14569,27 +14608,31 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   // minimum # of ESPs required by the parent
   Lng32 minESPs;
 
-  if ( partReq )
+  NABoolean canFreelyAdjustDoP = TRUE;
+
+  if (partReq) {
      minESPs = partReq->getCountOfPartitions();
-  else 
-     minESPs = 1;
+     maxESPs = partReq->getCountOfPartitions();
+     canFreelyAdjustDoP = FALSE;
 
-  if (partReq && partReq->castToRequireApproximatelyNPartitions())
-    minESPs = partReq->castToRequireApproximatelyNPartitions()->
-                                             getCountOfPartitionsLowBound();
+     if (partReq->castToRequireApproximatelyNPartitions()) {
+        minESPs = partReq->castToRequireApproximatelyNPartitions()->
+                                       getCountOfPartitionsLowBound();
+        canFreelyAdjustDoP = TRUE;
+     } else { 
 
-  NABoolean requiredESPsFixed = 
-    partReq && partReq->castToFullySpecifiedPartitioningRequirement();
+        if (partReq->castToFuzzyPartitioningRequirement() &&
+            ANY_NUMBER_OF_PARTITIONS == minESPs )
+          canFreelyAdjustDoP = TRUE;
+     }
 
+  } else {
+     minESPs = CURRSTMT_OPTDEFAULTS->getAdjustedDegreeOfParallelism();
+     maxESPs = rppForMe->getCountOfPipelines();
+  }
 
   // limit the number of ESPs to HIVE_NUM_ESPS_PER_DATANODE * nodes
   maxESPs = MAXOF(MINOF(numSQNodes*numESPsPerDataNode, maxESPs),1);
-
-  // If the required count of partitions is more than the #max esps,
-  // set the maxESPs to that number. Otherwise, the requirement will
-  // never be satisfied. 
-  //if ( minESPs > maxESPs )
-  //  maxESPs = minESPs;
 
   // check for ATTEMPT_ESP_PARALLELISM CQD
   if (CURRSTMT_OPTDEFAULTS->attemptESPParallelism() == DF_OFF)
@@ -14603,20 +14646,24 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
 
   // We can adjust #ESPs only when the required ESPs is not fully specified 
   // from the parent.
-  if ( !requiredESPsFixed ) {
+  if ( canFreelyAdjustDoP ) {
     // following are soft adjustments to numESPs, within the allowed range
-    double numESPsBasedOnTotalSize = 1;
+    Lng32 numESPsBasedOnTotalSize = 1;
 
     // adjust minESPs based on HIVE_MIN_BYTES_PER_ESP_PARTITION CQD
     if (bytesPerESP > 1.01) {
       Int64 totalSize = hiveSearchKey_->getTotalSize(); // TBD: exclude eliminated partitions
-      numESPsBasedOnTotalSize = totalSize/(bytesPerESP-1.0);
-    }
+      numESPsBasedOnTotalSize = ceil(totalSize/(bytesPerESP-1.0));
 
-    if (numESPsBasedOnTotalSize >= maxESPs)
-      numESPs = maxESPs;
-    else
-      numESPs = MAXOF(numESPs, (Int32) ceil(numESPsBasedOnTotalSize));
+      if (numESPsBasedOnTotalSize >= maxESPs)
+        numESPs = maxESPs;
+      else 
+      if (numESPsBasedOnTotalSize <= minESPs)
+        numESPs = minESPs;
+      else {
+        numESPs = numESPsBasedOnTotalSize;
+      }
+    }
 
     // if we use locality, generously increase # of ESPs to cover all the nodes
     if (useLocality &&
@@ -14744,12 +14791,9 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
       if ( useHash2Only || 
            tableStats->getNumOfConsistentBuckets() == 0 || pf==NULL ) 
       {
-
          ItemExpr *randNum = new(CmpCommon::statementHeap()) RandomNum(NULL, TRUE);
          randNum->synthTypeAndValueId();
-
-         ValueIdSet partKey;
-         partKey.insert(randNum->getValueId());
+         ValueIdSet partKey(randNum->getValueId());
 
          ValueIdList partKeyList(partKey);
 

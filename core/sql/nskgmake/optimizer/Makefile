@@ -36,7 +36,7 @@ endif
 # if the necessary DLL is present
 CXXFLAGS += -DNA_DEBUG_GUI
 
-SYS_LIBS += -lprotobuf -lsnappy -lorc
+SYS_LIBS += -L$(LIBROOT) -lorc 
 
 SRCPATH += common
 

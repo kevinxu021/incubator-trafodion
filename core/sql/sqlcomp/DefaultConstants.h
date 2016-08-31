@@ -3937,6 +3937,12 @@ enum DefaultConstants
   HIVE_LOCALITY_MAX_SECOND_CHECK_TGTS,
   HIVE_LOCALITY_NUM_SECOND_LOOPS,
 
+  // format of  traf tables:  "HBASE" or "MONARCH"
+  TRAF_DEFAULT_STORAGE_TYPE,
+
+  // if ON, aggr pushdown to monarch(ampool) supported
+  MONARCH_AGGR_PUSHDOWN,
+
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!
   __NUM_DEFAULT_ATTRIBUTES

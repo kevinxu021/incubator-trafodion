@@ -148,7 +148,7 @@ EXECUTABLES= arkcmp sqlci arkesp tdm_udrserv mxlobsrvr sscp ssmp clitestdriver
 # LIBS defines the libraries that are built for release and debug builds.
 # These are all built as shared objects with names such as libtdm_sqlcli.so.
 
-DLLS := comexe common executor sort sqlmsg \
+DLLS := orc comexe common executor sort sqlmsg \
 	tdm_sqlcli tdm_sqlcli_globals tdm_sqlexp tdm_sqlexport \
 	tdm_sqlmxevents tdm_sqlshare tdm_sqlerrormsg \
 	eh lmcomp \
@@ -156,7 +156,7 @@ DLLS := comexe common executor sort sqlmsg \
 	arkcmp_dll smdio udr_predef clitest
 
 DLLS += sqlcomp ustat sqlcat parser optimizer generator \
-	tdm_sqllangman arkcmplib qmscommon
+	tdm_sqllangman arkcmplib qmscommon 
 
 # SqlCompilerDebugger should be build after other components
 GUI_CMP_DBG := SqlCompilerDebugger
@@ -205,7 +205,8 @@ OTHER_INCLUDES := -include "$(MY_SQROOT)/inc/seaquest/sqtypes.h" \
 	-I$(LLVM_INC_ROOT) \
 	-I$(LLVM_INC_ROOT2) \
 	-I$(UDIS86_INC_ROOT) \
-	-I$(ORCCPPREADER)/include \
+	-I$(MY_SQROOT)/../sql/orc/include \
+	-I$(MY_SQROOT)/../sql/orc/include/orc \
 	-I$(MY_SQROOT)/../dbsecurity/auth/inc \
 	-I$(MY_SQROOT)/commonLogger
 
@@ -437,7 +438,7 @@ copytoolslibs:
 	# download Hadoop-common distro
 	get_libhdfs_files --verbose
         # C++ ORC Reader
-	cp -Pf $(ORCCPPREADER)/lib/liborc.so $(LIBROOT)
+	#cp -Pf $(LIBROOT)/liborc.so $(LIBROOT)
 
 linuxmklinksdebug linuxmklinksrelease: copytoolslibs
 	(OUTDIR=$(dir $(shell pwd))$(TOPLIBDIR)/$(TARGTYPE)/$(ARCHBITS)/$(FLAVOR);\

@@ -861,6 +861,8 @@ public:
   // method to do code generation
   virtual short codeGen(Generator*);
 
+  TableDesc * getTableDesc() const              { return tableDesc_; }
+
 private:
   TableDesc *tableDesc_;
 }; // class HbasePushdownAggr
