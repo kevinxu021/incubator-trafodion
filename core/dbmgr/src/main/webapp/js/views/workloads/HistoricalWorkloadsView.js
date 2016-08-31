@@ -57,6 +57,7 @@ define([
 	var CHART_CONFIG = {
 			"TopN_Memory_Used":{
 				container:"topN-memory-chart",
+				errorContainer:"#topN-memory-chart",
 				spinner:"#memory-spinner",
 				error:"#topN-memory-error-text",
 				column : 8,	//index of column used for trigger sort
@@ -66,6 +67,7 @@ define([
 			},
 			"TopN_CPU_Time":{
 				container:"topN-cpu-chart",
+				errorContainer:"#topN-cpu-chart",
 				spinner:"#cpu-spinner",
 				error:"#topN-cpu-error-text",
 				column : 9,
@@ -75,6 +77,7 @@ define([
 			},
 			"TopN_Total_Runtime":{
 				container:"topN-runtime-chart",
+				errorContainer:"#topN-runtime-chart",
 				spinner:"#runtime-spinner",
 				error:"#topN-runtime-error-text",
 				column : 7,
@@ -84,6 +87,7 @@ define([
 			},
 			"TopN_Disk_IO":{
 				container:"topN-diskio-chart",
+				errorContainer:"#topN-diskio-chart",
 				spinner:"#diskio-spinner",
 				error:"#topN-diskio-error-text",
 				column : 10,
@@ -681,6 +685,8 @@ define([
 			var type = chartConfig.type;
 			var column = chartConfig.column;
 			var container = chartConfig.container;
+			var errorContainer = chartConfig.errorContainer;
+			var error = chartChonfig.error;
 			var spinner = chartConfig.spinner;
 			var x_start = _this.getTimerange().startTime.unix() * 1000;
 			var x_end = _this.getTimerange().endTime.unix() * 1000;
@@ -688,8 +694,18 @@ define([
 			var options = FLOT_OPTIONS;
 			options.xaxis.min = x_start;
 			options.xaxis.max = x_end;
+			if(data.length == 0){
+				$(container).hide();
+				$(errorContainer).text("No data available");
+				$(errorContainer).show();	
+				return ;
+			}
 			var lines = [];
 			var count = 5;
+			$(errorContainer).text("");
+			$(errorContainer).hide();
+			$(container).empty();
+			$(container).show();
 			for(var i=0;i < data.length;i++){
 				var status = "Complete";
 				var start_time = _this.UTCstamp2UTCsecond(data[i].start_time);
