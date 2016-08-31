@@ -3769,8 +3769,17 @@ void HivePartitionAndBucketKey::estimateAccessMetrics(FileScan* fileScan)
 
 }
 
-NABoolean HivePartitionAndBucketKey::canEliminatePartitions()
+NABoolean HivePartitionAndBucketKey::canEliminatePartitions(const ValueIdSet& eqjoinCols)
 {
-  return ( partitionEliminatedCTOnly() || getPartAndVirtColPreds().entries() > 0 );
+  if ( partitionEliminatedCTOnly() )
+    return TRUE;
+
+  if ( getPartAndVirtColPreds().isEmpty() )
+    return FALSE;
+
+  ValueIdSet result(getPartAndVirtColPreds());
+  result.intersectSetDeep(eqjoinCols);
+
+  return result.isEmpty();
 }
 

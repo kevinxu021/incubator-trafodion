@@ -5225,6 +5225,14 @@ Context* NestedJoin::createContextForAChild(Context* myContext,
             // get the OCR plan.
             if ( njPws->getOCRJoinIsConsidered() ) {
 
+               const NATable* naTable = getNATableForRightChild();
+               if ( naTable && naTable->isHiveTable() ) {
+                 const ValueIdSet& eqExprOnchild1 =
+                      getOriginalEquiJoinExpressions().getBottomValues();
+
+                 ippForMyChild->setEquiJoinExprForInner(eqExprOnchild1);
+               }
+
                const PartitioningFunction* njDp2OuterOrderPartFunc =
                   ippForMyChild->getNjDp2OuterOrderPartFunc();
 

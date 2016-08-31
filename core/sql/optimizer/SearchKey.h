@@ -1020,7 +1020,7 @@ public:
   Int64 getAvgRowcountInOnePartnSelected() const
         { return avgRCInOnePartnSelected_; }
 
-  NABoolean canEliminatePartitions();
+  NABoolean canEliminatePartitions(const ValueIdSet& eqjoinCols);
 
 protected:
   // Return the total bytes read, given a accumulated stats and the selection predicate
