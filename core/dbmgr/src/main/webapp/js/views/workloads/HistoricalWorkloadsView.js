@@ -394,7 +394,7 @@ define([
 			}
 			_this.showLoading();
 			wHandler.fetchQueriesInRepository(lastAppliedFilters);
-			_this.fetchTopN();
+			//_this.fetchTopN();
 		},
 		getFilterParams: function(){
 			var startTime = $(START_TIME_PICKER).data("DateTimePicker").date();
@@ -866,9 +866,9 @@ define([
 					}else{
 						y = pos.pageY;
 					}
-					common.showTooltip(x, y, content, type+'-tooltip');
-					$(".tooltip-inner").css("max-width","600px");
-					$("#"+type+'-tooltip').width(600);
+					common.showTooltip(x, y, content, type+'-tooltip', 600);
+					//$(".tooltip-inner").css("max-width","600px");
+					//$("#"+type+'-tooltip').width(600);
 					
 					
 				} else {

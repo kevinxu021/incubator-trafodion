@@ -1,55 +1,10 @@
-<div id="page-wrapper">
-	<div class="row">
+<div id="page-wrapper" style="overflow:auto">
+	<div id="r1" class="row">
 		<div class="col-lg-12">
-			<!-- <div class="pull-right">
-				<div class="btn-toolbar">
-					<div class="btn-group"
-						style="margin-bottom: 10px; margin-top: 10px;">
-						<button type="button"
-							class="btn btn-primary btn-xs dropdown-toggle"
-							data-toggle="dropdown" style="height: 30px;">
-							Actions <span class="caret"></span>
-						</button>
-						<ul class="dropdown-menu pull-right" role="menu">
-							<li><a id="cancelAction">Cancel</a></li>
-						</ul>
-					</div>
-				</div>
-			</div> -->
 			<h3 class="page-header">Query WorkBench</h3>
 		</div>
 	</div>
-<!-- <div class="row">
-		<div class="col-lg-12">
-			<div class="panel panel-default">
-				<div class="panel-heading">
-					Input Script<span class="pull-right dbmgr-collapsible"><i
-						class="fa fa-sort-up"></i></span>
-				</div>
-				<div class="panel-body">
-					<div class="form-group">
-						<label class="control-label">SQL Script File </label>
-						<div class="input-group" style="width: 600px;">
-							<input id="importQuery" name="source_file_name" type="text"
-								class="form-control input-sm"
-								placeholder="Use the browse button and select a SQL source file..."
-								readonly="readonly" style="background-color: white" />
-							<div class="input-group-btn ">
-								<a class='btn btn-primary glyphicon glyphicon-search input-sm'
-									href='javascript:;' style="top: 0; padding-top: 7px;"
-									tabindex="-1"> <input id="queryFile" type="file"
-									accept=".sql, .txt, .ddl" tabindex="-1"
-									style="width: 50px; position: absolute; z-index: 2; top: 0; left: 0; opacity: 0; background-color: transparent; color: transparent;"
-									name="file_source">
-								</a>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-		</div> -->	
-	<div class="row">
+	<div id="r2" class="row">
 		<div class="col-lg-12">
 			<div class="panel panel-default">
 				<div class="panel-heading">
@@ -93,10 +48,13 @@
 					</div>
 				</div>
 			</div>
-			<br />
+		</div>
+    </div>
+    <div id="r3" class="row pane">
+        <div class="col-lg-12">
 			<div class="panel panel-default">
 				<div id="result-panel-title" class="panel-heading">
-					Result <span class="pull-right dbmgr-collapsible"><i
+					Execution Result <span class="pull-right dbmgr-collapsible"><i
 						class="fa fa-sort-up"></i></span>
 				</div>
 
@@ -110,11 +68,28 @@
 					</div>
 					<!-- <label id="scalar-result-container" 
 					style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: normal;color: black;"></label> -->
-					<div id="infovis" style="overflow: auto;"></div>
+					<!-- <div id="infovis" style="overflow: auto;"></div> -->
 					<label id="query-error-text" class="dbmgr-error-text"></label>
 				</div>
 			</div>
-			
+        </div>
+    </div>
+    <div id="r4" class="row pane">
+        <div class="col-lg-12">
+			<div id="visual-explain-container" class="panel panel-default">
+				<div class="panel-heading">
+					Visual Explain Plan <span class="pull-right dbmgr-collapsible"><i
+						class="fa fa-sort-up"></i></span>
+				</div>
+				<div class="panel-body">
+					<div id="infovis" style="overflow: auto;"></div>
+					<label id="explain-error-text" class="dbmgr-error-text"></label>
+				</div>
+			</div>
+        </div>
+    </div>
+    <div id="r5" class="row">
+        <div class="col-lg-12">
 			<div id="text-result-container" class="panel panel-default">
 				<div class="panel-heading">
 					Text Plan <span class="pull-right dbmgr-collapsible"><i

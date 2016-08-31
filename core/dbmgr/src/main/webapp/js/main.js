@@ -143,7 +143,8 @@ require.config({
 		flotaxislabels: '../bower_components/flot-axislabels/jquery.flot.axislabels',
 		flotcategories: '../bower_components/flot/jquery.flot.categories',
 		filesaver: '../bower_components/file-saver/FileSaver',
-		flotresize: '../bower_components/flot/jquery.flot.resize'
+		flotresize: '../bower_components/flot/jquery.flot.resize',
+		jqueryscroll: '../bower_components/jquery.scrollTo/jquery.scrollTo.min'
 	}
 
 });
