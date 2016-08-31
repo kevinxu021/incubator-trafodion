@@ -57,7 +57,6 @@ define([
 	var CHART_CONFIG = {
 			"TopN_Memory_Used":{
 				container:"topN-memory-chart",
-				errorContainer:"#topN-memory-chart",
 				spinner:"#memory-spinner",
 				error:"#topN-memory-error-text",
 				column : 8,	//index of column used for trigger sort
@@ -67,7 +66,6 @@ define([
 			},
 			"TopN_CPU_Time":{
 				container:"topN-cpu-chart",
-				errorContainer:"#topN-cpu-chart",
 				spinner:"#cpu-spinner",
 				error:"#topN-cpu-error-text",
 				column : 9,
@@ -77,7 +75,6 @@ define([
 			},
 			"TopN_Total_Runtime":{
 				container:"topN-runtime-chart",
-				errorContainer:"#topN-runtime-chart",
 				spinner:"#runtime-spinner",
 				error:"#topN-runtime-error-text",
 				column : 7,
@@ -87,7 +84,6 @@ define([
 			},
 			"TopN_Disk_IO":{
 				container:"topN-diskio-chart",
-				errorContainer:"#topN-diskio-chart",
 				spinner:"#diskio-spinner",
 				error:"#topN-diskio-error-text",
 				column : 10,
@@ -227,17 +223,17 @@ define([
 			wHandler.on(wHandler.FETCH_REPO_ERROR, this.showErrorMessage);
 			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
 			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
-			wHandler.on(wHandler.FETCH_TOPN_MAX_MEM_USED_SUCCESS, this.displayTopMemUsed);
-			wHandler.on(wHandler.FETCH_TOPN_CPU_TIME_SUCCESS, this.displayTopCPUTime);
-			wHandler.on(wHandler.FETCH_TOPN_Rumtime_SUCCESS, this.displayTopRuntime);
-			wHandler.on(wHandler.FETCH_TOPN_DiskIO_SUCCESS, this.displayTopDiskIO);
+			//wHandler.on(wHandler.FETCH_TOPN_MAX_MEM_USED_SUCCESS, this.displayTopMemUsed);
+			//wHandler.on(wHandler.FETCH_TOPN_CPU_TIME_SUCCESS, this.displayTopCPUTime);
+			//wHandler.on(wHandler.FETCH_TOPN_Rumtime_SUCCESS, this.displayTopRuntime);
+			//wHandler.on(wHandler.FETCH_TOPN_DiskIO_SUCCESS, this.displayTopDiskIO);
 			$(REFRESH_MENU).on('click', this.fetchQueriesInRepository);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			$(CANCEL_QUERY_YES_BTN).on('click', this.cancelQueryConfirmed);
 			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
 			this.fetchQueriesInRepository();
-			_this.fetchTopN();
+			//_this.fetchTopN();
 		},
 		doResume: function(){
 			this.redirectFlag=false;
@@ -478,13 +474,99 @@ define([
 				endTime: $(END_TIME_PICKER).data("DateTimePicker").date()
 			}
 		},
+		displayCharts: function(data){
+			var topData = _this.getSortTopResult(data);
+			_this.displayTopMemUsed(topData.topmemdata);
+			_this.displayTopCPUTime(topData.topcpudata);
+			_this.displayTopRuntime(topData.toprundata);
+			_this.displayTopDiskIO(topData.topdiskdata);
+		},
+		getSortTopResult: function(data){
+			var arrTopMem = [];
+			var arrTopCPU = [];
+			var arrTopRun = [];
+			var arrTopDisk = [];
+			for(var i = 0;i<data.length;i++){
+				var curRunData = {
+						query_id:data[i][0],
+						status:data[i][1],
+						start_time:data[i][2],
+						end_time:data[i][3],
+						value:data[i][7]
+				}
+				var curMemData = {
+						query_id:data[i][0],
+						status:data[i][1],
+						start_time:data[i][2],
+						end_time:data[i][3],
+						value:data[i][8]
+				}
+				var curCPUData = {
+						query_id:data[i][0],
+						status:data[i][1],
+						start_time:data[i][2],
+						end_time:data[i][3],
+						value:data[i][9]
+				}
+				var curDiskData = {
+						query_id:data[i][0],
+						status:data[i][1],
+						start_time:data[i][2],
+						end_time:data[i][3],
+						value:data[i][10]
+				}
+				arrTopMem = _this.insertSortArr(arrTopMem,curMemData);
+				arrTopCPU = _this.insertSortArr(arrTopCPU,curCPUData);
+				arrTopRun = _this.insertSortArr(arrTopRun,curRunData);
+				arrTopDisk = _this.insertSortArr(arrTopDisk,curDiskData);
+			}	
+			return{
+				"topmemdata":arrTopMem,
+				"topcpudata":arrTopCPU,
+				"toprundata":arrTopRun,
+				"topdiskdata":arrTopDisk
+			}
+		},
+		insertSortArr: function(arr,data){
+			var value = data.value;
+			var length = arr.length;
+			if(length==0){
+				arr.push(data);
+			}else{
+				if(value<arr[length-1] && length<5){
+					arr.push(data);
+				}else{
+					if(value>=arr[0]){
+						arr.unshift(data);
+					}else{
+						for(var i=0;i<length;i++){
+							if(value<arr[i]){
+								continue;
+							}else{
+								var preArr = arr.slice(0,i);
+								var poArr = arr.slice(i)
+								poArr.unshift(data);
+								arr = preArr.concat(poArr);
+								break;
+							}
+						}
+					}
+				}
+			}
+			if(arr.length>5){
+				arr.pop();
+			}
+			return arr;
+		},
+		
 		displayResults: function (result){
 			_this.hideLoading();
 			$(ERROR_CONTAINER).hide();
 			$(RESULT_CONTAINER).show();
 
+			_this.displayCharts(result.resultArray);
 			var keys = result.columnNames;
-
+			
 			if(keys != null && keys.length > 0) {
 				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="repo-query-results"></table>';
 				$(RESULT_CONTAINER).html( sb );
@@ -684,8 +766,7 @@ define([
 			var type = chartConfig.type;
 			var column = chartConfig.column;
 			var container = chartConfig.container;
-			var errorContainer = chartConfig.errorContainer;
-			var error = chartChonfig.error;
+			var error = chartConfig.error;
 			var spinner = chartConfig.spinner;
 			var x_start = _this.getTimerange().startTime.unix() * 1000;
 			var x_end = _this.getTimerange().endTime.unix() * 1000;
@@ -694,37 +775,34 @@ define([
 			options.xaxis.min = x_start;
 			options.xaxis.max = x_end;
 			if(data.length == 0){
-				$(container).hide();
-				$(errorContainer).text("No data available");
-				$(errorContainer).show();	
+				$("#"+container).hide();
+				$(error).text("No data available");
+				$(error).show();
+				$(spinner).hide();
 				return ;
 			}
 			var lines = [];
 			var count = 5;
-			$(errorContainer).text("");
-			$(errorContainer).hide();
-			$(container).empty();
-			$(container).show();
+			$(error).text("");
+			$(error).hide();
+			$("#"+container).empty();
+			$("#"+container).show();
 			for(var i=0;i < data.length;i++){
-				var status = "Complete";
+				var status = data[i].status;
 				var start_time = _this.UTCstamp2UTCsecond(data[i].start_time);
 				var end_time = data[i].end_time;
-				if(end_time == null){
-					end_time = x_end;
-					status = "Executing";
-				}else{
-					end_time = _this.UTCstamp2UTCsecond(end_time);
-				}
 				var y = count;
-				var value = data[i][chartConfig.value];
+				var value = data[i].value;
 				if(type == 'top_memory'){
 					value = value *1024;
 				}
 				var query_id = data[i].query_id;
 				var line = {
 						"query_id":query_id,
-						"start_time":data[i].start_time,
-						"end_time":data[i].end_time,
+						//"start_time":data[i].start_time,
+						//"end_time":data[i].end_time,
+						"start_time":common.toServerLocalDateFromUtcMilliSeconds(data[i].start_time),
+						"end_time":common.toServerLocalDateFromUtcMilliSeconds(data[i].end_time),
 						"value": valueFormat(value),
 						"index":y,
 						"status":status,
