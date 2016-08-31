@@ -22,6 +22,7 @@
 //package org.apache.hadoop.hbase.client.transactional;
 package org.trafodion.pit;
 
+import org.apache.hadoop.hbase.snapshot.SnapshotDoesNotExistException;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTm;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTmException;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTmId;
@@ -43,6 +44,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionService;
 
 import org.trafodion.pit.RecoveryRecord;
 import org.trafodion.pit.MutationMeta;
@@ -64,6 +71,10 @@ public class BackupRestoreClient
     private static SnapshotMeta sm;
     private static SnapshotMetaRecord smr;
     private static SnapshotMetaStartRecord smsr;
+    HBaseAdmin restoreAdmin;
+    int pit_thread = 1;
+
+    private ExecutorService threadPool;
 
     static Logger logger = Logger
             .getLogger(BackupRestoreClient.class.getName());
@@ -87,6 +98,30 @@ public class BackupRestoreClient
          }
         
         timeIdVal = timeId.val;
+    }
+
+/**
+   * ReplayEngineCallable  :  inner class for creating asynchronous requests
+   */
+  private abstract class RestoreEngineCallable implements Callable<Integer>  {
+
+        RestoreEngineCallable(){}
+        public Integer doReplay(String msnapshotPath) throws IOException  {
+
+          long threadId = Thread.currentThread().getId();
+          System.out.println("ENTRY Working from thread " + threadId + " path " + msnapshotPath);
+          logger.info("ENTRY Working from thread " + threadId + " path " + msnapshotPath);
+
+          //if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine got path " + msnapshotPath); 
+          //System.out.println("ReplayEngine got path " + msnapshotPath);
+          restoreAdmin.restoreSnapshot(msnapshotPath);
+          System.out.println("ReplayEngine got path restored with tag " + msnapshotPath);
+          logger.info("ReplayEngine got path restored with tag " + msnapshotPath);
+
+          System.out.println("EXIT Working from thread " + threadId + " path " + msnapshotPath);
+          logger.info("EXIT Working from thread " + threadId + " path " + msnapshotPath);
+          return 0;
+       }
     }
 
     public boolean createSnapshot(Object[] tables, String backuptag)
@@ -149,26 +184,72 @@ public class BackupRestoreClient
         }
         else
         {
-          if (logger.isDebugEnabled())
-            logger.debug("BackupRestoreClient restoreSnapshots User tag :" + backuptag);
-          
-          HBaseAdmin admin = new HBaseAdmin(config);
-          ArrayList<SnapshotMetaRecord> snapshotList;
 
-          snapshotList = getBackedupSnapshotList(backuptag);
-        
-          // For each table, in the list restore snapshot
-          for (SnapshotMetaRecord s : snapshotList) {
-            String hbaseTableName = s.getTableName();
-            String snapshotName =  s.getSnapshotPath();
-  
-              logger.info("BackupRestoreClient restoreSnapshots Snapshot Name :"
-                      + snapshotName);
-  
-            admin.restoreSnapshot(snapshotName);
+          String pitThreadCount = System.getenv("TM_PIT_THREAD");
+          if (pitThreadCount != null) {
+                 this.pit_thread = Integer.parseInt(pitThreadCount);
+                 if(logger.isDebugEnabled()) logger.debug("PIT thread count set to: " + this.pit_thread);
           }
-          admin.close();
-        }
+
+          if (logger.isDebugEnabled())
+              logger.debug("BackupRestoreClient restoreSnapshots User tag :" + backuptag);
+ 
+          if (pit_thread < 2) { // thread count 1 or not set, keep old serial restore snapshots         
+              HBaseAdmin admin = new HBaseAdmin(config);
+              ArrayList<SnapshotMetaRecord> snapshotList;
+
+              snapshotList = getBackedupSnapshotList(backuptag);
+        
+              // For each table, in the list restore snapshot
+              for (SnapshotMetaRecord s : snapshotList) {
+                   String hbaseTableName = s.getTableName();
+                   String snapshotName =  s.getSnapshotPath();
+                   logger.info("BackupRestoreClient restoreSnapshots Snapshot Name :" + snapshotName);
+                   admin.restoreSnapshot(snapshotName);
+               }
+               admin.close();
+          } //  thread count < 2
+          else {  // async thread mode when thread count >= 2
+               restoreAdmin = new HBaseAdmin(config);
+               ArrayList<SnapshotMetaRecord> snapshotList;
+               snapshotList = getBackedupSnapshotList(backuptag);
+
+               threadPool = Executors.newFixedThreadPool(pit_thread);
+               int loopCount = 0;
+               CompletionService<Integer> compPool = new ExecutorCompletionService<Integer>(threadPool);
+               try {
+                         // For each table, in the list restore snapshot
+                         for (SnapshotMetaRecord s : snapshotList) {
+                              String hbaseTableName = s.getTableName();
+                              final  String snapshotName =  s.getSnapshotPath();
+                              // Send mutation work to a thread for work
+                             compPool.submit(new RestoreEngineCallable() {
+                             public Integer call() throws Exception {
+                                          return doReplay(snapshotName);
+                             }
+                            });
+                          loopCount++;
+                          } // for-loop
+               }catch (Exception e) {
+                     logger.error("Restore Engine exception in restore snapshot : ", e);
+               throw e;
+               }
+
+               try {
+                         // simply to make sure they all complete, no return codes necessary at the moment
+                        for (int loopIndex = 0; loopIndex < loopCount; loopIndex ++) {
+                             int returnValue = compPool.take().get(); 
+                             if ((loopIndex % 10) == 1) System.out.println("..... ReplayEngine: table restored " + (loopIndex*100)/loopCount + " .....");
+                      }
+                }catch (Exception e) {
+                      logger.error("Restore Engine exception retrieving replies : ", e);
+               throw e;
+               }
+
+          restoreAdmin.close();
+        } // thread >= 2
+
+        } // tag based restore
         return true;
     }
     
@@ -245,11 +326,18 @@ public class BackupRestoreClient
               if (logger.isDebugEnabled())
                  logger.debug("deleteRecoveryRecord got path " + snapshotPath);
               System.out.println("deleteRecoveryRecord got path " + snapshotPath);
-    
-              admin.deleteSnapshot(snapshotPath);
-              if (logger.isDebugEnabled())
-                 logger.debug("deleteRecoveryRecord snapshot deleted");
-              System.out.println("deleteRecoveryRecord snapshot deleted");
+
+              try{
+                 admin.deleteSnapshot(snapshotPath);
+                 if (logger.isDebugEnabled())
+                    logger.debug("deleteRecoveryRecord snapshot deleted");
+                 System.out.println("deleteRecoveryRecord snapshot deleted");
+              }
+              catch(SnapshotDoesNotExistException se){
+                  if (logger.isDebugEnabled())
+                      logger.debug("deleteRecoveryRecord snapshot does not exist, ignoring");
+                   System.out.println("deleteRecoveryRecord snapshot does not exist, ignoring");
+              }
 
               if (logger.isDebugEnabled())
                  logger.debug("deleteRecoveryRecord deleting snapshotRecord");

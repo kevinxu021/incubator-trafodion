@@ -3708,7 +3708,8 @@ NAType* getSQColTypeForHive(const char* hiveType, NAMemory* heap)
   if ( !strcmp(hiveType, "date"))
     return new (heap) SQLDate(TRUE /* allow NULL */ , heap);
 
-  if ( !strncmp(hiveType, "varchar", 7) )
+  if ( (!strncmp(hiveType, "varchar", 7)) ||
+       (!strncmp(hiveType, "char", 4)))
   {
     char maxLen[32];
     memset(maxLen, 0, 32);
@@ -3750,7 +3751,18 @@ NAType* getSQColTypeForHive(const char* hiveType, NAMemory* heap)
        maxNumChars = len;
        storageLen = len * CharInfo::maxBytesPerChar(hiveCharsetEnum);
     }
-    return new (heap) SQLVarChar(CharLenInfo(maxNumChars, storageLen),
+
+    if (!strncmp(hiveType, "char", 4))
+      return new (heap) SQLChar(CharLenInfo(maxNumChars, storageLen),
+                                TRUE, // allow NULL
+                                FALSE, // not upshifted
+                                FALSE, // not case-insensitive
+                                FALSE, // not varchar
+                                CharInfo::getCharSetEnum(hiveCharset),
+                                CharInfo::DefaultCollation,
+                                CharInfo::IMPLICIT);
+    else
+      return new (heap) SQLVarChar(CharLenInfo(maxNumChars, storageLen),
                                    TRUE, // allow NULL
                                    FALSE, // not upshifted
                                    FALSE, // not case-insensitive
@@ -5385,6 +5397,7 @@ NATable::NATable(BindWA *bindWA,
     clusteringIndex_(NULL),
     colcount_(0),
     colArray_(heap),
+    hiveColArray_(heap),
     recordLength_(0),
     indexes_(heap),
     vertParts_(heap),
@@ -5627,7 +5640,7 @@ NATable::NATable(BindWA *bindWA,
   // Set up privs
   if ((corrName.getSpecialType() == ExtendedQualName::SG_TABLE) ||
       (!(corrName.isSeabaseMD() || corrName.isSpecialTable())))
-     setupPrivInfo();
+     getPrivileges(table_desc->tableDesc()->priv_desc);
 
   if ((table_desc->tableDesc()->objectFlags & SEABASE_OBJECT_IS_EXTERNAL_HIVE) != 0 ||
       (table_desc->tableDesc()->objectFlags & SEABASE_OBJECT_IS_EXTERNAL_HBASE) != 0)
@@ -6135,6 +6148,7 @@ NATable::NATable(BindWA *bindWA,
     clusteringIndex_(NULL),
     colcount_(0),
     colArray_(heap),
+    hiveColArray_(heap),
     recordLength_(0),
     indexes_(heap),
     vertParts_(heap),
@@ -6277,7 +6291,7 @@ NATable::NATable(BindWA *bindWA,
   }
 
   if (hasExternalTable())
-    setupPrivInfo();
+    getPrivileges(NULL); 
 
   // TBD - if authorization is enabled and there is no external table to store
   // privileges, go get privilege information from HIVE metadata ...
@@ -6372,9 +6386,6 @@ NATable::NATable(BindWA *bindWA,
   Int32 hiveDefaultStringLenInBytes = CmpCommon::getDefaultLong(HIVE_MAX_STRING_LENGTH_IN_BYTES);
   if( hiveDefaultStringLenInBytes != 31999 ) 
       hiveDefaultStringLen_ = hiveDefaultStringLenInBytes;
-
-  if (!(corrName.isSeabaseMD() || corrName.isSpecialTable()))
-    setupPrivInfo();
 
 // LCOV_EXCL_STOP
   initialSize_ = heap_->getAllocSize();
@@ -7225,24 +7236,13 @@ NABoolean NATable::getCorrespondingConstraint(NAList<NAString> &inputCols,
   return constrFound;
 }
 
-void NATable::setupPrivInfo()
+// Extracts privilege bitmaps from the priv_desc for the current user
+void NATable::getPrivileges(TrafDesc * priv_desc)
 {
-  Int32 thisUserID = ComUser::getCurrentUser();
-  NAString privMDLoc = CmpSeabaseDDL::getSystemCatalogStatic();
-  privMDLoc += ".\"";
-  privMDLoc += SEABASE_PRIVMGR_SCHEMA;
-  privMDLoc += "\"";
-
-  PrivMgrCommands privInterface(privMDLoc.data(), CmpCommon::diags(),PrivMgr::PRIV_INITIALIZED);
-
-  if (privInterface.isPrivMgrTable(
-    qualifiedName_.getQualifiedNameObj().getQualifiedNameAsString().data()))
-    {
-      isSeabasePrivSchemaTable_ = TRUE;
-      return;
-    }
-
-  privInfo_ = new(heap_) PrivMgrUserPrivs;
+  if (CmpSeabaseDDL::isSeabasePrivMgrMD
+       (qualifiedName_.getQualifiedNameObj().getCatalogName(),
+        qualifiedName_.getQualifiedNameObj().getSchemaName()))
+    isSeabasePrivSchemaTable_ = TRUE;
 
   if ((!isSeabaseTable() && !isHiveTable()) ||
       !CmpCommon::context()->isAuthorizationEnabled() ||
@@ -7250,11 +7250,53 @@ void NATable::setupPrivInfo()
       ComUser::isRootUserID()||
       ComUser::getCurrentUser() == owner_)
     {
+      privInfo_ = new(heap_) PrivMgrUserPrivs;
       privInfo_->setOwnerDefaultPrivs();
       return;
     }
+  
+  // priv_desc could be NULL if NATable is being created for an MD or hive
+  // table. 
+  // For hive tables, go ahead and read the privilege manager metadata to 
+  // extract privs
+  // Much of the time, MD is read by the compiler/DDL on behalf of the user so 
+  // privilege checks are skipped.  Instead of performing the I/O to get 
+  // privilege information at this time, set privInfo_ to NULL and rely on 
+  // RelRoot::checkPrivileges to look up privileges. checkPrivileges is 
+  // optimized to lookup privileges only when needed.
+  if (priv_desc == NULL)
+    {
+      if (isHiveTable())
+        readPrivileges();
+      else
+        privInfo_ = NULL;
+      return;
+    }
+  else
+    privInfo_ = new(heap_) PrivMgrUserPrivs(priv_desc, ComUser::getCurrentUser());
 
-  std::vector <ComSecurityKey *> secKeyVec;
+  if (privInfo_ == NULL)
+    {
+      *CmpCommon::diags() << DgSqlCode(-1034);
+      return;
+    }
+      
+  // buildSecurityKeySet uses privInfo_ member to set up the security keys
+  bool rslt = buildSecurityKeySet(privInfo_, objectUid().get_value(), secKeySet_);
+  if (!rslt)
+    {
+      NADELETE(privInfo_, PrivMgrUserPrivs, heap_);
+      privInfo_ = NULL;
+      *CmpCommon::diags() << DgSqlCode( -4400 );
+      return;
+    }
+}
+
+// Call privilege manager to get privileges and security keys
+// update privInfo_ and secKeySet_ members with values 
+void NATable::readPrivileges ()
+{
+  privInfo_ = new(heap_) PrivMgrUserPrivs;
 
   bool testError = false;
 #ifndef NDEBUG
@@ -7272,9 +7314,18 @@ void NATable::setupPrivInfo()
 
       return;
     }
+
+  NAString privMDLoc = CmpSeabaseDDL::getSystemCatalogStatic();
+  privMDLoc += ".\"";
+  privMDLoc += SEABASE_PRIVMGR_SCHEMA;
+  privMDLoc += "\"";
+
+  PrivMgrCommands privInterface(privMDLoc.data(), CmpCommon::diags(),PrivMgr::PRIV_INITIALIZED);
+  std::vector <ComSecurityKey *> secKeyVec;
+
   if (testError || (STATUS_GOOD !=
        privInterface.getPrivileges(objectUid().get_value(), objectType_,
-                                   thisUserID, *privInfo_, &secKeyVec)))
+                                   ComUser::getCurrentUser(), *privInfo_, &secKeyVec)))
   {
     if (testError)
 #ifndef NDEBUG
@@ -7286,8 +7337,8 @@ void NATable::setupPrivInfo()
     NADELETE(privInfo_, PrivMgrUserPrivs, heap_);
     privInfo_ = NULL;
 
-  cmpSBD.switchBackCompiler();
-  return;
+    cmpSBD.switchBackCompiler();
+    return;
   }
 
   CMPASSERT (privInfo_);
@@ -7360,6 +7411,7 @@ NATable::~NATable()
     NADELETE(privInfo_, PrivMgrUserPrivs, heap_);
     privInfo_ = NULL;
   }
+
   if (! isHive_) {
      for (int i = 0 ; i < colcount_ ; i++) {
          col = (NAColumn *)colArray_[i];
@@ -7376,6 +7428,9 @@ NATable::~NATable()
      }
      colArray_.clear();
   }
+  
+
+
   if (parentTableName_ != NULL)
   {
      NADELETEBASIC(parentTableName_, heap_);
@@ -8372,6 +8427,15 @@ short NATable::updateExtTableAttrs(NATable *etTable)
 
   if (numUserCols != etTable->getUserColumnCount())
     return -1;
+
+  // save the original colArray_
+  for (CollIndex i = 0; i < colArray_.entries(); i++)
+    {
+      NAColumn * nac =
+        new(heap_) NAColumn(*colArray_[i], heap_);
+                            
+      hiveColArray_.insert(nac);
+    }
 
   // save the virtual columns, those are not contained in the
   // external table

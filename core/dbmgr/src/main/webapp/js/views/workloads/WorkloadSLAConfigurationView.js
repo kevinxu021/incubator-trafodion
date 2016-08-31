@@ -139,7 +139,14 @@ define([
 				$(SLA_NAME).val("");
 				_this.fetchSLAs();
 			});
-
+			
+			$('input').on('blur', function() {
+			    if ($(SLA_FORM).valid()) {
+			        $(SLA_APPLY_BTN).prop('disabled', false);  
+			    } else {
+			        $(SLA_APPLY_BTN).prop('disabled', 'disabled');
+			    }
+			});
 			_this.fetchSLAs();
 		},
 		doResume: function(){
@@ -442,7 +449,7 @@ define([
 					"order": [[ 0, "asc" ]],
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible', orthogonal: 'export'  } },
-					          { extend : 'csv', exportOptions: { columns: ':visible', orthogonal: 'export' } },
+					          { extend : 'csv', exportOptions: { columns: ':visible', orthogonal: 'export' }, filename: 'Workload SLAs' },
 					          //{ extend : 'excel', exportOptions: { columns: ':visible', orthogonal: 'export' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible', orthogonal: 'export'  }, title: "Workload SLAs", orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible', orthogonal: 'export' }, title: "Workload SLAs" }

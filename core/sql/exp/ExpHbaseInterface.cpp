@@ -1877,29 +1877,52 @@ Lng32 ExpHbaseInterface_JNI::coProcAggr(
 				    const NABoolean replSync,
 				    Text &aggrVal) // returned value
 {
-  switch (storageType_) {
-  case COM_STORAGE_MONARCH:
-      return HBASE_NOT_IMPLEMENTED;
+  switch (storageType_) 
+    {
+    case COM_STORAGE_MONARCH:
+      {
+        MTableClient_JNI* mtc = 
+          mClient_->getMTableClient
+          ((NAHeap *)heap_, tblName.val, useTRex_, replSync, hbs_);
+        if (mtc == NULL)
+          {
+            retCode_ = MC_ERROR_GET_MTC_EXCEPTION;
+            return HBASE_OPEN_ERROR;
+          }
+        
+        Int64 transID = getTransactionIDFromContext();
+        retCode_ = mtc->coProcAggr(
+             transID, aggrType, startRow, stopRow,
+             colFamily, colName, cacheBlocks, numCacheRows,
+             aggrVal);
+        
+        mClient_->releaseMTableClient(mtc);
+      }
       break;
-  default:
-  HTableClient_JNI* htc = client_->getHTableClient((NAHeap *)heap_, tblName.val, useTRex_, replSync, hbs_);
-  if (htc == NULL)
-  {
-    retCode_ = HBC_ERROR_GET_HTC_EXCEPTION;
-    return HBASE_OPEN_ERROR;
-  }
 
-  Int64 transID = getTransactionIDFromContext();
-  retCode_ = htc->coProcAggr(
-			  transID, aggrType, startRow, stopRow,
-			  colFamily, colName, cacheBlocks, numCacheRows,
-			  aggrVal);
-
-  client_->releaseHTableClient(htc);
+    default:
+      {
+        HTableClient_JNI* htc = client_->getHTableClient((NAHeap *)heap_, tblName.val, useTRex_, replSync, hbs_);
+        if (htc == NULL)
+          {
+            retCode_ = HBC_ERROR_GET_HTC_EXCEPTION;
+            return HBASE_OPEN_ERROR;
+          }
+        
+        Int64 transID = getTransactionIDFromContext();
+        retCode_ = htc->coProcAggr(
+             transID, aggrType, startRow, stopRow,
+             colFamily, colName, cacheBlocks, numCacheRows,
+             aggrVal);
+        
+        client_->releaseHTableClient(htc);
+      }
+      break;
+    } // switch
 
   if (retCode_ != HBC_OK)
     return -HBASE_ACCESS_ERROR;
-  }
+
   return HBASE_ACCESS_SUCCESS;
 }
  

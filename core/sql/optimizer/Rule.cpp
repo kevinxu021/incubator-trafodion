@@ -112,11 +112,25 @@ void Rule::print (FILE * f, const char * prefix, const char * suffix)
 {
   fprintf (f, "%sRule \"%s\" :\n",
 	   prefix, name_);
-  pattern_ -> print (f, "  Pattern    = ", "");
-  substitute_ -> print (f, "  Substitute = ", "");
+
+  if ( pattern_ )
+    pattern_ -> print (f, "  Pattern    = ", "");
+  else 
+    print (f, "  Pattern = NULL\n");
+
+  if ( substitute_ )
+    substitute_ -> print (f, "  Substitute = ", "");
+  else
+    print (f, "  Substitue = NULL\n");
+
   fprintf (f, "%s\n", suffix);
 } // Rule::print
 // LCOV_EXCL_STOP
+
+void Rule::display()
+{
+   print();
+}
 
 NABoolean Rule::isImplementationRule() const
 {
@@ -372,6 +386,14 @@ RuleSubset::RuleSubset(CollHeap* h) :
 RuleSubset::RuleSubset (const RuleSubset & orig, CollHeap * h) :
   SUBARRAY(Rule *)(orig,h) {}
 
+void RuleSubset::display()
+{
+   for (CollIndex ruleId = 0;  nextUsed(ruleId);  ++ ruleId)
+   {
+      Rule * rule = GlobalRuleSet->rule(ruleId);
+      rule->display();
+   }
+}
 
 // -----------------------------------------------------------------------
 // methods for class RuleSet

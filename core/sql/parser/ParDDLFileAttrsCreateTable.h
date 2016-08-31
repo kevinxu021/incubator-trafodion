@@ -166,6 +166,9 @@ public:
 
   inline ComStorageType storageType() const;
 
+  void setStorageType(ComStorageType st)
+  { storageType_ = st; }
+
   //
   // mutators
   //
@@ -467,6 +470,9 @@ ParDDLFileAttrsCreateTable::isStorageTypeSpecified() const
 
 inline ComStorageType ParDDLFileAttrsCreateTable::storageType() const 
 { return storageType_; }
+
+//void ParDDLFileAttrsCreateTable::setStorageType(ComStorageType st)
+//{ storageType_ = st; }
 
 //
 // mutator

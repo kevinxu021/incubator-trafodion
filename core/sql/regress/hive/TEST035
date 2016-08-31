@@ -308,4 +308,86 @@ select a from hive.hive.torc;
 
 select * from hive.hive.torc;
 
+-- tests for orc CHAR/VARCHAR datatypes
+cqd auto_query_retry_warnings 'ON';
+cqd hive_max_string_length '5';
+
+-- run against hive/text table
+drop external table if exists torc10 for hive.hive.torc10;
+sh echo "drop table torc10;" > TEST035_junk;
+sh regrhive.ksh -f TEST035_junk;
+
+sh echo "create table torc10(a char(2), b varchar(3), c char(5), d varchar(6), e string, f string, g char(2), h varchar(3), i char(3), j varchar(3));" > TEST035_junk;
+sh regrhive.ksh -f TEST035_junk;
+
+obey TEST035(extTabQueries);
+
+-- run against ORC table
+drop external table if exists torc10 for hive.hive.torc10;
+sh echo "drop table torc10;" > TEST035_junk;
+sh regrhive.ksh -f TEST035_junk;
+
+sh echo "create table torc10(a char(2), b varchar(3), c char(5), d varchar(6), e string, f string, g char(2), h varchar(3), i char(3), j varchar(3)) stored as orc;" > TEST035_junk;
+sh regrhive.ksh -f TEST035_junk;
+
+obey TEST035(extTabQueries);
+
 log;
+exit;
+
+?section extTabQueries
+showddl hive.hive.torc10;
+insert into hive.hive.torc10 values 
+   ('ab', 'cde', 'ab', 'cde', 'ab', 'cde', 'ab', 'cde', '11', '222');
+                                    
+select * from hive.hive.torc10;
+
+drop external table if exists torc10 for hive.hive.torc10;
+create external table torc10 
+        (a char(2), b varchar(3),
+         c char(5), d varchar(6), 
+         e char(2), f varchar(3),
+         g char(2) character set utf8, h varchar(3) character set utf8,
+         i tinyint, j int)
+     for hive.hive.torc10;
+
+showddl hive.hive.torc10;
+select * from hive.hive.torc10;
+
+insert into hive.hive.torc10 values
+  ('x', 'yz', 'x', 'yz', 'x', 'yz', 'x', 'yz', 33, 444);
+
+select * from hive.hive.torc10;
+
+
+-- error cases
+
+-- overflow error during insert. Not currently detected.
+insert into hive.hive.torc10 values
+  ('x', 'yz', 'x', 'yz', 'x', 'yz', 'x', 'yz', 333, 444);
+
+-- incommpatible datatype against external table
+insert into hive.hive.torc10 values 
+   ('ab', 'cde', 'ab', 'cde', 'ab', 'cde', 'ab', 'cde', '11', '222');
+
+-- number of values less than number of columns
+insert into hive.hive.torc10 values 
+   ('ab', 'cde', 'ab', 'cde', 'ab', 'cde', 'ab', 'cde');
+
+-- overflow error detected during select
+truncate hive.hive.torc10;
+sh echo "insert into torc10 values ('a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', '555', '666');" > TEST035_junk;
+sh regrhive.ksh -f TEST035_junk;
+select * from hive.hive.torc10;
+
+-- incompatible values in hive table validated and detected during select
+truncate hive.hive.torc10;
+sh echo "insert into torc10 values ('a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a');" > TEST035_junk;
+sh regrhive.ksh -f TEST035_junk;
+select * from hive.hive.torc10;
+
+-- drop tables
+drop external table if exists torc10 for hive.hive.torc10;
+sh echo "drop table torc10;" > TEST035_junk;
+sh regrhive.ksh -f TEST035_junk;
+

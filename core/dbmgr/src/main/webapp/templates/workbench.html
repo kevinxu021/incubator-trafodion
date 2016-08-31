@@ -19,7 +19,7 @@
 			<h3 class="page-header">Query WorkBench</h3>
 		</div>
 	</div>
-	<div class="row">
+<!-- <div class="row">
 		<div class="col-lg-12">
 			<div class="panel panel-default">
 				<div class="panel-heading">
@@ -48,7 +48,7 @@
 				</div>
 			</div>
 		</div>
-		</div>
+		</div> -->	
 	<div class="row">
 		<div class="col-lg-12">
 			<div class="panel panel-default">
@@ -74,22 +74,21 @@
 							class="btn btn-default dbmgr-button fa fa-eraser"
 							style="font-family: FontAwesome;" data-toggle="tooltip"
 							data-placement="bottom" title="Clear"></button>
-
-						<button id="exportQuery"
-							class="btn btn-info dbmgr-button fa-save"
-							style="font-family: FontAwesome; height: 33px"
-							data-toggle="tooltip" data-placement="bottom" title="Save"></button>
 						<button id="importWbj" type="file"
-							class="btn btn-info dbmgr-button fa-folder-open glyphicon"
+							class="btn btn-info dbmgr-button glyphicon fa fa-folder-open "
 							style="font-family: FontAwesome; height: 33px"
 							data-toggle="tooltip" data-placement="bottom" title="Open">
 							<input id="wbjFile" type="file" accept=".wbj" tabindex="-1"
 								style="width: 82px; height: 35px; position: absolute; z-index: 2; top: 0; left: 0; opacity: 0; background-color: transparent; color: transparent;"
 								name="file_source">
 						</button>
+						<button id="exportQuery"
+							class="btn btn-info dbmgr-button glyphicon fa fa-save"
+							style="font-family: FontAwesome; height: 33px"
+							data-toggle="tooltip" data-placement="bottom" title="Save"></button>
 						<button id="setControlStmts"
-							class="btn btn-info dbmgr-button fa fa-gear"
-							style="font-family: FontAwesome;" data-toggle="tooltip"
+							class="btn btn-info dbmgr-button glyphicon fa fa-gear"
+							style="font-family: FontAwesome; height: 35px; " data-toggle="tooltip"
 							data-placement="bottom" title="Options"></button>
 					</div>
 				</div>
@@ -115,6 +114,7 @@
 					<label id="query-error-text" class="dbmgr-error-text"></label>
 				</div>
 			</div>
+			
 			<div id="text-result-container" class="panel panel-default">
 				<div class="panel-heading">
 					Text Plan <span class="pull-right dbmgr-collapsible"><i
