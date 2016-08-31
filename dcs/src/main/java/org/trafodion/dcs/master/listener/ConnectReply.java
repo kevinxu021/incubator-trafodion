@@ -158,7 +158,8 @@ class ConnectReply {
             if (userAffinity == false){
                 if(idleServers.size() > 0){
                     reusedUserServers.putAll(idleServers);
-                } else if(reusedOtherServers.size() > 0){
+                }
+                if(reusedOtherServers.size() > 0){
                     reusedUserServers.putAll(reusedOtherServers);
                 }
                 idleServers.clear();
@@ -302,14 +303,6 @@ class ConnectReply {
                 LOG.debug("nodeRegisteredPath :" + nodeRegisteredPath);
                 LOG.debug("data :" + new String(data));
             }
-            while(true){
-                data = zkc.getData(nodeRegisteredPath, null, stat);
-                sdata = new String(data);
-                if(sdata.startsWith(Constants.CONNECTING))
-                    break;
-                Thread.sleep(100);;
-            }
-
          } catch (KeeperException.NodeExistsException e) {
             LOG.error(clientSocketAddress + ": " + "do nothing...some other server has created znodes: " + e.getMessage());
             exceptionThrown = true;

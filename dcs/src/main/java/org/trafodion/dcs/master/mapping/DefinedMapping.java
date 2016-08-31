@@ -205,10 +205,12 @@ public class DefinedMapping  {
             dprofile = Constants.DEFAULT_WMS_PROFILE_NAME;
             lastUpdate = "1";
             hostList = "";
-            LOG.info("Conection attributes are empty : sla :" + sla + " cprofile :" + cprofile + " dprofile :" + dprofile);
+            if (LOG.isDebugEnabled())
+                LOG.debug("Connection attributes are empty : sla :" + sla + " cprofile :" + cprofile + " dprofile :" + dprofile);
        }
         else {
-              LOG.info("Conection cc_attributes :" + cc_attributes);
+              if (LOG.isDebugEnabled())
+                  LOG.debug("Connection cc_attributes :" + cc_attributes);
 
               if( ! mappingsMap.isEmpty())
                   sortByValues(mappingsMap);
@@ -273,7 +275,8 @@ public class DefinedMapping  {
                   if (bNotEqual == false){
                       bFound = true;
                       sla = mappingsMap.get(map).get(Constants.SLA);
-                      LOG.info("Using map [" + map + "] with attributes =|" + mappingsMap.get(map) + "| selected SLA=" + sla);
+                      if (LOG.isDebugEnabled())
+                          LOG.debug("Using map [" + map + "] with attributes =|" + mappingsMap.get(map) + "| selected SLA=" + sla);
                       break;
                   }
               }
