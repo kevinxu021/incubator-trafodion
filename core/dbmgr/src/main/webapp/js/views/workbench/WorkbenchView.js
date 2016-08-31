@@ -355,22 +355,28 @@ define([
 			} else {
 				controlStatement = controlStatement.replace(/(\r\n|\n|\r)/gm,"");
 			}
-			if(executionQueryText!=explainQueryText){
-				alert("your execution text is not the same as explain text, we default choose explain text!");
-				queryText=explainQueryText;
+			if(!$.isEmptyObject(EXPLAIN_JSON_DATA)){
+				if(executionQueryText != explainQueryText){
+					alert("your execution text is not the same as explain text, we default choose explain text!");
+					queryText=explainQueryText;
+				}
+				if(queryText==""&&controlStatement==""){
+					alert("there is nothing to export!");
+					return
+				}
 			}
-			if(queryText==""&&controlStatement==""){
-				alert("there is nothing to export!");
-				return
-			}
-			var json={queryText:queryText,EXPLAIN_JSON_DATA:EXPLAIN_JSON_DATA,controlStatement:controlStatement};
+			var json={queryText:queryText, EXPLAIN_JSON_DATA:EXPLAIN_JSON_DATA, controlStatement:controlStatement, executionResults:lastExecuteResult};
 			_this.SaveDatFileBro(json);
 		},
 		SaveDatFileBro:function(json) {
-			var data = "text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(json));
+			
+			var blob = new Blob([JSON.stringify(json)], {type: "text/plain;charset=utf-8"});
+			saveAs(blob, "WorkbenchExport.wbj");
+
+		/*	var data = "text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(json));
 			$('<a id="downloadJson" href="data:' + data + '" download="export.wbj" style="display:none">download JSON</a>').appendTo('body');
 			$("#downloadJson")[0].click();
-			$("#downloadJson").remove();
+			$("#downloadJson").remove();*/
 		},
 		importBtnClicked: function(){
 			this.value = null;
@@ -404,6 +410,9 @@ define([
 					case 'wbj':{
 						result=JSON.parse(e.target.result);
 						queryTextEditor.setValue(result.queryText);
+						executionQueryText = result.queryText;
+						explainQueryText = result.queryText;
+						
 						if(jQuery.isEmptyObject(result.EXPLAIN_JSON_DATA)!=true){
 							__this.drawExplain(result.EXPLAIN_JSON_DATA,"import");
 							$(EXPLAIN_TREE).show();
@@ -417,6 +426,9 @@ define([
 							_this.controlApplyClicked();
 						}else if(result.controlStatement==""){
 							$(OPTIONS_BTN).text(" ");
+						}
+						if(result.executionResults != ""){
+							_this.displayResults(result.executionResults);
 						}
 						break;
 					}
@@ -503,7 +515,6 @@ define([
 		},
 		explainQuery: function () {
 			resultsAfterPause = false;
-			lastExecuteResult = null;
 			lastExplainResult = null;
 			lastRawError = null;
 			
@@ -518,6 +529,9 @@ define([
 			if(queryText == null || queryText.length == 0){
 				alert('Query text cannot be empty.');
 				return;
+			}
+			if(executionQueryText != queryText){
+				lastExecuteResult = "";
 			}
 
 			_this.parseControlStmts();
@@ -552,15 +566,19 @@ define([
 				$(EXECUTE_BTN).removeClass('btn-primary fa-play').addClass('btn-danger fa-stop');
 				$(EXECUTE_BTN).unbind("click").on("click",_this.cancelQuery);
 			}
-
+			
+			
 			lastExecuteResult = null;
-			lastExplainResult = null;
 			resultsAfterPause = false;
 			lastRawError = null;
 			isCancelClicked=false;
 			timeStamps.runTime=new Date().getTime();
 			
 			executionQueryText=queryText;
+			
+			if(explainQueryText != queryText){
+				lastExplainResult = "";
+			}
 
 			_this.parseControlStmts();
 
@@ -582,6 +600,8 @@ define([
 		},
 
 		displayResults: function (result){
+			lastExecuteResult = result;
+
 			if(_this.redirectFlag){
 				resultsAfterPause = true;
 				lastExecuteResult = result;
@@ -620,7 +640,7 @@ define([
 
 					var bPaging = aaData.length > 25;
 
-					$('#wrkbnch-query-results').DataTable({
+					resultsDataTable = $('#wrkbnch-query-results').DataTable({
 						"oLanguage": {
 							"sEmptyTable": "0 rows(s)"
 						},
@@ -635,19 +655,10 @@ define([
 						paging: bPaging,
 						buttons: [
 		                           { extend : 'copy', exportOptions: { columns: ':visible' } },
-		                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+		                           { extend : 'csv', exportOptions: { columns: ':visible' }, filename: 'Query Workbench Results' },
 		                           //{ extend : 'excel', exportOptions: { columns: ':visible' } },
-		                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
-		                        	   title: 'Query Workbench' } ,
-		                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Query Workbench' },
-	                        	   {text: 'JSON',
-	                        		   action: function ( e, dt, button, config ) {
-	                        			   var data = dt.buttons.exportData();
-	                        			   $.fn.dataTable.fileSave(
-	                        					   new Blob( [ JSON.stringify( data ) ] ),
-	                        					   'Query Workbench.json'
-	                        			   );
-	                        		   }}
+		                           //{ extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, title: 'Query Workbench Results' } ,
+		                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Query Workbench Results' }
 					          ]
 
 					});
