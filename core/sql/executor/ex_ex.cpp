@@ -602,6 +602,8 @@ short ex_tcb::handleError(ex_queue_pair *qparent, ComDiagsArea *inDiagsArea)
   ex_queue_entry * up_entry = qparent->up->getTailEntry();
   ex_queue_entry * pentry_down = qparent->down->getHeadEntry();
   
+  up_entry->copyAtp(pentry_down);
+
   up_entry->upState.parentIndex = 
     pentry_down->downState.parentIndex;
   

@@ -171,6 +171,8 @@ public:
 /*
   MTC_RetCode setWriteBufferSize(Int64 size);
   MTC_RetCode setWriteToWAL(bool vWAL);
+*/
+
   MTC_RetCode coProcAggr(Int64 transID, 
 			 int aggrType, // 0:count, 1:min, 2:max, 3:sum, 4:avg
 			 const Text& startRow, 
@@ -180,7 +182,7 @@ public:
 			 const NABoolean cacheBlocks,
 			 const Lng32 numCacheRows,
 			 Text &aggrVal); // returned value
-*/
+
   void setResultInfo(jobjectArray jCellsName, jobjectArray jCellsValBuffer, 
                       jintArray jcellsValOffset, jintArray jcellsValLen,
                       jlongArray jTimestamp, 
@@ -257,7 +259,7 @@ private:
    ,JM_GET_ERROR 
    ,JM_SCAN_OPEN 
    ,JM_DELETE    
-  //,JM_COPROC_AGGR
+   ,JM_COPROC_AGGR
    ,JM_GET_NAME
    ,JM_GET_HTNAME
   // ,JM_SET_WB_SIZE

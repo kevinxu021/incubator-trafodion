@@ -647,7 +647,7 @@ define([
 							                 }],
 							                 buttons: [
 							                           { extend : 'copy', exportOptions: { columns: [0, 1, 2, 3] } },
-							                           { extend : 'csv', exportOptions: { columns: [0, 1, 2, 3] } },
+							                           { extend : 'csv', exportOptions: { columns: [0, 1, 2, 3] }, filename: 'Service Status' },
 							                           //{ extend : 'excel', exportOptions: { columns: [0, 1] } },
 							                           { extend : 'pdfHtml5', exportOptions: { columns: [0, 1, 2, 3] }, title: 'Service Status' },
 							                           { extend : 'print', exportOptions: { columns: [0, 1, 2 , 3] }, title: 'Service Status' }
@@ -757,7 +757,7 @@ define([
 							                 }],
 							                 buttons: [
 							                           { extend : 'copy', exportOptions: { columns: [0, 1] } },
-							                           { extend : 'csv', exportOptions: { columns: [0, 1] } },
+							                           { extend : 'csv', exportOptions: { columns: [0, 1] }, filename: 'Node Status' },
 							                           //{ extend : 'excel', exportOptions: { columns: [0, 1] } },
 							                           { extend : 'pdfHtml5', exportOptions: { columns: [0, 1] }, title: 'Node Status' },
 							                           { extend : 'print', exportOptions: { columns: [0, 1] }, title: 'Node Status' }

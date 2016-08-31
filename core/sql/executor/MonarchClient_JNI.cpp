@@ -2780,10 +2780,8 @@ MTC_RetCode MTableClient_JNI::init()
     JavaMethods_[JM_SCAN_OPEN  ].jm_signature = "(J[B[B[Ljava/lang/Object;JZZI[Ljava/lang/Object;[Ljava/lang/Object;[Ljava/lang/Object;FZZILjava/lang/String;Ljava/lang/String;IIJJLjava/lang/String;)Z";
     JavaMethods_[JM_DELETE     ].jm_name      = "deleteRow";
     JavaMethods_[JM_DELETE     ].jm_signature = "(J[B[Ljava/lang/Object;JZLjava/lang/String;)Z";
-/*
     JavaMethods_[JM_COPROC_AGGR     ].jm_name      = "coProcAggr";
     JavaMethods_[JM_COPROC_AGGR     ].jm_signature = "(JI[B[B[B[BZI)[B";
-*/
     JavaMethods_[JM_GET_NAME   ].jm_name      = "getTableName";
     JavaMethods_[JM_GET_NAME   ].jm_signature = "()Ljava/lang/String;";
     JavaMethods_[JM_GET_HTNAME ].jm_name      = "getMTableName";
@@ -3190,7 +3188,7 @@ std::string* MTableClient_JNI::getMTableName()
   jenv_->PopLocalFrame(NULL);
   return tableName;
 }
-/*
+
 MTC_RetCode MTableClient_JNI::coProcAggr(Int64 transID, 
 					 int aggrType, // 0:count, 1:min, 2:max, 3:sum, 4:avg
 					 const Text& startRowID, 
@@ -3309,7 +3307,6 @@ MTC_RetCode MTableClient_JNI::coProcAggr(Int64 transID,
   jenv_->PopLocalFrame(NULL);
   return MTC_OK;
 }
-*/
 
 NAArray<HbaseStr>* MonarchClient_JNI::getStartKeys(NAHeap *heap, const char *tableName, bool useTRex)
 {

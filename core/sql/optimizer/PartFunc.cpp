@@ -5131,7 +5131,8 @@ RangePartitioningFunction::computeNumOfActivePartitions(SearchKey* skey, const T
 
    const NATable* naTable = tDesc->getNATable();
 
-   if ( naTable->isHiveTable() )
+   if (( naTable->isHiveTable() ) ||
+       ( naTable->isMonarch()))
      return origPartitions;  
 
    NABoolean isNativeHbase = (naTable->isHbaseCellTable() || naTable->isHbaseRowTable());

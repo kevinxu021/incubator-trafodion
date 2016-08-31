@@ -151,6 +151,14 @@ define([
 				$(MAPPING_NAME).val("");
 				_this.fetchMappings();
 			});
+			
+			$('input').on('blur', function() {
+			    if ($(MAPPING_FORM).valid()) {
+			        $(MAPPING_APPLY_BTN).prop('disabled', false);  
+			    } else {
+			        $(MAPPING_APPLY_BTN).prop('disabled', 'disabled');
+			    }
+			});
 
 			_this.fetchMappings();
 		},
@@ -419,7 +427,7 @@ define([
 					"order": [[ 8, "asc" ]],
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible', orthogonal: 'export'  } },
-					          { extend : 'csv', exportOptions: { columns: ':visible', orthogonal: 'export' } },
+					          { extend : 'csv', exportOptions: { columns: ':visible', orthogonal: 'export' }, filename: 'Workload Mappings' },
 					          //{ extend : 'excel', exportOptions: { columns: ':visible', orthogonal: 'export' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible', orthogonal: 'export'  }, title: "Workload Mappings", orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible', orthogonal: 'export' }, title: "Workload Mappings" }

@@ -181,6 +181,8 @@ public:
 		      const char * prefix = "",
 		      const char * suffix = "");
 
+  void display();
+
   // methods to get instance variables / data members
 // LCOV_EXCL_START
 // method is used by debug code and therefore not exercised in mainline code
@@ -301,6 +303,8 @@ public:
 
   inline RuleSubset & operator = (const RuleSubset &other)
     { SUBARRAY(Rule *)::operator = (other); return *this; }
+
+  void display();
 };
 
 // -----------------------------------------------------------------------

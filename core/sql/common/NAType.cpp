@@ -686,7 +686,15 @@ short NAType::getMyTypeAsHiveText(NAString * outputStr)  // output
   switch (fs_datatype)
     {
     case REC_MIN_F_CHAR_H ... REC_MAX_F_CHAR_H:
-      *outputStr = "string";
+      {
+        SQLChar * ct = (SQLChar*)this;
+        char buf[20];
+        Int32 size = getNominalSize() / ct->getBytesPerChar();
+        str_itoa(size, buf);
+        *outputStr = "char(";
+        *outputStr += buf;
+        *outputStr += ")";
+      }
       break;
 
     case REC_MIN_V_CHAR_H ... REC_MAX_V_CHAR_H:

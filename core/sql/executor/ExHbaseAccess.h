@@ -1329,7 +1329,6 @@ public:
   Lng32 aggrIdx_;
 };
 
-
 class ExHbaseAccessBulkLoadTaskTcb  : public ExHbaseAccessTcb
 {
 public:
