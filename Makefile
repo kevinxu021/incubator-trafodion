@@ -24,7 +24,7 @@
 .PHONY: all
 SRCDIR = $(shell echo $(TRAFODION_VER_PROD) | sed -e 's/ /-/g' | tr 'A-Z' 'a-z')
 
-all:
+all: 
 	@echo "Building all Trafodion components"
 	cd core && $(MAKE) all 
 
@@ -57,15 +57,17 @@ eclipse:
 	@echo "Making eclipse projects for Trafodion components"
 	cd core && $(MAKE) eclipse 
 
-clean:
+clean: 
 	@echo "Removing Trafodion objects"
 	cd core && $(MAKE) clean 
 	cd licenses && $(MAKE) clean
 	rm -rf $(SRCDIR)-${TRAFODION_VER}-incubating LICENSE
 
-cleanall:
+cleanall: 
 	@echo "Removing all Trafodion objects"
 	cd core && $(MAKE) cleanall 
+
+
 
 trafinstall:
 	@echo "Installing Trafodion components"

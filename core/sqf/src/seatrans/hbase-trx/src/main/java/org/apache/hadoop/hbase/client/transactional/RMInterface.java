@@ -613,8 +613,20 @@ public class RMInterface {
     static public void replayEngineStart(final long timestamp) throws Exception {
       if (LOG.isTraceEnabled()) LOG.trace("replayEngineStart ENTRY with timestamp: " + timestamp);
 
+      int pit_thread = 0;
+      String pitThreadCount = System.getenv("TM_PIT_THREAD");
+      if (pitThreadCount != null) {
+              pit_thread = Integer.parseInt(pitThreadCount);
+              if(LOG.isDebugEnabled()) LOG.debug("PIT thread count set to: " + pit_thread);
+      }
+
       try {
-          ReplayEngine re = new ReplayEngine(timestamp);
+          if (pit_thread < 1) {
+               ReplayEngine re = new ReplayEngine(timestamp);
+          }
+          else {
+               ReplayEngine re = new ReplayEngine(timestamp, pit_thread);
+           }
       } catch (Exception e) {
           if (LOG.isTraceEnabled()) LOG.trace("Exception caught creating the ReplayEnding : exception: " + e);
           throw e;
