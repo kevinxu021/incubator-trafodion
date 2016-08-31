@@ -54,7 +54,6 @@ using namespace std;
 #include "redirector.h"
 #include "replicate.h"
 
-
 extern CReqQueue ReqQueue;
 extern CMonitor *Monitor;
 extern CNode *MyNode;
@@ -117,7 +116,9 @@ CHealthCheck::CHealthCheck()
     {
         quiesceTimeoutSec_     = atoi(quiesceTimeoutC);
     }
-
+    
+    licenseFile_ = NULL;
+    
     if (trace_settings & TRACE_HEALTH)
         trace_printf("%s@%d quiesceTimeoutSec_ = %d, syncTimeoutSec_ = %d, workerTimeoutSec_ = %d\n", method_name, __LINE__, quiesceTimeoutSec_, CMonitor::SYNC_MAX_RESPONSIVE, CReqQueue::REQ_MAX_RESPONSIVE);
 
@@ -152,7 +153,7 @@ void CHealthCheck::healthCheckThread()
     TRACE_ENTRY;
 
     HealthCheckStates state;
-    // TRK int myPid = getpid();
+    int myPid = getpid();
     struct timespec ts;
     
     if (trace_settings & TRACE_HEALTH)
@@ -161,6 +162,8 @@ void CHealthCheck::healthCheckThread()
     setTimeToWakeUp(ts);
 
     bool done = false;
+    
+    bool isInternal = checkLicenseInternal();
 
     // Wait for event or timer to expire
     while (!done) 
@@ -177,15 +180,13 @@ void CHealthCheck::healthCheckThread()
             mem_log_write(MON_HEALTHCHECK_WAKEUP_2, (int)(currTime_.tv_sec - wakeupTimeSaved_));
         }
 
-  /* TRK comment out for initial checkin
         // Check if we should validate license, but not on a virtual cluster and
         // not unless we are a verifier
-        if ((MyNode->IsLicenseVerifier() && (IsRealCluster))
+        if ((!isInternal) && (MyNode->IsLicenseVerifier()))
         {
-          timeToVerifyLicense(currTime_, myPid);
+            timeToVerifyLicense(currTime_, myPid);
         }
-  */
-  
+
         // Replicate the clone to other nodes
         CReplSchedData *repl = new CReplSchedData();
         Replicator.addItem(repl);
@@ -677,59 +678,31 @@ void CHealthCheck::timeToVerifyLicense(struct timespec &currentTime, int myPid)
 {
     const char method_name[] = "CHealthCheck::timeToVerifyLicense";
     TRACE_ENTRY;
-    
-    char  myLicense[LICENSE_NUM_BYTES];
-    FILE *pFile;
-    bool  success = true;
-  
- 
-  if (currentTime.tv_sec >= licenseCheckTime_.tv_sec)
-  {
-       if (trace_settings & TRACE_HEALTH)
+
+    // if it time to check the license...
+    if (currentTime.tv_sec >= licenseCheckTime_.tv_sec)
+    {
+        if (licenseFile_)
+           delete licenseFile_;
+        licenseFile_ = new CLicenseCommon();
+        
+        if (trace_settings & TRACE_HEALTH)
             trace_printf("%s@%d timeToVerifyLicense : TRUE\n", method_name, __LINE__); 
-    
-      char *licenseFile = getenv("SQ_MON_LICENSE_FILE");
-      if (!licenseFile)
-      {
-         if (trace_settings & TRACE_HEALTH)
-            trace_printf("%s@%d timeToVerifyLicense, License not set\n", method_name, __LINE__); 
-         
-          char buf[MON_STRING_BUF_SIZE];
-          sprintf(buf, "[%s], CHealthCheck Invalid License (path not set)\n", method_name);
-          mon_log_write(MON_HEALTHCHECK_LICENSE_INVALID, SQ_LOG_ERR, buf);
-         
-          return;
-      }
-      
-      pFile = fopen( licenseFile, "r" );
-      if ( pFile )
-      {
-         int bytesRead = fread (myLicense,sizeof(char), LICENSE_NUM_BYTES,pFile);
-         if (bytesRead != LICENSE_NUM_BYTES)
-         {
-             success = false;   
-         }
-         fclose(pFile);
-      }
-      else
-      {
-        success = false;
-      }
-      
-      if (success)
-      {      
-          CReplLicense *replL = new CReplLicense(myPid, MyPNID, myLicense);
+          
+       if (licenseFile_->getLicenseReady())
+       {      
+          CReplLicense *replL = new CReplLicense(myPid, MyPNID, -1, licenseFile_->getLicense());
           Replicator.addItem(replL);
-      }
-      else
-      {
+       }
+       else
+       {
          if (trace_settings & TRACE_HEALTH)
             trace_printf("%s@%d timeToVerifyLicense, Invalid License\n", method_name, __LINE__); 
          
           char buf[MON_STRING_BUF_SIZE];
           sprintf(buf, "[%s], CHealthCheck Invalid License\n", method_name);
           mon_log_write(MON_HEALTHCHECK_LICENSE_INVALID, SQ_LOG_ERR, buf);
-      }
+       }
     }
     
     TRACE_EXIT; 
@@ -739,7 +712,7 @@ void CHealthCheck::setLicenseInfo(long expireTimeInDays, bool success)
 {
     const char method_name[] = "CHealthCheck::setLicenseExpireTime";
     TRACE_ENTRY;
-    
+
     if (success)
     {
         // Set Expire Time, but change it into seconds, from Days
@@ -758,27 +731,80 @@ void CHealthCheck::verifyLicenseExpiration()
 {
     const char method_name[] = "CHealthCheck::verifyLicenseExpiration";
     TRACE_ENTRY;
+    bool stopCluster = false;
+    
+    // shouldn't happen, but just in case - read it in again, at this point, it is valid
+    if (licenseFile_ == NULL)
+    {      
+      licenseFile_ = new CLicenseCommon();
+    }
     
     //only care about seconds    
     clock_gettime(CLOCK_REALTIME, &currTime_);
     struct timespec timeLeft;
     timeLeft.tv_sec = licenseExpireTime_.tv_sec - currTime_.tv_sec;
-    
-    if (timeLeft.tv_sec < LICENSE_SEVEN_DAYS)
+     
+    if (timeLeft.tv_sec < licenseFile_->getSecsToStartWarning())
     {
       if (timeLeft.tv_sec < 0)
       {
+          switch (licenseFile_->getType())
+          {
+             case TYPE_DEMO :
+             case TYPE_POC :
+             {
+               stopCluster = true;
+               break;
+             }
+            case TYPE_PRODUCT:
+            default:
+            {
+                if (trace_settings & TRACE_HEALTH)
+                trace_printf("%s@%d verifyLicenseExpiration, License expired\n", method_name, __LINE__); 
         
-          if (trace_settings & TRACE_HEALTH)
-            trace_printf("%s@%d verifyLicenseExpiration, License expired\n", method_name, __LINE__); 
-        
-          char buf[MON_STRING_BUF_SIZE];
-          sprintf(buf, "[%s], CHealthCheck LICENSE EXPIRED\n", method_name);
-          mon_log_write(MON_HEALTHCHECK_LICENSE_EXPIRE, SQ_LOG_ERR, buf); 
+                char buf[MON_STRING_BUF_SIZE];
+                sprintf(buf, "[%s], CHealthCheck LICENSE EXPIRED\n", method_name);
+                mon_log_write(MON_HEALTHCHECK_LICENSE_EXPIRE, SQ_LOG_ERR, buf); 
           
-          // Continue warning every day
-          licenseCheckTime_.tv_sec=currTime_.tv_sec+LICENSE_ONE_DAY; 
-      }
+                // Continue warning every day
+                licenseCheckTime_.tv_sec=currTime_.tv_sec+LICENSE_ONE_DAY; 
+          
+                struct timespec timePassed;
+                timePassed.tv_sec = currTime_.tv_sec - licenseExpireTime_.tv_sec;
+          
+                // if we start to warn 2 months in advance, we will give them a 2 month grace period.
+                // if we start to warn 7 days in advance, we will give them a 7 day grace period, etc...
+                if (timePassed.tv_sec > licenseFile_->getSecsToStartWarning())
+                {
+                  switch (licenseFile_->getAction())
+                  {
+                    case HC_STOP_INSTANCE:
+                    {
+                      stopCluster = true;
+                      break;
+                    }
+                    case HC_KEEP_WARNING:
+                    default :
+                    { // do nothing                     
+                      break;
+                    }
+                 
+                  }
+                }
+                else
+                {   // check again in another 7 days
+                    licenseCheckTime_.tv_sec=currTime_.tv_sec+LICENSE_SEVEN_DAYS; 
+                }   
+                break;
+             }
+          } //switch
+          
+          if (stopCluster)
+          {
+               CReplShutdown *repl = new CReplShutdown(ShutdownLevel_Abrupt);
+               Replicator.addItem(repl);
+          }
+      } //expired
       else
       {
           if (trace_settings & TRACE_HEALTH)
@@ -787,7 +813,7 @@ void CHealthCheck::verifyLicenseExpiration()
           char buf[MON_STRING_BUF_SIZE];
           sprintf(buf, "[%s], CHealthCheck LICENSE EXPIRING\n", method_name);
           mon_log_write(MON_HEALTHCHECK_LICENSE_WARN, SQ_LOG_WARNING, buf); 
-          
+        
           // Continue warning every day
           licenseCheckTime_.tv_sec=currTime_.tv_sec+LICENSE_ONE_DAY; 
       }
@@ -797,5 +823,33 @@ void CHealthCheck::verifyLicenseExpiration()
           // check again in another 7 days
           licenseCheckTime_.tv_sec=currTime_.tv_sec+LICENSE_SEVEN_DAYS; 
     }
+    
+    // Done with the file for now, read it in whenever we need to next.
+    if (licenseFile_)
+    {
+      delete licenseFile_;
+      licenseFile_ = NULL;
+    }
+    
     TRACE_EXIT;
+}
+
+bool CHealthCheck::checkLicenseInternal()
+{   
+    return true;
+    
+    /* TRK not ready for yet - just ignore license checks for everything
+    
+    CLicenseCommon licenseFile_;
+    
+    // If the license is not ready, that means there is an issue - so let's make it fail quick elsewhere by returning false
+    if ((!IsRealCluster) || (licenseFile_.getLicenseReady() && licenseFile_.isInternal()))
+    {
+      return true;
+    }
+    else 
+    {
+      return false;
+    }
+    */
 }

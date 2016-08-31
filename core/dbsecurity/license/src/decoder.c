@@ -35,10 +35,12 @@
 #define TYPE_DEMO     1
 #define TYPE_POC      2
 #define TYPE_PRODUCT  3
+#define TYPE_INTERNAL 4
 
 #define TYPE_DEMO_TEXT "DEMO"
 #define TYPE_POC_TEXT "POC"
 #define TYPE_PRODUCT_TEXT "PRODUCT"
+#define TYPE_INTERNAL_TEXT "INTERNAL"
 
 static unsigned char asc2hex[] = {
      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
@@ -229,7 +231,7 @@ int main(int argc, char *argv[])
         memcpy(&nodenumber, (char*)output + VERSION_LEN + CUSTOMER_LEN ,  sizeof(int));
         printf("%d\n",  nodenumber);
     }
-    else if(topt == 1)  //print node number
+    else if(topt == 1)  //print type
     {
         memcpy(&installtype, (char*)output + VERSION_LEN + CUSTOMER_LEN + NODENUM_LEN + EXPIRE_LEN + PACKAGE_INSTALLED,  sizeof(int));
         switch(installtype) 
@@ -243,11 +245,14 @@ int main(int argc, char *argv[])
           case TYPE_PRODUCT:
             printf("%s\n", TYPE_PRODUCT_TEXT);
             break;
+          case TYPE_INTERNAL:
+            printf("%s\n", TYPE_INTERNAL_TEXT);
+            break;
           default:
-            printf("UNKNOWN\n");
+            printf("UNKNOWN : %d\n", installtype);
         }
     }
-    else if(popt == 1)  //print node number
+    else if(popt == 1)  //print package
     {
         memcpy(&packageinstalled, (char*)output + VERSION_LEN + CUSTOMER_LEN + NODENUM_LEN + EXPIRE_LEN,  sizeof(int));
         switch(packageinstalled)

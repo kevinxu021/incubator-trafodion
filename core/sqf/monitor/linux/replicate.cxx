@@ -1264,9 +1264,10 @@ bool CReplNodeName::replicate(struct internal_msg_def *&msg)
     return true;
 }
 
-CReplLicense::CReplLicense(int req_pid, int req_nid, char *req_license)
+CReplLicense::CReplLicense(int req_pid, int req_nid, Verifier_t req_verifier,char *req_license)
                : req_pid_ (req_pid)
                , req_nid_ (req_nid)
+               , req_verifier_ (req_verifier)
 {
     // Add eyecatcher sequence as a debugging aid
     memcpy(&eyecatcher_, "RPL0", 4);
@@ -1308,6 +1309,7 @@ bool CReplLicense::replicate(struct internal_msg_def *&msg)
     msg->type = InternalType_License;
     msg->u.license.req_pid = req_pid_;
     msg->u.license.req_nid = req_nid_;
+    msg->u.license.req_verifier = req_verifier_;
     memcpy (msg->u.license.license, license_, LICENSE_NUM_BYTES);
 
     // Advance sync buffer pointer
@@ -1318,10 +1320,12 @@ bool CReplLicense::replicate(struct internal_msg_def *&msg)
     return true;
 }
 
-CReplLicenseVerified::CReplLicenseVerified(int req_pid, int req_nid, char* license, bool success)
+CReplLicenseVerified::CReplLicenseVerified(int req_pid, int req_nid, Verifier_t req_verifier, char* license, bool success)
                : req_pid_ (req_pid)
                , req_nid_ (req_nid)
+               , req_verifier_ (req_verifier)
                , success_ (success)
+
 {
     // Add eyecatcher sequence as a debugging aid
     memcpy(&eyecatcher_, "RPL1", 4);
@@ -1362,11 +1366,12 @@ bool CReplLicenseVerified::replicate(struct internal_msg_def *&msg)
 
     // build message to replicate this process kill to other nodes
     msg->type = InternalType_LicenseVerified;
-//     msg->u.license.req_pid = req_pid_;
+    msg->u.license.req_pid = req_pid_;
     msg->u.license.req_nid = req_nid_;
+    msg->u.license.req_verifier = req_verifier_;
     msg->u.license.success = success_;
     memcpy (msg->u.license.license, license_, LICENSE_NUM_BYTES);
-    
+                
     // Advance sync buffer pointer
     Nodes->AddMsg( msg, replSize() );
 

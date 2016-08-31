@@ -1625,10 +1625,12 @@ void CIntShutdownReq::performRequest()
 
 CIntLicenseReq::CIntLicenseReq( int req_nid
                               , int req_pid
+                              , Verifier_t req_verifier
                               , char* license)
                 : CInternalReq()
                 , req_nid_(req_nid)
                 , req_pid_(req_pid)
+                , req_verifier_ (req_verifier)
 {
     // Add eyecatcher sequence as a debugging aid
     memcpy(&eyecatcher_, "RQI0", 4);
@@ -1656,52 +1658,21 @@ void CIntLicenseReq::performRequest()
     const char method_name[] = "CIntLicenseReq::performRequest";
     TRACE_ENTRY;
     
-    char  myLicense[LICENSE_NUM_BYTES];
-    FILE *pFile;
     bool  success = true;
+    CLicenseCommon licenseFile; // read in licenseFile 
     
-    char *licenseFile = getenv("SQ_MON_LICENSE_FILE");
-    if (licenseFile)
+    if ((!licenseFile.getLicenseReady()) || (strncmp(licenseFile.getLicense(), license_,LICENSE_NUM_BYTES)!=0))
     {
-        pFile = fopen( licenseFile, "r" );
-        if ( pFile )
-        {
-           int bytesRead = fread (myLicense,sizeof(char), LICENSE_NUM_BYTES,pFile);
-           if (bytesRead != LICENSE_NUM_BYTES)
-           {
-                if (trace_settings & (TRACE_REQUEST | TRACE_INIT))
-                    trace_printf("%s@%d - License did not pass validation check.", method_name, __LINE__);  
-
-                char buf[MON_STRING_BUF_SIZE];
-                sprintf(buf, "License did not pass validation check.\n");
-                mon_log_write(MON_REQQUEUE_LICENSE_INVALID, SQ_LOG_ERR, buf); 
-                success = false;
-           }      
-           fclose(pFile);
-    
-          if (strncmp(myLicense, license_,LICENSE_NUM_BYTES)!=0)
-          {
-              success = false;
-          }
-        }
-        else
-        {
-            if (trace_settings & (TRACE_REQUEST | TRACE_INIT))
+        if (trace_settings & (TRACE_REQUEST | TRACE_INIT))
                  trace_printf("%s@%d - License did not pass validation check.", method_name, __LINE__);  
 
-            success = false;
-        }
-    }
-    else
-      success = false;
-
-    if (success == false)
-    {
+        success = false;
         char buf[MON_STRING_BUF_SIZE];
         sprintf(buf, "License did not pass validation check.\n");
         mon_log_write(MON_REQQUEUE_LICENSE_INVALID, SQ_LOG_ERR, buf);
     }
-    CReplLicenseVerified *repl = new CReplLicenseVerified( req_pid_, req_nid_, license_, success);
+    
+    CReplLicenseVerified *repl = new CReplLicenseVerified( req_pid_, req_nid_, req_verifier_, license_, success);
     if (repl)
     {
          Replicator.addItem(repl);
@@ -1711,11 +1682,13 @@ void CIntLicenseReq::performRequest()
 
 CIntLicenseVerifiedReq::CIntLicenseVerifiedReq( int req_nid
                               , int req_pid
+                              , Verifier_t req_verifier
                               , char* license
                               , bool success)
                 : CInternalReq()
                 , req_nid_(req_nid)
                 , req_pid_(req_pid)
+                , req_verifier_(req_verifier)
                 , success_(success)
 {
     // Add eyecatcher sequence as a debugging aid
@@ -1758,7 +1731,7 @@ void CIntLicenseVerifiedReq::performRequest()
     // shell initiated
     else
     {
-        requester = MyNode->GetProcess( req_pid_ );
+        requester = MyNode->GetProcess( req_pid_, req_verifier_ );
         // This should respond back to the original local monitor
         if (requester)
         {
@@ -3096,12 +3069,14 @@ void CReqQueue::enqueuePostQuiesceReq ()
 
 void CReqQueue::enqueueLicenseReq( int req_nid
                                  , int req_pid
+                                 , Verifier_t req_verifier
                                  , char *license)
 {
     CInternalReq * request;
 
     request = new CIntLicenseReq( req_nid
                                 , req_pid
+                                , req_verifier
                                 , license);
 
     request->setPriority(CRequest::High);
@@ -3110,6 +3085,7 @@ void CReqQueue::enqueueLicenseReq( int req_nid
 }
 void CReqQueue::enqueueLicenseVerifiedReq( int req_nid
                                  , int req_pid
+                                 , Verifier_t req_verifier
                                  , char *license
                                  , bool success)
 {
@@ -3117,6 +3093,7 @@ void CReqQueue::enqueueLicenseVerifiedReq( int req_nid
 
     request = new CIntLicenseVerifiedReq( req_nid
                                 , req_pid
+                                , req_verifier
                                 , license
                                 , success);
 

@@ -894,9 +894,12 @@ private:
 class CIntLicenseReq: public CInternalReq
 {
 public:
+   
     CIntLicenseReq( int req_nid
                   , int req_pid
+                  , Verifier_t req_verifier
                   , char *license);
+
     virtual ~CIntLicenseReq();
 
     void performRequest();
@@ -906,6 +909,7 @@ private:
         
     int req_nid_;
     int req_pid_;
+    Verifier_t req_verifier_;
     char license_[LICENSE_NUM_BYTES];
 };
 
@@ -914,6 +918,7 @@ class CIntLicenseVerifiedReq: public CInternalReq
 public:
     CIntLicenseVerifiedReq( int req_nid
                   , int req_pid
+                  , Verifier_t req_verifier
                   , char *license
                   , bool success);
     virtual ~CIntLicenseVerifiedReq();
@@ -925,6 +930,7 @@ private:
         
     int req_nid_;
     int req_pid_;
+    Verifier_t req_verifier_;
     char license_[LICENSE_NUM_BYTES];
     bool success_;
 };
@@ -1099,8 +1105,8 @@ class CReqQueue
     void enqueueDeviceReq( char *ldevName );
     void enqueueExitReq( struct exit_def *exitDef );
     void enqueueKillReq( struct kill_def *killDef );
-    void enqueueLicenseReq( int req_nid, int req_pid, char* license);
-    void enqueueLicenseVerifiedReq( int req_nid, int req_pid, char* license, bool success);
+    void enqueueLicenseReq( int req_nid, int req_pid, Verifier_t req_verifier, char* license);
+    void enqueueLicenseVerifiedReq( int req_nid, int req_pid, Verifier_t req_verifier, char* license, bool success);
     void enqueueNewProcReq( struct process_def *procDef );
     void enqueueOpenReq( struct open_def *openDef );
     void enqueueProcInitReq( struct process_init_def *procInitDef );

@@ -108,6 +108,7 @@
 #define LICENSE_TYPE_OFFSET 24
 #define LICENSE_RESERVED_OFFSET 28
 #define LICENSE_NUM_BYTES 32
+#define LICENSE_NUM_BYTES_ENC 64
 
 #define LICENSE_VERSION_SIZE 2
 #define LICENSE_NAME_SIZE 10
@@ -117,9 +118,24 @@
 #define LICENSE_TYPE_SIZE 4
 #define LICENSE_RESERVED_SIZE 4
 
+#define PACKAGE_ENT  1
+#define PACKAGE_ADV  2
+#define PACKAGE_ENT_TEXT  "ENT"
+#define PACKAGE_ADV_TEXT  "ADV"
+
+//define the enum of installed type
+#define TYPE_DEMO     1
+#define TYPE_POC      2
+#define TYPE_PRODUCT  3
+#define TYPE_INTERNAL 4
+
+#define TYPE_DEMO_TEXT "DEMO"
+#define TYPE_POC_TEXT "POC"
+#define TYPE_PRODUCT_TEXT "PRODUCT"
+#define TYPE_INTERNAL_TEXT "INTERNAL"
+
 #define LICENSE_ONE_DAY 86400
 #define LICENSE_SEVEN_DAYS 604800
-
 
 // Use STRCPY when the size of the source string is variable and unknown.
 // Safe strcpy - checks that destination has enough capacity to hold
@@ -485,6 +501,7 @@ struct License_def
 {
     int  nid;                               // requesting process's node id
     int  pid;                               // requesting process id
+    Verifier_t verifier;
 };
 
 struct License_reply_def
