@@ -73,7 +73,7 @@ namespace EsgynDB.Data
                        ConnectionContext.SessionName,
                        ipClientAddress,
                        ConnectionContext.ComputerName,
-                       ClientUsername,
+                       UserDescription.UserName,
                        roleName,
                        System.AppDomain.CurrentDomain.FriendlyName);
 
