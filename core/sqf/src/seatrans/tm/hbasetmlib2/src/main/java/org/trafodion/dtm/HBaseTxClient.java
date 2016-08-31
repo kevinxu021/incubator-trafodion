@@ -655,9 +655,9 @@ public class HBaseTxClient {
       return transactionId;
    }
 
-   public short abortTransaction(final long transactionId) throws Exception {
+   public short abortTransactionCommon(final long transactionId) throws Exception {
 
-       short lv_hbase_retcode = HabortTransaction(transactionId);
+       short lv_hbase_retcode = abortTransaction(transactionId);
 
        short lv_monarch_retcode = (useMonarch ? MabortTransaction(transactionId) : TransReturnCode.RET_NOTX.getShort());
 
@@ -668,12 +668,12 @@ public class HBaseTxClient {
        return lv_monarch_retcode;
    }
 
-   public short HabortTransaction(final long transactionID) throws IOException {
-      if (LOG.isDebugEnabled()) LOG.debug("Enter HabortTransaction, txId: " + transactionID);
+   public short abortTransaction(final long transactionID) throws IOException {
+      if (LOG.isDebugEnabled()) LOG.debug("Enter abortTransaction, txId: " + transactionID);
       TransactionState ts = mapTransactionStates.get(transactionID);
 
       if(ts == null) {
-          LOG.error("Returning from HabortTransaction, txId: " + transactionID + " retval: " + TransReturnCode.RET_NOTX.toString());
+          LOG.error("Returning from abortTransaction, txId: " + transactionID + " retval: " + TransReturnCode.RET_NOTX.toString());
           return TransReturnCode.RET_NOTX.getShort();
       }
 
@@ -817,7 +817,7 @@ public class HBaseTxClient {
          }
       }
 
-      if (LOG.isTraceEnabled()) LOG.trace("Exit HabortTransaction, retval: OK txId: " + transactionID + " mapsize: " + mapTransactionStates.size());
+      if (LOG.isTraceEnabled()) LOG.trace("Exit abortTransaction, retval: OK txId: " + transactionID + " mapsize: " + mapTransactionStates.size());
       return TransReturnCode.RET_OK.getShort();
    }
 
@@ -1002,8 +1002,8 @@ public class HBaseTxClient {
       return TransReturnCode.RET_OK.getShort();
    }
     
-   public short prepareCommit(long transactionId) throws IOException {
-       short lv_hbase_retcode = HprepareCommit(transactionId);
+   public short prepareCommitCommon(long transactionId) throws IOException {
+       short lv_hbase_retcode = prepareCommit(transactionId);
        short lv_monarch_retcode = TransReturnCode.RET_OK.getShort();
 
        if ((useMonarch) && 
@@ -1026,17 +1026,17 @@ public class HBaseTxClient {
        return lv_monarch_retcode;
    }
 
-    public short HprepareCommit(long transactionId) throws IOException 
+    public short prepareCommit(long transactionId) throws IOException 
     {
        try {
-     if (LOG.isDebugEnabled()) LOG.debug("Enter HprepareCommit"
+     if (LOG.isDebugEnabled()) LOG.debug("Enter prepareCommit"
 					 + ", txId: " + transactionId
 					 + ", #txstate entries " + mapTransactionStates.size()
 					 );
      TransactionState ts = mapTransactionStates.get(transactionId);
      
      if (ts == null) {
-       LOG.error("Returning from HprepareCommit" 
+       LOG.error("Returning from prepareCommit" 
 		 + ", txId: " + transactionId 
 		 + ", retval: " + TransReturnCode.RET_NOTX.toString()
 		 );
@@ -1045,7 +1045,7 @@ public class HBaseTxClient {
 
      try {
         short result = (short) trxManager.prepareCommit(ts);
-        if (LOG.isDebugEnabled()) LOG.debug("HprepareCommit, [ " + ts + " ], result " + result + ((result == TransactionalReturn.COMMIT_OK_READ_ONLY)?", Read-Only":""));
+        if (LOG.isDebugEnabled()) LOG.debug("prepareCommit, [ " + ts + " ], result " + result + ((result == TransactionalReturn.COMMIT_OK_READ_ONLY)?", Read-Only":""));
         switch (result) {
           case TransactionalReturn.COMMIT_OK:
              if (LOG.isTraceEnabled()) LOG.trace("Exit OK prepareCommit, txId: " + transactionId);
@@ -1149,8 +1149,8 @@ public class HBaseTxClient {
        
    }
 
-   public short doCommit(long transactionId) throws IOException {
-       short lv_hbase_retcode = HdoCommit(transactionId);
+   public short doCommitCommon(long transactionId) throws IOException {
+       short lv_hbase_retcode = doCommit(transactionId);
        short lv_monarch_retcode = TransReturnCode.RET_OK.getShort();
 
        if ((useMonarch) &&
@@ -1171,7 +1171,7 @@ public class HBaseTxClient {
        return lv_monarch_retcode;
    }
 
-   public short HdoCommit(long transactionId) throws IOException {
+   public short doCommit(long transactionId) throws IOException {
       if (LOG.isDebugEnabled()) LOG.trace("Enter doCommit, txId: " + transactionId);
       TransactionState ts = mapTransactionStates.get(transactionId);
 
@@ -1652,11 +1652,11 @@ public class HBaseTxClient {
        return TransReturnCode.RET_OK.getShort();
    }
 
-   public short completeRequest(final long transactionId) 
+   public short completeRequestCommon(final long transactionId) 
        throws IOException, CommitUnsuccessfulException       
     {
 
-       short lv_hbase_retcode = HcompleteRequest(transactionId);
+       short lv_hbase_retcode = completeRequest(transactionId);
 
        short lv_monarch_retcode = (useMonarch ? McompleteRequest(transactionId) : TransReturnCode.RET_NOTX.getShort());
 
@@ -1667,17 +1667,17 @@ public class HBaseTxClient {
        return lv_monarch_retcode;
    }
 
-    public short HcompleteRequest(long transactionId)
+    public short completeRequest(long transactionId)
 	throws IOException, CommitUnsuccessfulException 
     {
-     if (LOG.isDebugEnabled()) LOG.debug("Enter HcompleteRequest" 
+     if (LOG.isDebugEnabled()) LOG.debug("Enter completeRequest" 
 					 + ", txId: " + transactionId
 					 );
      TransactionState ts = mapTransactionStates.get(transactionId);
 
      if (ts == null) {
 	 if (! useMonarch) {
-	     LOG.error("Returning from HcompleteRequest, (null tx) retval: " 
+	     LOG.error("Returning from completeRequest, (null tx) retval: " 
 		       + TransReturnCode.RET_NOTX.toString() 
 		       + ", txId: " + transactionId
 		       );
@@ -1704,7 +1704,7 @@ public class HBaseTxClient {
         mapTransactionStates.remove(transactionId);
      }
 
-     if (LOG.isDebugEnabled()) LOG.debug("Exit HcompleteRequest" 
+     if (LOG.isDebugEnabled()) LOG.debug("Exit completeRequest" 
 					 + ", txId: " + transactionId 
 					 + ", Hmapsize: " + mapTransactionStates.size());
      return TransReturnCode.RET_OK.getShort();
