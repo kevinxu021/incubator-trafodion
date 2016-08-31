@@ -170,7 +170,7 @@ define([
 					                 }],
 					buttons: [
 	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
-	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+	                           { extend : 'csv', exportOptions: { columns: ':visible' }, filename: 'Active Workloads' },
 	                          // { extend : 'excel', exportOptions: { columns: ':visible' } },
 	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
 	                        	   title: 'Active Workloads' } ,

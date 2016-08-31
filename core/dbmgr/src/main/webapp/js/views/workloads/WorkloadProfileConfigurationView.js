@@ -151,6 +151,16 @@ define([
 				$(PROFILE_NODES).val("");
 				_this.fetchProfiles();
 			});	
+			var elements = document.querySelectorAll("input, textarea");
+			for (var i = 0; i < elements.length; i++) {
+				  elements[i].addEventListener("blur", function() {
+					  if ($(PROFILE_FORM).valid()) {
+					        $(PROFILE_APPLY_BTN).prop('disabled', false);  
+					    } else {
+					        $(PROFILE_APPLY_BTN).prop('disabled', 'disabled');
+					    }
+				  });
+				}
 
 			_this.fetchProfiles();
 		},
@@ -526,10 +536,10 @@ define([
 					"order": [[ 0, "asc" ]],
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible', orthogonal: 'export'  } },
-					          { extend : 'csv', exportOptions: { columns: ':visible', orthogonal: 'export' } },
+					          { extend : 'csv', exportOptions: { columns: ':visible', orthogonal: 'export' } , filename: 'Profiles'},
 					          //{ extend : 'excel', exportOptions: { columns: ':visible', orthogonal: 'export' } },
-					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible', orthogonal: 'export'  }, title: "Workload Profiles", orientation: 'landscape' },
-					          { extend : 'print', exportOptions: { columns: ':visible', orthogonal: 'export' }, title: "Workload Profiles" }
+					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible', orthogonal: 'export'  }, title: "Profiles", orientation: 'landscape' },
+					          { extend : 'print', exportOptions: { columns: ':visible', orthogonal: 'export' }, title: "Profiles" }
 					          ],					             
 					          fnDrawCallback: function(){
 					          }

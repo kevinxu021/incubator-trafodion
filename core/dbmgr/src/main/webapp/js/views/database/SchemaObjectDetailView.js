@@ -863,9 +863,9 @@ define([
 					"order": [[ sortColumn, "asc" ]],
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible', orthogonal: 'export'  } },
-					          { extend : 'csv', exportOptions: { columns: ':visible', orthogonal: 'export' } },
+					          { extend : 'csv', exportOptions: { columns: ':visible', orthogonal: 'export' }, filename: common.toProperCase(routeArgs.type) + " Columns" },
 					          //{ extend : 'excel', exportOptions: { columns: ':visible', orthogonal: 'export' } },
-					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible', orthogonal: 'export'  }, title: "Columns in "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
+					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible', orthogonal: 'export'  }, filename: common.toProperCase(routeArgs.type) + " Columns", title: "Columns in "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible', orthogonal: 'export' }, title: "Columns in "+routeArgs.type + " " + routeArgs.name }
 					          ]
 				});
@@ -1009,9 +1009,9 @@ define([
 					scrollCollapse: true,
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
-					          { extend : 'csv', exportOptions: { columns: ':visible' } },
+					          { extend : 'csv', exportOptions: { columns: ':visible' }, filename: common.toProperCase(routeArgs.type) + " Regions" },
 					          // { extend : 'excel', exportOptions: { columns: ':visible' } },
-					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Regions for "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
+					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, filename: common.toProperCase(routeArgs.type) + " Regions", title: "Regions for "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Regions for "+routeArgs.type + " " + routeArgs.name }
 					          ]
 				});
@@ -1070,9 +1070,9 @@ define([
 					scrollCollapse: true,
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
-					          { extend : 'csv', exportOptions: { columns: ':visible' } },
+					          { extend : 'csv', exportOptions: { columns: ':visible' }, filename: common.toProperCase(routeArgs.type) + " Privileges" },
 					          //{ extend : 'excel', exportOptions: { columns: ':visible' } },
-					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Privileges for "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
+					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, filename: common.toProperCase(routeArgs.type) + " Privileges", title: "Privileges for "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Privileges for "+routeArgs.type + " " + routeArgs.name }
 					          ]
 				});
@@ -1195,9 +1195,9 @@ define([
 					"order": [[ 1, "asc" ]],
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
-					          { extend : 'csv', exportOptions: { columns: ':visible' } },
+					          { extend : 'csv', exportOptions: { columns: ':visible' }, filename: common.toProperCase(routeArgs.type) + " Usage" },
 					          //{ extend : 'excel', exportOptions: { columns: ':visible' } },
-					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Objects using "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
+					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, filename: common.toProperCase(routeArgs.type) + " Usage", title: "Objects using "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Objects using "+routeArgs.type + " " + routeArgs.name }
 					          ]
 				});
@@ -1309,9 +1309,9 @@ define([
 					"aoColumnDefs": aoColumnDefs,
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
-					          { extend : 'csv', exportOptions: { columns: ':visible' } },
+					          { extend : 'csv', exportOptions: { columns: ':visible' }, filename: common.toProperCase(routeArgs.type) + " Indexes" },
 					          // { extend : 'excel', exportOptions: { columns: ':visible' } },
-					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text(), orientation: 'landscape' },
+					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, filename: common.toProperCase(routeArgs.type) + " Indexes", title: $(OBJECT_NAME_CONTAINER).text(), orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text() }
 					          ]
 				});
@@ -1450,9 +1450,9 @@ define([
 					"order": [[ 0, "asc" ]],
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
-					          { extend : 'csv', exportOptions: { columns: ':visible' } },
+					          { extend : 'csv', exportOptions: { columns: ':visible' }, filename: common.toProperCase(routeArgs.type) + " Statistics" },
 					          //{ extend : 'excel', exportOptions: { columns: ':visible' } },
-					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Statistics for "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
+					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, filename: common.toProperCase(routeArgs.type) + " Statistics", title: "Statistics for "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Statistics for "+routeArgs.type + " " + routeArgs.name }
 					          ]
 				});
