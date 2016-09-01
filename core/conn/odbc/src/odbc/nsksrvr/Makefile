@@ -46,6 +46,7 @@ include ../macros.gmk       # odbc level
 #       ODBCMXTraceMsgs.cpp
 #       QSInterfaceDrvr
 #       QSMarshalingDrvr
+#       querySig.cpp
 #    from Common/linux
 #       TCPIPSystemSrvr_ps.cpp
 #    from nsksrvr/Interface:
@@ -82,11 +83,8 @@ COMMON_OBJS  = $(OUTDIR)/utils.o \
         $(OUTDIR)/Listener_srvr_ps.o \
         $(OUTDIR)/marshalingsrvr_srvr.o \
         $(OUTDIR)/marshalingsrvr_drvr.o\
-        $(OUTDIR)/CommonLogger.o
-
-
-
-
+        $(OUTDIR)/CommonLogger.o\
+        $(OUTDIR)/querySig.o
 
 ODBC_OBJS = $(OUTDIR)/odbcas_drvr.o \
         $(OUTDIR)/odbcmxo_drvr.o \

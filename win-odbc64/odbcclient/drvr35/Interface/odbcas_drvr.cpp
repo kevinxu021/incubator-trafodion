@@ -146,7 +146,7 @@ odbcas_ASSvc_GetObjRefHdl_(
 		inContext->sessionName,
 		clientIpAddress,
 		inContext->computerName,
-		inContext->clientUserName,
+		userDesc->userName,
 		inContext->userRole,
 		szCliAppName
 		);

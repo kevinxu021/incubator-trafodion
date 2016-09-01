@@ -143,7 +143,7 @@ odbcas_ASSvc_GetObjRefHdl_(
             inContext->sessionName,
             inet_ntoa(sin->sin_addr),
             inContext->computerName,
-            inContext->clientUserName,
+            userDesc->userName,
             inContext->userRole,
             program_invocation_short_name
             );
