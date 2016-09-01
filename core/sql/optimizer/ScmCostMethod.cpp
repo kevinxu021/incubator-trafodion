@@ -804,7 +804,7 @@ SimpleFileScanOptimizer::scmComputeCostVectorsForORC()
 
   CMPASSERT(hiveKey);
 
-  NABoolean partnsEliminated = hiveKey->canEliminatePartitions();
+  NABoolean partnsEliminated = canEliminatePartitionsForHive();
 
   // Take into consideration the # of rows eliminated due to 
   // compilation time partition elimination.
@@ -1276,14 +1276,6 @@ SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbes()
 // Assume categorizeMultiProbes() has already been called
 Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
 {
-
-// NAString tname((getIndexDesc()->getPrimaryTableDesc()->getNATable()->getTableName()).getQualifiedNameAsAnsiString());
-//if ( tname == "HIVE.HIVE.STORE_SALES_SORTED_ORC") {
-// int x = 1;
-// int y = 1;
-//}
-
-
   // define some variables used locally
   CostScalar numUniqueProbes = uniqueProbes_;
   CostScalar numProbes = probes_;
@@ -1394,6 +1386,8 @@ Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
   setEstRowsAccessed(tuplesProduced);
   setNumberOfBlocksToReadPerAccess(numBlocks);
 
+  // Favor the NJ when partitions are eliminated. Without doing so
+  // we NJ into CUSTOMER_ADDRESS in TPCDS Q46 
   if ( partitionsEliminated ) {
      tuplesProduced  /= numActivePartitions;
      tuplesProcessed /= numActivePartitions;
@@ -4909,6 +4903,17 @@ CostMethodFastExtract::scmComputeOperatorCostInternal(RelExpr* op,
 
 NABoolean SimpleFileScanOptimizer::canEliminatePartitionsForHive()
 {
+  const InputPhysicalProperty* ippForMe =
+        getContext().getInputPhysicalProperty();
+
+  if ( !ippForMe ) 
+    return FALSE;
+
+  const ValueIdSet& joinCols = ippForMe->getEquiJoinExprForInner();
+
+  if ( joinCols.isEmpty() )
+    return FALSE;
+
   if ( !(getIndexDesc()->getPrimaryTableDesc()->getNATable()->isHiveTable()) )
     return FALSE;
  
@@ -4916,6 +4921,6 @@ NABoolean SimpleFileScanOptimizer::canEliminatePartitionsForHive()
   if ( !hiveKey )
     return FALSE;
 
-  return hiveKey->canEliminatePartitions();
+  return hiveKey->canEliminatePartitions(joinCols);
 }
 
