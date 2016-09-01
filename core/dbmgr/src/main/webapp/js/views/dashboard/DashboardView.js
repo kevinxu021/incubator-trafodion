@@ -201,7 +201,7 @@ define([
 					$(this).find('.modal-body').css({
 						'max-height':'100%'
 					});
-					_this.repositionModal();
+					//_this.repositionModal(this);
 				});
 
 				$(DRILLDOWN_DIALOG).on('resize', function () {
@@ -228,6 +228,7 @@ define([
 					lastUsedTimeRange.startTime = startTime;
 					lastUsedTimeRange.endTime = endTime;
 				}
+				//_this.repositionModal(this);
 			});
 
 			$(FILTER_DIALOG).on('hide.bs.modal', function (e, v) {
@@ -988,17 +989,6 @@ define([
 			$(DRILLDOWN_CHART_CONTAINER).hide();
 			$(GRID_DRILLDOWN_CONTAINER).show();
 			_this.populateServiceStatus('services-results-drilldown', GRID_DRILLDOWN_CONTAINER, true);
-		},
-		repositionModal: function() {
-			var modal = $(DRILLDOWN_DIALOG),
-			dialog = modal.find('.modal-dialog');
-			modal.css('display', 'block');
-
-			// Dividing by two centers the modal exactly, but dividing by three 
-			// or four works better for larger screens.
-			var top = Math.max(0, ($(window).height() - dialog.height()) / 2);
-			var left = Math.max(0, ($(window).width() - dialog.width()) / 2);
-			dialog.css({"margin-top":top, "margin-left": left, "top":0, "left":0});
 		},
 		displayDetails: function(metricName){
 			$(DRILLDOWN_DIALOG).modal('show');
