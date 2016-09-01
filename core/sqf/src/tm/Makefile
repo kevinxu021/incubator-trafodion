@@ -26,7 +26,8 @@ include ../../macros.gmk
 include ../macros.gmk
 include macros.gmk
 
-HBASE_TRX_LOC    = $(MY_SQROOT)/src/seatrans/hbase-trx
+HBASE_TRX_LOC         = $(MY_SQROOT)/src/seatrans/hbase-trx
+ESGYN_MONARCH_TRX_LOC = $(MY_SQROOT)/src/seatrans/monarch
 
 DEBUG		=
 DEFINES		= -DDEBUG -DxUSE_FILE_AUDIT 
@@ -55,8 +56,8 @@ LIBSTMOBJS = $(OUTDIR)/tmtransid.o \
 			 $(OUTDIR)/tmmap.o \
 			 $(OUTDIR)/tmmutex.o \
 			 $(OUTDIR)/tmregisterregion.o \
-             $(OUTDIR)/tmddlrequests.o\
- 			 $(OUTDIR)/javaobjectinterfacetm.o \
+		         $(OUTDIR)/tmddlrequests.o\
+			 $(OUTDIR)/javaobjectinterfacetm.o \
 			 $(OUTDIR)/versstmlib.o \
 		         $(OUTDIR)/CommonLogger.o 
 LIBSXATMOBJS  = $(OUTDIR)/tmmap.o \
@@ -147,15 +148,16 @@ ifeq ($(USE_THREADED_IO),1)
 LIBSTM		+= $(LIBSTHX)
 endif
 
-all:  $(LIBEXPDIR)/libstmlib.so cp_trx_jar
+all:  $(LIBEXPDIR)/libstmlib.so trx_jar
 
-cp_trx_jar: 
+trx_jar: 
 	cd $(HBASE_TRX_LOC); make
+	cd $(ESGYN_MONARCH_TRX_LOC); make
 
 all:  $(LIBEXPDIR)/libsxatmlib.so $(LIBEXPDIR)/libstmlib.so $(PROGS) $(LIBEXPDIR)/libxarm.so
 	cd tools; $(MAKE)
 
-$(OUTDIR)/tm: $(TMOBJS) $(LIBEXPDIR)/libsxatmlib.so $(LIBEXPDIR)/libshbasetmlib.so $(PROGS) $(LIBEXPDIR)/libxarm.so cp_trx_jar
+$(OUTDIR)/tm: $(TMOBJS) $(LIBEXPDIR)/libsxatmlib.so $(LIBEXPDIR)/libshbasetmlib.so $(PROGS) $(LIBEXPDIR)/libxarm.so trx_jar
 	@echo "USE_THREADED_IO = " $(USE_THREADED_IO)
 	$(CXX) $(LNK_FLGS) $(LIBJVM) -o $@ $(TMOBJS) $(LIBSTM) -L$(LIBEXPDIR) -llog4cxx -DTM_BUILD_
 
@@ -182,7 +184,7 @@ $(LIBEXPDIR)/libstmlib.so: $(LIBSTMOBJS)
 $(LIBEXPDIR)/libsxatmlib.so: $(LIBSXATMOBJS) 
 	$(CXX) $(LNK_FLGS) -shared -o $@ $(LIBSXATMOBJS) $(LIBSTMX) -L$(LIBEXPDIR) -llog4cxx
 
-$(LIBEXPDIR)/libshbasetmlib.so: $(LIBSXATMOBJS) cp_trx_jar
+$(LIBEXPDIR)/libshbasetmlib.so: $(LIBSXATMOBJS) trx_jar
 	cd $(HBASETMLIB); $(MAKE)
 
 
@@ -209,6 +211,7 @@ clean:
 	$(RM)  $(ALLOBJS)
 	$(RM)  $(CDEPFILES)
 	cd $(HBASE_TRX_LOC); make clean
+	cd $(ESGYN_MONARCH_TRX_LOC); make clean
 	@echo "PWD = " `pwd`
 	cd tools; $(MAKE) clean
 	@echo "PWD = " `pwd`

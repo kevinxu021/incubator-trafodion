@@ -1,7 +1,7 @@
 #!/bin/bash
 
 lv_do=1
-lv_jmap_sleep=5
+lv_jmap_sleep=30
 
 function Exec_jmap_sqlci {
     ./jmap_sqlci ${lv_jmap_sleep} > ${lv_logdir_name}/jmap_sqlci.out
@@ -15,6 +15,12 @@ function Exec_jmap_hbm {
     done
 }
 
+function Exec_jmap_ms {
+    cd ${lv_logdir_name}
+    ../jmap_ms
+    cd -
+}
+
 if [ -z $EXEC_DDL ]; then
    EXEC_DDL=0
 fi
@@ -24,8 +30,6 @@ if [ $EXEC_DDL -eq 1 ]; then
 fi
 
 mkdir -p sql
-
-rm sql/*
 
 declare -i lv_curr
 declare -i lv_last
@@ -57,10 +61,10 @@ if [ $# -gt 4 ]; then
     lv_gen_one_insert=$5
 fi
 
-echo "$lv_startrow"
+echo "startrow_id: $lv_startrow"
 
 lv_curr_time=`date +%Y%m%d_%H%M`
-lv_logdir_name=logs_${lv_curr_time}_${lv_last}_${lv_startrow}_${lv_num_rows_per_file}
+lv_logdir_name=test_${lv_curr_time}_${lv_last}_${lv_startrow}_${lv_num_rows_per_file}
 mkdir -p ${lv_logdir_name}
 
 echo "Generating the sql obey files"
@@ -72,7 +76,8 @@ while [ $lv_curr -le $lv_last ]; do
       lv_gen_inserts=${lv_gen_inserts_param}
   fi
 
-./gendata ${lv_startrow} ${lv_lastrow} ${lv_gen_inserts} > sql/gendata_${lv_startrow}_${lv_lastrow}.sql
+gen_file_prefix="data_"
+./gendata ${lv_startrow} ${lv_lastrow} ${lv_gen_inserts} > ${lv_logdir_name}/${gen_file_prefix}${lv_startrow}_${lv_lastrow}.sql
   let lv_startrow=lv_startrow+lv_num_rows_per_file
   let lv_curr=lv_curr+1
 done
@@ -80,13 +85,16 @@ echo "Done - Generating the sql obey files"
 
 ./jmap_hbm > ${lv_logdir_name}/jmap_hbm_full_before_begin_of_test.out
 
-echo "`date`: start running tests. Logs in ${lv_logdir_name} "
+lv_message=" start running tests. Logs in the directory: ${lv_logdir_name}"
+echo "`date`:${lv_message}"
 date
-sql_files=`ls sql`
+sql_files=`ls ${lv_logdir_name}/${gen_file_prefix}*.sql`
+
+Exec_jmap_ms
 
 let lv_num_sql_files=0
 for lv_file in ${sql_files}; do
-    sqlci -i sql/${lv_file} > ${lv_logdir_name}/${lv_file}.log &
+    sqlci -i ${lv_file} > ${lv_file}.log &
     let ++lv_num_sql_files
     sleep 3
 done
@@ -109,7 +117,9 @@ jobs
 
 ./jmap_hbm > ${lv_logdir_name}/jmap_hbm_full_after_end_of_test.out
 
-echo "`date`: Done - start running tests. Logs in ${lv_logdir_name} "
+Exec_jmap_ms
+
+echo "`date`: Done -${lv_message}"
 lv_num_errors=`grep ' ERROR' ${lv_logdir_name}/*.log | grep -v COLD | wc -l`
 echo "Number of errors: ${lv_num_errors}"
 

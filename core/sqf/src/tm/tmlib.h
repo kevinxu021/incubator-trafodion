@@ -65,6 +65,7 @@ class TMLIB : public JavaObjectInterfaceTM
         bool iv_localBegin;
         
         // JNI interface
+        char mrminterface_classname[1024];
         char rminterface_classname[1024];
         char hbasetxclient_classname[1024];
 	char replayengine_classname[1024];
@@ -76,9 +77,13 @@ class TMLIB : public JavaObjectInterfaceTM
                JM_ABORT,
                JM_TRYCOMMIT,
                JM_LAST_HBASETXCLIENT,
+
                //RMInterface
                JM_CLEARTRANSACTIONSTATES,
                JM_REPLAYENGINE,
+
+               //MRMInterface (Monarch/Ampool)
+               JM_CLEAR_MTRANSACTIONSTATES,
                JM_LAST
         };
 
@@ -86,6 +91,10 @@ class TMLIB : public JavaObjectInterfaceTM
         static jclass  javaClass_;
         jclass  iv_RMInterface_class;
         bool iv_enableCleanupRMInterface;
+
+	// Monarch/Ampool Storage engine
+        jclass  iv_MRMInterface_class;
+        bool iv_enableCleanupMRMInterface;
 
         short setupJNI();
 
@@ -123,8 +132,12 @@ class TMLIB : public JavaObjectInterfaceTM
         void localBegin(bool pv_localBegin) {iv_localBegin=pv_localBegin;}
         int32 seqNum_blockSize() {return iv_seqNum_blockSize;}
         void seqNum_blockSize(int32 pv_blockSize) {iv_seqNum_blockSize=pv_blockSize;}
+
         bool enableCleanupRMInterface() {return iv_enableCleanupRMInterface;}
         void enableCleanupRMInterface(bool pv_bool) {iv_enableCleanupRMInterface=pv_bool;}
+
+        bool enableCleanupMRMInterface() {return iv_enableCleanupMRMInterface;}
+        void enableCleanupMRMInterface(bool pv_bool) {iv_enableCleanupMRMInterface=pv_bool;}
 
         bool open_tm(int pv_node, bool pv_startup = false);
         short send_tm(Tm_Req_Msg_Type *pp_req, Tm_Rsp_Msg_Type *pp_rsp, 
@@ -145,6 +158,9 @@ class TMLIB : public JavaObjectInterfaceTM
 	short replayEngine(long timestamp);
         short endTransactionLocal(long transactionID);
         void cleanupTransactionLocal(long transactionID);
+	
+	// Monarch/Ampool
+        void cleanupMTransactionLocal(long transactionID);
 };
 
 // helper methods, C style 

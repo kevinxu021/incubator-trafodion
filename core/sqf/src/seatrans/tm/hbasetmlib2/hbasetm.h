@@ -127,6 +127,7 @@ private:
       JM_TRYCOMMIT,
       JM_COMPLETEREQUEST,
       JM_REGREGION,
+      JM_MREGREGION,
       JM_PARREGION,
       JM_CNTPOINT,
       JM_STALL,
@@ -244,7 +245,7 @@ private:
 
 
 
-extern CHbaseTM gv_HbaseTM;      // One global HbaseTM object
+extern CHbaseTM *gv_HbaseTM;      // One global HbaseTM object
 extern const char *ms_getenv_str(const char *pp_key);
 extern const char *ms_getenv_int(const char *pp_key, int *pp_val);
 

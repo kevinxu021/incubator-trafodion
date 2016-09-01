@@ -38,15 +38,12 @@ JNIEXPORT void JNICALL Java_org_apache_hadoop_hbase_client_transactional_Transac
    memset(la_hostname, 0, TM_MAX_REGIONSERVER_STRING);
    memset(la_dos, 0, TM_MAX_REGIONSERVER_STRING);
 
-   //cout << "ENTRY registerRegion JNI - passing transid: " << pv_transid << " startid: " << pv_startid << "\n";
    int lv_hostname_length = pp_env->GetArrayLength(pv_hostname);
    jbyte *lp_hostname = pp_env->GetByteArrayElements(pv_hostname, 0);
 
    int lv_dos_length = pp_env->GetArrayLength(pv_dos);
    jbyte *lp_dos = pp_env->GetByteArrayElements(pv_dos, 0);
 
-   //cout << "registerRegion 1 lp_hostname length: " << lv_hostname_length << " data: " << lp_hostname << endl;
-   //cout << "registerRegion 2 lp_dos length: " << lv_dos_length << " data: " << lp_dos << endl;
    memcpy(la_hostname,
           lp_hostname,
           lv_hostname_length);
@@ -54,8 +51,75 @@ JNIEXPORT void JNICALL Java_org_apache_hadoop_hbase_client_transactional_Transac
           lp_dos,
           lv_dos_length);
 
+   /*
+  cout << "ENTER registerMRegion JNI. " 
+       << ", transid: "  << pv_transid 
+       << ", startid: " << pv_startid 
+       << ", hostname: " << la_hostname
+       << ", port: " << pv_port 
+       << ", region start code: " << pv_startcode 
+       << "\n";
+   */
+
    REGISTERREGION(pv_transid, pv_startid, pv_port, la_hostname, lv_hostname_length, pv_startcode, la_dos, lv_dos_length, pv_peerid);
+
    pp_env->ReleaseByteArrayElements(pv_hostname, lp_hostname, 0);
    pp_env->ReleaseByteArrayElements(pv_dos, lp_dos, 0);
 
 }
+
+JNIEXPORT void JNICALL Java_io_esgyn_client_MTransactionState_registerMRegion(JNIEnv *pp_env,
+									      jobject pv_object, 
+									      jlong pv_transid,
+									      jlong pv_startid, 
+									      jint pv_port, 
+									      jbyteArray pv_hostname, 
+									      jlong pv_startcode, 
+									      jbyteArray pv_location, 
+									      jint pv_peerid)
+{
+  
+   char la_hostname[TM_MAX_REGIONSERVER_STRING];
+   char la_location[TM_MAX_REGIONSERVER_STRING];
+   memset(la_hostname, 0, TM_MAX_REGIONSERVER_STRING);
+   memset(la_location, 0, TM_MAX_REGIONSERVER_STRING);
+
+   int lv_hostname_length = pp_env->GetArrayLength(pv_hostname);
+   jbyte *lp_hostname = pp_env->GetByteArrayElements(pv_hostname, 0);
+
+   int lv_location_length = pp_env->GetArrayLength(pv_location);
+   jbyte *lp_location = pp_env->GetByteArrayElements(pv_location, 0);
+
+   memcpy(la_hostname,
+          lp_hostname,
+          lv_hostname_length);
+   memcpy(la_location,
+          lp_location,
+          lv_location_length);
+
+   /*
+  cout << "ENTER registerMRegion JNI. " 
+       << ", transid: "  << pv_transid 
+       << ", startid: " << pv_startid 
+       << ", hostname: " << la_hostname
+       << ", port: " << pv_port 
+       << ", region start code: " << pv_startcode 
+       << ", location: " << la_location
+       << "\n";
+   */
+
+  REGISTERREGION(pv_transid, 
+		 pv_startid, 
+		 pv_port, 
+		 la_hostname, 
+		 lv_hostname_length, 
+		 pv_startcode,
+		 la_location, 
+		 lv_location_length,
+		 pv_peerid);
+
+   pp_env->ReleaseByteArrayElements(pv_hostname, lp_hostname, 0);
+   pp_env->ReleaseByteArrayElements(pv_location, lp_location, 0);
+
+}
+

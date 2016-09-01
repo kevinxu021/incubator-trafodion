@@ -6,6 +6,8 @@ declare -i lv_end
 let lv_start=$1
 let lv_end=$2
 
+let lv_first=$1
+
 if [ $# -gt 2 ]; then
     lv_gen_insert=$3
 fi
@@ -20,10 +22,15 @@ if [ $lv_gen_insert != "0" ]; then
     echo "prepare li1_sel  from select * from LI1 where a = ?;"
     echo "prepare li2_sel  from select * from LI2 where a = ?;"
     echo "prepare li3_sel  from select * from LI3 where a = ?;"
+    echo "sh date;"
+    echo
 fi
 
 while [ $lv_start -le $lv_end ]; do
       echo "begin work;"
+      if [ $lv_start -eq $lv_first ]; then
+	  echo "show session;"
+      fi
       if [ $lv_gen_insert != "0" ]; then
 	  echo "execute insert_stmt using ${lv_start};"
 	  echo "execute li1_stmt using ${lv_start};"
@@ -40,5 +47,6 @@ while [ $lv_start -le $lv_end ]; do
       let lv_start=lv_start+1
 done
 
+echo "sh date;"
 echo "sh pstat; "
 #echo "sh sleep 60; "

@@ -1624,7 +1624,7 @@ int32 TM_Info::restart_tm_process(int32 pv_nid)
         iv_allTMsOpen = all_tms_recovered();
         tm_fail_recov_state(pv_nid, TM_FAIL_RECOV_STATE_INITIAL);
 
-		gv_HbaseTM.nodeUp(pv_nid);
+		gv_HbaseTM->nodeUp(pv_nid);
 
         tm_log_event(DTM_TM_RESTARTED, SQ_LOG_INFO, "DTM_TM_RESTARTED", 
             -1,-1, pv_nid, -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,NULL, gv_tm_info.nid());
