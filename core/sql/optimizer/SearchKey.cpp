@@ -3777,9 +3777,9 @@ NABoolean HivePartitionAndBucketKey::canEliminatePartitions(const ValueIdSet& eq
   if ( getPartAndVirtColPreds().isEmpty() )
     return FALSE;
 
-  ValueIdSet result(getPartAndVirtColPreds());
-  result.intersectSetDeep(eqjoinCols);
+  ValueIdSet result(eqjoinCols);
+  result.intersectSetDeep(getPartAndVirtColPreds());
 
-  return result.isEmpty();
+  return NOT result.isEmpty();
 }
 

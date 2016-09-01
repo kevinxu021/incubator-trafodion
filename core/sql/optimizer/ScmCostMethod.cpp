@@ -1276,22 +1276,6 @@ SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbes()
 // Assume categorizeMultiProbes() has already been called
 Cost* SimpleFileScanOptimizer::scmComputeCostVectorsMultiProbesForORC()
 {
-
-// NAString tname((getIndexDesc()->getPrimaryTableDesc()->getNATable()->getTableName()).getQualifiedNameAsAnsiString());
-//if ( tname == "HIVE.TPCDS_SF1000.STORE_SALES") {
-// int x = 1;
-// int y = 1;
-//}
-
-
-  const InputPhysicalProperty* ippForMe =
-        getContext().getInputPhysicalProperty();
-
-  ValueIdSet equiJoinForInner;
-
-  if ( ippForMe ) 
-     equiJoinForInner = ippForMe->getEquiJoinExprForInner();
-
   // define some variables used locally
   CostScalar numUniqueProbes = uniqueProbes_;
   CostScalar numProbes = probes_;

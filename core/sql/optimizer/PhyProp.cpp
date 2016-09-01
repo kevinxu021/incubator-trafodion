@@ -1259,6 +1259,9 @@ COMPARE_RESULT InputPhysicalProperty::compareInputPhysicalProperties(
     return INCOMPATIBLE;
   if (explodedOcbJoinForCosting_ != other.explodedOcbJoinForCosting_)
     return INCOMPATIBLE;
+  if (equiJoinExprOnchild1_ != other.equiJoinExprOnchild1_ )
+    return INCOMPATIBLE;
+
   // If we get here the input physical properties must both be the same
   return SAME;
 
