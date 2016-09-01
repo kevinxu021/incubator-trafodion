@@ -835,21 +835,28 @@ void CHealthCheck::verifyLicenseExpiration()
 }
 
 bool CHealthCheck::checkLicenseInternal()
-{   
+{      
+    const char method_name[] = "CHealthCheck::checkLicenseInternal";
+    TRACE_ENTRY;
+    TRACE_EXIT;
     return true;
     
-    /* TRK not ready for yet - just ignore license checks for everything
+    /* TRK - need default licenses before this can be checked in
     
     CLicenseCommon licenseFile_;
+    bool isInternal = false;
     
     // If the license is not ready, that means there is an issue - so let's make it fail quick elsewhere by returning false
     if ((!IsRealCluster) || (licenseFile_.getLicenseReady() && licenseFile_.isInternal()))
     {
-      return true;
+      isInternal = true;
     }
     else 
     {
-      return false;
+      isInternal = false;
     }
-    */
+    
+    TRACE_EXIT;
+    return isInternal;
+   */ 
 }
