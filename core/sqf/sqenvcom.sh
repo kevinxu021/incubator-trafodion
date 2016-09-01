@@ -917,6 +917,9 @@ $MY_SQROOT/export/lib/jdbcT2.jar:\
 $MY_SQROOT/export/lib/${ESGYN_MONARCH_TRX_JAR}
 
 if [[ ! -z ${AMPOOL_HOME} ]]; then
+    
+    export TM_ENABLE_MONARCH=1
+
     SQ_CLASSPATH=${SQ_CLASSPATH}:\
 ${MY_SQROOT}/conf:\
 ${AMPOOL_HOME}/lib/ampool-dependencies.jar

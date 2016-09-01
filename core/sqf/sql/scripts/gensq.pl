@@ -46,7 +46,6 @@ $gRoleEnumAggregation = "aggregation";
 
 my $g_nextStorageNodeIndex = 0;
 my $g_nextStorageNode = 0;
-my $g_currentTSEIndex = 0;
 
 my @g_storageNodes = ();
 my @g_edgeNodes = ();
@@ -70,37 +69,9 @@ my @g_zonelist = ();
 my %gZoneNameToIdIndex;
 
 # This to help with getting the next AT name
-my @ase_list = ();
 my @g_alphabets = (A..Z);
 my $g_char1 = 0;
 my $g_char2 = 0;
-
-my $g_ASE_TSE_Index = 1;
-my $gNumASEProcess  = 0;
-
-my $g_TMASE_TM_Index = 0;
-my $gNumTMASEProcess = 0;
-
-my $gNumATExtents    = 0;
-my $gMinATExtents    = 0;
-if ((! -e "/etc/hptc-release") && (! -e "/etc/cm-release")){
-   $gMinATExtents    = 1550;  #NOT a CLUSTER
-}
-else{
-   $gMinATExtents    = 15500; #CLUSTER
-}
-my $gNumATFiles      = 0;
-my $gMinATFiles      = 10;
-my $gTX_Capacity     = 0;
-my $gBO_PER_TSE      = 1;
-my $gMAX_TX_Capacity = 40;
-# Must enable this code if _DISABLE_BEGINTRANS defined in the TSE
-#my $gMAX_BeginTX_Disable = 80;
-my $gMAX_BO_PER_TSE  = 3;
-
-my $BOOL_BO_PER_TSE_SET = 0;
-
-my $g_dRMID  = 1;
 
 my $gdNumCpuCores = 1;
 
@@ -131,6 +102,7 @@ my $SQ_DTM_PERSISTENT_PROCESS = $ENV{'SQ_DTM_PERSISTENT_PROCESS'};
 my $SQ_IDTMSRV = $ENV{'SQ_IDTMSRV'};
 my $SQ_SRVMON = $ENV{'SQ_SRVMON'};
 my $SQ_TNOTIFY = $ENV{'SQ_TNOTIFY'};
+my $TM_ENABLE_MONARCH = $ENV{'TM_ENABLE_MONARCH'};
 
 # define the error values that are being returned
 my $CONFIG_ERROR = 5;
@@ -242,23 +214,6 @@ sub printInitialLines {
     }
 
     $msenv = "$ENV{'SQETC_DIR'}/ms.env";
-    $mirroringoff_string = "TSE_MIRRORING_OFF=1\n";
-    $acttenable_string = "TSE_ACTT_ENABLE_THRESHOLDS=0\n";
-    $acttdiskio_string = "TSE_ACTT_DISKIO_THRESHOLD=20000000\n";
-    $acttcachec_string = "TSE_ACTT_CACHEC_THRESHOLD=20000000\n";
-    $acttaccessed_string = "TSE_ACTT_ACCESSED_THRESHOLD=20000000\n";
-    $acttinterval_string = "TSE_ACTT_THRESHOLD_INTERVAL=1\n";
-    $acttpublishevent_string = "TSE_ACTT_PUBLISH_EVENT=0\n";
-    $acttpublishlog_string = "TSE_ACTT_PUBLISH_LOG=0\n";
-    $acttpublishstd_string = "TSE_ACTT_PUBLISH_STDOUT=0\n";
-    $fcbenable_string = "TSE_FCB_ENABLE_THRESHOLDS=0\n";
-    $fcbdiskio_string = "TSE_FCB_DISKIO_THRESHOLD=20000000\n";
-    $fcbcachec_string = "TSE_FCB_CACHEC_THRESHOLD=20000000\n";
-    $fcbaccessed_string = "TSE_FCB_ACCESSED_THRESHOLD=20000000\n";
-    $fcbinterval_string = "TSE_FCB_THRESHOLD_INTERVAL=1\n";
-    $fcbpublishevent_string = "TSE_FCB_PUBLISH_EVENT=0\n";
-    $fcbpublishlog_string = "TSE_FCB_PUBLISH_LOG=0\n";
-    $fcbpublishstd_string = "TSE_FCB_PUBLISH_STDOUT=0\n";
 
     open (ETC,">>$msenv")
 	or die("unable to open $msenv");
@@ -270,6 +225,13 @@ sub printInitialLines {
 	print ETC "SQ_TRANS_SOCK=0\n";
     }
 
+    if ($TM_ENABLE_MONARCH == 1) {
+	print ETC "TM_ENABLE_MONARCH=1\n";
+    }
+    else {
+	print ETC "TM_ENABLE_MONARCH=0\n";
+    }
+
     if ($bVirtualNodes == 1) {
         $virtualnode_string = "SQ_VIRTUAL_NODES=$gdNumNodes\n";
         $virtualnid_string = "SQ_VIRTUAL_NID=0\n";
@@ -279,67 +241,13 @@ sub printInitialLines {
         print ETC "$virtualnode_string";
         print ETC "$virtualnid_string";
            # Allow specific mirroring ON override for virtual node
-        print ETC "$mirroringoff_string" if (!$ENV{'TSE_MIRRORING'});
         print ETC "MS_STREAMS_MIN=20000\n";
         print ETC "MS_STREAMS_MAX=20000\n";
-        print ETC "$acttenable_string";
-        print ETC "$acttdiskio_string";
-        print ETC "$acttcachec_string";
-        print ETC "$acttaccessed_string";
-        print ETC "$acttinterval_string";
-        print ETC "$acttpublishevent_string";
-        print ETC "$acttpublishlog_string";
-        print ETC "$acttpublishstd_string";
-        print ETC "$fcbenable_string";
-        print ETC "$fcbdiskio_string";
-        print ETC "$fcbcachec_string";
-        print ETC "$fcbaccessed_string";
-        print ETC "$fcbinterval_string";
-        print ETC "$fcbpublishevent_string";
-        print ETC "$fcbpublishlog_string";
-        print ETC "$fcbpublishstd_string";
-
-        # As of v1.12, sqgen doesn't recreate ms.env if it already exists,
-        # so users will see issues switching between mirroring ON and mirroring
-        # OFF, because the TSE treats mirroring on as default.  The variable in
-        # ms.env is an override to turn mirroring OFF, we will remove that if
-        # the user intends to turn mirroring on now
-        if (length($ENV{'TSE_MIRRORING'}) && $ENV{'TSE_MIRRORING'} == 1)
-        {
-            @msenv_contents = <ETC>;
-
-            # This holds contents of ms.env, excluding all TSE_MIRRORING_OFF=1
-            @grep_res = grep(!/$mirroringoff_string/, @msenv_contents);
-            $grep_res_num = grep(/$mirroringoff_string/, @msenv_contents);
-
-            # Only rewrite it out if we found occurrences
-            if ($grep_res_num > 0) {
-                print ETC join("", @grep_res);
-            }
-        }
     }
     # Cluster
     else {
-        print ETC "$mirroringoff_string"
-            if (length($ENV{'TSE_MIRRORING'}) && $ENV{'TSE_MIRRORING'} == 0);
         print ETC "MS_STREAMS_MIN=20000\n";
         print ETC "MS_STREAMS_MAX=20000\n";
-        print ETC "$acttenable_string";
-        print ETC "$acttdiskio_string";
-        print ETC "$acttcachec_string";
-        print ETC "$acttaccessed_string";
-        print ETC "$acttinterval_string";
-        print ETC "$acttpublishevent_string";
-        print ETC "$acttpublishlog_string";
-        print ETC "$acttpublishstd_string";
-        print ETC "$fcbenable_string";
-        print ETC "$fcbdiskio_string";
-        print ETC "$fcbcachec_string";
-        print ETC "$fcbaccessed_string";
-        print ETC "$fcbinterval_string";
-        print ETC "$fcbpublishevent_string";
-        print ETC "$fcbpublishlog_string";
-        print ETC "$fcbpublishstd_string";
         $hugePages=`cat /proc/sys/vm/nr_hugepages`;
         if ($hugePages != 0) {
            if ($ENV{SHARED_HARDWARE} eq 'YES') {
@@ -892,11 +800,6 @@ sub processNodes {
 		    $lv_node_index = sqnodes::getConnNode($i);
 		    push(@g_EdgeNodes, $lv_node_index);
 		}
-
-		for ($i=0; $i < $gdNumNodes; $i++) {
-		    push(@g_BackupTSENode, $i);
-		}
-
             }
 
 	    return;
