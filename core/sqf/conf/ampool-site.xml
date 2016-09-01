@@ -8,7 +8,7 @@
 <configuration>
     <property>
         <name>ampool.monarch.locator.port</name>
-        <value>25510</value>
+        <value>10334</value>
         <description>Specifies the port on which Monarch Locator service will Run</description>
     </property>
     <property>
