@@ -968,7 +968,7 @@ define(['moment',
 				return st;
 			};
 
-			this.showTooltip = function(x, y, contents, tooltipId) {
+			this.showTooltip = function(x, y, contents, tooltipId, preferredWidth) {
 				var tipId = 'tooltip';
 				if (tooltipId != null && tooltipId != undefined) {
 					tipId = tooltipId;
@@ -977,33 +977,30 @@ define(['moment',
 				var tip = $('<div id="' + tipId + '" class="tooltip-inner">' + contents + '</div>');
 				$('body').append(tip);
 				var tipWidth = tip.outerWidth() + 20,
-				tipHeight = tip.outerHeight();
+				tipHeight = tip.outerHeight()+10;
+				if(preferredWidth){
+					tipWidth = preferredWidth;
+				}
+				if ((x - $(window).scrollLeft()) > ($(window).innerWidth() - tipWidth)) {
+					x -= tipWidth;
+				}
+				if ((y - $(window).scrollTop()) > ($(window).innerHeight() - tipHeight)) {
+					y -= tipHeight;
+				}
 				var tipStyle = {
 						width: tipWidth + 'px',
 						position : 'absolute',
 						display : "none",
-						top : y - tipHeight - 10,
-						left : x,
+						"max-width": tipWidth +'px',
+						top : y + 10,
+						left : x + 10,
 						border : "1px solid #000",
 						"font-size": "13px",
 						padding : "5px 2px"
 
 				};
-				this.showTooltipStyle(tipStyle, tip);
-			};
 
-			this.showTooltipStyle = function(tipStyle, tip) {
-				if (tipStyle.top < 0) {
 
-					if ((tipStyle.left + tip.outerWidth()) > $(window).width()) {
-						tipStyle.left = $(window).width() - tip.outerWidth();
-					}
-				} else {
-					// keep it above
-					if ((tipStyle.left + tip.outerWidth()) > $(window).width()) {
-						tipStyle.left = $(window).width() - tip.outerWidth();
-					}
-				}
 				tip.css(tipStyle).fadeIn(50);
 			};
 		}

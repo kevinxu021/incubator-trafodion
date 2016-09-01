@@ -359,7 +359,7 @@ public class WorkloadsResource {
 			@Context HttpServletResponse servletResponse,@PathParam("startTime") String startTime, 
 			@PathParam("endTime") String endTime) throws EsgynDBMgrException {
 		ArrayList<HashMap<String,String>> result = new ArrayList<HashMap<String,String>>();
-		
+
 		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.TOP_N_MEM_USED),startTime,endTime);
 		_LOG.debug(sqlText);
 
@@ -394,7 +394,7 @@ public class WorkloadsResource {
 		}
 		return result;
 	}
-	
+
 	@GET
 	@Path("/repo/topcpu/{startTime}/{endTime}")
 	@Produces("application/json")
@@ -436,7 +436,7 @@ public class WorkloadsResource {
 		}
 		return result;
 	}
-	
+
 	@GET
 	@Path("/repo/topruntime/{startTime}/{endTime}")
 	@Produces("application/json")
@@ -478,7 +478,7 @@ public class WorkloadsResource {
 		}
 		return result;
 	}
-	
+
 	@GET
 	@Path("/repo/topdiskio/{startTime}/{endTime}")
 	@Produces("application/json")
@@ -520,7 +520,7 @@ public class WorkloadsResource {
 		}
 		return result;
 	}
-	
+
 	@GET
 	@Path("/active/detail/")
 	@Produces("application/json")
@@ -599,8 +599,18 @@ public class WorkloadsResource {
 				// parsedMap.remove("statsRowType");
 				String statsRowTypeStr = statsTypeMap.get(statsRowType);
 				if (statsRowTypeStr.trim().equals("SQLSTATS_DESC_MASTER_STATS")) {
-					summaryNode.put("sla", rowData[columnNames.indexOf("sla")].toString());
-					summaryNode.put("profile", rowData[columnNames.indexOf("profile")].toString());
+					if (columnNames.contains("sla")) {
+						Object sla = rowData[columnNames.indexOf("sla")];
+						summaryNode.put("sla", sla != null ? sla.toString() : "");
+					} else {
+						summaryNode.put("sla", "");
+					}
+					if (columnNames.contains("profile")) {
+						Object profile = rowData[columnNames.indexOf("profile")];
+						summaryNode.put("profile", profile != null ? profile.toString() : "");
+					} else {
+						summaryNode.put("profile", "");
+					}
 
 					// If the statsRow type is the master stats, use all the
 					// metrics as summary information.
@@ -619,7 +629,7 @@ public class WorkloadsResource {
 						if (key.equalsIgnoreCase("subqueryType")) {
 							summaryNode.put(key, subQueryTypeMap.get(value));
 						} else
-						summaryNode.put(key, value);
+							summaryNode.put(key, value);
 					}
 				} else {
 					// Non master operators
@@ -637,7 +647,7 @@ public class WorkloadsResource {
 					// We need DOP as an explicit column in the grid. So add a
 					// placeholder.
 					operatorNode.putPOJO("DOP", "");
-					
+
 					//Parse VAL1_TXT and VAL1 as OperCPUTime
 					String cpuKey = operatorNode.get("VAL1_TXT").asText();
 					if (cpuKey != null && cpuKey.length() > 0 && !cpuKey.trim().equalsIgnoreCase("null")) {
@@ -663,18 +673,18 @@ public class WorkloadsResource {
 									&& !vkey.trim().equalsIgnoreCase("timestamp")) {
 								String val = operatorNode.get("VAL" + i).asText();
 								if (val != null && val.length() > 0) {
-										detailsNode.put(vkey.trim(), val.trim());
-									}
+									detailsNode.put(vkey.trim(), val.trim());
 								}
 							}
 						}
+					}
 
 					// Loop through the variableinfo and populate the necessary
 					// fields.
 					for (String key : parsedMap.keySet()) {
 						if (key.trim().equalsIgnoreCase("OperCPUTime")) {
 							continue; // already added to the operator node. not
-										// required in detail node.
+							// required in detail node.
 						}
 						if (key.equalsIgnoreCase("dop")) {
 							operatorNode.putPOJO("DOP", parsedMap.get(key));
@@ -805,26 +815,28 @@ public class WorkloadsResource {
 			JsonFactory factory = new JsonFactory();
 			ObjectMapper mapper = new ObjectMapper(factory);
 			ArrayNode resultNode = mapper.createArrayNode();
-			try {
-				JsonNode node = mapper.readTree(profilesStr);
-				Iterator<String> profileNames = node.fieldNames();
-				while (profileNames.hasNext()) {
-					String profileName = profileNames.next();
-					workloadProfiles.add(profileName);
+			synchronized (workloadProfiles) {
+				try {
+					JsonNode node = mapper.readTree(profilesStr);
+					Iterator<String> profileNames = node.fieldNames();
+					while (profileNames.hasNext()) {
+						String profileName = profileNames.next();
+						workloadProfiles.add(profileName);
 
-					ObjectNode pNode = mapper.createObjectNode();
-					ObjectNode node1 = (ObjectNode) node.get(profileName);
-					node1.put("name", profileName);
-					for (String name : colNames) {
-						if (!node1.has(name)) {
-							node1.put(name, "");
+						ObjectNode pNode = mapper.createObjectNode();
+						ObjectNode node1 = (ObjectNode) node.get(profileName);
+						node1.put("name", profileName);
+						for (String name : colNames) {
+							if (!node1.has(name)) {
+								node1.put(name, "");
+							}
 						}
+						pNode.setAll(node1);
+						resultNode.add(pNode);
 					}
-					pNode.setAll(node1);
-					resultNode.add(pNode);
-				}
-			} catch (Exception ex) {
+				} catch (Exception ex) {
 
+				}
 			}
 			ArrayList<String> columns = new ArrayList<String>();
 			columns.addAll(colNames);
@@ -906,6 +918,10 @@ public class WorkloadsResource {
 			_LOG.debug(uri);
 
 			Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
+			synchronized (workloadProfiles) {
+				if (!workloadProfiles.contains(profileName))
+					workloadProfiles.add(profileName);
+			}
 		} catch (RESTRequestException e) {
 			throw new EsgynDBMgrException("Failed to add or alter profile : " + e.getMessage());
 		} catch (EsgynDBMgrException e) {
@@ -947,7 +963,9 @@ public class WorkloadsResource {
 				uri = String.format(queryText, trafRestUri, URLEncoder.encode(profile, "UTF8"));
 				_LOG.debug(uri);
 				Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
-				workloadProfiles.remove(profile);
+				synchronized (workloadProfiles) {
+					workloadProfiles.remove(profile);
+				}
 			}
 
 		} catch (RESTRequestException e) {
@@ -993,26 +1011,28 @@ public class WorkloadsResource {
 			JsonFactory factory = new JsonFactory();
 			ObjectMapper mapper = new ObjectMapper(factory);
 			ArrayNode resultNode = mapper.createArrayNode();
-			try {
-				JsonNode node = mapper.readTree(jsonOutputString);
-				Iterator<String> slas = node.fieldNames();
-				while (slas.hasNext()) {
-					String slaName = slas.next();
-					workloadSLAs.add(slaName);
+			synchronized (workloadSLAs) {
+				try {
+					JsonNode node = mapper.readTree(jsonOutputString);
+					Iterator<String> slas = node.fieldNames();
+					while (slas.hasNext()) {
+						String slaName = slas.next();
+						workloadSLAs.add(slaName);
 
-					ObjectNode pNode = mapper.createObjectNode();
-					ObjectNode node1 = (ObjectNode) node.get(slaName);
-					node1.put("name", slaName);
-					for (String name : colNames) {
-						if (!node1.has(name)) {
-							node1.put(name, "");
+						ObjectNode pNode = mapper.createObjectNode();
+						ObjectNode node1 = (ObjectNode) node.get(slaName);
+						node1.put("name", slaName);
+						for (String name : colNames) {
+							if (!node1.has(name)) {
+								node1.put(name, "");
+							}
 						}
+						pNode.setAll((ObjectNode) node1);
+						resultNode.add(pNode);
 					}
-					pNode.setAll((ObjectNode) node1);
-					resultNode.add(pNode);
-				}
-			} catch (Exception ex) {
+				} catch (Exception ex) {
 
+				}
 			}
 			ArrayList<String> columns = new ArrayList<String>();
 			columns.addAll(colNames);
@@ -1094,6 +1114,11 @@ public class WorkloadsResource {
 			_LOG.debug(uri);
 
 			Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
+			synchronized (workloadSLAs) {
+				if (!workloadSLAs.contains(slaName)) {
+					workloadSLAs.add(slaName);
+				}
+			}
 		} catch (RESTRequestException e) {
 			throw new EsgynDBMgrException("Failed to add or alter SLA : " + e.getMessage());
 		} catch (EsgynDBMgrException e) {
@@ -1134,7 +1159,9 @@ public class WorkloadsResource {
 				uri = String.format(queryText, trafRestUri, URLEncoder.encode(sla, "UTF8"));
 				_LOG.debug(uri);
 				Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
-				workloadSLAs.remove(sla);
+				synchronized (workloadSLAs) {
+					workloadSLAs.remove(sla);
+				}
 			}
 
 		} catch (RESTRequestException e) {
@@ -1169,7 +1196,7 @@ public class WorkloadsResource {
 				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.WMS_GET_MAPPINGS);
 				uri = String.format(queryText, trafRestUri);
 			}
-			
+
 			_LOG.debug(uri);
 			String jsonOutputString = RESTProcessor.getRestOutput(uri, soc.getUsername(), soc.getPassword());
 			workloadMappings = new ArrayList<String>();
@@ -1180,26 +1207,29 @@ public class WorkloadsResource {
 			JsonFactory factory = new JsonFactory();
 			ObjectMapper mapper = new ObjectMapper(factory);
 			ArrayNode resultNode = mapper.createArrayNode();
-			try {
-				JsonNode node = mapper.readTree(jsonOutputString);
-				Iterator<String> mappingNames = node.fieldNames();
-				while (mappingNames.hasNext()) {
-					String mappingName = mappingNames.next();
-					workloadMappings.add(mappingName);
+			synchronized (workloadMappings) {
 
-					ObjectNode pNode = mapper.createObjectNode();
-					ObjectNode node1 = (ObjectNode) node.get(mappingName);
-					node1.put("name", mappingName);
-					for (String name : colNames) {
-						if (!node1.has(name)) {
-							node1.put(name, "");
+				try {
+					JsonNode node = mapper.readTree(jsonOutputString);
+					Iterator<String> mappingNames = node.fieldNames();
+					while (mappingNames.hasNext()) {
+						String mappingName = mappingNames.next();
+						workloadMappings.add(mappingName);
+
+						ObjectNode pNode = mapper.createObjectNode();
+						ObjectNode node1 = (ObjectNode) node.get(mappingName);
+						node1.put("name", mappingName);
+						for (String name : colNames) {
+							if (!node1.has(name)) {
+								node1.put(name, "");
+							}
 						}
+						pNode.setAll((ObjectNode) node1);
+						resultNode.add(pNode);
 					}
-					pNode.setAll((ObjectNode) node1);
-					resultNode.add(pNode);
-				}
-			} catch (Exception ex) {
+				} catch (Exception ex) {
 
+				}
 			}
 			ArrayList<String> columns = new ArrayList<String>();
 			columns.addAll(colNames);
@@ -1299,6 +1329,11 @@ public class WorkloadsResource {
 			_LOG.debug(uri);
 
 			Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
+			synchronized (workloadMappings) {
+				if (!workloadMappings.contains(mappingName)) {
+					workloadMappings.add(mappingName);
+				}
+			}
 		} catch (RESTRequestException e) {
 			throw new EsgynDBMgrException("Failed to add or alter mapping : " + e.getMessage());
 		} catch (EsgynDBMgrException e) {
@@ -1339,7 +1374,9 @@ public class WorkloadsResource {
 				uri = String.format(queryText, trafRestUri, URLEncoder.encode(mapping, "UTF8"));
 				_LOG.debug(uri);
 				Helper.processRESTRequest(uri, soc.getUsername(), soc.getPassword());
-				workloadMappings.remove(mapping);
+				synchronized (workloadMappings) {
+					workloadMappings.remove(mapping);
+				}
 			}
 
 		} catch (RESTRequestException e) {

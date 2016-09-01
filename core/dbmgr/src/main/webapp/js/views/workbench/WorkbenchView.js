@@ -19,7 +19,8 @@ define([
         'buttonsflash',
         'buttonsprint',
         'buttonshtml',
-        'pdfmake'
+        'pdfmake',
+        'jqueryscroll'
         ], function (BaseView, WorkbenchT, $, common, serverHandler, CodeMirror) {
 	'use strict';
 
@@ -51,6 +52,7 @@ define([
 	ERROR_TEXT = '#query-error-text',
 	SCALAR_RESULT_CONTAINER = '#scalar-result-container',
 	SCALAR_RESULT = '#scalar-result',
+	VISUAL_EXPLAIN_CONTAINER = '#visual-explain-container',
 	EXPLAIN_BTN = '#explainQuery',
 	EXECUTE_BTN = '#executeQuery',
 	OPTIONS_BTN = '#setControlStmts',
@@ -73,7 +75,7 @@ define([
 	lastExecuteResult = null,
 	lastExplainResult = null,
 	lastRawError = null;
-	
+
 	$jit.ST.Plot.NodeTypes.implement({
 		'nodeline': {
 			'render': function(node, canvas, animating) {
@@ -97,9 +99,9 @@ define([
 	});    			
 
 	var WorkbenchView = BaseView.extend({
-		
+
 		explainJsonData:null,
-		
+
 		template: _.template(WorkbenchT),
 
 		showLoading: function(){
@@ -110,15 +112,15 @@ define([
 			$(SPINNER).hide();
 		},
 
-		drawExplain: function (jsonData,tag) {
+		drawExplain: function (jsonData, tag) {
 			EXPLAIN_JSON_DATA=jsonData;
 			if(jsonData.requestor !=null && jsonData.requestor != _this) //error message is probably for different page
-				{
-				if(tag!="import"){
+			{
+				if(tag != "import"){
 					return;
-					}
 				}
-			
+			}
+
 			if(this.redirectFlag){
 				resultsAfterPause = true;
 				lastExplainResult = jsonData;
@@ -128,13 +130,14 @@ define([
 			}
 			_this.hideLoading();
 			$(EXECUTE_BTN).attr("disabled",false);
+			$(VISUAL_EXPLAIN_CONTAINER).show();
 			$(TEXT_RESULT_CONTAINER).show();
 			$(TEXT_RESULT).text(jsonData.planText);
 			$(EXPLAIN_TREE).empty();
 
 			//init Spacetree
 			//Create a new ST instance
-			st = common.generateExplainTree(jsonData, setRootNode, _this.showExplainTooltip, $(PRIMARY_RESULT_CONTAINER));
+			st = common.generateExplainTree(jsonData, setRootNode, _this.showExplainTooltip, $(VISUAL_EXPLAIN_CONTAINER));
 
 			//load json data
 			st.loadJSON(jsonData);
@@ -144,7 +147,10 @@ define([
 			//emulate a click on the root node.
 			st.onClick(st.root);
 			_this.handleWindowResize();
-			//end
+			
+			if(tag == "import"){
+				_this.displayPanel($(VISUAL_EXPLAIN_CONTAINER));
+			}
 		},
 		showExplainTooltip: function(nodeName, data){
 			$(TOOLTIP_DIALOG).modal('show');
@@ -163,6 +169,7 @@ define([
 			_this = this;
 			this.currentURL = window.location.hash;
 			this.redirectFlag=false;
+			$(VISUAL_EXPLAIN_CONTAINER).hide();
 			$(TEXT_RESULT_CONTAINER).hide();
 			$(SCALAR_RESULT_CONTAINER).hide();
 			this.hideLoading();
@@ -191,21 +198,22 @@ define([
 					'max-height':'100%'
 				});
 			});
-			 $('.panel-heading span.dbmgr-collapsible').on("click", function (e) {
-		            if ($(this).hasClass('panel-collapsed')) {
-		                // expand the panel
-		                $(this).parents('.panel').find('.panel-body').slideDown();
-		                $(this).removeClass('panel-collapsed');
-		                $(this).find('i').removeClass('fa-sort-down').addClass('fa-sort-up');
-		            }
-		            else {
-		                // collapse the panel
-		                $(this).parents('.panel').find('.panel-body').slideUp();
-		                $(this).addClass('panel-collapsed');
-		                $(this).find('i').removeClass('fa-sort-up').addClass('fa-sort-down');
-		            }
-		        });
-			 
+
+			$('.panel-heading span.dbmgr-collapsible').on("click", function (e) {
+				if ($(this).hasClass('panel-collapsed')) {
+					// expand the panel
+					$(this).parents('.panel').find('.panel-body').slideDown();
+					$(this).removeClass('panel-collapsed');
+					$(this).find('i').removeClass('fa-sort-down').addClass('fa-sort-up');
+				}
+				else {
+					// collapse the panel
+					$(this).parents('.panel').find('.panel-body').slideUp();
+					$(this).addClass('panel-collapsed');
+					$(this).find('i').removeClass('fa-sort-up').addClass('fa-sort-down');
+				}
+			});
+
 			if(CodeMirror.mimeModes["text/x-esgyndb"] == null){
 				common.defineEsgynSQLMime(CodeMirror);
 			}
@@ -227,7 +235,7 @@ define([
 				}
 			});
 			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"120px", "font-size":"12px"});
-			
+
 			controlStmtEditor = CodeMirror.fromTextArea(document.getElementById("query-control-stmts"), {
 				mode: 'text/x-esgyndb',
 				indentWithTabs: true,
@@ -239,7 +247,7 @@ define([
 				extraKeys: {"Ctrl-Space": "autocomplete"}
 			});
 
-			
+
 			$(controlStmtEditor.getWrapperElement()).resizable({
 				resize: function() {
 					controlStmtEditor.setSize($(this).width(), $(this).height());
@@ -247,24 +255,6 @@ define([
 			});
 			$(controlStmtEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"300px", "font-size":"12px"});
 
-			
-			/*scalarResultEditor = CodeMirror.fromTextArea(document.getElementById("scalar-result"), {
-				mode: 'text/x-esgyndb',
-				indentWithTabs: true,
-				smartIndent: true,
-				lineNumbers: false,
-				lineWrapping: true,
-				matchBrackets : true,
-				autofocus: true,
-				extraKeys: {"Ctrl-Space": "autocomplete"}
-			});
-			$(scalarResultEditor.getWrapperElement()).resizable({
-				resize: function() {
-					scalarResultEditor.setSize($(this).width(), $(this).height());
-				}
-			});
-			$(scalarResultEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"300px"});*/
-			
 			$(CONTROL_DIALOG).on('hide.bs.modal', function(e){
 				if(controlStmts && controlStmts.length > 0){
 					if(controlStmtEditor)
@@ -276,7 +266,7 @@ define([
 						controlStmtEditor.setValue("");
 						setTimeout(function() {
 							controlStmtEditor.refresh();
-		        		},1);
+						},1);
 					}
 					else
 						$(CONTROL_STMTS_TEXT).val("");
@@ -286,7 +276,7 @@ define([
 			$(CONTROL_DIALOG).on('shown.bs.modal', function(e){
 				setTimeout(function() {
 					controlStmtEditor.refresh();
-        		},1);
+				},1);
 			});			
 			_this.clearAll();
 			serverHandler.on(serverHandler.WRKBNCH_EXECUTE_SUCCESS, this.displayResults);
@@ -328,7 +318,7 @@ define([
 		},
 		handleWindowResize: function () {
 			if(st != null) {
-				st.canvas.resize($(EXPLAIN_TREE).width(), ($(PRIMARY_RESULT_CONTAINER).height() + $(PRIMARY_RESULT_CONTAINER).scrollTop()));
+				st.canvas.resize($(EXPLAIN_TREE).width(), ($(VISUAL_EXPLAIN_CONTAINER).height() + $(VISUAL_EXPLAIN_CONTAINER).scrollTop()));
 			}
 		},
 		exportQuery:function(){
@@ -357,26 +347,18 @@ define([
 			}
 			if(!$.isEmptyObject(EXPLAIN_JSON_DATA)){
 				if(executionQueryText != explainQueryText){
-					alert("your execution text is not the same as explain text, we default choose explain text!");
 					queryText=explainQueryText;
 				}
 				if(queryText==""&&controlStatement==""){
-					alert("there is nothing to export!");
-					return
+					return;
 				}
 			}
 			var json={queryText:queryText, EXPLAIN_JSON_DATA:EXPLAIN_JSON_DATA, controlStatement:controlStatement, executionResults:lastExecuteResult};
 			_this.SaveDatFileBro(json);
 		},
 		SaveDatFileBro:function(json) {
-			
 			var blob = new Blob([JSON.stringify(json)], {type: "text/plain;charset=utf-8"});
 			saveAs(blob, "WorkbenchExport.wbj");
-
-		/*	var data = "text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(json));
-			$('<a id="downloadJson" href="data:' + data + '" download="export.wbj" style="display:none">download JSON</a>').appendTo('body');
-			$("#downloadJson")[0].click();
-			$("#downloadJson").remove();*/
 		},
 		importBtnClicked: function(){
 			this.value = null;
@@ -386,38 +368,64 @@ define([
 			var files = event.target.files;
 			var __this = _this;
 			var file = files[0];
-				if (window.File && window.FileReader && window.FileList && window.Blob) {
-				  /*console.log("Great success! All the File APIs are supported.");*/
-				} else {
-				  console.log('The File APIs are not fully supported in this browser.');
+			if (window.File && window.FileReader && window.FileList && window.Blob) {
+				/*console.log("Great success! All the File APIs are supported.");*/
+			} else {
+				console.log('The File APIs are not fully supported in this browser.');
+			}
+			var ext = file.name.split('.').pop();
+			if(ext == file.name){
+				ext = '';
+			}
+			switch(ext){
+			case '':
+			case 'txt':
+			case 'sql':
+			case 'ddl':
+			case 'wbj':
+				_this.clearAll();
+				break;
+				default:{
+					var errMessage = {msg: ext + ' file type is not supported. Supported file types are .txt, .ddl, .sql, .wbj',tag:"danger",url:null,shortMsg:""};
+					_this.popupNotificationMessage(null,errMessage);
+					return;
 				}
+			}
 			var reader = new FileReader();
 			var result=null;
 			reader.onload=(function(file){
 				return function(e){
-				var extension=file.name.substr(-3);
-				switch (extension) {
+					var extension=file.name.split('.').pop();
+					if(extension == file.name){
+						extension = '';
+					}
+					switch (extension) {
+					case '':
 					case 'sql':
 					case 'txt':
 					case 'ddl':{
+						
 						result=e.target.result;
 						queryTextEditor.setValue(result);
 						$(OPTIONS_BTN).text(" ");
 						$(EXPLAIN_TREE).hide();
+						$(VISUAL_EXPLAIN_CONTAINER).hide();
 						$(TEXT_RESULT_CONTAINER).hide();
 						break;
 					};
 					case 'wbj':{
+						_this.clearAll();
 						result=JSON.parse(e.target.result);
 						queryTextEditor.setValue(result.queryText);
 						executionQueryText = result.queryText;
 						explainQueryText = result.queryText;
-						
+
 						if(jQuery.isEmptyObject(result.EXPLAIN_JSON_DATA)!=true){
-							__this.drawExplain(result.EXPLAIN_JSON_DATA,"import");
+							__this.drawExplain(result.EXPLAIN_JSON_DATA, "import");
 							$(EXPLAIN_TREE).show();
 							$(TEXT_RESULT_CONTAINER).show();
 						}else{
+							$(VISUAL_EXPLAIN_CONTAINER).hide();
 							$(EXPLAIN_TREE).hide();
 							$(TEXT_RESULT_CONTAINER).hide();
 						}
@@ -428,12 +436,15 @@ define([
 							$(OPTIONS_BTN).text(" ");
 						}
 						if(result.executionResults != ""){
-							_this.displayResults(result.executionResults);
+							_this.displayResults(result.executionResults, "import");
 						}
 						break;
 					}
-					
-				}};
+					default: {
+						alert("")
+					}
+
+					}};
 			})(file);
 			reader.readAsText(file);
 		},
@@ -486,9 +497,10 @@ define([
 			lastRawError = null;	
 			executionQueryText=null;
 			explainQueryText=null;
-			
+
 			$(EXPLAIN_TREE).hide();
 			$(ERROR_TEXT).hide();
+			$(VISUAL_EXPLAIN_CONTAINER).hide();
 			$(QUERY_RESULT_CONTAINER).hide();
 			$(TEXT_RESULT_CONTAINER).hide();
 			$(SCALAR_RESULT_CONTAINER).hide();
@@ -502,7 +514,7 @@ define([
 				controlStmtEditor.setValue("");
 			else
 				$(CONTROL_STMTS_TEXT).val();
-			
+
 			$(SCALAR_RESULT).text("");
 			$(OPTIONS_BTN).text(" ");
 			if(resultsDataTable  != null){
@@ -517,7 +529,7 @@ define([
 			resultsAfterPause = false;
 			lastExplainResult = null;
 			lastRawError = null;
-			
+
 			var queryText = $(QUERY_TEXT).val();
 			if(queryTextEditor){
 				queryText = queryTextEditor.getSelection();
@@ -530,17 +542,19 @@ define([
 				alert('Query text cannot be empty.');
 				return;
 			}
+
 			if(executionQueryText != queryText){
 				lastExecuteResult = "";
+				$(QUERY_RESULT_CONTAINER).hide();
+				$(SCALAR_RESULT_CONTAINER).hide();        	
 			}
 
 			_this.parseControlStmts();
 
 			$(EXPLAIN_TREE).hide();
 			$(ERROR_TEXT).hide();
-			$(QUERY_RESULT_CONTAINER).hide();
+			$(VISUAL_EXPLAIN_CONTAINER).hide();
 			$(TEXT_RESULT_CONTAINER).hide();
-			$(SCALAR_RESULT_CONTAINER).hide();        	
 			$(EXECUTE_BTN).attr("disabled",true);
 			timeStamps.planTime=new Date().getTime();
 			var param = {sQuery : queryText, sControlStmts: controlStmts,timeStamp:timeStamps.planTime};
@@ -561,33 +575,33 @@ define([
 				alert('Query text cannot be empty.');
 				return;
 			}else{
-				EXPLAIN_JSON_DATA={};
 				$(EXECUTE_BTN).attr("data-original-title","Cancel");
 				$(EXECUTE_BTN).removeClass('btn-primary fa-play').addClass('btn-danger fa-stop');
 				$(EXECUTE_BTN).unbind("click").on("click",_this.cancelQuery);
 			}
-			
-			
-			lastExecuteResult = null;
+
+
 			resultsAfterPause = false;
 			lastRawError = null;
 			isCancelClicked=false;
 			timeStamps.runTime=new Date().getTime();
-			
+
 			executionQueryText=queryText;
-			
+
 			if(explainQueryText != queryText){
 				lastExplainResult = "";
+				EXPLAIN_JSON_DATA={};
+				$(VISUAL_EXPLAIN_CONTAINER).hide();
+				$(TEXT_RESULT_CONTAINER).hide();
+				$(EXPLAIN_TREE).hide();
+				$(EXPLAIN_TREE).empty();
+				$("#text-result").empty();
 			}
 
 			_this.parseControlStmts();
 
 			_this.showLoading();
-			$(EXPLAIN_TREE).hide();
-			$(EXPLAIN_TREE).empty();
-			$("#text-result").empty();
 			$(ERROR_TEXT).hide();
-			$(TEXT_RESULT_CONTAINER).hide();
 			$(SCALAR_RESULT_CONTAINER).hide();
 			$(QUERY_RESULT_CONTAINER).hide();
 			$(EXPLAIN_BTN).attr("disabled",true);
@@ -599,7 +613,7 @@ define([
 			window.location.hash = '/stimeout';
 		},
 
-		displayResults: function (result){
+		displayResults: function (result, tag){
 			lastExecuteResult = result;
 
 			if(_this.redirectFlag){
@@ -609,8 +623,8 @@ define([
 				common.fire(common.NOFITY_MESSAGE,msgObj);
 				return;
 			}
+
 			_this.hideLoading();
-			
 			var keys = result.columnNames;
 			if(result.isScalarResult != null && result.isScalarResult == true){
 				$(SCALAR_RESULT_CONTAINER).show();
@@ -654,12 +668,12 @@ define([
 						"aoColumns" : aoColumns,
 						paging: bPaging,
 						buttons: [
-		                           { extend : 'copy', exportOptions: { columns: ':visible' } },
-		                           { extend : 'csv', exportOptions: { columns: ':visible' }, filename: 'Query Workbench Results' },
-		                           //{ extend : 'excel', exportOptions: { columns: ':visible' } },
-		                           //{ extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, title: 'Query Workbench Results' } ,
-		                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Query Workbench Results' }
-					          ]
+						          { extend : 'copy', exportOptions: { columns: ':visible' } },
+						          { extend : 'csv', exportOptions: { columns: ':visible' }, filename: 'Query Workbench Results' },
+						          //{ extend : 'excel', exportOptions: { columns: ':visible' } },
+						          //{ extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, title: 'Query Workbench Results' } ,
+						          { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Query Workbench Results' }
+						          ]
 
 					});
 				}        		
@@ -680,12 +694,19 @@ define([
 			if($(EXECUTE_BTN).attr("disabled")=="disabled"){
 				$(EXECUTE_BTN).attr("disabled",false);
 			}
+
+			if(tag == "import"){
+				_this.displayPanel($(QUERY_RESULT_CONTAINER));
+			}
+		},
+		displayPanel: function(tPanel){
+			$('#content-wrapper').scrollTo(tPanel, 800);
 		},
 
 		showErrorMessage: function (jqXHR) {
 			if(jqXHR.requestor !=null && jqXHR.requestor != _this) //error message is probably for different page
 				return;
-			
+
 			if(_this.redirectFlag){
 				resultsAfterPause = true;
 				lastRawError = jqXHR;
@@ -697,6 +718,7 @@ define([
 			$(EXPLAIN_BTN).attr("disabled",false);
 			$(EXECUTE_BTN).attr("disabled",false);
 			$(EXPLAIN_TREE).hide();
+			$(TEXT_RESULT_CONTAINER).hide();
 			$(QUERY_RESULT_CONTAINER).hide();
 			$(TEXT_RESULT_CONTAINER).hide();
 

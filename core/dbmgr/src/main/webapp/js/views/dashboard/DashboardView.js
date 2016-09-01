@@ -110,7 +110,7 @@ define([
 			refreshTimer.init();
 			timeRangeView.init();
 			this.configAllchart();
-			
+
 
 			$(REFRESH_ACTION).on('click', this.refreshPage);
 			$(SERVICES_ERROR_TEXT).hide();
@@ -127,13 +127,13 @@ define([
 			refreshTimer.setRefreshInterval(0.5);
 			timeRangeView.setTimeRange(1);
 			//$(window).on('resize', this.onResize);
-			
+
 			this.bindEnterpriseEvents();
 			this.bindOtherInitialEvents();
 			this.refreshPage();
 			$('#metricsDialogContent').resizable({
-			    //alsoResize: ".modal-dialog",
-			    //minHeight: 150
+				//alsoResize: ".modal-dialog",
+				//minHeight: 150
 			});
 
 		},
@@ -176,7 +176,7 @@ define([
 			serverHandler.off(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
 			serverHandler.off(serverHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
 			serverHandler.off(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
-			
+
 			this.unbindEnterpriseEvents();
 		},
 		bindOtherInitialEvents:function(){
@@ -196,13 +196,14 @@ define([
 					var metricName = $(DRILLDOWN_METRICNAME).text();
 					dashboardHandler.fetchMetricDrilldown(_this.generateParams(metricName, true));
 				});
-				
+
 				$(DRILLDOWN_DIALOG).on('show.bs.modal', function () {
-				    $(this).find('.modal-body').css({
-				        'max-height':'100%'
-				    });
+					$(this).find('.modal-body').css({
+						'max-height':'100%'
+					});
+					//_this.repositionModal(this);
 				});
-				
+
 				$(DRILLDOWN_DIALOG).on('resize', function () {
 					if (drillDownChart != null && drillDownChart.plot != null){
 						var placeholder = drillDownChart.plot.getPlaceholder();
@@ -227,6 +228,7 @@ define([
 					lastUsedTimeRange.startTime = startTime;
 					lastUsedTimeRange.endTime = endTime;
 				}
+				//_this.repositionModal(this);
 			});
 
 			$(FILTER_DIALOG).on('hide.bs.modal', function (e, v) {
@@ -578,7 +580,7 @@ define([
 					data.push(status);
 					aaData.push(data);
 				});
-				
+
 				_this.serviceStatusData = { aoColumns: aoColumns, aaData: aaData};
 
 				_this.populateServiceStatus('services-results', SERVICES_RESULT_CONTAINER, false);
@@ -604,46 +606,46 @@ define([
 							"aoColumnDefs": [
 							                 {"aTargets": [0],
 							                	 "mRender": function ( data, type, full ) {
-						                             if (type === 'display') {
-						                                 if(data == 'DTM'){
-						                                     return 'Transaction Manager';
-						                                 }
-						                                 if(data == 'RMS'){
-						                                     return 'Runtime Manageability Service';
-						                                 }
-						                                 if(data == 'DCSMASTER'){
-						                                     return 'DCS Master';
-						                                 }
-						                                 if(data == 'MXOSRVR'){
-						                                     return 'Master Executor';
-						                                 }
-						                                 return data;
-						                             }
-						                             else return data;
-						                         }
+							                		 if (type === 'display') {
+							                			 if(data == 'DTM'){
+							                				 return 'Transaction Manager';
+							                			 }
+							                			 if(data == 'RMS'){
+							                				 return 'Runtime Manageability Service';
+							                			 }
+							                			 if(data == 'DCSMASTER'){
+							                				 return 'DCS Master';
+							                			 }
+							                			 if(data == 'MXOSRVR'){
+							                				 return 'Master Executor';
+							                			 }
+							                			 return data;
+							                		 }
+							                		 else return data;
+							                	 }
 							                 },
-						                     {"aTargets": [ 1 ], "bVisible":isDrilldown},
-						                     {"aTargets": [ 2 ], "bVisible":isDrilldown},
-						                     {"aTargets": [ 3 ], "bVisible":isDrilldown},
+							                 {"aTargets": [ 1 ], "bVisible":isDrilldown},
+							                 {"aTargets": [ 2 ], "bVisible":isDrilldown},
+							                 {"aTargets": [ 3 ], "bVisible":isDrilldown},
 							                 {
 							                	 "aTargets": [ 4 ],
 							                	 "mData": 4,
 							                	 "sWidth":"50px",
 							                	 "mRender": function ( data, type, full ) {
-							                         if (type === 'display') {
-						                                 if(data == 'ERROR'){
-						                                     return '<button type="button" class="btn btn-danger btn-circle btn-small dbmgr-status-btn" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="'+
-						                                     'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+(full[3]&&full[3].length>0?full[3]:"0")+'"><i class="fa fa-times"></i></button>';
-						                                 }
-						                                 if(data == 'WARN'){
-						                                     return '<button type="button" class="btn btn-warning btn-circle btn-small dbmgr-status-btn" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="'+
-						                                     'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+(full[3]&&full[3].length>0?full[3]:"0")+'"><i class="fa fa-warning"></i></button>';
-						                                 }
-						                                 return '<button type="button" class="btn btn-success btn-circle btn-small dbmgr-status-btn" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="'+
-						                                 'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+(full[3]&&full[3].length>0?full[3]:"0") +'"><i class="fa fa-check" ></i></button>';
-						                             }
-						                             else return data;
-						                         }
+							                		 if (type === 'display') {
+							                			 if(data == 'ERROR'){
+							                				 return '<button type="button" class="btn btn-danger btn-circle btn-small dbmgr-status-btn" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="'+
+							                				 'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+(full[3]&&full[3].length>0?full[3]:"0")+'"><i class="fa fa-times"></i></button>';
+							                			 }
+							                			 if(data == 'WARN'){
+							                				 return '<button type="button" class="btn btn-warning btn-circle btn-small dbmgr-status-btn" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="'+
+							                				 'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+(full[3]&&full[3].length>0?full[3]:"0")+'"><i class="fa fa-warning"></i></button>';
+							                			 }
+							                			 return '<button type="button" class="btn btn-success btn-circle btn-small dbmgr-status-btn" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="'+
+							                			 'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+(full[3]&&full[3].length>0?full[3]:"0") +'"><i class="fa fa-check" ></i></button>';
+							                		 }
+							                		 else return data;
+							                	 }
 							                 }],
 							                 buttons: [
 							                           { extend : 'copy', exportOptions: { columns: [0, 1, 2, 3] } },
@@ -656,16 +658,16 @@ define([
 							                        	   //$('#query-results td').css("white-space","nowrap");
 							                           },
 
-						                               initComplete: function ( settings, json ) {
-						                                   //activate the bootstrap toggle js
-						                                   //must be done within initcomplete (ie after table data is loaded)
-						                                   $('[data-toggle="tooltip"]').tooltip({
-						                                       trigger: 'hover',
-						                                       container: "body",
-						                                       html: true
-						                                   }).css('overflow','auto');
+							                           initComplete: function ( settings, json ) {
+							                        	   //activate the bootstrap toggle js
+							                        	   //must be done within initcomplete (ie after table data is loaded)
+							                        	   $('[data-toggle="tooltip"]').tooltip({
+							                        		   trigger: 'hover',
+							                        		   container: "body",
+							                        		   html: true
+							                        	   }).css('overflow','auto');
 
-						                               }// end of initcomplete*/
+							                           }// end of initcomplete*/
 
 				});
 				//nodesTable.buttons().container().appendTo($('#nodes-export-buttons') );
@@ -679,10 +681,10 @@ define([
 			if (jqXHR.responseText) {
 				$(SERVICES_ERROR_TEXT).text(jqXHR.responseText);     
 			}else{
-        		if(jqXHR.status != null && jqXHR.status == 0) {
-        			$(SERVICES_ERROR_TEXT).text("Error : Unable to communicate with the server.");
-        		}
-        	}       	
+				if(jqXHR.status != null && jqXHR.status == 0) {
+					$(SERVICES_ERROR_TEXT).text("Error : Unable to communicate with the server.");
+				}
+			}       	
 		},
 		fetchNodes: function () {
 			$(NODES_SPINNER).show();
@@ -781,10 +783,10 @@ define([
 				}else
 					$(NODES_ERROR_TEXT).text(jqXHR.responseText);     
 			}else{
-        		if(jqXHR.status != null && jqXHR.status == 0) {
-        			$(NODES_ERROR_TEXT).text("Error : Unable to communicate with the server.");
-        		}
-        	}
+				if(jqXHR.status != null && jqXHR.status == 0) {
+					$(NODES_ERROR_TEXT).text("Error : Unable to communicate with the server.");
+				}
+			}
 		},
 		fetchSummaryMetricSuccess: function(result){
 			var keys = Object.keys(result.data);
@@ -806,7 +808,7 @@ define([
 				});
 
 				var yMinVal = -1;
-				
+
 				$.each(keys, function(index, value){
 					var xVal = metricConfig.xtimemultiplier? value*metricConfig.xtimemultiplier: value;
 					//var dataPoint = [];
@@ -831,12 +833,12 @@ define([
 					});
 					//metricConfig.toolTipTexts[xVal] = dataPoint;
 				});
-				
+
 				if(yMinVal == -1){
 					yMinVal = 0;
 				}
 				var finalPlotData = [];
-				
+
 				if(metricConfig.legendcontainer && $(metricConfig.legendcontainer).length > 0){
 					$.each(plotData, function(i, v){
 						finalPlotData.push({ label: metricConfig.ylabels[i], data: plotData[i]});
@@ -858,14 +860,14 @@ define([
 						},
 						yaxis :{
 							min: metricConfig.ymin ? metricConfig.ymin : yMinVal,
-							max: metricConfig.ymax ? metricConfig.ymax : null,
-							show:true,
-							tickFormatter: function(val, axis){
-								if(metricConfig.yLabelFormat){
-									return metricConfig.yLabelFormat(val);
-								}
-								return val.toFixed(0);
-							}
+									max: metricConfig.ymax ? metricConfig.ymax : null,
+											show:true,
+											tickFormatter: function(val, axis){
+												if(metricConfig.yLabelFormat){
+													return metricConfig.yLabelFormat(val);
+												}
+												return val.toFixed(0);
+											}
 						},
 						series : {
 							shadowSize: 0,
@@ -932,10 +934,10 @@ define([
 				if (jqXHR.responseText) {
 					$(metricConfig.errorcontainer).text(jqXHR.responseText);     
 				}else{
-	        		if(jqXHR.status != null && jqXHR.status == 0) {
-	        			$(metricConfig.errorcontainer).text("Error : Unable to communicate with the server.");
-	        		}
-	        	}				
+					if(jqXHR.status != null && jqXHR.status == 0) {
+						$(metricConfig.errorcontainer).text("Error : Unable to communicate with the server.");
+					}
+				}				
 			}
 		},
 		canaryDrillDown: function(){
@@ -1061,7 +1063,7 @@ define([
 				if(yMinVal == -1){
 					yMinVal = 0;
 				}
-				
+
 				$(DRILLDOWN_LEGEND).append("<br/><label id='x-time'></label>");
 				$.each(result.data.tags, function(key, val) {
 					$(DRILLDOWN_LEGEND).append("<br/><input type='checkbox' name='" + key +
@@ -1096,14 +1098,14 @@ define([
 						},
 						yaxis :{
 							min: metricConfig.ymin ? metricConfig.ymin : yMinVal,
-							max: metricConfig.ymax ? metricConfig.ymax : null,
-							show:true,
-							tickFormatter: function(val, axis){
-								if(metricConfig.yLabelFormat){
-									return metricConfig.yLabelFormat(val);
-								}
-								return val.toFixed(0);
-							}
+									max: metricConfig.ymax ? metricConfig.ymax : null,
+											show:true,
+											tickFormatter: function(val, axis){
+												if(metricConfig.yLabelFormat){
+													return metricConfig.yLabelFormat(val);
+												}
+												return val.toFixed(0);
+											}
 						},
 						series : {
 							shadowSize: 0,
@@ -1186,7 +1188,7 @@ define([
 				minWidth: 450,
 				minHeight: 250
 			})*/
-			
+
 			if (data.length > 0) {
 				drillDownChart.plot = $.plot($(DRILLDOWN_CHART), data, drillDownChart.flotOptions);
 			}else{
@@ -1263,10 +1265,10 @@ define([
 				$(DRILLDOWN_ERROR_CONTAINER).text(jqXHR.responseText);     
 				$(DRILLDOWN_ERROR_CONTAINER).show();
 			}else{
-        		if(jqXHR.status != null && jqXHR.status == 0) {
-        			$(DRILLDOWN_ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
-        		}
-        	}				
+				if(jqXHR.status != null && jqXHR.status == 0) {
+					$(DRILLDOWN_ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+				}
+			}				
 		}
 	});
 

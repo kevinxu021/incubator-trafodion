@@ -148,6 +148,9 @@ define([
 				$('#content-wrapper').removeClass('no-transition');
 				$('#content-wrapper').removeClass('col-md-12').addClass('col-md-10');
 			}
+			$('.modal').on('show.bs.modal', function (e) {
+				__this.repositionModal(this);
+			});
 			$('.modal-dialog').draggable({
 			    handle: ".modal-header"
 			});
@@ -418,7 +421,17 @@ define([
 			if(_this.handleSideBarToggle){
 				_this.handleSideBarToggle();
 			}			
-		}
+		},
+		repositionModal: function(modal) {
+			var dialog = $(modal).find('.modal-dialog');
+			$(modal).css('display', 'block');
+
+			// Dividing by two centers the modal exactly, but dividing by three 
+			// or four works better for larger screens.
+			var top = Math.max(0, ($(window).height() - dialog.height()) / 2);
+			var left = Math.max(0, ($(window).width() - dialog.width()) / 2);
+			dialog.css({"margin-top":top, "margin-left": left, "top":0, "left":0});
+		},
 	});
 
 	return BaseView;
