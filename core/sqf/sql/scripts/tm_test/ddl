@@ -13,20 +13,20 @@ create table inventory
   , primary key (item_id asc)
   )  
   salt using 8 partitions
-  attributes storage monarch
+  attributes synchronous replication
   ;
 
 create table li1 (a int no default not null, b int, primary key (a))
   salt using 8 partitions
-  attributes storage monarch
+  attributes synchronous replication
 ;
 
 create table li2 (a int no default not null, b int, primary key (a))
   salt using 8 partitions
-  attributes storage monarch
+  attributes synchronous replication
 ;
 
 create table li3 (a int no default not null, b int, primary key (a))
   salt using 8 partitions
-  attributes storage monarch
+  attributes synchronous replication
 ;
