@@ -304,16 +304,19 @@ class ConnectReply {
                 LOG.debug("data :" + new String(data));
             }
          } catch (KeeperException.NodeExistsException e) {
-            LOG.error(clientSocketAddress + ": " + "do nothing...some other server has created znodes: " + e.getMessage());
+            LOG.error(clientSocketAddress + ": do nothing...some other server has created znodes: " + e.getMessage());
             exceptionThrown = true;
          } catch (KeeperException e) {
-            LOG.error(clientSocketAddress + ": " + "KeeperException: " + e.getMessage());
+            LOG.error(clientSocketAddress + ": KeeperException: " + e.getMessage());
             exceptionThrown = true;
          } catch (InterruptedException e) {
-            LOG.error(clientSocketAddress + ": " + "InterruptedException: " + e.getMessage());
+            LOG.error(clientSocketAddress + ": InterruptedException: " + e.getMessage());
             exceptionThrown = true;
          } catch (IOException ie){
-            LOG.error(clientSocketAddress + ": " + ie.getMessage());
+            LOG.error(clientSocketAddress + ": IOException" + ie.getMessage());
+            exceptionThrown = true;
+         } catch (Exception e){
+            LOG.error(clientSocketAddress + ": Unexpected Exception: " + e.getMessage());
             exceptionThrown = true;
          }
          if (exceptionThrown == true){
