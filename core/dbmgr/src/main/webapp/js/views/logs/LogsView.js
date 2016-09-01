@@ -484,7 +484,8 @@ define([
 			_this.showLoading();
 			$(ERROR_CONTAINER).hide();
 			/*_this.updateFilter();*/
-			_this.filterApplyClicked();
+			/*_this.filterApplyClicked();*/
+			logsHandler.fetchLogs(lastAppliedFilters);
 		},
 
 		displayResults: function (result){
