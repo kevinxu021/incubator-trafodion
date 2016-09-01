@@ -284,12 +284,6 @@ run_chk_dbperms=0
 
 STARTtime=$(date +%s)
 
-#license check
-licensecheck -s
-#if [ $? -eq 1 ]; then
-# exit 1
-#fi
-
 GetOpts $BASH_ARGV
 
 if [ ! -z $MY_SQROOT ]; then
