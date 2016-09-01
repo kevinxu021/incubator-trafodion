@@ -36,7 +36,7 @@
 #include "internal.h"
 #include "clusterconf.h"
 #include "lnode.h"
-
+#include "licensecommon.h"
 
 typedef enum
 {
@@ -86,6 +86,7 @@ private:
     void startQuiesce();
     void scheduleNodeDown();
     void timeToVerifyLicense(struct timespec &ts, int myPid);
+    bool checkLicenseInternal();
     
     HealthCheckStates state_;           // current state of the health check thread
     long long param1_;                  // optional param
@@ -108,6 +109,7 @@ private:
     bool checkReqResponsive_;           // should req thread be checked for responsiveness or not
     int  monSyncTimeout_;               // timeout (in secs) for sync thread responsiveness
     int  refreshCounter_;               // monitor heartbeats, updated every second.
+    CLicenseCommon *licenseFile_;
 };
 
 #endif

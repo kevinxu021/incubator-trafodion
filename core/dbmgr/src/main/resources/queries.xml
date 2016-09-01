@@ -869,7 +869,7 @@
 			<name>TOP_N_MEM_USED</name>
 			<text><![CDATA[select [first 5] query_id,exec_start_utc_ts,exec_end_utc_ts,(SQL_SPACE_USED +  SQL_HEAP_USED) as "memory_used" FROM "_REPOS_".METRIC_QUERY_TABLE
 			WHERE (exec_start_utc_ts between timestamp '%1$s' and timestamp '%2$s' or exec_end_utc_ts between timestamp '%1$s' and timestamp '%2$s' or last_updated_time between timestamp '%1$s' and timestamp '%2$s') 
-			ORDER BY MAX_MEM_USED desc;
+			ORDER BY "memory_used" desc;
 			]]></text>
 		</query>
 		<query>

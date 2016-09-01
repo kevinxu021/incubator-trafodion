@@ -573,10 +573,9 @@ define([
 					],
 					buttons: [
 	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
-	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+	                           { extend : 'csv', exportOptions: { columns: ':visible' }, filename: 'Logs' },
 	                          // { extend : 'excel', exportOptions: { columns: ':visible' } },
-	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
-	                        	   title: 'Logs' } ,
+	                          // { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' },  title: 'Logs' } ,
 	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Logs' }
 				          ],
 					          aaSorting: [[ 0, "desc" ]]

@@ -491,10 +491,9 @@ define([
 					paging: true,
 					buttons: [
 	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
-	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+	                           { extend : 'csv', exportOptions: { columns: ':visible' }, filename: 'Alerts' },
 	                           //{ extend : 'excel', exportOptions: { columns: ':visible' } },
-	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
-	                        	   title: 'Alerts' } ,
+	                           //{ extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, title: 'Alerts' } ,
 	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Alerts' }
 				          ]
 				});

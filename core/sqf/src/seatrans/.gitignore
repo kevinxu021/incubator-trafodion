@@ -1,4 +1,5 @@
 hbase-trx/target/
+monarch/target/
 hbase-trx/src/main/java/org/apache/hadoop/hbase/client/PatchClientScanner.java
 hbase-trx/src/main/java/org/apache/hadoop/hbase/client/transactional/SsccTransactionalScanner.java
 hbase-trx/src/main/java/org/apache/hadoop/hbase/client/transactional/TransactionalScanner.java

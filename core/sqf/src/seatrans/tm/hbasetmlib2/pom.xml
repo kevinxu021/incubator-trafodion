@@ -52,6 +52,13 @@
       <systemPath>${env.HBASE_TRXDIR}/${env.HBASE_TRX_JAR}</systemPath>
     </dependency>
     <dependency>
+      <groupId>io.esgyn</groupId>
+      <artifactId>esgyn_monarch-trx</artifactId>
+      <version>${env.TRAFODION_VER}</version>
+      <scope>system</scope>
+      <systemPath>${env.HBASE_TRXDIR}/${env.ESGYN_MONARCH_TRX_JAR}</systemPath>
+    </dependency>
+    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-log4j12</artifactId>
       <version>1.7.7</version>

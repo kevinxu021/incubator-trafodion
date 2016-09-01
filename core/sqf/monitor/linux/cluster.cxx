@@ -398,7 +398,8 @@ void CCluster::CheckLicenseVerifier(int pnid)
     TRACE_ENTRY;
     
     CNode *node = Node[pnid];
-
+    bool foundVerifier = false;
+    
     // if this down node is not a verifier, return
     if ((!node) || (!(node->IsLicenseVerifier())))
     {
@@ -416,11 +417,12 @@ void CCluster::CheckLicenseVerifier(int pnid)
              node->IsSoftNodeDown() ||
              node->GetState() != State_Up ||
              node->GetPhase() != Phase_Ready  ||
-             node->IsLicenseVerifier()) // already a verifier
+             node->IsLicenseVerifier()) // already a verifier - shouldn't get here, but just for completeness
         {
             continue; // skip this node for any of the above reasons 
         } 
         node->SetLicenseVerifier(true);
+        foundVerifier = true;
         
         if (trace_settings & (TRACE_INIT | TRACE_RECOVERY | TRACE_REQUEST | TRACE_SYNC | TRACE_TMSYNC))
         {
@@ -429,7 +431,25 @@ void CCluster::CheckLicenseVerifier(int pnid)
         break;
     }
         
-    // TRK - TODO, make sure we found a verifier otherwise adjust verifier count
+    // If we could not find a new verifier, then decrease the total count.  IF we get to 0 then we have no nodes, 
+    // which clearly is not the case.  Internal Error.  
+    if (!foundVerifier)
+    {
+       if (numVerifiers_ > 0)
+       {
+         numVerifiers_--;
+       }
+       if (numVerifiers_ == 0)
+       {
+           if (trace_settings & (TRACE_INIT | TRACE_RECOVERY | TRACE_REQUEST | TRACE_SYNC | TRACE_TMSYNC))
+           {
+                trace_printf("%s@%d" " - Could not find a License Verifier - Internal Error." "\n", method_name, __LINE__);
+                char la_buf[MON_STRING_BUF_SIZE];
+                sprintf(la_buf, "[%s], Could not find a License Verifier - Internal Error. \n", method_name);
+                mon_log_write(MON_CLUSTER_NO_LICENSE_VERIFIERS, SQ_LOG_ERR, la_buf);
+           }
+       }
+    }
     
     TRACE_EXIT;
 }
@@ -972,6 +992,7 @@ void CCluster::HardNodeDown (int pnid, bool communicate_state)
     {
         IAmIntegrated = false;
         AssignTmLeader(pnid);
+        CheckLicenseVerifier(pnid);
     }
 
     TRACE_EXIT;
@@ -1055,7 +1076,8 @@ void CCluster::SoftNodeDown( int pnid )
 
     IAmIntegrated = false;
     AssignTmLeader(pnid);
-
+    // assign new License Verifier if verifier node is dead
+    CheckLicenseVerifier(pnid);
     TRACE_EXIT;
 }
 
@@ -1970,6 +1992,7 @@ void CCluster::HandleOtherNodeMsg (struct internal_msg_def *recv_msg,
         {
             ReqQueue.enqueueLicenseReq( recv_msg->u.license.req_nid
                                    , recv_msg->u.license.req_pid
+                                   , recv_msg->u.license.req_verifier
                                    , recv_msg->u.license.license);
         }
         break;
@@ -1982,6 +2005,7 @@ void CCluster::HandleOtherNodeMsg (struct internal_msg_def *recv_msg,
         {
             ReqQueue.enqueueLicenseVerifiedReq( recv_msg->u.license.req_nid
                                    , recv_msg->u.license.req_pid
+                                   , recv_msg->u.license.req_verifier
                                    , recv_msg->u.license.license
                                    , recv_msg->u.license.success);
         } 
@@ -2503,6 +2527,7 @@ void CCluster::HandleMyNodeMsg (struct internal_msg_def *recv_msg,
          {
             ReqQueue.enqueueLicenseReq( recv_msg->u.license.req_nid
                                    , recv_msg->u.license.req_pid
+                                   , recv_msg->u.license.req_verifier
                                    , recv_msg->u.license.license);
          } 
         break;
@@ -2515,6 +2540,7 @@ void CCluster::HandleMyNodeMsg (struct internal_msg_def *recv_msg,
         {
             ReqQueue.enqueueLicenseVerifiedReq( recv_msg->u.license.req_nid
                                    , recv_msg->u.license.req_pid
+                                   , recv_msg->u.license.req_verifier
                                    , recv_msg->u.license.license
                                    , recv_msg->u.license.success);
         } 
@@ -2993,8 +3019,6 @@ void CCluster::InitializeConfigCluster( void )
             delete [] syncPortNums;
 
             int TmLeaderPNid = LNode[TmLeaderNid]->GetNode()->GetPNid();
-   /* TRK commented out for initial checkin
-        
             int VerifierSuccess = 0;
             
             // pick the initial verifiers
@@ -3020,7 +3044,7 @@ void CCluster::InitializeConfigCluster( void )
             {
               numVerifiers_ = VerifierSuccess;
             }
-   */
+   
             // Any nodes not in the initial MPI_COMM_WORLD are down.
             for (int i=0; i<cfgPNodes_; ++i)
             {
@@ -3028,9 +3052,9 @@ void CCluster::InitializeConfigCluster( void )
                 {
                     node = Nodes->GetNode(i);
                     if ( node ) node->SetState( State_Down );
-   /* TRK commented out for initial checkin
+
                     CheckLicenseVerifier(i); 
-   */
+  
                     // assign new TmLeader if TMLeader node is dead.
                     if (TmLeaderPNid == i) 
                     {
@@ -3045,11 +3069,33 @@ void CCluster::InitializeConfigCluster( void )
         }
         else
         {
-          /* TRK- commented out for initial checkin
            CNode *node = Nodes->GetNode(0);
-           node->SetLicenseVerifier( true );  
-           */
-    }
+           if (node)
+           {
+             node->SetLicenseVerifier( true );  
+             numVerifiers_ = 1;
+           }
+           else
+           {
+             numVerifiers_ = 0;
+           }
+           
+#ifdef SQ_MON_VIRTUAL_LICENSE_TESTING
+           // TRK - VIRTUAL NODE TESTING ONLY (to emulate a clustered environment)
+            int VerifierSuccess = 0;
+            for (int i=0; i<cfgPNodes_; i++)
+            {
+                node = Nodes->GetNode(i);
+                if ( (node ) && (VerifierSuccess < numVerifiers_)) 
+                {
+                   node->SetLicenseVerifier( true );
+                   VerifierSuccess++;
+                }
+                if (VerifierSuccess == numVerifiers_)
+                  break;
+            }
+#endif           
+        }
 
         // Initialize communicators for point-to-point communications
         int myRank;
@@ -5116,6 +5162,9 @@ void CCluster::HandleDownNode( int pnid )
 
     // assign new TmLeader if TMLeader node is dead.
     AssignTmLeader(pnid);
+    
+    // assign new License Verifier if verifier node is dead
+    CheckLicenseVerifier(pnid);
 
     // Build available list of spare nodes
     CNode *spareNode;

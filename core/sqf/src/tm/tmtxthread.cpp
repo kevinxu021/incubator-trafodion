@@ -55,7 +55,7 @@ CTxThread::~CTxThread()
 {
    TMTrace(2, ("CTxThread::~CTxThread : ENTRY.\n"));
    ip_txn = NULL;
-   int lv_error = gv_HbaseTM.detachThread();
+   int lv_error = gv_HbaseTM->detachThread();
    if (lv_error)
    {
       TMTrace(1,("CTxThread::~CTxThread: CHbaseTM::detachThread failed with error %d.\n", lv_error));
@@ -377,7 +377,7 @@ void * txThread_main(void *arg)
    lp_thread->state(TM_TX_TH_STATE_IDLE);
 
    // Attach the thread to the JVM for HBase TM LIbrary.
-   int lv_error = gv_HbaseTM.initJVM();
+   int lv_error = gv_HbaseTM->initJVM();
    if (lv_error)
    {
       TMTrace(1,("txThread_main: CHbaseTM::attachThread failed with error %d.\n", lv_error));

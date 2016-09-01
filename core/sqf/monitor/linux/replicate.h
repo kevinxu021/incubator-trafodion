@@ -300,7 +300,7 @@ private:
 class CReplLicense: public CReplObj
 {
 public:
-    CReplLicense(int req_pid, int req_nid, char *req_license);
+    CReplLicense(int req_pid, int req_nid, Verifier_t req_verifier, char *req_license);
     virtual ~CReplLicense();
 
     bool replicate(struct internal_msg_def *& msg);
@@ -308,13 +308,14 @@ public:
 private:
     int  req_pid_;
     int  req_nid_;
+    Verifier_t req_verifier_;
     char license_[LICENSE_NUM_BYTES];
 };
 
 class CReplLicenseVerified: public CReplObj
 {
 public:
-    CReplLicenseVerified(int req_pid, int req_nid, char *license, bool success);
+    CReplLicenseVerified(int req_pid, int req_nid, Verifier_t req_verifier, char *license, bool success);
     virtual ~CReplLicenseVerified();
 
     bool replicate(struct internal_msg_def *& msg);
@@ -322,6 +323,7 @@ public:
 private:
   int  req_pid_;
   int  req_nid_;
+  Verifier_t req_verifier_;
   char license_[LICENSE_NUM_BYTES];
   bool success_;
 };

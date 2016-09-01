@@ -400,9 +400,9 @@ public class ConnectionContext {
         attr.put(Constants.PROCESS_ID, Integer.parseInt(sValue[4]));
         attr.put(Constants.PROCESS_NAME, sValue[5]);
         attr.put(Constants.IP_ADDRESS, sValue[6]);
-        attr.put(Constants.PORT, Integer.parseInt(sValue[7]));
-        if(LOG.isDebugEnabled())
-              LOG.debug("attr.put sValue.length :" + sValue.length);
+        attr.put(Constants.PORT, (sValue[7].equals("")) ? Integer.parseInt("0") : Integer.parseInt(sValue[7]));
+        if (LOG.isDebugEnabled())
+            LOG.debug("attr.put sValue.length :" + sValue.length);
         if(sValue.length == 17) {
             attr.put(Constants.COMPUTER_NAME, sValue[8]);
             attr.put(Constants.CLIENT_SOCKET, sValue[9]);

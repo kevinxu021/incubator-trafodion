@@ -305,7 +305,7 @@ define([
 				             } ],
 								buttons: [
 								          { extend : 'copy', exportOptions: { columns: ':visible', orthogonal: 'export'  } },
-								          { extend : 'csv', exportOptions: { columns: ':visible', orthogonal: 'export' } },
+								          { extend : 'csv', exportOptions: { columns: ':visible', orthogonal: 'export' }, filename: 'Operator Statistics'  },
 								          //{ extend : 'excel', exportOptions: { columns: ':visible', orthogonal: 'export' } },
 								          { extend : 'pdfHtml5', exportOptions: { columns: ':visible', orthogonal: 'export'  }, title: "Operator Statistics", orientation: 'landscape' },
 								          { extend : 'print', exportOptions: { columns: ':visible', orthogonal: 'export' }, title: "Operator Statistics" }

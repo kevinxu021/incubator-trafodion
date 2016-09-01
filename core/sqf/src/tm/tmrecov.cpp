@@ -190,7 +190,7 @@ int32 TM_Recov::recover_dtm_death(int32 pv_dtm)
 
    // Sending ID for node down.
    TMTrace (2, ("TM_Recov::recover_dtm_death: sending node down message"));
-   gv_HbaseTM.nodeDown(pv_dtm);
+   gv_HbaseTM->nodeDown(pv_dtm);
 
    if (lv_error != FEOK)
    {

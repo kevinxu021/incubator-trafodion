@@ -167,7 +167,7 @@ public class RegisteredServers  {
             String value = servers.get(key);
             if(LOG.isDebugEnabled())
                   LOG.debug("getServers key :[" + key + "] value :[" + value + "]" );
-            if(value.startsWith(Constants.AVAILABLE) || value.startsWith(Constants.STARTING)){
+            if(value.startsWith(Constants.AVAILABLE)){
                 availableServers.put(key, value);
             }
             if(value.startsWith(Constants.CONNECTED)){

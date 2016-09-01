@@ -47,6 +47,9 @@ import io.ampool.monarch.table.exceptions.*;
 import io.ampool.monarch.table.client.*;
 import io.ampool.monarch.table.client.coprocessor.AggregationClient;
 
+import io.esgyn.client.*;
+import io.esgyn.coprocessor.*;
+
 /*
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.client.coprocessor.AggregationClient;
@@ -74,8 +77,8 @@ public class MTableClient {
    private ScanHelper scanHelper = null;
    MResult[] getResultSet = null;
    String lastError;
-   MTable table = null;
-   //RMInterface table = null;
+    //    MTable table = null;
+    MRMInterface table = null;
    //ByteArrayList coprocAggrResult = null;
    //private boolean writeToWAL = false;
    int numRowsCached = 1;
@@ -124,7 +127,7 @@ public class MTableClient {
          logger.debug("Enter MTableClient::init, tableName: " + tblName);
       this.useTRex = useTRex;
       tableName = tblName;
-/* 
+
       if ( !this.useTRex ) {
          this.useTRexScanner = false;
        }
@@ -149,8 +152,9 @@ public class MTableClient {
           }
       }
        }
-*/
-       table = MClientCacheFactory.getAnyInstance().getTable(tblName);
+
+      //table = MClientCacheFactory.getAnyInstance().getTable(tblName);
+      table = new MRMInterface(tblName, false);
        if (logger.isDebugEnabled())
           logger.debug("Exit MTableClient::init, table object: " + table);
        return true;
@@ -332,15 +336,13 @@ public class MTableClient {
      return true;
    }
 
-   public int  startGet(long transID, byte[] rowID, 
+   public MResult  startGetHelper(byte[] rowID, 
                      Object[] columns, long timestamp) throws IOException {
 
-      if (logger.isTraceEnabled()) logger.trace("Enter startGet(" + tableName + 
+      if (logger.isTraceEnabled()) logger.trace("Enter startGetHelper(" + tableName + 
               " #cols: " + ((columns == null) ? 0:columns.length ) +
               " rowID: " + new String(rowID));
-      fetchType = GET_ROW;
       MGet get = new MGet(rowID);
-      rowKey = rowID;
       if (columns != null) {
          for (int i = 0; i < columns.length; i++) {
             byte[] col = (byte[]) columns[i];
@@ -351,13 +353,52 @@ public class MTableClient {
       else
          numColsInScan = 0;
          
+      return table.get(get);
+   }
+
+    public MResult  startGetHelper_Transactional(long transID, byte[] rowID, 
+                     Object[] columns, long timestamp) throws IOException {
+
+      if (logger.isTraceEnabled()) logger.trace("Enter startGetHelper_Transactional(" + tableName + 
+              " #cols: " + ((columns == null) ? 0:columns.length ) +
+              " rowID: " + new String(rowID));
+
+      EsgynMGet get = new EsgynMGet(rowID);
+      if (columns != null) {
+         for (int i = 0; i < columns.length; i++) {
+            byte[] col = (byte[]) columns[i];
+            get.addColumn(col);
+         }
+         numColsInScan = columns.length;
+      }
+      else
+         numColsInScan = 0;
+         
+      return table.get(transID, get);
+   }
+
+   public int  startGet(long transID, byte[] rowID, 
+                     Object[] columns, long timestamp) throws IOException {
+
+      if (logger.isTraceEnabled()) logger.trace("Enter startGet(" + tableName + 
+              " #cols: " + ((columns == null) ? 0:columns.length ) +
+              " rowID: " + new String(rowID));
+
+      fetchType = GET_ROW;
+      rowKey = rowID;
+
       MResult getResult;
-/*
+
       if (useTRex && (transID != 0)) 
-         getResult = table.get(transID, get);
+	  getResult = startGetHelper_Transactional(transID, 
+						   rowID,
+						   columns, 
+						   timestamp);
        else 
-*/
-         getResult = table.get(get);
+	  getResult = startGetHelper(rowID,
+				     columns, 
+				     timestamp);
+
       if (getResult == null ) {
          setJavaObject(jniObject);
          return 0;
@@ -408,12 +449,13 @@ public class MTableClient {
          numColsInScan = columns.length;
       else
          numColsInScan = 0;
-/*
+
+      /*
       if (useTRex && (transID != 0)) {
          getResultSet = batchGet(transID, listOfGets);
          fetchType = BATCH_GET; 
       } else 
-*/
+      */
       {
          getResultSet = table.get(listOfGets);
          fetchType = BATCH_GET;
@@ -602,6 +644,8 @@ public class MTableClient {
    
    protected int pushRowsToJni(MResult result) 
          throws IOException {
+       
+       if (logger.isTraceEnabled()) logger.trace("Enter pushRowsToJNI() ");
       int rowsReturned = 1;
       int numTotalCells;
 
@@ -662,9 +706,12 @@ public class MTableClient {
              long timestamp, boolean asyncOperation, String hbaseAuths) throws IOException {
 
       if (logger.isTraceEnabled()) 
-         logger.trace("Enter deleteRow(" + new String(rowID) + ", " + timestamp + ") " + tableName);
+         logger.trace("Enter deleteRow(" + new String(rowID) + ", " + timestamp + ") " 
+		      + ", table: " + tableName 
+		      + ", asyncOperation: " + asyncOperation
+		      );
 
-      final MDelete del = new MDelete(rowID);
+      final EsgynMDelete del = new EsgynMDelete(rowID);
       if (timestamp != -1)
          del.setTimestamp(timestamp);
 
@@ -678,23 +725,21 @@ public class MTableClient {
          future = executorService.submit(new Callable() {
              public Object call() throws Exception {
                boolean res = true;
-/*
+
                if (useTRex && (transID != 0)) 
                        table.delete(transID, del);
-                    else
-*/
-                       table.delete(del);
-                    return new Boolean(res);
-            }
+	       else
+		   table.delete(del);
+	       return new Boolean(res);
+	     }
          });
          return true;
       }
       else {
-/*
+
          if (useTRex && (transID != 0)) 
             table.delete(transID, del);
          else
-*/
             table.delete(del);
       }
       if (logger.isTraceEnabled())
@@ -725,8 +770,8 @@ public class MTableClient {
          rowID = new byte[actRowIDLen];
          bbRowIDs.get(rowID, 0, actRowIDLen);
 
-         MDelete del;
-         del = new MDelete(rowID);
+         EsgynMDelete del;
+         del = new EsgynMDelete(rowID);
          if (timestamp != -1)
              del.setTimestamp(timestamp);
          listOfDeletes.add(del);
@@ -735,11 +780,9 @@ public class MTableClient {
          future = executorService.submit(new Callable() {
             public Object call() throws Exception {
                boolean res = true;
-/*
                if (useTRex && (transID != 0)) 
                   table.delete(transID, listOfDeletes);
                else
-*/
                   table.delete(listOfDeletes);
                return new Boolean(res);
             }
@@ -747,11 +790,10 @@ public class MTableClient {
          return true;
       }
       else {
-/*
+
          if (useTRex && (transID != 0)) 
             table.delete(transID, listOfDeletes);
          else
-*/
             table.delete(listOfDeletes);
       }
       if (logger.isTraceEnabled()) 
@@ -772,11 +814,15 @@ public class MTableClient {
                 byte[] columnToCheck, byte[] colValToCheck,
                 long timestamp) throws IOException {
 
-      if (logger.isTraceEnabled()) logger.trace("Enter checkAndDeleteRow(" + new String(rowID) + ", "
-              + new String(columnToCheck) + ", " + new String(colValToCheck) + ", " + timestamp + ") " + tableName);
+      if (logger.isTraceEnabled()) logger.trace("Enter checkAndDeleteRow(" 
+						+ new String(rowID) 
+						+ ", " + (columnToCheck == null ? "null" : new String(columnToCheck))
+						+ ", " + (colValToCheck == null ? "null" : new String(colValToCheck))
+						+ ", " + timestamp + ") " 
+						+ tableName);
 
-         MDelete del;
-         del = new MDelete(rowID);
+         EsgynMDelete del;
+         del = new EsgynMDelete(rowID);
          if (timestamp != -1) 
             del.setTimestamp(timestamp);
          boolean res = true;
@@ -786,19 +832,26 @@ public class MTableClient {
           else 
              res = table.checkAndDelete(rowID, columnToCheck, colValToCheck, del);
 */
-         table.delete(del);
-         if (res == false)
-             return false;
-      return true;
+         if (useTRex && (transID != 0)) 
+	     table.delete(transID, del);
+	 else 
+	     table.delete(del);
+
+      return res;
    }
 
    public boolean putRow(final long transID, final byte[] rowID, Object row,
       byte[] columnToCheck, final byte[] colValToCheck,
       final boolean checkAndPut, boolean asyncOperation) throws IOException, InterruptedException, 
                           ExecutionException {
-      if (logger.isTraceEnabled()) 
-         logger.trace("Enter putRow() " + tableName);
-      final MPut put;
+
+      if (logger.isDebugEnabled()) 
+         logger.debug("Enter putRow() " + tableName
+		      + ", useTRex: " + useTRex
+		      + ", txId: " + transID
+		      );
+
+      final EsgynMPut put;
       ByteBuffer bb;
       short numCols;
       short colNameLen;
@@ -806,7 +859,7 @@ public class MTableClient {
       byte[] colName, colValue;
 
       bb = (ByteBuffer)row;
-      put = new MPut(rowID);
+      put = new EsgynMPut(rowID);
       numCols = bb.getShort();
       for (short colIndex = 0; colIndex < numCols; colIndex++) {
          colNameLen = bb.getShort();
@@ -831,14 +884,15 @@ public class MTableClient {
                      res = table.checkAndPut(rowID, 
                         columnToCheck, colValToCheck, put);
 */
-                     table.put(put);
-               }
-               else {
-/*
                   if (useTRex && (transID != 0)) 
                      table.put(transID, put);
                   else 
-*/
+                     table.put(put);
+               }
+               else {
+                  if (useTRex && (transID != 0)) 
+                     table.put(transID, put);
+                  else 
                      table.put(put);
                }
                return new Boolean(res);
@@ -855,14 +909,16 @@ public class MTableClient {
             else 
                result = table.checkAndPut(rowID, 
                   columnToCheck, colValToCheck, put);
-*/          table.put(put);
+*/
+	     if (useTRex && (transID != 0)) 
+		 table.put(transID, put);
+	     else 
+		 table.put(put);
          }
          else {
-/*
             if (useTRex && (transID != 0)) 
                table.put(transID, put);
             else 
-*/
                 table.put(put);
          }
          return result;
@@ -884,7 +940,7 @@ public class MTableClient {
       if (logger.isTraceEnabled()) 
          logger.trace("Enter putRows() " + tableName);
 
-      MPut put;
+      EsgynMPut put;
       ByteBuffer bbRows, bbRowIDs;
       short numCols, numRows;
       short colNameLen;
@@ -895,7 +951,7 @@ public class MTableClient {
       bbRowIDs = (ByteBuffer)rowIDs;
       bbRows = (ByteBuffer)rows;
 
-      final List<MPut> listOfPuts = new ArrayList<MPut>();
+      final List<EsgynMPut> listOfPuts = new ArrayList<EsgynMPut>();
       numRows = bbRowIDs.getShort();
       
       for (short rowNum = 0; rowNum < numRows; rowNum++) {
@@ -906,7 +962,7 @@ public class MTableClient {
             actRowIDLen = rowIDLen;    
          rowID = new byte[actRowIDLen];
          bbRowIDs.get(rowID, 0, actRowIDLen);
-         put = new MPut(rowID);
+         put = new EsgynMPut(rowID);
          numCols = bbRows.getShort();
          for (short colIndex = 0; colIndex < numCols; colIndex++) {
             colNameLen = bbRows.getShort();
@@ -1067,13 +1123,15 @@ public class MTableClient {
       if (logger.isTraceEnabled()) logger.trace("Enter getEndKeys() " + tableName);
       if (table == null) 
          return null;
-       byte[][] htableResult = table.getMTableLocationInfo().getEndKeys();
+      //byte[][] htableResult = table.getMTableLocationInfo().getEndKeys();
+      byte[][] htableResult = table.getEndKeys();
       return htableResult;
    }
 
    public byte[][]  getStartKeys() throws IOException {
       if (logger.isTraceEnabled()) logger.trace("Enter getStartKeys() " + tableName);
-      byte[][] htableResult = table.getMTableLocationInfo().getStartKeys();
+      //byte[][] htableResult = table.getMTableLocationInfo().getStartKeys();
+      byte[][] htableResult = table.getStartKeys();
       return htableResult;
    }
 

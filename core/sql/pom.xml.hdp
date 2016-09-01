@@ -88,6 +88,13 @@
       <systemPath>${env.MY_SQROOT}/export/lib/${hbase-trx.id}-${env.TRAFODION_VER}.jar</systemPath>
     </dependency>
     <dependency>
+      <groupId>io.esgyn</groupId>
+      <artifactId>esgyn_monarch-trx</artifactId>
+      <version>${env.TRAFODION_VER}</version>
+      <scope>system</scope>
+      <systemPath>${env.HBASE_TRXDIR}/${env.ESGYN_MONARCH_TRX_JAR}</systemPath>
+    </dependency>
+    <dependency>
       <groupId>org.apache.hive</groupId>
       <artifactId>hive-exec</artifactId>
       <version>${hive.version}</version>

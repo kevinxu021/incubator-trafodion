@@ -1,13 +1,5 @@
 set schema seabase;
-begin;
 delete from inventory;
-commit;
-begin;
 delete from li1;
-commit;
-begin;
 delete from li2;
-commit;
-begin;
 delete from li3;
-commit;
