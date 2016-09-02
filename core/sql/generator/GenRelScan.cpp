@@ -216,17 +216,18 @@ int HbaseAccess::createAsciiColAndCastExprForOrc(Generator * generator,
 
      // if underlying hive type passed in is a hive 'string'
      // datatype that is being mapped to external table char/varchar type,
-     // then set its size to be the same as external table datatype length.
+     // then set its size and charset to be the same as external table datatype.
       Lng32 maxByteLen = castType.getNominalSize();
       if ((vcAsciiType->wasHiveString()) &&
-          (maxByteLen != vcAsciiType->getNominalSize()))
+          ((maxByteLen != vcAsciiType->getNominalSize()) ||
+           (castType.getCharSet() != vcAsciiType->getCharSet())))
         {
           vcAsciiType = new(h) SQLVarChar
             (maxByteLen, 
              vcAsciiType->supportsSQLnull(), 
              vcAsciiType->isUpshifted(),
              vcAsciiType->isCaseinsensitive(),
-             vcAsciiType->getCharSet(), 
+             castType.getCharSet(), 
              vcAsciiType->getCollation(), 
              vcAsciiType->getCoercibility());
         }

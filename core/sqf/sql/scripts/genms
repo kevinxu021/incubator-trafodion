@@ -34,15 +34,12 @@ echo "TM_TLOG_DISABLE_BLOCK_CACHE=0"
 echo "#TM_TLOG_MAX_VERSIONS less than 3 will be ignored"
 echo "TM_TLOG_MAX_VERSIONS=10"
 echo "TM_ENABLE_DDL_TRANS=1"
-echo "TM_ENABLE_MONARCH=1"
 echo "TM_USE_SSCC=0"
 echo "TM_TLOG_RETRY_DELAY=5000"
 echo "TM_TLOG_RETRY_COUNT=100"
 echo "TM_IDTMSRV_REFRESH_DELAY_SECONDS=3"
 echo "TM_USE_PIT_RECOVERY=0"
 echo "TM_MAX_SNAPSHOT_VERSIONS=10"
-
-echo "TSE_CONVERT_NOUNDO_TRANS=1"
 
 echo "MS_TRACE_ENABLE=0"
 echo "FS_TRACE_ENABLE=0"
@@ -143,15 +140,6 @@ echo "#TM_TRACE_FILE=zzttm."
 echo ""
 
 echo "#ENABLE_EMBEDDED_ARKCMP=1"
-echo ""
-
-echo "SEAQUEST_DP2=1"
-echo ""
-
-echo "AM_TRACE=0"
-echo "AM_TRACE_FILE=am_trace"
-echo "AM_TRACE_FILE_UNIQUE=1"
-echo "AM_TRACE_LEVEL=1"
 echo ""
 
 echo "# Create the arkcmp process on the same node as the master executor"
