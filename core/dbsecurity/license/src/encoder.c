@@ -43,7 +43,8 @@ encoder –v [version]\n\
         -n [node number]\n\
         -e [expire date]\n\
         -p [package installed]\n\
-        -t [install type]\n"\
+        -t [install type]\n\
+        -r [reserved field]\n"\
         );
 }
 
@@ -67,13 +68,15 @@ int main(int argc, char *argv[])
     char installType[INSTALL_TYPE+1];
     char typeUpper[16]; 
     char pkgUpper[16]; 
+    char reserved[RESERVED_FIELD+1];
     
     /* initialize string buffer */
     memset(customer,0,CUSTOMER_LEN+1);
     memset(packageInstalled,0,PACKAGE_INSTALLED+1);
     memset(installType,0,INSTALL_TYPE+1);
+    memset(reserved,0,RESERVED_FIELD+1);
 
-    while((ch=getopt(argc,argv,"v:c:n:e:p:t:"))!=-1)
+    while((ch=getopt(argc,argv,"v:c:n:e:p:t:r:"))!=-1)
     {
         switch(ch)
         {
@@ -142,6 +145,9 @@ int main(int argc, char *argv[])
                 memcpy(installType,(void*)&type,sizeof(int));
                 argnum++;
                 break;
+            case 'r':
+                strncpy(reserved,optarg,RESERVED_FIELD);
+                break;
             default:
                 printHelp();
                 exit(1);
@@ -162,6 +168,7 @@ int main(int argc, char *argv[])
     memcpy(output + VERSION_LEN + CUSTOMER_LEN + NODENUM_LEN , &expiredate , sizeof(int));
     memcpy(output + VERSION_LEN + CUSTOMER_LEN + NODENUM_LEN + EXPIRE_LEN , packageInstalled , sizeof(int));
     memcpy(output + VERSION_LEN + CUSTOMER_LEN + NODENUM_LEN + EXPIRE_LEN + PACKAGE_INSTALLED , installType, sizeof(int));
+    memcpy(output + VERSION_LEN + CUSTOMER_LEN + NODENUM_LEN + EXPIRE_LEN + PACKAGE_INSTALLED + RESERVED_FIELD, reserved, RESERVED_FIELD);
         
     //encrpt
     DES_cblock key[1];

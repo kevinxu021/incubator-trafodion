@@ -77,13 +77,15 @@ char * strpack(char *src, size_t len, char *dst)
 void printHelp()
 {
     printf("\
-decoder -c\n\
-        -n\n\
-        -s <encrypted license string>\n\
-        -f <encrypted file name>\n\
-        -p\n\
-        -t\n\
-        -e\n");
+decoder -s <encrypted license string>   (INPUT: the encoded string)\n\
+        -f <encrypted file name>        (INPUT: the file containing an encoded license string\n\
+        -c                              (OUTPUT: the customer string)\n\
+        -n                              (OUTPUT: the number of node)\n\
+        -p                              (OUTPUT: the package installed)\n\
+        -r                              (OUTPUT: the content of the reserved field)\n\
+        -t                              (OUTPUT: the type)\n\
+        -v                              (OUTPUT: the version)\n\
+        -e                              (OUTPUT: the expire data, an integer of days after 1970)\n");
 }
 
 int main(int argc, char *argv[])
@@ -102,8 +104,10 @@ int main(int argc, char *argv[])
     int popt=0;
     int vopt=0;
     int fopt=0;
+    int ropt=0;
     char encstr[ENC_LEN+1];
     char encfile[1024];
+    char reserved[RESERVED_FIELD+1];
     int nodenumber = 0;
     int exday = 0;
     int fd = 0;
@@ -112,26 +116,8 @@ int main(int argc, char *argv[])
     int installtype=0;
     memset(encstr, 0, sizeof(encstr));
     memset(encfile, 0, sizeof(encfile));
-#if 0
-    char version[VERSION_LEN+1];
-    char customer[CUSTOMER_LEN+1];
-    char nodenumber[NODENUM_LEN+1];
-    char expiredate[EXPIRE_LEN+1];
-    char packageinstalled[PACKAGE_INSTALLED+1];
-    char installtype[INSTALL_TYPE+1];
-    char reserved[RESERVED_FIELD+1];
-    
-    /* initialize string buffer */
-    memset(version,0,VERSION_LEN+1);
-    memset(customer,0,CUSTOMER_LEN+1);
-    memset(nodenumber,0,NODENUM_LEN+1);
-    memset(expiredate,0,EXPIRE_LEN+1);
-    memset(packageinstalled, 0 , PACKAGE_INSTALLED+1);
-    memset(installtype, 0, INSTALL_TYPE+1);
-    memset(reserved, 0, RESERVED_FIELD+1);
-#endif 
 
-    while((ch=getopt(argc,argv,"cnetpvf:s:"))!=-1)
+    while((ch=getopt(argc,argv,"cnetpvrf:s:"))!=-1)
     {
         switch(ch)
         {
@@ -162,6 +148,10 @@ int main(int argc, char *argv[])
                 break;
             case 'v':
                 vopt=1;
+                argnum++;
+                break;
+            case 'r':
+                ropt=1;
                 argnum++;
                 break;
             case 'f':
@@ -266,6 +256,11 @@ int main(int argc, char *argv[])
           default:
             printf("UNKNOWN\n");
         } 
+    }
+    else if(ropt == 1) //print reserved field
+    {
+       memcpy(reserved,(char*)output + VERSION_LEN + CUSTOMER_LEN + NODENUM_LEN + EXPIRE_LEN + PACKAGE_INSTALLED + RESERVED_FIELD, RESERVED_FIELD);
+      printf("%s\n",reserved); 
     }
 
     return ret;
