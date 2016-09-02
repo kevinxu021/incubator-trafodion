@@ -41,6 +41,8 @@ CLicenseCommon::CLicenseCommon()
        action_ = (HealthCheckLicenseAction)atoi (actionToTake);
     }
     licenseReady_ = false;
+    numNodes_ = 0;
+    expireDays_ = 0;
     parseLicense();
     
     TRACE_EXIT;
