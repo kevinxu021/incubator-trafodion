@@ -734,7 +734,6 @@ void CHealthCheck::verifyLicense()
     const char method_name[] = "CHealthCheck::verifyLicense";
     TRACE_ENTRY;
     bool stopCluster = false;
-    bool nodeCountExceeded = false;
     bool licenseExpired = false;
     
     // shouldn't happen, but just in case - read it in again, at this point, it is valid
