@@ -735,6 +735,7 @@ void CHealthCheck::verifyLicense()
     TRACE_ENTRY;
     bool stopCluster = false;
     bool nodeCountExceeded = false;
+    bool licenseExpired = false;
     
     // shouldn't happen, but just in case - read it in again, at this point, it is valid
     if (licenseFile_ == NULL)
@@ -750,6 +751,7 @@ void CHealthCheck::verifyLicense()
     // If it is within our window to start warning....
     if (timeLeft < licenseFile_->getSecsToStartWarning())
     {
+      licenseExpired = true;
       // If the license is expired....
       if (timeLeft < 0)
       {
@@ -823,8 +825,8 @@ void CHealthCheck::verifyLicense()
           licenseCheckTime_.tv_sec=currTime_.tv_sec+LICENSE_SEVEN_DAYS; 
     }
     
-    // Check to make sure the nodes still match up right
-    if (checkLicenseExceededNodes())
+    // Check to make sure the nodes still match up right, no need to check if license is expired
+    if ((!licenseExpired) && checkLicenseExceededNodes())
     {  
        if (trace_settings & TRACE_HEALTH)
                 trace_printf("%s@%d checkLicenseExceededNodes : Number of Nodes in License Exceeded\n", method_name, __LINE__); 
