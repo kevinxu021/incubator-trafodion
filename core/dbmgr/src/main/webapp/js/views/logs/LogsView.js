@@ -60,7 +60,7 @@ define([
 	var validator = null;
 	var lastUsedTimeRange = null;
 	var lastAppliedFilters = null; //last set of filters applied by user explicitly
-
+	var lastUsedRefreshInterval = null;
 	var LogsView = BaseView.extend({
 		template:  _.template(LogsT),
 
@@ -81,12 +81,16 @@ define([
 			refreshTimerView.init();
 			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
-			if(common.commonTimeRange!=null&&common.commonTimeRange.isAutoRefresh!=null){
+			lastUsedRefreshInterval = refreshTimerView.getIntervalId();
+			
+			//Logs UDF can be slow on production clusters as log files grow.
+			//So force the refresh interval to be 5 minutes by default
+			/*if(common.commonTimeRange!=null&&common.commonTimeRange.isAutoRefresh!=null){
 				refreshTimerView.setRefreshInterval(common.commonTimeRange.isAutoRefresh);
 			}else{
 				refreshTimerView.setRefreshInterval(1);
-			}
-
+			}*/
+			refreshTimerView.setRefreshInterval(5);
 			this.fetchLogs();
 		},
 		doResume: function(){
@@ -98,12 +102,18 @@ define([
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
 			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
-			if(common.commonTimeRange!=null&&common.commonTimeRange.isAutoRefresh!=null){
+			
+			lastUsedRefreshInterval = refreshTimerView.getIntervalId();
+
+			//Logs UDF can be slow on production clusters as log files grow.
+			//So force the refresh interval to be 5 minutes by default
+			/*if(common.commonTimeRange!=null&&common.commonTimeRange.isAutoRefresh!=null){
 				refreshTimerView.setRefreshInterval(common.commonTimeRange.isAutoRefresh);
 			}else{
 				refreshTimerView.setRefreshInterval(1);
-			}
+			}*/
 			refreshTimerView.resume();
+			refreshTimerView.setRefreshInterval(5);
 			//this.fetchLogs();
 			if(lastUsedTimeRange != null){
 				var currTimeRange = $(FILTER_TIME_RANGE).val();
@@ -114,6 +124,11 @@ define([
 		},
 		doPause: function(){
 			this.storeCommonTimeRange();
+			//Since we force refresh interval as 5 minutes for logs page, we need to restore old interval for other pages
+			if(lastUsedRefreshInterval != null){
+				refreshTimerView.setRefreshInterval(lastUsedRefreshInterval);
+				common.commonTimeRange.isAutoRefresh = lastUsedRefreshInterval;
+			}
 			refreshTimerView.pause();
 			logsHandler.off(logsHandler.FETCHLOGS_SUCCESS, this.displayResults);
 			logsHandler.off(logsHandler.FETCHLOGS_ERROR, this.showErrorMessage);			

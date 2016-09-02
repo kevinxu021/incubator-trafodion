@@ -1,0 +1,402 @@
+<div id="page-wrapper">
+	<div class="row">
+		<div class="col-lg-12">
+			<div class="pull-right">
+				<div class="btn-toolbar">
+					<div class="btn-group"
+						style="margin-bottom: 10px; margin-top: 10px;">
+						<button type="button"
+							class="btn btn-primary btn-xs dropdown-toggle"
+							data-toggle="dropdown" style="height: 30px;">
+							Actions <span class="caret"></span>
+						</button>
+						<ul class="dropdown-menu pull-right" role="menu">
+							<li><a id="refreshAction">Refresh</a></li>
+						</ul>
+					</div>
+				</div>
+			</div>
+			<h3 class="page-header">Workloads Configuration</h3>
+					<ul id="wmsconfig-feature-selector" class="nav dbmgr-nav nav-pills" style="padding-bottom:15px;">
+					  <li id="profiles-btn" role="presentation" class="active"><a href="#wms-profiles-link" class="dbmgr-link-button" data-toggle="pill">Profiles</a></li>
+					  <li id="slas-btn" role="presentation" style="padding-left: 5px;" ><a href="#wms-slas-link" class="dbmgr-link-button" data-toggle="pill">SLAs</a></li>
+					  <li id="mappings-btn" role="presentation" style="padding-left: 5px;" ><a href="#wms-mappings-link" class="dbmgr-link-button" data-toggle="pill">Mappings</a></li>
+					</ul>				
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-lg-12">
+			<div class="panel panel-default">
+				<div id="config-heading" class="panel-heading">
+					Profiles
+				</div>
+				<div class="panel-body">
+					<div id="wmsconfig-details-container" class="tab-content">
+					    <div class="tab-pane fade in active" id="wms-profiles-link">
+							<div id="wconfig-profiles-container">
+						    	<div id="profiles-spinner">Fetching workload profiles...<img style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></div>
+						    	<div id="add-profile-div">
+									<button id="add-profile-btn" type="button" class="btn btn-primary btn-xs fa fa-plus" style="height: 30px;margin-bottom:10px">
+										Add Profile
+									</button>
+									<br>
+								</div>
+								<div id="profiles-result-container" class="table-responsive"></div>
+								<textarea id="profiles-error-text" readonly name="profiles-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
+							</div>	
+						</div>
+					    <div class="tab-pane fade" id="wms-slas-link">
+							<div id="wconfig-slas-container">
+						    	<div id="slas-spinner">Fetching Workload SLAs...<img style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></div>
+						    	<div id="add-sla-div">
+									<button id="add-sla-btn" type="button" class="btn btn-primary btn-xs fa fa-plus" style="height: 30px;margin-bottom:10px">
+										Add SLA
+									</button>
+									<br>
+								</div>
+								<div id="slas-result-container" class="table-responsive"></div>
+								<textarea id="slas-error-text" readonly name="slas-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
+							</div>						    
+						</div>	
+					    <div class="tab-pane fade" id="wms-mappings-link">
+							<div id="wconfig-mappings-container">
+						    	<div id="mappings-spinner">Fetching workload mappings...<img style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></div>
+						    	<div id="add-mapping-div">
+									<button id="add-mapping-btn" type="button" class="btn btn-primary btn-xs fa fa-plus" style="height: 30px;margin-bottom:10px">
+										Add Mapping
+									</button>
+									<br>
+								</div>
+								<div id="mappings-result-container" class="table-responsive"></div>
+								<textarea id="mappings-error-text" readonly name="mappings-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
+							</div>						    
+						</div>												
+					</div>			
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="wprofile-dialog" tabindex="-1" role="dialog"
+		aria-labelledby="wprofile-dialog-label" data-backdrop="static"
+		data-keyboard="false">
+		<div class="modal-dialog" role="document" style="width:700px;font-size:13px">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"
+						aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+					<h4 class="modal-title" id="wprofile-dialog-label">Add Profile</h4>
+				</div>
+				<div class="modal-body">
+					<form id="wprofile-form">
+                        <div class="form-group">
+                            <label class="control-label">Profile Name<span
+                                style="color: red"> *</span></label>
+                            <div class="input-group" style="width: 650px;">
+                                <input class="form-control input-sm" style="width: 500px;" id="profile_name"
+                                    name="profile_name" maxlength="125">
+                            </div>
+                        </div>
+						<div class="form-group">
+							<label for="profile-cqd-stmts" class="control-label">CQDs: </label><br>
+							<textarea id="profile-cqd-stmts" name="profile-cqd-stmts" rows="4" cols="500" spellcheck="false"
+								placeholder="Enter control query default statements separated by semicolon..."
+								class="textarea" style="width: 650px;font-size:12px"></textarea>
+						</div>
+						<div class="form-group">
+							<label for="profile-set-stmts" class="control-label">SETs: </label><br>
+							<textarea id="profile-set-stmts" name="profile-set-stmts" rows="4" cols="500" spellcheck="false"
+								placeholder="Enter SET statements separated by semicolon..."
+								class="textarea" style="width: 650px;font-size:12px"></textarea>
+						</div>    
+   						<div class="form-group">
+							<label for="profile-host-list" class="control-label">Host(s): </label><br>
+							<textarea id="profile-host-list" rows="4" cols="500" spellcheck="false"
+								placeholder="Enter comma separated list of host names where this profile will be applied..."
+								class="textarea" style="width: 650px;display:none"></textarea>
+								<div id="pnode-list-container" class="table-responsive" style="border-width: 1px;border-style: solid;padding:5px"></div>
+						</div>
+						<div class="form-group">
+							<label for="host-selection-mode" class="control-label">Host Selection Mode</label> 
+							<select class="form-control input-sm" id="host-selection-mode" style="width: 500px;">
+								<option value="preferred">Preferred</option>
+								<option value="restrict">Restrict</option>
+							</select>
+						</div>						
+					    <label id="add-profile-error-message" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></label>
+					</form>
+				</div>
+				<div class="modal-footer" style="overflow:hidden">
+					<img id="profile-dialog-spinner" style="padding-right: 5px;" src="img/ajax-loader.gif" />
+					<input id="profileApplyButton" class="btn btn-primary"
+						type="button" value="Apply">
+					<input id="profileResetButton" class="btn btn-primary"
+						type="button" value="Reset">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade" id="profile-delete-dialog" tabindex="-1" role="dialog"
+		aria-labelledby="wprofile-delete-dialog-label" data-backdrop="static"
+		data-keyboard="false">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"
+						aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+					<h4 class="modal-title" id="wprofile-delete-dialog-label">Confirm Delete Profile</h4>
+				</div>
+				<div class="modal-body">
+					<form id="wprofile-delete-form">
+                    Are you sure you want to delete the profile <label id="delete-profile-name"></label>  ? 
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button id="delete-profile-yes-btn" type="button" class="btn btn-primary" data-dismiss="modal">Yes</button>
+					<button type="button" class="btn btn-primary" data-dismiss="modal">No</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="wsla-dialog" tabindex="-1" role="dialog"
+		aria-labelledby="wsla-dialog-label" data-backdrop="static"
+		data-keyboard="false">
+		<div class="modal-dialog" role="document" style="font-size:13px">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"
+						aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+					<h4 class="modal-title" id="wsla-dialog-label">Add SLA</h4>
+				</div>
+				<div class="modal-body">
+					<form id="wsla-form">
+                        <div class="form-group">
+                            <label class="control-label">SLA Name<span
+                                style="color: red"> *</span></label>
+                            <div class="input-group" style="width: 600px;">
+                                <input class="form-control input-sm" style="width: 500px;" id="sla_name"
+                                    name="sla_name" maxlength="125">
+                            </div>
+                        </div>
+<!-- 						<div class="form-group">
+							<label for="sla_priority" class="control-label">Priority</label> 
+							<select class="form-control input-sm" id="sla_priority" style="width: 500px;">
+								<option value="high">High</option>
+								<option value="medium">Medium</option>
+								<option value="low">Low</option>
+							</select>
+						</div>
+                        <div class="form-group">
+                            <label class="control-label">Limit</label>
+                            <div class="input-group" style="width: 600px;">
+                                <input class="form-control input-sm" style="width: 500px;" id="sla_limit"
+								placeholder="Enter the workload count to limit for this SLA..."
+                                    name="sla_limit" maxlength="125">
+                            </div>
+                        </div>
+                         <div class="form-group">
+                            <label class="control-label">Throughput</label>
+                            <div class="input-group" style="width: 600px;">
+                                <input class="form-control input-sm" style="width: 500px;" id="sla_throughput"
+								placeholder="Enter the desired workload throughput for this SLA..."
+                                    name="sla_throughput" maxlength="125">
+                            </div>
+                        </div> -->
+                        
+						<div class="form-group">
+							<label for="connect_profile_name" class="control-label">On Connect Profile</label> 
+							<select class="form-control input-sm" id="connect_profile_name" name="connect_profile_name" style="width: 500px;">
+
+							</select>
+						</div>
+						<div class="form-group">
+							<label for="disconnect_profile_name" class="control-label">On Disconnect Profile</label> 
+							<select class="form-control input-sm" id="disconnect_profile_name" name="disconnect_profile_name" style="width: 500px;">
+
+							</select>
+						</div>
+						<label id="add-sla-error-message" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></label>
+					</form>
+				</div>
+				<div class="modal-footer" style="overflow:hidden">
+				<img id="sla-dialog-spinner" style="padding-right: 5px;" src="img/ajax-loader.gif" />
+					<input id="slaApplyButton" class="btn btn-primary"
+						type="button" value="Apply">
+					<input id="slaResetButton" class="btn btn-primary"
+						type="button" value="Reset">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+					</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="sla-delete-dialog" tabindex="-1" role="dialog"
+		aria-labelledby="sla-delete-dialog-label" data-backdrop="static"
+		data-keyboard="false">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"
+						aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+					<h4 class="modal-title" id="sla-delete-dialog-label">Confirm Delete SLA</h4>
+				</div>
+				<div class="modal-body">
+					<form id="sla-delete-form">
+                    Are you sure you want to delete the SLA <label id="delete-sla-name"></label>  ? 
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button id="delete-sla-yes-btn" type="button" class="btn btn-primary" data-dismiss="modal">Yes</button>
+					<button type="button" class="btn btn-primary" data-dismiss="modal">No</button>
+				</div>
+			</div>
+		</div>
+	</div>
+<div class="modal fade" id="mapping-dialog" tabindex="-1" role="dialog"
+		aria-labelledby="mapping-dialog-label" data-backdrop="static" data-keyboard="false">
+		<div class="modal-dialog" role="document" style="oveflow:auto;font-size:13px">
+			<div class="modal-content" style="overflow:auto;height:750px;width:850px">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"
+						aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+					<h4 class="modal-title" id="mapping-dialog-label">Add Mapping</h4>
+				</div>
+				<div class="modal-body">
+					<form id="mapping-form">
+						<fieldset style="border: 1px solid gray;padding:10px;">
+                      	<legend style="font-size:13px;width:auto;margin-bottom: 5px;color: black;font-weight: bold;">Attributes :</legend>
+	                        <div class="form-group col-md-12" style="margin-bottom: 5px;">
+	                            <label class="control-label">Mapping Name<span
+	                                style="color: red"> *</span></label>
+	                            <div class="input-group" style="width: 600px;">
+	                                <input class="form-control input-sm" style="width: 600px;" id="mapping_name"
+	                                    name="mapping_name" maxlength="125"/>
+	                            </div>
+	                        </div>
+                        <div class="form-group col-md-12" style="margin-bottom: 5px;">
+							<label for="mapping_sla" class="control-label">SLA<span
+	                                style="color: red"> *</span></label> 
+							<select class="form-control input-sm" id="mapping_sla" name="mapping_sla" style="width: 300px;">
+
+							</select>
+						</div>	
+						<div class="form-group col-md-6" style="margin-bottom: 5px;">
+							<label for="mapping_state" class="control-label">Is Active<span
+	                                style="color: red"> *</span></label> 
+							<select class="form-control input-sm" id="mapping_state" name ="mapping_state" style="width: 300px;">
+								<option value="yes">Yes</option>
+								<option value="no">No</option>
+							</select>
+						</div>						
+                        <div class="form-group col-md-6" style="margin-bottom: 5px;">
+                            <label class="control-label">Order Number<span
+                                style="color: red"> *</span></label>
+                            <div class="input-group" style="width: 400px;">
+                                <input class="form-control input-sm" style="width: 300px;" id="mapping_seq_no"
+								placeholder="Enter a order number for searching mappings ..."
+                                    name="mapping_seq_no" maxlength="125"/>
+                            </div>
+                        </div>	                        
+                        </fieldset>
+                        <fieldset style="border: 1px solid gray;margin-top:10px;padding:10px">
+                        	<legend style="font-size:13px;width:auto;margin-bottom: 5px;color: black;font-weight: bold;">Mapping Criteria :</legend>
+	                        <div class="form-group col-md-6">
+	                            <label class="control-label">User Name</label>
+	                            <div class="input-group" style="width: 400px;">
+	                                <input class="form-control input-sm" style="width: 300px;" id="mapping_user"
+									placeholder="Enter a User Name to match..."
+	                                    name="mapping_user" maxlength="125"/>
+	                            </div>
+	                        </div>
+	                         <div class="form-group col-md-6">
+	                            <label class="control-label">Application Name</label>
+	                            <div class="input-group" style="width: 400px;">
+	                                <input class="form-control input-sm" style="width: 300px;" id="mapping_application"
+									placeholder="Enter the application name to match..."
+	                                    name="mapping_application" maxlength="125"/>
+	                            </div>
+	                        </div>
+	                         <div class="form-group col-md-6">
+	                            <label class="control-label">Role Name</label>
+	                            <div class="input-group" style="width: 400px;">
+	                                <input class="form-control input-sm" style="width: 300px;" id="mapping_role"
+									placeholder="Enter the user's role name to match..."
+	                                    name="mapping_role" maxlength="125"/>
+	                            </div>
+	                        </div>
+	                        <div class="form-group col-md-6">
+	                            <label class="control-label">Session Name</label>
+	                            <div class="input-group" style="width: 400px;">
+	                                <input class="form-control input-sm" style="width: 300px;" id="mapping_session"
+									placeholder="Enter a session name to match..."
+	                                    name="mapping_session" maxlength="125"/>
+	                            </div>
+	                        </div>
+	                        <div class="form-group col-md-6">
+	                            <label class="control-label">Client IP Address</label>
+	                            <div class="input-group" style="width: 400px;">
+	                                <input class="form-control input-sm" style="width: 300px;" id="mapping_client_ip"
+									placeholder="Enter a client IP address to match..."
+	                                    name="mapping_client_ip" maxlength="125"/>
+	                            </div>
+	                        </div>                        
+	                        <div class="form-group col-md-6">
+	                            <label class="control-label">Client Host Name</label>
+	                            <div class="input-group" style="width: 400px;">
+	                                <input class="form-control input-sm" style="width: 300px;" id="mapping_client_host"
+									placeholder="Enter a client host name to match..."
+	                                    name="mapping_client_host" maxlength="125"/>
+	                            </div>
+	                        </div>
+						</fieldset>
+                        <div class="form-group col-md-12">
+                        	<label id="add-mapping-error-message" style="font-family:Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px;color:red;"></label>
+                        </div>
+      				</form>
+				</div>
+				<div class="modal-footer col-md-12" style="overflow:hidden">
+					<img id="mapping-dialog-spinner" style="padding-right: 5px;" src="img/ajax-loader.gif" />
+					<input id="mappingApplyButton" class="btn btn-primary"
+						type="button" value="Apply">
+					<input id="mappingResetButton" class="btn btn-primary"
+						type="button" value="Reset">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="mapping-delete-dialog" tabindex="-1" role="dialog"
+		aria-labelledby="mapping-delete-dialog-label" data-backdrop="static"
+		data-keyboard="false">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"
+						aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+					<h4 class="modal-title" id="mapping-delete-dialog-label">Confirm Delete Mapping</h4>
+				</div>
+				<div class="modal-body">
+					<form id="mapping-delete-form">
+                    Are you sure you want to delete the mapping <label id="delete-mapping-name"></label>  ? 
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button id="delete-mapping-yes-btn" type="button" class="btn btn-primary" data-dismiss="modal">Yes</button>
+					<button type="button" class="btn btn-primary" data-dismiss="modal">No</button>
+				</div>
+			</div>
+		</div>
+	</div>	
+</div>

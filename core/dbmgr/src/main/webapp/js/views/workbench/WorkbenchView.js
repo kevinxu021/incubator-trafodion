@@ -589,7 +589,7 @@ define([
 			executionQueryText=queryText;
 
 			if(explainQueryText != queryText){
-				lastExplainResult = "";
+				lastExplainResult = null;
 				EXPLAIN_JSON_DATA={};
 				$(VISUAL_EXPLAIN_CONTAINER).hide();
 				$(TEXT_RESULT_CONTAINER).hide();

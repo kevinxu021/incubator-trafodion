@@ -35,13 +35,14 @@ define([
         'views/workloads/WorkloadMappingConfigurationView',
         'views/tools/SQLConverterView',
         'views/tools/ScriptExecutorView',
+        'views/workloads/WorkloadConfigurationView',
         'metismenu'
         ], function($, _, Backbone, NavbarView, DashboardView, WorkbenchView, DCSServerView, LoginView, 
         		SchemasView, SchemaDetailView, SchemaObjectsView, SchemaObjectDetailView,
         		ActiveWorkloadsView, ActiveQueryDetailView, HistoricalWorkloadsView, HistoricalWorkloadDetailView, QueryPlanView, 
         		LogsView, CreateLibraryView, AlterLibraryView, AlertsSummaryView, AlertDetailView, AboutView, Session, Localizer,
         		WorkloadProfileConfigurationView, WorkloadSLAConfigurationView, WorkloadMappingConfigurationView, SQLConverterView,
-        		ScriptExecutorView) {
+        		ScriptExecutorView, WorkloadConfigurationView) {
 	'use strict';
 
 	var currentSelection = null;
@@ -72,7 +73,8 @@ define([
 	var workloadSLAConfigurationView = null;
 	var workloadMappingConfigurationView = null;
 	var scriptExecutorView = null;
-
+	var workloadConfigurationView = null;
+	
 	var AppRouter = Backbone.Router.extend({
 		execute: function(callback, args, name) {
 			if (Session.getUser() == null) {
@@ -109,6 +111,7 @@ define([
 			'workloads/configuration/profiles':'showWorkloadProfiles',
 			'workloads/configuration/slas':'showWorkloadSLAs',
 			'workloads/configuration/mappings':'showWorkloadMappings',
+			'workloads/configuration':'showWorkloadConfiguration',
 			'tools/createlibrary(?*:params)':'createLibrary',
 			'tools/alterlibrary(?*:params)':'alterLibrary',
 			'tools/sqlconverter':'showSQLConverter',
@@ -197,6 +200,7 @@ define([
 		workloadProfileConfigurationView = null;
 		workloadSLAConfigurationView = null;
 		workloadMappingConfigurationView = null;
+		workloadConfigurationView = null;
 		sqlConverterView = null;
 		scriptExecutorView = null;
 		currentView = null;
@@ -344,13 +348,21 @@ define([
 			}
 			switchView(workloadSLAConfigurationView, args);
 		});	
-
+		
 		app_router.on('route:showWorkloadMappings', function (args) {
 			if(workloadMappingConfigurationView == null){
 				workloadMappingConfigurationView = new WorkloadMappingConfigurationView();
 				viewCollection.push(workloadMappingConfigurationView);
 			}
 			switchView(workloadMappingConfigurationView, args);
+		});	
+		
+		app_router.on('route:showWorkloadConfiguration', function (args) {
+			if(workloadConfigurationView == null){
+				workloadConfigurationView = new WorkloadConfigurationView();
+				viewCollection.push(workloadConfigurationView);
+			}
+			switchView(workloadConfigurationView, args);
 		});	
 
 		app_router.on('route:showQueryPlan', function (args) {
