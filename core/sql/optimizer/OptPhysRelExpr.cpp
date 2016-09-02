@@ -5196,11 +5196,16 @@ Context* NestedJoin::createContextForAChild(Context* myContext,
              // in that all the nj fields of the ipp are NULL and only
              // assumeSortedForCosting_ field is TRUE.
              // This is to let optimizer pick ocr plan vs serial Nj P3.
-             if ( njPws->getOCRJoinIsConsidered() )
+             if ( njPws->getOCRJoinIsConsidered() ) {
+
+               ValueIdSet mappedCharOutputs(
+                    child(0).getGroupAttr()->getCharacteristicOutputs());
+
                ippForMyChild = new(CmpCommon::statementHeap())
-                                 InputPhysicalProperty( NULL, NULL,
-                                                        NULL, NULL, TRUE);
-             else
+                                 InputPhysicalProperty(mappedCharOutputs, NULL,
+                                                       NULL, NULL, TRUE);
+
+             } else
                ippForMyChild = generateIpp(sppForChild, TRUE);
           }
           else
@@ -5224,14 +5229,6 @@ Context* NestedJoin::createContextForAChild(Context* myContext,
             // the same. If ippForMyChild is not set to NULL, we will not 
             // get the OCR plan.
             if ( njPws->getOCRJoinIsConsidered() ) {
-
-               const NATable* naTable = getNATableForRightChild();
-               if ( naTable && naTable->isHiveTable() ) {
-                 const ValueIdSet& eqExprOnchild1 =
-                      getOriginalEquiJoinExpressions().getBottomValues();
-
-                 ippForMyChild->setEquiJoinExprForInner(eqExprOnchild1);
-               }
 
                const PartitioningFunction* njDp2OuterOrderPartFunc =
                   ippForMyChild->getNjDp2OuterOrderPartFunc();
@@ -14617,6 +14614,8 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   Lng32 minESPs;
 
   NABoolean canFreelyAdjustDoP = TRUE;
+    
+  NABoolean reqApproxN = FALSE;
 
   if (partReq) {
      minESPs = partReq->getCountOfPartitions();
@@ -14627,6 +14626,7 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
         minESPs = partReq->castToRequireApproximatelyNPartitions()->
                                        getCountOfPartitionsLowBound();
         canFreelyAdjustDoP = TRUE;
+        reqApproxN = TRUE;
      } else { 
 
         if (partReq->castToFuzzyPartitioningRequirement() &&
@@ -14656,12 +14656,16 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   // from the parent.
   if ( canFreelyAdjustDoP ) {
     // following are soft adjustments to numESPs, within the allowed range
-    Lng32 numESPsBasedOnTotalSize = 1;
 
     // adjust minESPs based on HIVE_MIN_BYTES_PER_ESP_PARTITION CQD
     if (bytesPerESP > 1.01) {
       Int64 totalSize = hiveSearchKey_->getTotalSize(); // TBD: exclude eliminated partitions
-      numESPsBasedOnTotalSize = ceil(totalSize/(bytesPerESP-1.0));
+      Lng32 numESPsBasedOnTotalSize = ceil(totalSize/(bytesPerESP-1.0));
+
+      // Fix random distribution for single partition yields badly number of 
+      // distributed rows per ESP.
+      if ( reqApproxN )
+         numESPsBasedOnTotalSize = MAXOF(numESPsBasedOnTotalSize, 2);
 
       if (numESPsBasedOnTotalSize >= maxESPs)
         numESPs = maxESPs;

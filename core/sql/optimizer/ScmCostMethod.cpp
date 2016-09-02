@@ -4903,17 +4903,6 @@ CostMethodFastExtract::scmComputeOperatorCostInternal(RelExpr* op,
 
 NABoolean SimpleFileScanOptimizer::canEliminatePartitionsForHive()
 {
-  const InputPhysicalProperty* ippForMe =
-        getContext().getInputPhysicalProperty();
-
-  if ( !ippForMe ) 
-    return FALSE;
-
-  const ValueIdSet& joinCols = ippForMe->getEquiJoinExprForInner();
-
-  if ( joinCols.isEmpty() )
-    return FALSE;
-
   if ( !(getIndexDesc()->getPrimaryTableDesc()->getNATable()->isHiveTable()) )
     return FALSE;
  
@@ -4921,6 +4910,6 @@ NABoolean SimpleFileScanOptimizer::canEliminatePartitionsForHive()
   if ( !hiveKey )
     return FALSE;
 
-  return hiveKey->canEliminatePartitions(joinCols);
+  return hiveKey->canEliminatePartitions();
 }
 
