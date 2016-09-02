@@ -72,7 +72,6 @@ public:
     void initializeVars();
     static void sigusr2SignalHandler (int , siginfo_t *, void *);
     void setLicenseInfo(long expireTime, bool success);
-    void verifyLicenseExpiration();
     pthread_t tid() { return thread_id_; }
 
     enum { QUIESCE_TIMEOUT_DEFAULT = 30 };  // Max seconds to wait for SE processes to exit 
@@ -87,6 +86,8 @@ private:
     void scheduleNodeDown();
     void timeToVerifyLicense(struct timespec &ts, int myPid);
     bool checkLicenseInternal();
+    void verifyLicense();
+    bool checkLicenseExceededNodes();
     
     HealthCheckStates state_;           // current state of the health check thread
     long long param1_;                  // optional param
@@ -99,6 +100,7 @@ private:
     struct timespec nonresponsiveTime_; // start time when Sync thread became unresponsive
     struct timespec licenseCheckTime_;  // license check time 
     struct timespec licenseExpireTime_; // When the license expires
+    struct timespec nodeFailedTime_;    // When the license expires
     long long wakeupTimeSaved_;         // time when healthcheck thread should wakeup, in secs.
     CProcess * watchdogProcess_;        // ptr to the watchdog process object
     CProcess * smserviceProcess_;       // ptr to the smservice process object
@@ -109,7 +111,8 @@ private:
     bool checkReqResponsive_;           // should req thread be checked for responsiveness or not
     int  monSyncTimeout_;               // timeout (in secs) for sync thread responsiveness
     int  refreshCounter_;               // monitor heartbeats, updated every second.
-    CLicenseCommon *licenseFile_;
+    CLicenseCommon *licenseFile_;       // license
+
 };
 
 #endif

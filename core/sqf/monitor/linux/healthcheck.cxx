@@ -81,6 +81,8 @@ CHealthCheck::CHealthCheck()
     licenseCheckTime_.tv_nsec = 0;
     licenseExpireTime_.tv_sec = 0;
     licenseExpireTime_.tv_nsec = 0;
+    nodeFailedTime_.tv_sec = 0;
+    nodeFailedTime_.tv_nsec = 0;
     
     state_ = HC_AVAILABLE; // default state
     param1_ = 0;
@@ -297,8 +299,8 @@ void CHealthCheck::healthCheckThread()
                 state_ = HC_AVAILABLE;
                 break;
             case MON_CHECK_LICENSE:
-              // verify license expiration date
-              verifyLicenseExpiration();
+              // verify license 
+              verifyLicense();
               state_ = HC_AVAILABLE;
               break;
             default:
@@ -727,26 +729,30 @@ void CHealthCheck::setLicenseInfo(long expireTimeInDays, bool success)
     TRACE_EXIT;
 }
 
-void CHealthCheck::verifyLicenseExpiration()
+void CHealthCheck::verifyLicense()
 {
-    const char method_name[] = "CHealthCheck::verifyLicenseExpiration";
+    const char method_name[] = "CHealthCheck::verifyLicense";
     TRACE_ENTRY;
     bool stopCluster = false;
+    bool licenseExpired = false;
     
     // shouldn't happen, but just in case - read it in again, at this point, it is valid
     if (licenseFile_ == NULL)
     {      
       licenseFile_ = new CLicenseCommon();
     }
-    
+
     //only care about seconds    
     clock_gettime(CLOCK_REALTIME, &currTime_);
-    struct timespec timeLeft;
-    timeLeft.tv_sec = licenseExpireTime_.tv_sec - currTime_.tv_sec;
+    long timeLeft; // use an integer since it can be negative
+    timeLeft = licenseExpireTime_.tv_sec - currTime_.tv_sec;
      
-    if (timeLeft.tv_sec < licenseFile_->getSecsToStartWarning())
+    // If it is within our window to start warning....
+    if (timeLeft < licenseFile_->getSecsToStartWarning())
     {
-      if (timeLeft.tv_sec < 0)
+      licenseExpired = true;
+      // If the license is expired....
+      if (timeLeft < 0)
       {
           switch (licenseFile_->getType())
           {
@@ -760,7 +766,7 @@ void CHealthCheck::verifyLicenseExpiration()
             default:
             {
                 if (trace_settings & TRACE_HEALTH)
-                trace_printf("%s@%d verifyLicenseExpiration, License expired\n", method_name, __LINE__); 
+                trace_printf("%s@%d verifyLicense, License expired\n", method_name, __LINE__); 
         
                 char buf[MON_STRING_BUF_SIZE];
                 sprintf(buf, "[%s], CHealthCheck LICENSE EXPIRED\n", method_name);
@@ -785,7 +791,7 @@ void CHealthCheck::verifyLicenseExpiration()
                     }
                     case HC_KEEP_WARNING:
                     default :
-                    { // do nothing                     
+                    { // do nothing  
                       break;
                     }
                  
@@ -798,17 +804,11 @@ void CHealthCheck::verifyLicenseExpiration()
                 break;
              }
           } //switch
-          
-          if (stopCluster)
-          {
-               CReplShutdown *repl = new CReplShutdown(ShutdownLevel_Abrupt);
-               Replicator.addItem(repl);
-          }
       } //expired
       else
       {
           if (trace_settings & TRACE_HEALTH)
-            trace_printf("%s@%d verifyLicenseExpiration, License expiring soon\n", method_name, __LINE__); 
+            trace_printf("%s@%d verifyLicense, License expiring soon\n", method_name, __LINE__); 
         
           char buf[MON_STRING_BUF_SIZE];
           sprintf(buf, "[%s], CHealthCheck LICENSE EXPIRING\n", method_name);
@@ -824,6 +824,70 @@ void CHealthCheck::verifyLicenseExpiration()
           licenseCheckTime_.tv_sec=currTime_.tv_sec+LICENSE_SEVEN_DAYS; 
     }
     
+    // Check to make sure the nodes still match up right, no need to check if license is expired
+    if ((!licenseExpired) && checkLicenseExceededNodes())
+    {  
+       if (trace_settings & TRACE_HEALTH)
+                trace_printf("%s@%d checkLicenseExceededNodes : Number of Nodes in License Exceeded\n", method_name, __LINE__); 
+        
+       char buf[MON_STRING_BUF_SIZE];
+       sprintf(buf, "[%s], CHealthCheck Number of Nodes in License Exceeded\n", method_name);
+       mon_log_write(MON_HEALTHCHECK_LICENSE_NODES, SQ_LOG_ERR, buf); 
+       
+       if (nodeFailedTime_.tv_sec == 0)
+       {
+           nodeFailedTime_.tv_sec = currTime_.tv_sec;
+       }
+       
+       // If we are within our warning window, just warn
+       if ((currTime_.tv_sec - nodeFailedTime_.tv_sec) > licenseFile_->getSecsToStartWarning())
+       {
+           switch (licenseFile_->getType())
+           {
+              case TYPE_DEMO :
+              case TYPE_POC :
+              {
+                   stopCluster = true;
+                   break;
+               }
+               case TYPE_PRODUCT:
+               default:
+               {
+                   switch (licenseFile_->getAction())
+                   {
+                       case HC_STOP_INSTANCE:
+                       {
+                           stopCluster = true;
+                           break;
+                       }
+                       case HC_KEEP_WARNING:
+                       default :
+                       {     
+                           licenseCheckTime_.tv_sec=currTime_.tv_sec+LICENSE_ONE_DAY; 
+                           break;
+                       }        
+                   } // getAction
+               }
+           }  // getType
+       }
+       // warn again in a day
+       else
+       {
+           licenseCheckTime_.tv_sec=currTime_.tv_sec+LICENSE_ONE_DAY; 
+       }
+    }  
+    // Check again in 7 days
+    else
+    {
+        licenseCheckTime_.tv_sec=currTime_.tv_sec+LICENSE_SEVEN_DAYS;  
+    }
+    
+    // IF the action to take upon license issue is to stop the cluster, then do so now
+    if (stopCluster)
+    {
+         CReplShutdown *repl = new CReplShutdown(ShutdownLevel_Abrupt);
+         Replicator.addItem(repl);
+    }
     // Done with the file for now, read it in whenever we need to next.
     if (licenseFile_)
     {
@@ -832,6 +896,21 @@ void CHealthCheck::verifyLicenseExpiration()
     }
     
     TRACE_EXIT;
+}
+
+bool CHealthCheck::checkLicenseExceededNodes()
+{
+    const char method_name[] = "CHealthCheck::checkLicenseExceededNodes";
+    TRACE_ENTRY;
+    bool nodesExceeded = false;
+
+    if (Monitor->GetNumNodes() > licenseFile_->getNumNodes())
+    {
+       nodesExceeded = true;
+    }
+    
+    TRACE_EXIT;
+    return nodesExceeded;
 }
 
 bool CHealthCheck::checkLicenseInternal()
