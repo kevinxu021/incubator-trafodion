@@ -269,7 +269,10 @@ define(['moment',
 					return moment(milliSeconds).utc().format(_this.ISODateFormat);
 				}
 				return "";
-			},
+			};
+			this.formatTrueOrFalse = function(number){
+				return number == 1 ? 'True' : 'False';
+			};
 
 			this.hashString = function(stringVal){
 			  var hash = 0, i, chr, len;
@@ -551,7 +554,44 @@ define(['moment',
 			this.microsecondsToString = function(microseconds){
 				return _this.millisecondsToString(microseconds/1000);
 			};
-			this.millisecondsToString = function(milliseconds) {
+			
+			this.millisecondsToString = function(milliseconds){
+			    var days, hours, minutes, seconds, result;
+			    seconds = Math.floor(milliseconds / 1000);
+			    minutes = Math.floor(seconds / 60);
+			    seconds = seconds % 60;
+			    hours = Math.floor(minutes / 60);
+			    minutes = minutes % 60;
+			    days = Math.floor(hours / 24);
+			    hours = hours % 24;
+			    
+			    if (days > 0) {
+					result = (days > 9 ? days : "0" + days) + " d ";
+				} else {
+					result = "";
+				}
+
+				if (hours > 0) {
+					result += (hours > 9 ? hours : "0" + hours) + ":";
+				} else {
+					result = "00:";
+				}
+
+				if (minutes > 0) {
+					result += (minutes > 9 ? minutes : "0" + minutes) + ":";
+				} else {
+					result += "00:";
+				}
+
+				if (seconds > 0) {
+					result += (seconds > 9 ? seconds : "0" + seconds);
+				} else {
+					result += "00";
+				}
+
+				return result;
+			}
+			this.millisecondsToStringOld = function(milliseconds) {
 				var oneDay = (3600000 * 24);
 				var oneHour = 3600000;
 				var oneMinute = 60000;
@@ -565,6 +605,7 @@ define(['moment',
 				if (milliseconds >= oneDay) {
 					days = Math.floor(milliseconds / oneDay);
 				}
+				milliseconds = milliseconds - (days * oneDay);
 
 				if (milliseconds >= oneHour) {
 					hours = Math.floor(milliseconds / oneHour);
@@ -591,7 +632,7 @@ define(['moment',
 				}
 
 				if (hours > 0) {
-					result = (hours > 9 ? hours : "0" + hours) + ":";
+					result += (hours > 9 ? hours : "0" + hours) + ":";
 				} else {
 					result = "00:";
 				}

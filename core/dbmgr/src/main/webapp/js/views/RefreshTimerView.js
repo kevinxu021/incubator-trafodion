@@ -26,6 +26,10 @@ define([
 		setRefreshInterval: function(interval){
 			_this.refreshTimer.set(interval);
 		},
+
+		getIntervalId: function(){
+			return _this.refreshTimer.getIntervalId();
+		},
 		
 		stopTimer: function(){
 			_this.refreshTimer.stop();
@@ -66,6 +70,10 @@ define([
 
 			_refreshTimer.get = function() {
 				return _interval;
+			};
+			
+			_refreshTimer.getIntervalId = function() {
+				return _interval/(60 * 1000);
 			};
 
 			_refreshTimer.beep = function() {

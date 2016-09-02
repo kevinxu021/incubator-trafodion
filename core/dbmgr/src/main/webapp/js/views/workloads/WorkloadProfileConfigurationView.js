@@ -485,10 +485,10 @@ define([
 						"aTargets": [ selModeColIndex ],
 						"mData": selModeColIndex,
 						"mRender": function ( data, type, full ) {
-							if(data != null){
+							if(data != null && data.toLowerCase() != 'null'){
 								return common.toProperCase(data);
 							}else 
-								return data;
+								return "";
 						}
 					});
 				}
