@@ -999,7 +999,8 @@ void removeBadKeyIndexes( LIST(IndexProperty *)& indexes,
 * Just a cut and pasted from FileScanRule::nextSubstitute(). Creates
 * DP2Scan for the given index.
 *********************************************************************/
-void createAndInsertDP2Scan( const IndexDesc * idesc,
+void createAndInsertDP2Scan( Context* context,
+                             const IndexDesc * idesc,
 			     Scan * bef,
 			      RuleSubstituteMemory *& memory,
 			      const Disjuncts * disjunctsPtr,
@@ -1041,9 +1042,42 @@ void createAndInsertDP2Scan( const IndexDesc * idesc,
             HivePartitionAndBucketKey *hpk =
               new(CmpCommon::statementHeap()) HivePartitionAndBucketKey(
                    bef->getTableDesc());
-            hpk->computePartAndVirtColPredicates(
-                 bef->getGroupAttr(),
-                 fileScan->selectionPred());
+
+            const InputPhysicalProperty* ippForMe =
+                context->getInputPhysicalProperty();
+
+            ValueIdSet selectPred;
+
+            // If the output columns from child0' exist in ippForMe, 
+            // reduce the selection predicates to only
+            // those referencing the output columns. When this happens,
+            // it means that we are the inner table of a NJ and we want
+            // to make sure the partition elimination logic is activated
+            // only for probe columns from child 0. We will not 
+            // eliminate any partitions when the output column set is
+            // empty.
+            if ( ippForMe ) {
+
+               const ValueIdSet& child0Output = 
+                   ippForMe->getNjOuterCharOutputs();
+
+               if ( !child0Output.isEmpty() ) {
+                 selectPred.accumulateReferencingExpressions(
+                    fileScan->selectionPred(),
+                    child0Output,
+                    FALSE, /* do dig inside vegrefs */
+                    FALSE  /* do dig inside inst nulls */
+                 );
+               }
+            } else
+               selectPred = fileScan->selectionPred();
+
+            if ( !selectPred.isEmpty() ) {
+               hpk->computePartAndVirtColPredicates(
+                    bef->getGroupAttr(),
+                    selectPred
+                   );
+            }
 
             hpk->estimateAccessMetrics(fileScan);
             hpk->computeAvgAccessMetrics(fileScan);
@@ -1057,7 +1091,8 @@ void createAndInsertDP2Scan( const IndexDesc * idesc,
         memory->insert(fileScan);
 }
 
-void createAndInsertHbaseScan(IndexDesc * idesc,
+void createAndInsertHbaseScan(Context* context,
+                             IndexDesc * idesc,
 			     Scan * bef,
 			     RuleSubstituteMemory *& memory,
 			     //const MaterialDisjuncts * disjunctsPtr,
@@ -1110,7 +1145,8 @@ void createAndInsertHbaseScan(IndexDesc * idesc,
   memory->insert(hbaseScan);
 }
 
-void createAndInsertScan(IndexDesc * idesc,
+void createAndInsertScan(Context* context,
+                         IndexDesc * idesc,
 			 Scan * bef,
 			 RuleSubstituteMemory *& memory,
 			 //const MaterialDisjuncts * disjunctsPtr,
@@ -1121,9 +1157,9 @@ void createAndInsertScan(IndexDesc * idesc,
                          NABoolean isHbase = FALSE)
 {
    if ( !isHbase )
-     createAndInsertDP2Scan(idesc, bef, memory, disjunctsPtr, oc, ixMdamFlag);
+     createAndInsertDP2Scan(context, idesc, bef, memory, disjunctsPtr, oc, ixMdamFlag);
    else
-     createAndInsertHbaseScan(idesc, bef, memory, disjunctsPtr, generatedCCPreds, oc, ixMdamFlag);
+     createAndInsertHbaseScan(context, idesc, bef, memory, disjunctsPtr, generatedCCPreds, oc, ixMdamFlag);
 }
 
 NABoolean FileScanRule::topMatch(RelExpr * relExpr, Context *context)
@@ -1245,7 +1281,7 @@ RelExpr * generateScanSubstitutes(RelExpr * before,
       else
 	smallestIndex = bef->deriveIndexOnlyIndexDesc()[0];
 
-      createAndInsertScan(smallestIndex,bef,memory,disjunctsPtr,generatedComputedColPreds,oc,MDAM_OFF,isHbase);
+      createAndInsertScan(context, smallestIndex,bef,memory,disjunctsPtr,generatedComputedColPreds,oc,MDAM_OFF,isHbase);
 
     }
     else
@@ -1535,7 +1571,7 @@ RelExpr * generateScanSubstitutes(RelExpr * before,
       MaterialDisjuncts(inSet);
     CMPASSERT(disjunctsPtr0);
 
-    createAndInsertScan(viableIndexes[0]->getIndexDesc(),bef,memory,disjunctsPtr0,generatedComputedColPreds,
+    createAndInsertScan(context, viableIndexes[0]->getIndexDesc(),bef,memory,disjunctsPtr0,generatedComputedColPreds,
 		        comparisonSet[0],viableIndexes[0]->getMdamFlag(),isHbase);
   }
 
@@ -1546,7 +1582,7 @@ RelExpr * generateScanSubstitutes(RelExpr * before,
       //No predicates so select the smallest order/part satisfying index. All the
       //index that are in the viable index set satisfy requirements naturally.
       IndexDesc * smallestIndex = findSmallestIndex(viableIndexes,entry);
-      createAndInsertScan(smallestIndex,bef,memory,disjunctsPtr,generatedComputedColPreds,
+      createAndInsertScan(context, smallestIndex,bef,memory,disjunctsPtr,generatedComputedColPreds,
                           comparisonSet[entry],MDAM_OFF, isHbase);
       //if it is under a nested join then select the index that most number of
       //partitions.
@@ -1556,7 +1592,7 @@ RelExpr * generateScanSubstitutes(RelExpr * before,
 	      findMostPartitionedIndex(viableIndexes,entry);
 	if(partitionedIndex != smallestIndex)
 	{
-	  createAndInsertScan(partitionedIndex,bef,memory,disjunctsPtr,
+	  createAndInsertScan(context, partitionedIndex,bef,memory,disjunctsPtr,
 			      generatedComputedColPreds,comparisonSet[entry],MDAM_OFF, isHbase);
 	}
       }
@@ -1577,7 +1613,7 @@ RelExpr * generateScanSubstitutes(RelExpr * before,
       numIndex = viableIndexes.entries();
       for(CollIndex j=0;j<numIndex;j++)
       {
-	createAndInsertScan(viableIndexes[j]->getIndexDesc(),bef,memory,disjunctsPtr0,
+	createAndInsertScan(context, viableIndexes[j]->getIndexDesc(),bef,memory,disjunctsPtr0,
 		            generatedComputedColPreds,comparisonSet[j],viableIndexes[j]->getMdamFlag(), isHbase);
       }
 

@@ -1484,12 +1484,6 @@ class InputPhysicalProperty : public NABasicObject
     NABoolean getExplodedOcbJoinForCosting() const
       { return explodedOcbJoinForCosting_; }
 
-    const ValueIdSet& getEquiJoinExprForInner() const
-      { return  equiJoinExprOnchild1_; }
-
-    void setEquiJoinExprForInner(const ValueIdSet& x) 
-      { equiJoinExprOnchild1_ = x; }
-
   private:
 
     // Used to pass the characteristic outputs from the left child
@@ -1535,7 +1529,6 @@ class InputPhysicalProperty : public NABasicObject
     
     NABoolean explodedOcbJoinForCosting_ ;
 
-    ValueIdSet equiJoinExprOnchild1_;
 }; // InputPhysicalProperty
 
 #endif /* PHYPROP_HDR */
