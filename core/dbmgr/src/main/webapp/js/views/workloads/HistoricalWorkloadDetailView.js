@@ -273,10 +273,10 @@ define([
 			compDataSet.push(["Est.Cost", result.metrics.est_cost]);
 			compDataSet.push(["Est.Cardinality", common.formatNumberWithCommas(result.metrics.est_cardinality)]);
 			compDataSet.push(["Est.Memory Use", common.bytesToSize(result.metrics.est_total_mem*1024)]);
-			compDataSet.push(["Est.CPU Time", common.millisecondsToString(result.metrics.est_cpu_time/1000)]);
-			compDataSet.push(["Est.IO Time", common.millisecondsToString(result.metrics.est_io_time/1000)]);
-			compDataSet.push(["Est.Message Time", common.millisecondsToString(result.metrics.est_msg_time/1000)]);
-			compDataSet.push(["Est.Idle Time", common.millisecondsToString(result.metrics.est_idle_time/1000)]);
+			compDataSet.push(["Est.CPU Time", common.millisecondsToString(result.metrics.est_cpu_time*1000)]);
+			compDataSet.push(["Est.IO Time", common.millisecondsToString(result.metrics.est_io_time*1000)]);
+			compDataSet.push(["Est.Message Time", common.millisecondsToString(result.metrics.est_msg_time*1000)]);
+			compDataSet.push(["Est.Idle Time", common.millisecondsToString(result.metrics.est_idle_time*1000)]);
 			compDataSet.push(["CPU Path Length", common.microsecondsToStringExtend(result.metrics.cmp_cpu_path_length)]);
 			compDataSet.push(["Number of BMOs", result.metrics.cmp_number_of_bmos]);
 			compDataSet.push(["Compile Overflow Size", common.bytesToSize(result.metrics.cmp_overflow_size*1024)]);
