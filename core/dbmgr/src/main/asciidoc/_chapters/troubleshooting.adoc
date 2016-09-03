@@ -10,7 +10,7 @@
   *
   */
 ////
-[[architecture]]
+[[troubleshooting]]
 == Troubleshooting and Support
 :doctype: book
 :numbered:
