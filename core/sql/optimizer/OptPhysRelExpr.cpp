@@ -14615,8 +14615,6 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
 
   NABoolean canFreelyAdjustDoP = TRUE;
     
-  NABoolean reqApproxN = FALSE;
-
   if (partReq) {
      minESPs = partReq->getCountOfPartitions();
      maxESPs = partReq->getCountOfPartitions();
@@ -14626,7 +14624,6 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
         minESPs = partReq->castToRequireApproximatelyNPartitions()->
                                        getCountOfPartitionsLowBound();
         canFreelyAdjustDoP = TRUE;
-        reqApproxN = TRUE;
      } else { 
 
         if (partReq->castToFuzzyPartitioningRequirement() &&
@@ -14664,7 +14661,7 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
 
       // Fix random distribution for single partition yields badly number of 
       // distributed rows per ESP.
-      if ( reqApproxN )
+      if ( CmpCommon::getDefault(COMP_BOOL_208) == DF_ON )
          numESPsBasedOnTotalSize = MAXOF(numESPsBasedOnTotalSize, 2);
 
       if (numESPsBasedOnTotalSize >= maxESPs)

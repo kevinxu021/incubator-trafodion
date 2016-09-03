@@ -751,7 +751,8 @@ SDDkwd__(CAT_ENABLE_QUERY_INVALIDATION, "ON"),
   DDkwd__(COMP_BOOL_205,		"OFF"), // enable reorg on metadata
   DDkwd__(COMP_BOOL_206,		"OFF"), // Internal Usage
   DDkwd__(COMP_BOOL_207,		"OFF"), // Internal Usage
-  DDkwd__(COMP_BOOL_208,		"OFF"), // Internal Usage
+  DDkwd__(COMP_BOOL_208,		"OFF"), // To control min numb of ESPS. 
+                                                // Internal test use.
 
   // Control the number of ESPs per node for hive queries. 
   //  off: use the value of HIVE_NUM_ESPS_PER_DATANODE 
