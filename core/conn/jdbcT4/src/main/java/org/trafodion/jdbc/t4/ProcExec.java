@@ -47,7 +47,7 @@ public class ProcExec {
 				break;
 			case TRANSPORT.TYPE_CALL:
 				if (!proc.ifExists) {
-					throw new IOException("Procedure " + proc.name + " doesnot exist!");
+					return false;
 				}
 				Exec exec = new Exec();
 				String[] args = { "-s", proc.plsql, "-trace" };
@@ -55,7 +55,7 @@ public class ProcExec {
 				break;
 			case TRANSPORT.TYPE_DROP:
 				if (!proc.ifExists) {
-					throw new IOException("Procedure " + proc.name + " doesnot exist!");
+					return false;
 				}
 				deleteStmt_ = this.getInsertStmt();
 				this.deleteStmt_.setString(1, proc.name);
