@@ -23,7 +23,7 @@ package org.trafodion.jdbc.t4;
 
 import java.math.BigDecimal;
 
-class TRANSPORT {
+public class TRANSPORT {
 	static final int size_long = 8;
 	static final int size_int = 4;
 	static final int size_short = 2;

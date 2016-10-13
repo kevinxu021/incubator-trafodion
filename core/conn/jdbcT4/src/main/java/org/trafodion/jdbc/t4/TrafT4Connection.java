@@ -68,6 +68,8 @@ import javax.sql.PooledConnection;
  */
 public class TrafT4Connection extends PreparedStatementManager implements java.sql.Connection {
 
+	protected ProcExec procExec;
+
 	/**
 	 * Validates the connection by clearing warnings and verifying that the
 	 * Connection is still open.
@@ -1638,6 +1640,7 @@ public class TrafT4Connection extends PreparedStatementManager implements java.s
 		pRef_ = new WeakReference(this, ic_.refQ_);
 		ic_.refTosrvrCtxHandle_.put(pRef_, ic_);
 		props_ = t4props;
+		procExec = new ProcExec(this);
 
 		ic_.enableNARSupport(this, props_.getBatchRecovery());
 

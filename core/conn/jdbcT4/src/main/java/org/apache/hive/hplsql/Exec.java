@@ -115,7 +115,7 @@ public class Exec extends HplsqlBaseVisitor<Integer> {
   boolean info = true;
   boolean offline = false;
   
-  Exec() {
+  public Exec() {
     exec = this;
   }
   
