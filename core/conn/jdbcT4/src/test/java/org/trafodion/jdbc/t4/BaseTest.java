@@ -13,7 +13,7 @@ public class BaseTest {
 	protected Logger log = LoggerFactory.getLogger(this.getClass());
 	private static Logger LOG = LoggerFactory.getLogger(BaseTest.class);
 	protected static Connection conn;
-	protected static String url = "jdbc:t4jdbc://10.10.12.8:23400/:";
+	protected static String url = "jdbc:t4jdbc://10.10.10.136:23400/:";
 	protected static String user = "zz";
 	protected static String password = "zz";
 	

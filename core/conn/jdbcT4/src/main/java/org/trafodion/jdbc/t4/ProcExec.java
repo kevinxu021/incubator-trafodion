@@ -18,7 +18,7 @@ public class ProcExec {
 	private final String plQueryString = "SELECT pl_name, pl_text FROM seabase.PROC_MD_TAB WHERE pl_name=?";
 	private final String plInsertString = "UPSERT INTO SEABASE.PROC_MD_TAB values(?,?)";
 	private final String plDeleteString = "DELETE FROM seabase.PROC_MD_TAB WHERE pl_name=?";
-	private final String plsqlRexCreate = "CREATE\\s+(OR\\s+REPLACE\\s+)?PROCEDURE\\s+(\\w+)\\s*\\(.*?\\)\\s+(IS|AS)\\s+(.*)";
+	private final String plsqlRexCreate = "CREATE\\s+(OR\\s+REPLACE\\s+)?PROCEDURE\\s+(\\w+)\\s*(\\(.*?\\))?\\s+(IS|AS)\\s+(.*)";
 	private final String plsqlRexCallOrDrop = "(CALL|DROP)\\s+(\\w+)\\s*\\(.*";
 	private boolean isMDTabExists = false;
 
@@ -115,19 +115,19 @@ public class ProcExec {
 		String uppercaseSql = sql.toUpperCase();
 		switch (type) {
 		case TRANSPORT.TYPE_CREATE:
-			if (sql.matches(plsqlRexCreate)) {
+			if (uppercaseSql.matches(plsqlRexCreate)) {
 				Proc p = new Proc(type,
 						uppercaseSql.replaceFirst(this.plsqlRexCreate, "$2"),
-						"".equals(uppercaseSql.replaceFirst(this.plsqlRexCreate, "$1")),
+						!"".equals(uppercaseSql.replaceFirst(this.plsqlRexCreate, "$1")),
 						sql,
-						uppercaseSql.replaceFirst(this.plsqlRexCreate, "$4"));
+						uppercaseSql.replaceFirst(this.plsqlRexCreate, "$5"));
 				return p;
 			} else {
 				return null;
 			}
 		case TRANSPORT.TYPE_CALL:
 		case TRANSPORT.TYPE_DROP:
-			if (sql.matches(plsqlRexCallOrDrop)) {
+			if (uppercaseSql.matches(plsqlRexCallOrDrop)) {
 				return new Proc(type,
 						uppercaseSql.replaceFirst(this.plsqlRexCreate, "$2"));
 			}

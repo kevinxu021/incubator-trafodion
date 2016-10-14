@@ -77,6 +77,12 @@
 			<artifactId>hadoop-common</artifactId>
 			<version>${hadoop.version}</version>
 			<optional>true</optional>
+			<exclusions>
+				<exclusion>
+					<artifactId>jdk.tools</artifactId>
+					<groupId>jdk.tools</groupId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.antlr</groupId>
