@@ -26,7 +26,7 @@ public class ProcExec {
 		this.connection_ = connection;
 	}
 
-	public synchronized boolean duleWithPLSQL(short sqlStmtType_, String sql) throws Exception {
+	public synchronized boolean duleWithPLSQL(short sqlStmtType_, String sql) throws SQLException {
 		try {
 			Proc proc = parserSql(sqlStmtType_, sql);
 			if (proc == null) {
@@ -38,7 +38,7 @@ public class ProcExec {
 			switch (proc.type) {
 			case TRANSPORT.TYPE_CREATE:
 				if (proc.ifExists || !proc.hasReplace) {
-					throw new IOException("Procedure " + proc.name + " exists!");
+					throw new SQLException("Procedure " + proc.name + " exists!");
 				}
 				insertStmt_ = this.getInsertStmt();
 				this.insertStmt_.setString(1, proc.name);
@@ -65,8 +65,8 @@ public class ProcExec {
 			default:
 				return false;
 			}
-		} catch (SQLException e) {
-			e.printStackTrace();
+		}catch (Exception ex){
+			throw new SQLException(ex);
 		}
 		return true;
 	}

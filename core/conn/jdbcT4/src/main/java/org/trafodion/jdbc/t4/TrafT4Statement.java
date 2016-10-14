@@ -221,8 +221,8 @@ public class TrafT4Statement extends TrafT4Handle implements java.sql.Statement 
 			connection_.props_.getLogWriter().println(temp);
 		}
 		validateExecDirectInvocation(sql);
-		if (this.connection_.procExec.isPLSQL(this.sqlStmtType_, sql) != null) {
-			return this.connection_.procExec.run(sql);
+		if (this.connection_.procExec.duleWithPLSQL(this.sqlStmtType_, sql)) {
+			return false;
 		}
 		try {
 			ist_.execute(TRANSPORT.SRVR_API_SQLEXECDIRECT, 0, 0, null, queryTimeout_, sql_, this);
