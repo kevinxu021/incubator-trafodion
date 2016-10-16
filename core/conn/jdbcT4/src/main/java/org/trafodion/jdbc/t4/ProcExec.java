@@ -19,7 +19,8 @@ public class ProcExec {
 	private final String plInsertString = "UPSERT INTO SEABASE.PROC_MD_TAB values(?,?)";
 	private final String plDeleteString = "DELETE FROM seabase.PROC_MD_TAB WHERE pl_name=?";
 	private final String plsqlRexCreate = "CREATE\\s+(OR\\s+REPLACE\\s+)?PROCEDURE\\s+(\\w+)\\s*(\\(.*?\\))?\\s+(IS|AS)\\s+(.*)";
-	private final String plsqlRexCallOrDrop = "(CALL|DROP)\\s+(\\w+)\\s*\\(.*";
+	private final String plsqlRexCall = "CALL\\s+(\\w+)\\s*\\(.*";
+	private final String plsqlRexDrop = "DROP\\s+PROCEDURE\\s+(\\w+).*";
 	private boolean isMDTabExists = false;
 
 	public ProcExec(TrafT4Connection connection) {
@@ -37,7 +38,7 @@ public class ProcExec {
 
 			switch (proc.type) {
 			case TRANSPORT.TYPE_CREATE:
-				if (proc.ifExists || !proc.hasReplace) {
+				if (proc.ifExists && !proc.hasReplace) {
 					throw new SQLException("Procedure " + proc.name + " exists!");
 				}
 				insertStmt_ = this.getInsertStmt();
@@ -49,23 +50,23 @@ public class ProcExec {
 				if (!proc.ifExists) {
 					return false;
 				}
-				Exec exec = new Exec();
-				String[] args = { "-s", proc.plsql, "-trace" };
+				Exec exec = new Exec(this.connection_);
+				String[] args = { "-e", proc.plsql, "-trace" };
 				exec.run(args);
 				break;
 			case TRANSPORT.TYPE_DROP:
 				if (!proc.ifExists) {
 					return false;
 				}
-				deleteStmt_ = this.getInsertStmt();
+				deleteStmt_ = this.getDeleteStmt();
 				this.deleteStmt_.setString(1, proc.name);
-				this.deleteStmt_.setString(2, proc.originalSql);
 				this.deleteStmt_.execute();
 				break;
 			default:
 				return false;
 			}
-		}catch (Exception ex){
+		} catch (Exception ex) {
+			ex.printStackTrace();
 			throw new SQLException(ex);
 		}
 		return true;
@@ -80,7 +81,7 @@ public class ProcExec {
 			if (rs.next()) {
 				proc.originalSql = rs.getString(2);
 				proc.ifExists = true;
-				proc.plsql = proc.originalSql.toUpperCase().replaceFirst(this.plsqlRexCreate, "$4");
+				proc.plsql = proc.originalSql.toUpperCase().replaceFirst(this.plsqlRexCreate, "$5");
 			}
 		} catch (SQLException e) {
 			throw e;
@@ -126,10 +127,15 @@ public class ProcExec {
 				return null;
 			}
 		case TRANSPORT.TYPE_CALL:
-		case TRANSPORT.TYPE_DROP:
-			if (uppercaseSql.matches(plsqlRexCallOrDrop)) {
+			if (uppercaseSql.matches(plsqlRexCall)) {
 				return new Proc(type,
-						uppercaseSql.replaceFirst(this.plsqlRexCreate, "$2"));
+						uppercaseSql.replaceFirst(this.plsqlRexCall, "$1"));
+			}
+			break;
+		case TRANSPORT.TYPE_DROP:
+			if (uppercaseSql.matches(plsqlRexDrop)) {
+				return new Proc(type,
+						uppercaseSql.replaceFirst(this.plsqlRexDrop, "$1"));
 			}
 			break;
 		default:
@@ -158,6 +164,11 @@ public class ProcExec {
 	private PreparedStatement getInsertStmt() throws SQLException {
 		initStmt();
 		return this.insertStmt_;
+	}
+
+	private PreparedStatement getDeleteStmt() throws SQLException {
+		initStmt();
+		return this.deleteStmt_;
 	}
 
 	private synchronized void initStmt() throws SQLException {

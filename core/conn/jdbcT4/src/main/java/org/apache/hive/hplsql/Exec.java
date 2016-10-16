@@ -114,10 +114,16 @@ public class Exec extends HplsqlBaseVisitor<Integer> {
   boolean trace = false; 
   boolean info = true;
   boolean offline = false;
+  private Connection jdbcConn;
   
   public Exec() {
     exec = this;
   }
+  
+	public Exec(Connection conn) {
+		this.jdbcConn = conn;
+		this.exec = this;
+	}
   
   Exec(Exec exec) {
     this.exec = exec;
@@ -773,9 +779,12 @@ public class Exec extends HplsqlBaseVisitor<Integer> {
       return 1;
     }
     // specify the default log4j2 properties file.
-    System.setProperty("log4j.configurationFile", "hive-log4j2.properties");
+    //System.setProperty("log4j.configurationFile", "hive-log4j2.properties");
     conf = new Conf();
-    conf.init();    
+    conf.init();  
+    conf.set(Conf.CONN_DEFAULT, "trafodion");
+    conf.set("hplsql.conn.trafodion", "trafodion");
+    
     conn = new Conn(this);
     meta = new Meta(this);
     initOptions();
@@ -2287,6 +2296,10 @@ public class Exec extends HplsqlBaseVisitor<Integer> {
       conn = exec.conf.defaultConnection;
     }
     return exec.conn.getConnection(conn);
+  }
+  
+  Connection getTrafConnection(){
+	  return this.jdbcConn;
   }
   
   /**

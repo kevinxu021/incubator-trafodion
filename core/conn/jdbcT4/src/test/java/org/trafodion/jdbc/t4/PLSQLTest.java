@@ -15,9 +15,26 @@ public class PLSQLTest extends BaseTest {
 				+ "a integer := 1; "
 				+ "b integer := 2; "
 				+ "begin "
-				+ "select count(1) from (values(1)) x(a) "
+				+ "select count(1) from (values(1)) x(a);"
 				+ "end aaa");
 		st.close();
 		
 	}
+	
+	@Test
+	public void drop() throws SQLException{
+		create();
+		Statement st = this.conn.createStatement();
+		st.execute("drop procedure aaa");
+		st.close();
+	}
+	
+	@Test
+	public void runproc() throws SQLException{
+		create();
+		Statement st = this.conn.createStatement();
+		st.execute("call aaa()");
+		st.close();
+	}
+	
 }

@@ -176,6 +176,8 @@ public class Conn {
    * @throws Exception 
    */
   Connection openConnection(String connStr) throws Exception {
+	  if(connStr.contains("trafodion"))
+		  return this.exec.getTrafConnection();
     String driver = "org.apache.hadoop.hive.jdbc.HiveDriver";
     StringBuilder url = new StringBuilder();
     String usr = "";
