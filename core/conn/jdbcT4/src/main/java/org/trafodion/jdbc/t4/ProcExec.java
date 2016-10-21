@@ -18,7 +18,7 @@ public class ProcExec {
 	private final String plQueryString = "SELECT pl_name, pl_text FROM seabase.PROC_MD_TAB WHERE pl_name=?";
 	private final String plInsertString = "UPSERT INTO SEABASE.PROC_MD_TAB values(?,?)";
 	private final String plDeleteString = "DELETE FROM seabase.PROC_MD_TAB WHERE pl_name=?";
-	private final String plsqlRexCreate = "CREATE\\s+(OR\\s+REPLACE\\s+)?PROCEDURE\\s+(\\w+)\\s*(\\(.*?\\))?\\s+(IS|AS)\\s+(.*)";
+	private final String plsqlRexCreate = "CREATE\\s+(OR\\s+REPLACE\\s+)?PROCEDURE\\s+(\\w+)\\s*(\\(.*?\\))?\\s+(IS|AS\\s+)?BEGIN\\s+(.*)";
 	private final String plsqlRexCall = "CALL\\s+(\\w+)\\s*\\(.*";
 	private final String plsqlRexDrop = "DROP\\s+PROCEDURE\\s+(\\w+).*";
 	private boolean isMDTabExists = false;
@@ -43,15 +43,23 @@ public class ProcExec {
 				}
 				insertStmt_ = this.getInsertStmt();
 				this.insertStmt_.setString(1, proc.name);
-				this.insertStmt_.setString(2, proc.originalSql);
+				this.insertStmt_.setString(2, sql);
 				this.insertStmt_.execute();
 				break;
 			case TRANSPORT.TYPE_CALL:
 				if (!proc.ifExists) {
 					return false;
 				}
+				String deli = "";
+				String deli_sql = "";
+				if (!proc.originalSql.trim().endsWith(";")) {
+					deli = ";";
+				}
+				if (!sql.trim().endsWith(";")) {
+					deli_sql = ";";
+				}
 				Exec exec = new Exec(this.connection_);
-				String[] args = { "-e", proc.plsql, "-trace" };
+				String[] args = { "-e", proc.originalSql + deli + sql + deli_sql, "-trace" };
 				exec.run(args);
 				break;
 			case TRANSPORT.TYPE_DROP:

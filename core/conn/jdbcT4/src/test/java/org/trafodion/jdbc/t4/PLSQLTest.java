@@ -5,36 +5,36 @@ import java.sql.Statement;
 
 import org.junit.Test;
 
-public class PLSQLTest extends BaseTest { 
-	
+public class PLSQLTest extends BaseTest {
+
 	@Test
-	public void create() throws SQLException{ 
+	public void create() throws SQLException {
 		Statement st = this.conn.createStatement();
-		st.execute("create or replace procedure aaa "
-				+ "is "
-				+ "a integer := 1; "
-				+ "b integer := 2; "
-				+ "begin "
-				+ "select count(1) from (values(1)) x(a);"
-				+ "end aaa");
+		st.execute("CREATE or replace PROCEDURE set_message(IN name STRING) " +
+				"BEGIN " +
+				"DECLARE str STRING DEFAULT 'Hello, ' || name || '!'; " +
+				"DECLARE cnt INT;" +
+				"EXECUTE 'insert into seabase.a values(1)'; " +
+				"EXECUTE 'select count(*) from seabase.a' INTO cnt; " +
+				"print cnt || ',' || name; " +
+				"END;");
 		st.close();
-		
 	}
-	
+
 	@Test
-	public void drop() throws SQLException{
+	public void drop() throws SQLException {
 		create();
 		Statement st = this.conn.createStatement();
-		st.execute("drop procedure aaa");
+		st.execute("drop procedure set_message");
 		st.close();
 	}
-	
+
 	@Test
-	public void runproc() throws SQLException{
+	public void runproc() throws SQLException {
 		create();
 		Statement st = this.conn.createStatement();
-		st.execute("call aaa()");
+		st.execute("call set_message('aa')");
 		st.close();
 	}
-	
+
 }
