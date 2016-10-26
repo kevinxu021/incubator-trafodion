@@ -1,6 +1,9 @@
 package org.trafodion.ci.loader;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Iterator;
@@ -9,6 +12,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.cli.BasicParser;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.apache.commons.io.filefilter.SuffixFileFilter;
@@ -26,22 +34,31 @@ public class TrafLoader extends Thread {
 		this.config = config;
 		this.startTime = System.currentTimeMillis();
 
-		config.put("with_head", "false");
-		config.put("target_table", "SUNNYOPT.QNT");
-		config.put("source_path", "d:\\test");
-		config.put("delimiter", "~");
-		config.put("batch_size", "5000");
-		config.put("max_thread_size", "3");
-		int max_thread_size = Integer.parseInt(config.getProperty("max_thread_size", "3"));
-		config.put("user", "zz");
-		config.put("pwd", "zz");
-		config.put("url", "jdbc:t4jdbc://10.10.10.8:23400/:maxPoolSize=" + max_thread_size);
 	}
 
-	public static void main(String[] args) throws ClassNotFoundException {
+	public static void main(String[] args) throws ClassNotFoundException, ParseException, FileNotFoundException, IOException {
 		Properties p = new Properties();
-		new TrafLoader(p).start();
+		Options options = new Options();
+		options.addOption("f", true, "Specify a configuration file.");
 
+		CommandLineParser parser = new BasicParser();
+		CommandLine cmd = parser.parse(options, args);
+		if(cmd.hasOption("f")){
+			p.load(new FileInputStream(cmd.getOptionValue("f")));
+		}else{
+			p.put("with_head", "false");
+			p.put("target_table", "SUNNYOPT.QNT");
+			p.put("source_path", "d:\\test");
+			p.put("delimiter", "~");
+			p.put("batch_size", "5000");
+			p.put("max_thread_size", "3");
+			int max_thread_size = Integer.parseInt(p.getProperty("max_thread_size", "3"));
+			p.put("user", "zz");
+			p.put("pwd", "zz");
+			p.put("url", "jdbc:t4jdbc://10.10.10.8:23400/:maxPoolSize=" + max_thread_size);
+		}
+
+		new TrafLoader(p).start();
 	}
 
 	@Override
