@@ -22,40 +22,39 @@
 package org.trafodion.ci;
 
 import java.io.ByteArrayInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.io.InputStream;
+import java.net.UnknownHostException;
+import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.text.DateFormat;
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
+import java.util.TreeMap;
+import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import java.sql.PreparedStatement;
 
+import org.trafodion.ci.executor.GenericExecutor;
+import org.trafodion.ci.executor.ObeyExecutor;
 import org.trafodion.jdbc.t4.TrafT4Statement;
 
-import java.lang.InterruptedException;
-
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.Vector;
-import java.sql.Connection;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
-import java.net.UnknownHostException;
 
 public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 	private HashMap<String, String> iqKeyMap = null;
@@ -86,7 +85,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 
 	InterfaceQuery(Session sessObj) {
 		super(sessObj);
-		iqKeyMap = new HashMap<String,String>();
+		iqKeyMap = new HashMap<String, String>();
 		envMap = sessObj.getEnvMap();
 		loadIqKeyWordMap();
 		loadEnvVarMap(); // loads the env variables in the pattern hashmap
@@ -269,7 +268,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 		case DOTNS:
 		case DOTWMS:
 
-			if (!sessObj.isDBConnExists()) // Added  2010-03-01
+			if (!sessObj.isDBConnExists()) // Added 2010-03-01
 			{
 				displayNoConnInfo();
 				break;
@@ -344,6 +343,13 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 		Comparator<File> fileAlphabetize = new FilenameComparator();
 
 		String obeyFileName = parser.getNextFileToken();
+		GenericExecutor oe = new ObeyExecutor(sessObj.getConnObj(), sessObj.getSessionServer(), sessObj.getSessionUser(),
+				sessObj.getSessionPass(), sessObj.getSessionPort(), obeyFileName);
+		if (oe.matched()) {
+			oe.run();
+			System.out.println("success");
+			return;
+		}
 		obeyFileName = (obeyFileName == null) ? "" : obeyFileName.trim();
 
 		if (obeyFileName.equals("")) {
@@ -408,7 +414,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 					'E',
 					new ErrorObject(SessionError.OBEY_PATH_NOT_FOUND
 							.errorCode(), SessionError.OBEY_PATH_NOT_FOUND
-							.errorMessage()));
+									.errorMessage()));
 			return;
 		}
 
@@ -653,7 +659,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 			return;
 		}
 
-		// writer.writeln("CATALOG        ",(sessObj.getSessionCtlg()));
+		// writer.writeln("CATALOG ",(sessObj.getSessionCtlg()));
 		handleOutput("COLSEP         ", "\"" + sessObj.getSessionColSep()
 				+ "\"");
 		handleOutput("HISTOPT        ", (sessObj.isSessionHistoryAll() ? "ALL"
@@ -679,8 +685,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 			handleOutput("LOG            ", "OFF", false);
 		handleOutput("MARKUP         ", (sessObj.getStrDisplayFormat()), false);
 		handleOutput("PROMPT         ", (sessObj.getSessionPrompt()), false);
-		if (sessObj.isDBConnExists())
-		{
+		if (sessObj.isDBConnExists()) {
 			handleOutput("SCHEMA         ", (sessObj.getSessionSchema()), false);
 			handleOutput("SERVER         ", sessObj.getSessionServer()
 					+ sessObj.getSessionPort(), false);
@@ -697,7 +702,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 				: "OFF"), false);
 		handleOutput("TIMING         ", (sessObj.isSessionTimingOn() ? "ON"
 				: "OFF"), false);
-		if (sessObj.isDBConnExists())// Changed  2010-03-01
+		if (sessObj.isDBConnExists()) // Changed 2010-03-01
 		{
 			handleOutput("USER           ", (sessObj.getSessionUser()), false);
 		} else {
@@ -727,7 +732,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 		int showId = Integer.parseInt(showOption);
 		sessObj.getQuery().setQueryId(showId);
 
-//		String setValue;
+		// String setValue;
 
 		switch (showId) {
 		case SHOW_TIME:
@@ -763,9 +768,9 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 
 		case SHOW_SQLPROMPT:
 
-			//change for show schemas can't executed in cs mode
+			// change for show schemas can't executed in cs mode
 			if (sessObj.getMode() != SessionDefaults.SQL_MODE && sessObj.getMode() != SessionDefaults.CS_MODE) {
-//			if (sessObj.getMode() != SessionDefaults.SQL_MODE) {
+				// if (sessObj.getMode() != SessionDefaults.SQL_MODE) {
 				this.invalidCmdforMode(sessObj.getMode());
 				break;
 			}
@@ -783,7 +788,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 				writeSyntaxError(this.queryStr, parser.getRemainderStr());
 				break;
 			}
-			if (sessObj.isDBConnExists()) // Modified  2010-03-01
+			if (sessObj.isDBConnExists()) // Modified 2010-03-01
 			{
 				handleOutput("CATALOG", (sessObj.getSessionCtlg()));
 			} else {
@@ -807,7 +812,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 				writeSyntaxError(this.queryStr, parser.getRemainderStr());
 				break;
 			}
-			if (sessObj.isDBConnExists()) // Modified  2010-03-01
+			if (sessObj.isDBConnExists()) // Modified 2010-03-01
 			{
 				handleOutput("SCHEMA", (sessObj.getSessionSchema()));
 			} else {
@@ -822,7 +827,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 				writeSyntaxError(this.queryStr, parser.getRemainderStr());
 				break;
 			}
-			if (sessObj.isDBConnExists()) // Modified  2010-03-01
+			if (sessObj.isDBConnExists()) // Modified 2010-03-01
 			{
 				handleOutput("ROLE", (sessObj.getSessionRole()));
 			} else {
@@ -872,7 +877,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 				break;
 			}
 
-			if (sessObj.isDBConnExists()) // Modified  2010-03-01
+			if (sessObj.isDBConnExists()) // Modified 2010-03-01
 			{
 				String processName = sessObj.getNeoProcessName();
 				handleOutput("REMOTE PROCESS", processName);
@@ -885,14 +890,14 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 		case SHOW_MODE:
 			writer.writeln();
 			writer.writeError(sessObj, SessionError.CMD_NOT_SEAQUEST_SUPPORTED);
-/*
- * remove show mode command for seaquest
- */
-//			if (parser.hasMoreTokens()) {
-//				writeSyntaxError(this.queryStr, parser.getRemainderStr());
-//				break;
-//			}
-//			handleOutput("MODE", sessObj.getStrMode());
+			/*
+			 * remove show mode command for seaquest
+			 */
+			// if (parser.hasMoreTokens()) {
+			// writeSyntaxError(this.queryStr, parser.getRemainderStr());
+			// break;
+			// }
+			// handleOutput("MODE", sessObj.getStrMode());
 			break;
 
 		case SHOW_COLSEP:
@@ -940,7 +945,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 				writeSyntaxError(this.queryStr, parser.getRemainderStr());
 				break;
 			} else {
-				HashMap<String,String> paramHash = sessObj.getSessParams();
+				HashMap<String, String> paramHash = sessObj.getSessParams();
 				if ((paramHash != null) && !paramHash.isEmpty()) {
 					Map<String, String> sortedMap = new TreeMap<String, String>(paramHash);
 					Iterator<String> paramNames = sortedMap.keySet().iterator();
@@ -985,7 +990,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 				break;
 			}
 
-			if (!sessObj.isDBConnExists()) // Modified  2010-03-01
+			if (!sessObj.isDBConnExists()) // Modified 2010-03-01
 			{
 				displayNoConnInfo();
 				break;
@@ -1181,7 +1186,8 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 						case SessionDefaults.XML_FORMAT:
 							writer.writeln("     <Name>"
 									+ utils.formatXMLdata(results.get(j)
-											.toString()) + "</Name>");
+											.toString())
+									+ "</Name>");
 							break;
 						case SessionDefaults.HTML_FORMAT:
 							writer.writeln("<tr>");
@@ -1383,7 +1389,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 				break;
 			}
 
-			if (!sessObj.isDBConnExists()) // Modified  2010-03-01
+			if (!sessObj.isDBConnExists()) // Modified 2010-03-01
 			{
 				displayNoConnInfo();
 				break;
@@ -1487,7 +1493,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 				break;
 			}
 
-			if (!sessObj.isDBConnExists()) // Modified  2010-03-01
+			if (!sessObj.isDBConnExists()) // Modified 2010-03-01
 			{
 				displayNoConnInfo();
 				break;
@@ -1739,15 +1745,16 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 				writeSyntaxError(this.queryStr, parser.getRemainderStr());
 				break;
 			} else {
-				// Added  to deal with non-connection situation
+				// Added to deal with non-connection situation
 				if (!sessObj.isDBConnExists()
 						&& (setValue.toUpperCase().indexOf("%USER") != -1
 								|| setValue.toUpperCase().indexOf("%SCHEMA") != -1
 								|| setValue.toUpperCase().indexOf("%SERVER") != -1
 								|| setValue.toUpperCase().indexOf("%MODE") != -1
 								|| setValue.toUpperCase()
-										.indexOf("%DATASOURCE") != -1 || setValue
-								.toUpperCase().indexOf("%ROLE") != -1)) {
+										.indexOf("%DATASOURCE") != -1
+								|| setValue
+										.toUpperCase().indexOf("%ROLE") != -1)) {
 					displayNoConnInfo();
 					break;
 				}
@@ -2333,20 +2340,20 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 
 	private void displayVersionInfo(boolean srvrErrMsg) throws IOException {
 		String platformVersion = sessObj.getSutVersion();
-		String mxoSrvrVersion  = sessObj.getNdcsVersion();
-                String databaseVersion = sessObj.getDatabaseVersion();
-                String databaseEdition = sessObj.getDatabaseEdition();
+		String mxoSrvrVersion = sessObj.getNdcsVersion();
+		String databaseVersion = sessObj.getDatabaseVersion();
+		String databaseEdition = sessObj.getDatabaseEdition();
 
-		if (databaseVersion != null &&  databaseEdition != null) {
-                    handleOutput("Database Version            : Release ", databaseVersion);
-                    handleOutput("Database Edition            :", databaseEdition,false);
-                } else {
-                    handleOutput("Database Version            :", this.infoNotAvailable, false);
-                    handleOutput("Database Edition            :", this.infoNotAvailable, false);
-                }
-                handleOutput("JDBC Type 4 Driver Build ID :", JDBCVproc.getVproc(), false);
-                handleOutput("Command Interface Build ID  :", Vproc.getVproc(), false);
-               
+		if (databaseVersion != null && databaseEdition != null) {
+			handleOutput("Database Version            : Release ", databaseVersion);
+			handleOutput("Database Edition            :", databaseEdition, false);
+		} else {
+			handleOutput("Database Version            :", this.infoNotAvailable, false);
+			handleOutput("Database Edition            :", this.infoNotAvailable, false);
+		}
+		handleOutput("JDBC Type 4 Driver Build ID :", JDBCVproc.getVproc(), false);
+		handleOutput("Command Interface Build ID  :", Vproc.getVproc(), false);
+
 		writer.writeEndTags(sessObj);
 	}
 
@@ -2381,12 +2388,12 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 			connectArgsList.add("-h");
 			connectArgsList.add(connArgStr);
 		}
-		/*connArgStr = parser.getConnArg("dsn");
-
-		if (connArgStr != null) {
-			connectArgsList.add("-dsn");
-			connectArgsList.add(connArgStr);
-		} */
+		/*
+		 * connArgStr = parser.getConnArg("dsn");
+		 * 
+		 * if (connArgStr != null) { connectArgsList.add("-dsn");
+		 * connectArgsList.add(connArgStr); }
+		 */
 
 		if (parser.hasMoreTokens()) {
 			connectArgsList = null;
@@ -2425,7 +2432,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 		} else
 			paObj.portNumber = sessObj.getSessionPort();
 
-		//paObj.dsnName = sessObj.getSessionDsn();
+		// paObj.dsnName = sessObj.getSessionDsn();
 
 		if (sessObj.isDebugOn()) {
 			System.out.println("Session Role::" + sessObj.getSessionRole());
@@ -2486,14 +2493,14 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 					sessObj.setStmtObj(siObj.getStatement(newConn));
 					sessObj.qsOpen = false;
 					sessObj.setDBConnExists(true);
-                                        boolean trafver = sessObj.getPlatformObjectVersions();
+					boolean trafver = sessObj.getPlatformObjectVersions();
 
 					// Uncomment this line if you need to reset role to DEFAULT;
 					// TempSessionRole is set using SET CONNECTIOPT command
 					// sessObj.setTempSessionRole("");
-					//writer.writeln();
+					// writer.writeln();
 
-			                writer.writeln("Connected to " + sessObj.getDatabaseEdition());
+					writer.writeln("Connected to " + sessObj.getDatabaseEdition());
 
 					sessObj.setQryEndTime();
 					if (printConnTime) {
@@ -2553,10 +2560,10 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 			reconnectArgsList.add(sessObj.getSessionServer()
 					+ sessObj.getSessionPort());
 		}
-		/*if (sessObj.getSessionDsn() != null) {
-			reconnectArgsList.add("-dsn");
-			reconnectArgsList.add(sessObj.getSessionDsn());
-		}*/
+		/*
+		 * if (sessObj.getSessionDsn() != null) { reconnectArgsList.add("-dsn");
+		 * reconnectArgsList.add(sessObj.getSessionDsn()); }
+		 */
 
 		if (sessObj.getSessionRole() != null) {
 			reconnectArgsList.add("-r");
@@ -2591,7 +2598,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 				sessObj.setSessionPass(rcPaObj.password);
 				sessObj.setSessionSever(rcPaObj.serverName);
 				sessObj.setSessionPort(rcPaObj.portNumber);
-				//sessObj.setSessionDsn(rcPaObj.dsnName);
+				// sessObj.setSessionDsn(rcPaObj.dsnName);
 				// Session role will be null only in noconnect mode
 				if (sessObj.getSessionRole() == null)
 					sessObj.setSessionRole(rcPaObj.roleName);
@@ -2610,7 +2617,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 				sessObj.setStmtObj(rcSIObj.getStatement(sessObj.getConnObj()));
 				sessObj.qsOpen = false;
 				sessObj.setDBConnExists(true);
-                                boolean trafver = sessObj.getPlatformObjectVersions();
+				boolean trafver = sessObj.getPlatformObjectVersions();
 				writer.writeln();
 				writer.writeln("Connected to " + sessObj.getDatabaseEdition());
 				rcPaObj.retryCnt = 0;
@@ -2703,7 +2710,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 
 				errorCodeReturn = (errorCodeReturn == null || errorCodeReturn
 						.equals("")) ? SessionDefaults.DEFAULT_EXIT_CODE + ""
-						: errorCodeReturn;
+								: errorCodeReturn;
 
 				try {
 					exitCode = Integer.parseInt(errorCodeReturn.trim());
@@ -2766,7 +2773,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 		if (sessObj.getQuery().getQueryId() == DISCONNECT && exitFlag) {
 			if (sessObj.getConnObj() != null) {
 				try {
-					// Added if statement  2010-03-25
+					// Added if statement 2010-03-25
 					// Move the if statement from handleModeCommand to here
 					// For Mode commmand can run on non-connection status.
 					if (sessObj.getMode() == SessionDefaults.WMS_MODE) {
@@ -2820,7 +2827,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 		TerminalProcessBridge procStdIn = null;
 
 		try {
-//			int idx;
+			// int idx;
 			String osName = System.getProperty("os.name");
 			StringBuffer osCommand = new StringBuffer();
 
@@ -2878,7 +2885,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 				procStdIn.stopReading();
 
 			try {
-//				Thread.currentThread().yield();
+				// Thread.currentThread().yield();
 				Thread.yield();
 			} catch (Exception e) {
 			}
@@ -2949,7 +2956,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 												(cmdStr + parser
 														.getRemainderStr()
 														.toUpperCase())
-														.replaceAll("\\s+", " "))) {
+																.replaceAll("\\s+", " "))) {
 									cmdNo = i + 1;
 									break;
 								}
@@ -3061,7 +3068,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 			sessionError('E', SessionError.SLASH_ERR);
 			return;
 		}
-		if (!sessObj.isDBConnExists()) // Added  2010-03-19
+		if (!sessObj.isDBConnExists()) // Added 2010-03-19
 		{
 			displayNoConnInfo();
 			return;
@@ -3238,7 +3245,6 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 			throw se;
 	}
 
-
 	/**
 	 * Helper method for handleShowIndexes() method to build the index table for
 	 * Table and MVS
@@ -3253,7 +3259,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 	 */
 	private Vector<IndexStruct> buildIndexStructList(String[] ttype,
 			Vector<IndexStruct> indexStructList) throws SQLException,
-			IOException {
+					IOException {
 		DatabaseMetaData dbmd = conn.getMetaData();
 		String sessionCat = sessObj.getSessionCtlg();
 		String sessionSchema = sessObj.getSessionSchema();
@@ -3269,7 +3275,8 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 			// get the index info and build the index list
 			ResultSet indexResultSet = conn.prepareStatement(
 					"showddl " + sessionCat + "." + sessionSchema + "."
-							+ tableName).executeQuery();
+							+ tableName)
+					.executeQuery();
 
 			while (indexResultSet.next()) {
 				String indexname = "";
@@ -3450,17 +3457,18 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 			String keyWordToken, String prepTableName, String[] tmpOptions,
 			String ctlgName, String schemaName, String tableName,
 			int headingLength) throws IOException, SQLException {
-//		int idxColCount = 0;
+		// int idxColCount = 0;
 		for (int options = 0; options < howManyOptions; options++) {
 			keyWordToken = tmpOptions[options];
 			if (keyWordToken == null
 					|| !keyWordToken.equalsIgnoreCase(SqlEnum.INDEXES
 							.toString())
-					&& !keyWordToken.equalsIgnoreCase(SqlEnum.SYNONYMS
-							.toString())
-					&& !keyWordToken.equalsIgnoreCase(SqlEnum.MVS.toString())
-					&& !keyWordToken.equalsIgnoreCase(SqlEnum.TRIGGERS
-							.toString()) || parser.hasMoreTokens()) {
+							&& !keyWordToken.equalsIgnoreCase(SqlEnum.SYNONYMS
+									.toString())
+							&& !keyWordToken.equalsIgnoreCase(SqlEnum.MVS.toString())
+							&& !keyWordToken.equalsIgnoreCase(SqlEnum.TRIGGERS
+									.toString())
+					|| parser.hasMoreTokens()) {
 				writeSyntaxError(this.queryStr, parser.getRemainderStr());
 				return;
 			}
@@ -3481,8 +3489,8 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 				tbrsmd = conn.prepareStatement(
 						"showddl "
 								+ SqlEnum.getFullQualifiedName(ctlgName,
-										schemaName, tableName)).executeQuery();
-
+										schemaName, tableName))
+						.executeQuery();
 
 			// for triggers, mvs & synonyms print all the columns retrieved from
 			// the database
@@ -3591,7 +3599,8 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 						if (k > 0)
 							writer.writeln("  <Name>"
 									+ utils.formatXMLdata(String.valueOf(result
-											.get(k))) + "</Name>");
+											.get(k)))
+									+ "</Name>");
 						break;
 
 					case SessionDefaults.HTML_FORMAT:
@@ -3673,19 +3682,18 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 		 * SessionDefaults.HTML_FORMAT: sessObj.getHtmlObj().init();
 		 * sessObj.getHtmlObj().handleStartTags(); if (howManyOptions > 1) {
 		 * writer.writeln("<tr>"); writer.writeln(" INDEXES");
-		 * writer.writeln("</tr>"); } writer.writeln("<tr>");
-		 * writer.writeln("  <th>" + "COLUMN NAME" + "</th>");
-		 * writer.writeln("  <th>" + "ORDER" + "</th>"); writer.writeln("  <th>"
-		 * + "INDEX TYPE" + "</th>"); writer.writeln("  <th>" + "UNIQUE" +
-		 * "</th>"); writer.writeln("  <th>" + "CARIDNALITY" + "</th>");
-		 * writer.writeln("  <th>" + "POSITION" + "</th>");
-		 * writer.writeln("</tr>"); break; default: writer.writeln(); if
-		 * (howManyOptions > 1) {
-		 * writer.writeln(utils.formatString(SqlEnum.INDEXES .toString(), 52,
-		 * ' ', " ")); writer.writeln(utils.formatString("-", headingLength,
-		 * '-', " ")); } writer.write(utils .formatString("COLUMN NAME", 52,
-		 * ' ', " ")); writer.write(utils.formatString("ORDER", 6, ' ', " "));
-		 * writer .write(utils.formatString("INDEX TYPE", 11, ' ', " "));
+		 * writer.writeln("</tr>"); } writer.writeln("<tr>"); writer.writeln(
+		 * "  <th>" + "COLUMN NAME" + "</th>"); writer.writeln("  <th>" +
+		 * "ORDER" + "</th>"); writer.writeln("  <th>" + "INDEX TYPE" +
+		 * "</th>"); writer.writeln("  <th>" + "UNIQUE" + "</th>");
+		 * writer.writeln("  <th>" + "CARIDNALITY" + "</th>"); writer.writeln(
+		 * "  <th>" + "POSITION" + "</th>"); writer.writeln("</tr>"); break;
+		 * default: writer.writeln(); if (howManyOptions > 1) {
+		 * writer.writeln(utils.formatString(SqlEnum.INDEXES .toString(), 52, '
+		 * ', " ")); writer.writeln(utils.formatString("-", headingLength, '-',
+		 * " ")); } writer.write(utils .formatString("COLUMN NAME", 52, ' ', " "
+		 * )); writer.write(utils.formatString("ORDER", 6, ' ', " ")); writer
+		 * .write(utils.formatString("INDEX TYPE", 11, ' ', " "));
 		 * writer.write(utils.formatString("UNIQUE", 7, ' ', " "));
 		 * writer.write(utils .formatString("CARDINALITY", 12, ' ', " "));
 		 * writer.writeln(utils.formatString("POSITION", 9, ' ', " "));
@@ -3737,9 +3745,9 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 		 * + "</cardinality>"); writer.writeln("      <position>" +
 		 * indexOrdinalPos + "</position>"); writer.writeln("    </col>");
 		 * break; case SessionDefaults.HTML_FORMAT: writer.writeln(" <tr>");
-		 * writer.writeln("   <td>" + indexColName + "</td>"); writer
-		 * .writeln("   <td>" + indexOrder + "</td>"); writer.writeln("   <td>"
-		 * + indexType + "</td>"); writer.writeln("   <td>" + indexUniq +
+		 * writer.writeln("   <td>" + indexColName + "</td>"); writer .writeln(
+		 * "   <td>" + indexOrder + "</td>"); writer.writeln("   <td>" +
+		 * indexType + "</td>"); writer.writeln("   <td>" + indexUniq +
 		 * "</td>"); writer.writeln("   <td>" + indexCardinality + "</td>");
 		 * writer.writeln("   <td>" + indexOrdinalPos + "</td>");
 		 * writer.writeln(" </tr>"); break; default:
@@ -3747,16 +3755,15 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 		 * writer.write(utils.formatString(indexOrder, 6, ' ', " "));
 		 * writer.write(utils.formatString(indexType, 11, ' ', " "));
 		 * writer.write(utils.formatString(indexUniq, 7, ' ', " "));
-		 * writer.write(utils.formatString("", 12, ' ', indexCardinality +
-		 * " ")); writer.write(utils.formatString("", 9, ' ', indexOrdinalPos +
-		 * " ")); writer.writeln(); break; } } while (tbrsmd.next()); break; } }
+		 * writer.write(utils.formatString("", 12, ' ', indexCardinality + " "
+		 * )); writer.write(utils.formatString("", 9, ' ', indexOrdinalPos + " "
+		 * )); writer.writeln(); break; } } while (tbrsmd.next()); break; } }
 		 * switch (sessObj.getDisplayFormat()) { case
 		 * SessionDefaults.XML_FORMAT: writer.writeln("  </Index>");
 		 * writer.writeln("</Indexes>"); break; case
 		 * SessionDefaults.HTML_FORMAT: writer.writeln("</tr>"); break; } //
-		 * writer
-		 * .write(utils.formatString(tbrsmd.getString(SqlEnum.INDEX_NAME.toString
-		 * ()),30,' ')); // writer.writeln();
+		 * writer .write(utils.formatString(tbrsmd.getString(SqlEnum.INDEX_NAME.
+		 * toString ()),30,' ')); // writer.writeln();
 		 *
 		 * }
 		 *
@@ -3964,8 +3971,8 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 
 			}
 			try {
-//				curThread = Thread.currentThread();
-//				curThread.sleep(timeVal);
+				// curThread = Thread.currentThread();
+				// curThread.sleep(timeVal);
 				Thread.sleep(timeVal);
 			} catch (InterruptedException interruptEx) {
 
@@ -4060,7 +4067,7 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 			}
 
 			HashMap<String, String> aliasHash = sessObj.getAliasMap();
-			Map<String,String> sortedMap = new TreeMap<String, String>(aliasHash);
+			Map<String, String> sortedMap = new TreeMap<String, String>(aliasHash);
 			Iterator<String> aliasMapIt = sortedMap.keySet().iterator();
 
 			while (aliasMapIt.hasNext()) {
@@ -4268,7 +4275,6 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 		envMap.put("USER", (sessObj.getSessionUser()));
 
 	}
-
 
 	private void rewriteQryString(String currentMode, String toMode) {
 		String newQry = "MODE " + toMode + sessObj.getSessionSQLTerminator()

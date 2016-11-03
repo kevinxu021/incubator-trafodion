@@ -27,9 +27,11 @@
     <property name="tools.dir" value="/opt/home/tools"/>
 
     <!-- Don't change anything below this line -->
+	<!--
     <exec executable="/bin/sh">
         <arg line="getBuildInfo"/>
     </exec>
+    -->
     <property file="buildId"/>
 
     <property environment="my_env"/>

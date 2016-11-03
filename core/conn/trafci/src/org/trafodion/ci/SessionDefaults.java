@@ -21,7 +21,7 @@
 
 package org.trafodion.ci;
 
-public interface SessionDefaults {
+public interface SessionDefaults {  
    final String DATABASE_EDITION = System.getenv("TRAFODION_VER_PROD");
    final String PROD_NAME = DATABASE_EDITION +" Command Interface ";
    final String APP_NAME = "TrafCI";

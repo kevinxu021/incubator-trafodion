@@ -3,3 +3,4 @@ temp/
 utils/trafci.cmd
 utils/trafci.sh
 /target/
+/bin/

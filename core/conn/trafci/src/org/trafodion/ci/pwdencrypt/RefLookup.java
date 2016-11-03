@@ -31,7 +31,7 @@ import java.io.File;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class RefLookup {
+public class RefLookup { 
 	/** This pattern describes something like 
 	 * 'password = {DES}B/+8B2OcDkKWCFaCfwSwgQ==$'.
 	 * Or more specifically, the word "password" (case insensitive),

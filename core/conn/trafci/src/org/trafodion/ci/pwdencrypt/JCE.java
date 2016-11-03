@@ -48,7 +48,7 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.PBEParameterSpec;
 
 
-public class JCE {
+public class JCE { 
 	public static final String SECRETKEY_ALGORITHM = "PBEWithMD5AndDES";
 	public static final String SYMMETRICKEY_ALGORITHM = "DES";
 	public static final String DIGEST_ALGORITHM = "MD5";

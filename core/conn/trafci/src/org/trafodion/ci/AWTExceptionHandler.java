@@ -27,7 +27,7 @@ public class AWTExceptionHandler{
     
     public void handle(Throwable t)
     { 
-        if(Boolean.getBoolean("trafci.enableTrace"))
+        if(Boolean.getBoolean("trafci.enableTrace")) 
         {
             System.out.println("TrafCI Captured AWT Stack Trace:");
             t.printStackTrace();

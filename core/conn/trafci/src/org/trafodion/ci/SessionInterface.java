@@ -457,7 +457,6 @@ public class SessionInterface implements SessionDefaults
                sessObj.setQueryInterrupted(false);      // to avoid the timing issues
                boolean flag = true;
                
-               
                /* conditional stmts can set this to values other then null */
                if(qryLine == null)
                {

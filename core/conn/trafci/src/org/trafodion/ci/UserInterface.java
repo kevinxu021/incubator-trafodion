@@ -33,12 +33,12 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
 
-import org.trafodion.ci.pwdencrypt.RefLookup;
+import org.trafodion.ci.pwdencrypt.RefLookup; 
 
 
 public class UserInterface {
 
-	static String[] myArgs = null;
+	static String[] myArgs = null; 
 
 	/**
 	 * Main program called when the user logins using the windows/*nux wrapper
@@ -208,7 +208,7 @@ public class UserInterface {
 					{					
 						//System.out.println("Can't obtain hostname, please enter hostname:port");
 						//System.exit(SessionDefaults.abruptExit);
-					}
+					} 
 					else		
 						paObj.serverName = serverName;
 				}
