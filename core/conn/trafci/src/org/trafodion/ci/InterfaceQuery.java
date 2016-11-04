@@ -22,40 +22,39 @@
 package org.trafodion.ci;
 
 import java.io.ByteArrayInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.io.InputStream;
+import java.net.UnknownHostException;
+import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.text.DateFormat;
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
+import java.util.TreeMap;
+import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import java.sql.PreparedStatement;
 
+import org.trafodion.ci.executor.GenericExecutor;
+import org.trafodion.ci.executor.ObeyExecutor;
 import org.trafodion.jdbc.t4.TrafT4Statement;
 
-import java.lang.InterruptedException;
-
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.Vector;
-import java.sql.Connection;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
-import java.net.UnknownHostException;
 
 public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 	private HashMap<String, String> iqKeyMap = null;
@@ -345,6 +344,13 @@ public class InterfaceQuery extends QueryWrapper implements SessionDefaults {
 
 		String obeyFileName = parser.getNextFileToken();
 		obeyFileName = (obeyFileName == null) ? "" : obeyFileName.trim();
+		GenericExecutor oe = new ObeyExecutor(sessObj.getConnObj(), sessObj.getSessionServer(),
+				sessObj.getSessionUser(),
+				sessObj.getSessionPass(), sessObj.getSessionPort(), obeyFileName);
+		if (oe.matched()) {
+			oe.run();
+			return;
+		}
 
 		if (obeyFileName.equals("")) {
 			// if user just hit enter, prompt for a file
