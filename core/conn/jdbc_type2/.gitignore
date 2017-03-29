@@ -2,3 +2,12 @@
 src/main/java/org/trafodion/jdbc/t2/DriverInfo.java
 src/main/resources/META-INF/LICENSE
 src/main/resources/META-INF/NOTICE
+native/org_trafodion_jdbc_t2_DataWrapper.h
+native/org_trafodion_jdbc_t2_JdbcDebug.h
+native/org_trafodion_jdbc_t2_SQLMXCallableStatement.h
+native/org_trafodion_jdbc_t2_SQLMXConnection.h
+native/org_trafodion_jdbc_t2_SQLMXDatabaseMetaData.h
+native/org_trafodion_jdbc_t2_SQLMXPreparedStatement.h
+native/org_trafodion_jdbc_t2_SQLMXResultSet.h
+native/org_trafodion_jdbc_t2_SQLMXStatement.h
+native/org_trafodion_jdbc_t2_T2Driver.h
